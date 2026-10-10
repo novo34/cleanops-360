@@ -30,6 +30,8 @@ jobs:
           config: p/default
       - name: Secret scanning (Gitleaks v2)
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Lint
         run: npm run lint
       - name: Typecheck
