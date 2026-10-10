@@ -1,0 +1,84 @@
+# CLEANOPS 360 — Índice único del paquete para desarrollo
+
+## Cómo empezar
+
+1. `START_HERE.md`: instrucción general.
+2. `CLEANOPS_360_PRODUCT_MASTER_V3.md` y `CLEANOPS_360_SRS_V1_1.md`: fuentes normativas, no reemplazadas.
+3. `ROADMAP.md` y `PHASE_EXECUTION_DOSSIERS.md`: secuencia de las 21 fases.
+4. `DOCUMENTATION_RELEASE_POLICY.md` y `DELIVERY_PLAYBOOK.md`: cómo concretar y aceptar cada slice.
+5. `TEST_CASE_REGISTER.md`: 168 diseños de verificaciones, **no ejecutadas**.
+6. `RBAC_PERMISSIONS.md`: principio DENY y política de evaluación; grants específicos requieren aprobación.
+7. `IMPLEMENTATION_GATES.md`: 30 gates antes de las capacidades que protegen.
+8. `FINAL_DOCUMENTATION_AUDIT.md`: informe de verificación y límites.
+
+## Regla central
+
+Una fase funcional no se cierra sin UI/UX, frontend, backend, persistencia, permisos, pruebas reales, evidencia y aprobación humana. Documentación no es implementación.
+
+## Inventario exacto de archivos
+
+- `ACCEPTANCE_CRITERIA.md`
+- `AI_AGENTS_SPEC.md`
+- `API_SPEC.md`
+- `ARCHITECTURE.md`
+- `AUTHENTICATION_SPEC.md`
+- `BACKUP_RECOVERY_SPEC.md`
+- `CALENDAR_AND_SCHEDULING_SPEC.md`
+- `CLEANOPS_360_PRODUCT_MASTER_V3.md`
+- `CLEANOPS_360_SRS_V1_1.md`
+- `COMPLIANCE_RULES_SPEC.md`
+- `CONTRACT_AUDIT_INCREMENT.md`
+- `CRITICAL_ACCEPTANCE_SCENARIOS.md`
+- `CROSS_DOMAIN_AUDIT.md`
+- `CROSS_DOMAIN_CONTRACT_MATRIX.md`
+- `DATA_MODEL.md`
+- `DECISION_REGISTER.md`
+- `DELIVERY_PLAYBOOK.md`
+- `DEPENDENCY_GRAPH.md`
+- `DOCUMENTATION_CLOSEOUT_AUDIT.md`
+- `DOCUMENTATION_POLICY.md`
+- `DOCUMENTATION_RELEASE_POLICY.md`
+- `DOCUMENT_DEPENDENCIES.md`
+- `EMAIL_AND_COMMUNICATIONS_SPEC.md`
+- `EMPLOYEE_MANAGEMENT_SPEC.md`
+- `ENTITY_UI_COVERAGE.md`
+- `EVENTS_AND_AUTOMATIONS.md`
+- `EXECUTION_REFRAME_AUDIT.md`
+- `FEATURE_TRACEABILITY_MATRIX.md`
+- `FINAL_DOCUMENTATION_AUDIT.md`
+- `FINAL_RELEASE_AUDIT.md`
+- `FINANCE_SPEC.md`
+- `FUNCTIONAL_SPEC.md`
+- `IMPLEMENTATION_GATES.md`
+- `INDEPENDENT_QUALITY_AUDIT.md`
+- `MAINTENANCE_CONTRACT_SPEC.md`
+- `MANUAL_TEST_CHECKLISTS.md`
+- `OFFERS_AND_NEGOTIATION_SPEC.md`
+- `OFFLINE_SYNC_SPEC.md`
+- `ONE_OFF_SERVICE_SPEC.md`
+- `PHASE_ACCEPTANCE_TEMPLATE.md`
+- `PHASE_EXECUTION_DOSSIERS.md`
+- `PLANNING_ENGINE_SPEC.md`
+- `PLANS_AND_DOCUMENTS_SPEC.md`
+- `PRD.md`
+- `PROJECT_OPERATIONS_SPEC.md`
+- `QUALITY_AUDIT_INCREMENT.md`
+- `RBAC_PERMISSIONS.md`
+- `README.md`
+- `RECURRING_SERVICES_SPEC.md`
+- `REQUIREMENTS_COVERAGE.md`
+- `RESPONSIVE_AND_OFFLINE_SPEC.md`
+- `RISKS_AND_OPEN_QUESTIONS.md`
+- `ROADMAP.md`
+- `SECURITY_AND_AUDIT_SPEC.md`
+- `SECURITY_ARCHITECTURE.md`
+- `SPRINT_PLAN.md`
+- `START_HERE.md`
+- `TECHNICAL_SPEC.md`
+- `TESTING_STRATEGY.md`
+- `TEST_CASE_REGISTER.md`
+- `THREAT_MODEL.md`
+- `TIMESHEETS_AND_RAPPORTS_SPEC.md`
+- `UX_UI_SPEC.md`
+- `VALIDATION_EVIDENCE.md`
+- `validate_release.py`

@@ -1,0 +1,22 @@
+# CleanOps 360 — Escenarios de aceptación críticos específicos
+
+**Estado:** CASOS DISEÑADOS, NO EJECUTADOS. Complementa `TEST_CASE_REGISTER.md` y no sustituye cobertura exhaustiva. Las entradas deben pasar por UI real, API, persistencia y auditoría, según la funcionalidad.
+
+| ID | Requisitos / origen | Preparación | Acción | Resultado observable | Negativo / error | Evidencia exigida |
+|---|---|---|---|---|---|---|
+| `SC-WE-01` | `REQ-WE-001`, `REQ-WE-002`, `REQ-TRC-WE-001` | Oferta aceptable asociada a Opportunity OPEN | Aceptar oferta en UI | Opportunity WON, creación WE PENDING, CTA visible; auditoría correlacionada | Reintento de aceptación no crea dos transiciones | Captura UI, transacción DB y audit trail |
+| `SC-WE-02` | `REQ-WE-002`, `REQ-WE-003` | Opportunity WON y WE PENDING | Usuario autorizado pulsa Crear WorkEngagement | WE único CREATED, navegación a ficha; contrato NO se marca firmado | Usuario sin grant recibe 403; doble click idempotente | UI+API+DB+historial |
+| `SC-RAD-01` | `REQ-RAD-003`, `REQ-RAD-004`, `REQ-RAD-005` | Candidate detectado sin Opportunity | Usuario con permiso promueve manualmente | Opportunity enlazada con Candidate y auditoría | Sin permiso: DENY; radar no promociona solo | Candidate/Opportunity/UI/DB |
+| `SC-FUP-01` | `REQ-FUP-002` | Follow-up programado para hilo asociado a Opportunity | Llega respuesta correlacionada | Follow-up cancelado; Opportunity conserva estado anterior | Respuesta de otro hilo no cancela seguimiento | IMAP, job, auditoría, ficha comercial |
+| `SC-TEN-01` | `REQ-TEN-002`, `REQ-TEN-003` | Tenant A y B con documentos y oportunidades | Actor A fuerza ID de B en UI/API | 403/404 sin fuga de metadatos; DB inalterada | Probar lectura, edición, exportación y archivo | Requests, DB diff, logs seguros |
+| `SC-AUTH-01` | `REQ-AUTH-044`, `REQ-AUTH-045`, `REQ-AUTH-046` | Usuario con dispositivo de confianza 30 días | Superar idle timeout de rol | Sesión inválida; confianza no prolonga sesión | Superar plazo absoluto también invalida aunque haya actividad | Cookie, DB sesiones, UI expiración |
+| `SC-AUTH-02` | `REQ-AUTH-040`, `REQ-AUTH-042` | Dos sesiones activas del mismo usuario | Revocar una desde Active Sessions | Sesión elegida deja de autorizar peticiones; otra persiste | Un actor ajeno no puede revocar | UI + API + sesiones DB |
+| `SC-RBAC-01` | `REQ-AUTHZ-001`, `REQ-AUTHZ-007` | Grant válido junto a DENY explícito | Intentar operación `edit` | DENY prevalece; evento auditado | Cross-tenant denegado incluso a Super Admin | Policy decision log y HTTP |
+| `SC-EMP-01` | `REQ-EMP-001`, `REQ-EMP-002` | Empleado con ausencia aprobada | Intentar publicar turno solapado | Rechazo justificado y UI propone revisar | Modificación concurrente exige resolver versión | UI planificación, regla, DB |
+| `SC-CMP-01` | `REQ-CMP-001`, `REQ-CMP-020` | Versión normativa propuesta por IA sin aprobación | Aplicar plan afectado | Solo versión aprobada vigente evalúa y bloquea | Propuesta IA no activa cambios automáticamente | Versiones, fuentes, auditoría |
+| `SC-OFF-01` | Offline spec / instrucciones cliente | Dos dispositivos editan misma instrucción/turno publicado | Reconectar dispositivo retrasado | Conflicto visible, no last-write-wins silencioso | Sesión caducada: reautenticar antes de subir | IndexedDB, API, UI conflicto |
+| `SC-BKP-01` | RPO/RTO / backups | Datos DB y archivo adjunto en periodo medido | Restaurar a instante T soportado | Referencias y bytes coherentes; RPO ≤15m y RTO ≤4h medidos | Archivo faltante bloquea aceptación | Manifiestos, hashes, cronómetro y logs |
+| `SC-RPT-01` | Rapport / facturación | Horas trabajadas, aprobadas y disputadas | Crear borrador factura Regie | Solo horas aprobadas y elegibles; disputadas segregadas | Reintento no factura duplicado | Rapport, factura y ledger |
+| `SC-FIN-01` | Finance spec | Contrato Pauschal con hitos | Emitir factura autorizada | Importe del hito, no multiplicación por horas | Sin aprobación o duplicado: DENY | Contrato, aprobación, emisión |
+| `SC-SVC-01` | `REQ-SVC-001`, `REQ-SVC-002` | Servicio puntual autorizado y staff elegible | Crear, programar, ejecutar y cerrar | E2E en un único motor operativo, factura según contrato | Falta regla laboral o permiso: bloquear | UI/API/DB/turnos/factura |
+| `SC-SVC-02` | Maintenance spec | Contrato recurrente al borde de expiración | Proponer renovación automática | Solo renueva cuando contrato lo autoriza expresamente | Cambios económicos exigen revisión humana | Contrato, versiones, auditoría |
