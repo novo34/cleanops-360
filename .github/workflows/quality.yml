@@ -43,7 +43,7 @@ jobs:
               if data.get("errors"):
                   raise SystemExit(f"{name} scan errors: {data['errors']}")
           ids = {finding["check_id"].split(".")[-1] for finding in unsafe["results"]}
-          expected = {"cleanops-child-process-shell", "cleanops-sql-string-interpolation"}
+          expected = {"cleanops-dangerous-eval", "cleanops-child-process-shell", "cleanops-sql-string-interpolation", "cleanops-ssrf-user-url", "cleanops-sql-taint", "cleanops-code-execution-import", "cleanops-unsafe-innerhtml", "cleanops-hardcoded-secret"}
           missing = expected - ids
           if missing:
               raise SystemExit(f"Missing required positive findings: {sorted(missing)}; got {sorted(ids)}")
