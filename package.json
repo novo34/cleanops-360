@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sbom": "npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --output-file sbom.cdx.json --output-format json"
   },
   "dependencies": {
     "next": "16.4.0",

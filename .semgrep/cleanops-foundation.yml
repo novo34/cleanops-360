@@ -1,0 +1,54 @@
+# CleanOps 360 local Semgrep ruleset.
+# Origin: Semgrep community JavaScript/TypeScript security patterns, curated locally.
+# Version: 1.0.0 (2026-10-12). Review changes as code; CI uses this immutable repository copy.
+rules:
+  - id: cleanops-dangerous-eval
+    languages: [javascript, typescript, javascript, typescript]
+    message: Avoid dynamic code execution; use a typed, explicit implementation.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-95
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)
+
+  - id: cleanops-child-process-shell
+    languages: [javascript, typescript]
+    message: Do not execute shell commands with untrusted or interpolated input.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-78
+    pattern-either:
+      - pattern: child_process.exec($CMD, ...)
+      - pattern: exec($CMD, ...)
+      - pattern: execSync($CMD, ...)
+
+  - id: cleanops-unsafe-innerhtml
+    languages: [javascript, typescript, javascript, typescript]
+    message: Avoid direct HTML injection; sanitize content before rendering.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-79
+    pattern-either:
+      - pattern: $X.innerHTML = $Y
+      - pattern: <$TAG dangerouslySetInnerHTML={$VALUE} />
+
+  - id: cleanops-hardcoded-secret
+    languages: [javascript, typescript, javascript, typescript]
+    message: Do not hardcode credentials or tokens in source code.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-798
+    patterns:
+      - pattern: $NAME = "$VALUE"
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i)(api[_-]?key|secret|token|password|private[_-]?key)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: (?i).{12,}
