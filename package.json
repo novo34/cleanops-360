@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "sbom": "npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --output-file sbom.cdx.json --output-format json"
+    "sbom": "cyclonedx-npm --output-file sbom.cdx.json --output-format json"
   },
   "dependencies": {
     "next": "16.4.0",
@@ -17,6 +17,7 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
