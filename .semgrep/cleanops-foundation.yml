@@ -1,9 +1,9 @@
 # CleanOps 360 local Semgrep ruleset.
 # Origin: Semgrep community JavaScript/TypeScript security patterns, curated locally.
-# Version: 1.0.0 (2026-10-12). Review changes as code; CI uses this immutable repository copy.
+# Version: 1.1.0 (2026-10-12). Review changes as code; CI uses this immutable repository copy.
 rules:
   - id: cleanops-dangerous-eval
-    languages: [javascript, typescript, javascript, typescript]
+    languages: [javascript, typescript]
     message: Avoid dynamic code execution; use a typed, explicit implementation.
     severity: ERROR
     metadata:
@@ -23,11 +23,50 @@ rules:
       cwe: CWE-78
     pattern-either:
       - pattern: child_process.exec($CMD, ...)
+      - pattern: child_process.execSync($CMD, ...)
+      - pattern: child_process.spawn($CMD, ...)
       - pattern: exec($CMD, ...)
       - pattern: execSync($CMD, ...)
 
+  - id: cleanops-sql-string-interpolation
+    languages: [javascript, typescript]
+    message: Do not build SQL or query strings with interpolation; use parameterized queries.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-89
+    patterns:
+      - pattern-either:
+          - pattern: $DB.$METHOD(`...${$VALUE}...`)
+          - pattern: $DB.$METHOD("..." + $VALUE + "...", ...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: (?i)(query|execute|raw|unsafe|findMany|findFirst)
+
+  - id: cleanops-ssrf-user-url
+    languages: [javascript, typescript]
+    message: Validate and allowlist outbound URLs before making server-side requests.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-918
+    patterns:
+      - pattern: fetch($URL, ...)
+      - metavariable-regex:
+          metavariable: $URL
+          regex: ^(req|request|params|searchParams|body)\.
+
+  - id: cleanops-code-execution-import
+    languages: [javascript, typescript]
+    message: Do not dynamically load modules from untrusted input.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-494
+    pattern: import($VALUE)
+
   - id: cleanops-unsafe-innerhtml
-    languages: [javascript, typescript, javascript, typescript]
+    languages: [javascript, typescript]
     message: Avoid direct HTML injection; sanitize content before rendering.
     severity: ERROR
     metadata:
@@ -38,7 +77,7 @@ rules:
       - pattern: <$TAG dangerouslySetInnerHTML={$VALUE} />
 
   - id: cleanops-hardcoded-secret
-    languages: [javascript, typescript, javascript, typescript]
+    languages: [javascript, typescript]
     message: Do not hardcode credentials or tokens in source code.
     severity: ERROR
     metadata:
