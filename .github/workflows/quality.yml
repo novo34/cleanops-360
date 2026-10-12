@@ -26,9 +26,9 @@ jobs:
         run: npm ci
       - name: Dependency vulnerability audit
         run: npm audit --audit-level=high
-      - name: Install Semgrep (v1.144.0)
-        run: python -m pip install --disable-pip-version-check semgrep==1.144.0
-      - name: Static security analysis (Semgrep v1.144.0)
+      - name: Install Semgrep (v1.177.0)
+        run: python -m pip install --disable-pip-version-check semgrep==1.177.0
+      - name: Static security analysis (Semgrep v1.177.0)
         run: semgrep scan --config p/default --error --metrics=off .
       - name: Secret scanning (Gitleaks v2)
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
