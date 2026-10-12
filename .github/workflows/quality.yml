@@ -36,8 +36,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate CycloneDX SBOM (@cyclonedx/cyclonedx-npm v6.0.1)
         run: npm run sbom
-      - name: Upload SBOM artifact (v4.6.2)
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Upload SBOM artifact (v6.0.0)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: cleanops-360-sbom-${{ github.sha }}
           path: sbom.cdx.json
