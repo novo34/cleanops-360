@@ -30,8 +30,27 @@ jobs:
         run: python -m pip install --disable-pip-version-check semgrep==1.177.0
       - name: Static security analysis (Semgrep v1.177.0, local ruleset 1.1.0)
         run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --metrics=off . --exclude .semgrep/cleanops-foundation --exclude .semgrep/cleanops-foundation.ts --exclude .semgrep/fixtures
-      - name: Verify Semgrep rules with semgrep --test
-        run: semgrep --test --config .semgrep/cleanops-foundation.yml --metrics=off .semgrep/cleanops-foundation.ts
+      - name: Verify Semgrep findings on unsafe and safe fixtures
+        run: |
+          semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-unsafe.json .semgrep/cleanops-foundation/unsafe.ts
+          semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-safe.json .semgrep/cleanops-foundation/safe.ts
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          unsafe = json.loads(Path("/tmp/semgrep-unsafe.json").read_text())
+          safe = json.loads(Path("/tmp/semgrep-safe.json").read_text())
+          for name, data in (("unsafe", unsafe), ("safe", safe)):
+              if data.get("errors"):
+                  raise SystemExit(f"{name} scan errors: {data['errors']}")
+          ids = {finding["check_id"].split(".")[-1] for finding in unsafe["results"]}
+          expected = {"cleanops-child-process-shell", "cleanops-sql-string-interpolation"}
+          missing = expected - ids
+          if missing:
+              raise SystemExit(f"Missing required positive findings: {sorted(missing)}; got {sorted(ids)}")
+          if safe["results"]:
+              raise SystemExit(f"Safe fixture triggered findings: {safe['results']}")
+          print("Semgrep fixtures verified: expected findings and zero safe findings")
+          PY
       - name: Secret scanning (Gitleaks v2)
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
         env:
