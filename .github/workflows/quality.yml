@@ -29,9 +29,9 @@ jobs:
       - name: Install Semgrep (v1.177.0)
         run: python -m pip install --disable-pip-version-check semgrep==1.177.0
       - name: Static security analysis (Semgrep v1.177.0, local ruleset 1.1.0)
-        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --metrics=off . --exclude .semgrep/cleanops-foundation --exclude .semgrep/fixtures
+        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --metrics=off . --exclude .semgrep/cleanops-foundation --exclude .semgrep/cleanops-foundation.ts --exclude .semgrep/fixtures
       - name: Verify Semgrep rules with semgrep --test
-        run: semgrep --test --config .semgrep/cleanops-foundation.yml --metrics=off .semgrep/cleanops-foundation
+        run: semgrep --test --config .semgrep/cleanops-foundation.yml --metrics=off .semgrep/cleanops-foundation.ts
       - name: Secret scanning (Gitleaks v2)
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
         env:
