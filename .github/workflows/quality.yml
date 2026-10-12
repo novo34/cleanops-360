@@ -62,7 +62,7 @@ jobs:
           node -e '
             const fs = require("fs");
             const sbom = JSON.parse(fs.readFileSync("sbom.cdx.json", "utf8"));
-            if (sbom.bomFormat !== "CycloneDX" || !/^1\\./.test(sbom.specVersion)) throw new Error("Invalid CycloneDX metadata");
+            if (sbom.bomFormat !== "CycloneDX" || !/^1\./.test(sbom.specVersion)) throw new Error("Invalid CycloneDX metadata");
             if (!sbom.metadata?.component?.name || !Array.isArray(sbom.components) || sbom.components.length === 0) throw new Error("Incomplete SBOM metadata or components");
             if (!sbom.components.some(({ name }) => name === "next")) throw new Error("SBOM does not contain the runtime dependency next");
             if (sbom.metadata.timestamp || sbom.serialNumber) throw new Error("SBOM is not reproducible");
