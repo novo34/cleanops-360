@@ -342,3 +342,12 @@ Auth: fijar timeout absoluto y pruebas de sesiones antes de aceptar F1. Infraest
 - `REQ-FILE-020`: validación segura y almacenamiento de fotografías operativos **antes de fase 9 Visitas**; fase 13 extiende a planos y documentación técnica.
 - `REQ-SVC-001`: G-SVC-ONE se acepta **antes de activar** servicios puntuales; su entrega se integra entre fases 13–18 según dependencias, sin un corte arbitrario de numeración.
 - `REQ-SVC-002`: G-SVC-MAINT se acepta **antes de activar** mantenimiento; la ejecución de renovaciones y cobro debe demostrar el flujo contractual completo.
+
+## Requisito transversal — Gestor de Idiomas y Traducciones
+
+**Origen normativo:** Product Master V3 §109 y SRS V1.1 §29 (DE, ES, EN, IT, PT, SQ). **Especificación derivada aprobada para planificación:** `I18N_LANGUAGE_MANAGEMENT_SPEC.md`.
+
+- **Desde Fase 0:** arquitectura i18n preparada para módulos nuevos, claves estables, textos parametrizados y fallback; no crear backend huérfano.
+- **Con dependencias de autenticación/RBAC resueltas:** entregar gestión desde UI de alta de idiomas, JSON export/import, edición, revisión/publicación, activación, historial, preferencias, auditoría y aislamiento multi-tenant mediante slices completos UI→API→DB→E2E.
+- **A lo largo de fases 0–20:** cada pantalla/correo/documento añade claves con cobertura DE/ES prioritaria y seguimiento explícito del resto de idiomas iniciales; no dejar traducciones hardcoded no registradas.
+- **Gates:** verificar añadir un idioma y corregir traducción desde UI sin cambio de código/redeploy, JSON seguro y reversible, concurrencia, aislamiento, fallback, caché y offline. Resolver decisiones pendientes de la especificación en D0/D2.
