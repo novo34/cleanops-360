@@ -83,3 +83,14 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Browser CSP nonce smoke (production server)
+        run: |
+          npm run start -- --hostname 127.0.0.1 > /tmp/cleanops-next.log 2>&1 &
+          NEXT_PID=$!
+          trap 'kill "$NEXT_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/csp-browser-smoke.mjs
+
