@@ -14,6 +14,10 @@ export default [
   {
     ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
   },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node } },
+  },
   eslint.configs.recommended,
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
