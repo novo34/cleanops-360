@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import maplibregl from "maplibre-gl"
+import "maplibre-gl/dist/maplibre-gl.css"
 import {
   Activity,
   AlertTriangle,
@@ -14,7 +16,6 @@ import {
   Gauge,
   Layers3,
   LifeBuoy,
-  MapPin,
   Menu,
   MoreHorizontal,
   Navigation,
@@ -47,13 +48,6 @@ const activity: ActivityItem[] = [
   ["10:18", "Job completed", "Deep clean completed · Helvetia Campus", "blue", ShieldCheck],
   ["09:54", "Route updated", "Crew 07 reassigned to Basel Messe", "amber", Navigation],
 ]
-const sites = [
-  { city: "Zürich", label: "14 active", x: "67%", y: "39%", tone: "jade" },
-  { city: "Bern", label: "6 active", x: "43%", y: "55%", tone: "blue" },
-  { city: "Basel", label: "3 active", x: "29%", y: "29%", tone: "amber" },
-  { city: "Lugano", label: "1 active", x: "63%", y: "83%", tone: "red" },
-]
-
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   return <>
     {open && <button className="sidebar-backdrop" aria-label="Close navigation" onClick={onClose} />}
@@ -70,11 +64,51 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   </>
 }
 
+const mockSites = [
+  { city: "Zürich", label: "14 active", coordinates: [8.5417, 47.3769] as [number, number], tone: "jade" },
+  { city: "Bern", label: "6 active", coordinates: [7.4474, 46.9480] as [number, number], tone: "blue" },
+  { city: "Basel", label: "3 at risk", coordinates: [7.5886, 47.5596] as [number, number], tone: "amber" },
+  { city: "Lugano", label: "1 incident", coordinates: [8.9511, 46.0037] as [number, number], tone: "red" },
+  { city: "Lausanne", label: "4 active", coordinates: [6.6323, 46.5197] as [number, number], tone: "jade" },
+  { city: "Genève", label: "5 active", coordinates: [6.1432, 46.2044] as [number, number], tone: "jade" },
+]
+
 function MapPanel() {
+  const mapElement = useRef<HTMLDivElement>(null)
+  const mapInstance = useRef<maplibregl.Map | null>(null)
   const [filter, setFilter] = useState("All activity")
+
+  useEffect(() => {
+    if (!mapElement.current || mapInstance.current) return
+    const map = new maplibregl.Map({
+      container: mapElement.current,
+      center: [8.18, 46.82],
+      zoom: 7.2,
+      minZoom: 5.7,
+      maxZoom: 12,
+      attributionControl: false,
+      style: {
+        version: 8,
+        sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors" } },
+        layers: [{ id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -0.9, "raster-contrast": 0.25, "raster-brightness-min": 0.05, "raster-brightness-max": 0.42, "raster-opacity": 0.78 } }],
+      },
+    })
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right")
+    mockSites.forEach((site) => {
+      const el = document.createElement("button")
+      el.className = `maplibre-marker maplibre-marker--${site.tone}`
+      el.type = "button"
+      el.setAttribute("aria-label", `${site.city}, ${site.label}`)
+      el.innerHTML = `<span></span><strong>${site.city}</strong><small>${site.label}</small>`
+      new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(site.coordinates).addTo(map)
+    })
+    mapInstance.current = map
+    return () => { map.remove(); mapInstance.current = null }
+  }, [])
+
   return <section className="map-panel" aria-labelledby="map-heading">
-    <div className="map-panel-head"><div><span className="section-kicker"><span className="pulse-dot" />Live operations</span><h2 id="map-heading">Switzerland command map</h2><p>Sites, crews and last reported positions</p></div><div className="map-controls"><button onClick={() => setFilter(filter === "All activity" ? "Incidents only" : "All activity")}><Layers3 />{filter}<ChevronDown /></button><button aria-label="Center map"><Navigation /></button></div></div>
-    <div className="map-canvas"><div className="map-grid" /><div className="swiss-outline"><span className="mountain mountain-a" /><span className="mountain mountain-b" /><span className="mountain mountain-c" /></div><div className="map-label map-label-a">BASEL</div><div className="map-label map-label-b">ZÜRICH</div><div className="map-label map-label-c">BERN</div><div className="map-label map-label-d">LUGANO</div>{sites.map((site) => <button className={`map-pin map-pin--${site.tone}`} style={{ left: site.x, top: site.y }} key={site.city} aria-label={`${site.city}, ${site.label}`}><span className="pin-ring"><MapPin /></span><span className="pin-tooltip"><strong>{site.city}</strong><small>{site.label}</small></span></button>)}<div className="map-legend"><span><i className="legend-dot legend-dot--jade" />Active</span><span><i className="legend-dot legend-dot--amber" />At risk</span><span><i className="legend-dot legend-dot--red" />Incident</span></div><div className="map-zoom"><button aria-label="Zoom in">+</button><button aria-label="Zoom out">−</button></div></div>
+    <div className="map-panel-head"><div><span className="section-kicker"><span className="pulse-dot" />Live operations · demo</span><h2 id="map-heading">Switzerland command map</h2><p>Real map tiles · illustrative sites and crews</p></div><div className="map-controls"><button onClick={() => setFilter(filter === "All activity" ? "Incidents only" : "All activity")}><Layers3 />{filter}<ChevronDown /></button><button aria-label="Center map" onClick={() => mapInstance.current?.flyTo({ center: [8.18, 46.82], zoom: 7.2 })}><Navigation /></button></div></div>
+    <div className="map-canvas map-canvas--real"><div ref={mapElement} className="maplibre-container" /><div className="map-overlay-title">{filter}</div><div className="map-legend"><span><i className="legend-dot legend-dot--jade" />Operational</span><span><i className="legend-dot legend-dot--amber" />At risk</span><span><i className="legend-dot legend-dot--red" />Incident</span></div><div className="map-demo-note">Illustrative data only</div></div>
   </section>
 }
 
