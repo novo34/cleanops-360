@@ -1,5 +1,5 @@
-import SystemStatusPrototype from "../components/system-status-prototype"
+import AdminSystemStatus from "../components/admin-system-status"
 
 export default function HomePage() {
-  return <SystemStatusPrototype />
+  return <AdminSystemStatus />
 }
