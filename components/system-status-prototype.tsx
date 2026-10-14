@@ -64,51 +64,57 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   </>
 }
 
-const mockSites = [
-  { city: "Zürich", label: "14 active", coordinates: [8.5417, 47.3769] as [number, number], tone: "jade" },
-  { city: "Bern", label: "6 active", coordinates: [7.4474, 46.9480] as [number, number], tone: "blue" },
-  { city: "Basel", label: "3 at risk", coordinates: [7.5886, 47.5596] as [number, number], tone: "amber" },
-  { city: "Lugano", label: "1 incident", coordinates: [8.9511, 46.0037] as [number, number], tone: "red" },
-  { city: "Lausanne", label: "4 active", coordinates: [6.6323, 46.5197] as [number, number], tone: "jade" },
-  { city: "Genève", label: "5 active", coordinates: [6.1432, 46.2044] as [number, number], tone: "jade" },
+type MarkerKind = "site" | "assignment" | "last-known"
+type MockMarker = { city: string; label: string; coordinates: [number, number]; tone: string; kind: MarkerKind; age?: string }
+
+const mockSites: MockMarker[] = [
+  { city: "Zürich", label: "Fixed site · 14 active", coordinates: [8.5417, 47.3769], tone: "jade", kind: "site" },
+  { city: "Bern", label: "Assigned · Team Atlas", coordinates: [7.4474, 46.9480], tone: "blue", kind: "assignment" },
+  { city: "Basel", label: "Fixed site · at risk", coordinates: [7.5886, 47.5596], tone: "amber", kind: "site" },
+  { city: "Lugano", label: "Last known · 18 min ago", coordinates: [8.9511, 46.0037], tone: "red", kind: "last-known", age: "18 min ago" },
+  { city: "Lausanne", label: "Assigned · Crew 07", coordinates: [6.6323, 46.5197], tone: "jade", kind: "assignment" },
+  { city: "Genève", label: "Last known · 7 min ago", coordinates: [6.1432, 46.2044], tone: "blue", kind: "last-known", age: "7 min ago" },
+]
+
+const markerFilters: Array<{ label: string; value: "all" | MarkerKind }> = [
+  { label: "All layers", value: "all" },
+  { label: "Fixed sites", value: "site" },
+  { label: "Assignments", value: "assignment" },
+  { label: "Last known", value: "last-known" },
 ]
 
 function MapPanel() {
   const mapElement = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<maplibregl.Map | null>(null)
-  const [filter, setFilter] = useState("All activity")
+  const markerRefs = useRef<Array<{ marker: maplibregl.Marker; element: HTMLButtonElement; data: MockMarker }>>([])
+  const [filter, setFilter] = useState<"all" | MarkerKind>("all")
+  const [selected, setSelected] = useState<MockMarker | null>(null)
 
   useEffect(() => {
     if (!mapElement.current || mapInstance.current) return
     const map = new maplibregl.Map({
-      container: mapElement.current,
-      center: [8.18, 46.82],
-      zoom: 7.2,
-      minZoom: 5.7,
-      maxZoom: 12,
-      attributionControl: false,
-      style: {
-        version: 8,
-        sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors" } },
-        layers: [{ id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -0.9, "raster-contrast": 0.25, "raster-brightness-min": 0.05, "raster-brightness-max": 0.42, "raster-opacity": 0.78 } }],
-      },
+      container: mapElement.current, center: [8.18, 46.82], zoom: 7.2, minZoom: 5.7, maxZoom: 12, attributionControl: false,
+      style: "https://demotiles.maplibre.org/style.json",
     })
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right")
-    mockSites.forEach((site) => {
+    markerRefs.current = mockSites.map((site) => {
       const el = document.createElement("button")
-      el.className = `maplibre-marker maplibre-marker--${site.tone}`
+      el.className = `maplibre-marker maplibre-marker--${site.tone} maplibre-marker--${site.kind}`
       el.type = "button"
       el.setAttribute("aria-label", `${site.city}, ${site.label}`)
       el.innerHTML = `<span></span><strong>${site.city}</strong><small>${site.label}</small>`
-      new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(site.coordinates).addTo(map)
+      el.addEventListener("click", () => setSelected(site))
+      return { marker: new maplibregl.Marker({ element: el, anchor: "bottom" }).setLngLat(site.coordinates).addTo(map), element: el, data: site }
     })
     mapInstance.current = map
-    return () => { map.remove(); mapInstance.current = null }
+    return () => { map.remove(); mapInstance.current = null; markerRefs.current = [] }
   }, [])
 
+  useEffect(() => { markerRefs.current.forEach(({ element, data }) => { element.hidden = filter !== "all" && data.kind !== filter }) }, [filter])
+
   return <section className="map-panel" aria-labelledby="map-heading">
-    <div className="map-panel-head"><div><span className="section-kicker"><span className="pulse-dot" />Live operations · demo</span><h2 id="map-heading">Switzerland command map</h2><p>Real map tiles · illustrative sites and crews</p></div><div className="map-controls"><button onClick={() => setFilter(filter === "All activity" ? "Incidents only" : "All activity")}><Layers3 />{filter}<ChevronDown /></button><button aria-label="Center map" onClick={() => mapInstance.current?.flyTo({ center: [8.18, 46.82], zoom: 7.2 })}><Navigation /></button></div></div>
-    <div className="map-canvas map-canvas--real"><div ref={mapElement} className="maplibre-container" /><div className="map-overlay-title">{filter}</div><div className="map-legend"><span><i className="legend-dot legend-dot--jade" />Operational</span><span><i className="legend-dot legend-dot--amber" />At risk</span><span><i className="legend-dot legend-dot--red" />Incident</span></div><div className="map-demo-note">Illustrative data only</div></div>
+    <div className="map-panel-head"><div><span className="section-kicker"><span className="pulse-dot" />Live operations · demo</span><h2 id="map-heading">Switzerland command map</h2><p>Real map tiles · illustrative locations only</p></div><div className="map-controls"><label className="map-filter"><Layers3 /><select aria-label="Filter map layers" value={filter} onChange={(event) => setFilter(event.target.value as "all" | MarkerKind)}>{markerFilters.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><ChevronDown /></label><button aria-label="Center map" onClick={() => mapInstance.current?.flyTo({ center: [8.18, 46.82], zoom: 7.2 })}><Navigation /></button></div></div>
+    <div className="map-canvas map-canvas--real"><div ref={mapElement} className="maplibre-container" /><div className="map-overlay-title">{markerFilters.find((item) => item.value === filter)?.label}</div><div className="map-legend"><span><i className="legend-dot legend-dot--jade" />Fixed site</span><span><i className="legend-dot legend-dot--blue" />Assignment</span><span><i className="legend-dot legend-dot--amber" />Last known</span></div><div className="map-demo-note">Demo data · last-known positions are authorized and time-stamped</div>{selected && <div className="map-selection"><button aria-label="Close selected marker" onClick={() => setSelected(null)}><X /></button><span className={`selection-dot selection-dot--${selected.tone}`} /><div><strong>{selected.city}</strong><p>{selected.kind === "site" ? "Fixed worksite" : selected.kind === "assignment" ? "Worker assignment" : "Authorized last-known position"}</p><small>{selected.label}{selected.age ? ` · reported ${selected.age}` : ""}</small></div></div>}</div>
   </section>
 }
 
