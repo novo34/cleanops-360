@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "CleanOps 360",
-  description: "Plataforma operativa para empresas de limpieza y facility services en Suiza.",
+  title: "System status · CleanOps 360",
+  description: "Design prototype for CleanOps 360 Administration / System status.",
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

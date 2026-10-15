@@ -1,6 +1,6 @@
 # CleanOps 360 local Semgrep ruleset.
 # Origin: Semgrep community JavaScript/TypeScript security patterns, curated locally.
-# Version: 1.1.0 (2026-10-12). Review changes as code; CI uses this immutable repository copy.
+# Version: 1.2.0 (2026-10-14). Review changes as code; CI uses this immutable repository copy.
 rules:
   - id: cleanops-dangerous-eval
     languages: [javascript, typescript]
@@ -73,15 +73,34 @@ rules:
       category: security
       cwe: CWE-89
     pattern-sources:
-      - pattern: $REQ.$FIELD
-    pattern-sinks:
+      # HTTP inputs, not arbitrary properties such as pool configuration.
       - pattern-either:
-          - pattern: $DB.query($SQL)
-          - pattern: $DB.execute($SQL)
-          - pattern: $DB.raw($SQL)
-    pattern-sanitizers:
-      - pattern: parameterize($SQL, ...)
-      - pattern: $DB.query($SQL, [$...PARAMS])
+          - pattern: $REQ.query
+          - pattern: $REQ.body
+          - pattern: $REQ.params
+          - pattern: $REQ.headers
+          - pattern: $REQ.cookies
+          - pattern: $REQ.url
+          - pattern: $REQ.nextUrl
+          - pattern: $REQ.searchParams
+          - pattern: $REQ["query"]
+          - pattern: $REQ["body"]
+          - pattern: $REQ["params"]
+          - pattern: $REQ["headers"]
+          - pattern: $REQ["cookies"]
+          - pattern: $REQ["url"]
+          - pattern: $REQ.json(...)
+          - pattern: $REQ.text(...)
+          - pattern: $REQ.formData(...)
+    pattern-sinks:
+      # Values bound separately are safe; a dynamic SQL string remains unsafe
+      # even when the call also supplies a parameter array.
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.query($SQL, ...)
+              - pattern: $DB.execute($SQL, ...)
+              - pattern: $DB.raw($SQL, ...)
+          - focus-metavariable: $SQL
 
   - id: cleanops-code-execution-import
     languages: [javascript, typescript]
