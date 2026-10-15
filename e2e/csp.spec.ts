@@ -40,15 +40,47 @@ test("CSP nonce changes between responses", async ({ request }) => {
   expect(first.headers()["content-security-policy"]).not.toBe(second.headers()["content-security-policy"])
 })
 
+test("CSP blocks an inline script without a nonce", async ({ page }) => {
+  // Inject into the parsed document, not through DevTools' trusted evaluation.
+  await page.route("**/", async route => {
+    const response = await route.fetch()
+    const html = await response.text()
+    await route.fulfill({
+      response,
+      body: html.replace("</head>", "<script>document.documentElement.dataset.inlineProbe = 'executed'</script></head>"),
+    })
+  })
+  await page.goto("/")
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("AUTH-GATE-05")
+  expect(await page.locator("html").getAttribute("data-inline-probe")).toBeNull()
+})
+
 for (const endpoint of ["health", "config", "version", "audit"]) {
   test(`System Status ${endpoint} denies unauthenticated access`, async ({ request }) => {
     const response = await request.get(`/api/system-status/${endpoint}`)
     expect(response.status()).toBe(401)
+    expect(response.headers()["cache-control"]).toBe("private, no-store")
     expect(await response.json()).toEqual({
       error: "unauthorized",
       code: "AUTH_GATE_05",
       message: "Administrative access is unavailable until AUTH-GATE-05 is approved.",
     })
+    for (const organization of ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000002"]) {
+      const forged = await request.get(`/api/system-status/${endpoint}?organization_id=${organization}`, {
+        headers: {
+          Authorization: "Bearer invalid-test-token",
+          Cookie: "session=invalid-test-session",
+          "X-Organization-ID": organization,
+          "X-Tenant-ID": organization,
+          "X-Middleware-Subrequest": "middleware:middleware:middleware:middleware:middleware",
+        },
+      })
+      expect(forged.status()).toBe(401)
+      expect(await forged.json()).toEqual(await response.json())
+    }
+    const head = await request.head(`/api/system-status/${endpoint}`)
+    expect(head.status()).toBe(401)
+    expect(await head.text()).toBe("")
   })
 }
 

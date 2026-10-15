@@ -8,5 +8,5 @@ export function requireAdminAccess(): AdminAccess {
 }
 
 export function unauthorizedResponse() {
-  return NextResponse.json({ error: "unauthorized", code: "AUTH_GATE_05", message: "Administrative access is unavailable until AUTH-GATE-05 is approved." }, { status: 401 })
+  return NextResponse.json({ error: "unauthorized", code: "AUTH_GATE_05", message: "Administrative access is unavailable until AUTH-GATE-05 is approved." }, { status: 401, headers: { "Cache-Control": "private, no-store" } })
 }
