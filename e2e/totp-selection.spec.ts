@@ -345,6 +345,8 @@ test('lost step-up response and 429 selection retry preserve their own idempoten
 
 test('real TLS wire carries same-origin Fetch Metadata and rotated CSRF cookies', async ({ page }) => {
   await setup(page)
+  // setup submits login; wait for its confirmed state and CSRF rotation before probing.
+  await expect(page.getByRole('group', { name: 'Selecciona tu autenticador' })).toBeVisible()
   const evidence = await page.evaluate(async () => {
     const csrf = document.cookie.split('; ').find(cookie => cookie.startsWith('__Host-cleanops_csrf='))?.split('=')[1] ?? ''
     const response = await fetch('/__b1_fixture_probe', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': csrf } })
