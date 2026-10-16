@@ -355,3 +355,24 @@ test('real TLS wire carries same-origin Fetch Metadata and rotated CSRF cookies'
   expect(evidence.visibleCookies).not.toContain('__Host-cleanops_preauth=')
   expect(evidence.visibleCookies).not.toContain('__Host-cleanops_session=')
 })
+
+for (const ceremony of ['selection', 'challenge'] as const) {
+  test('expired ACTIVE step-up ' + ceremony + ' clears pending action but preserves source session', async ({ page }) => {
+    await page.clock.install()
+    await setupActive(page)
+    let effects = 0
+    const expires_at = new Date(Date.now() + 3000).toISOString()
+    await page.route('**/auth/step-up', route => succeed(route, 'startStepUp', ceremony === 'selection'
+      ? { ...selection(), expires_at } : { challenge_id: id, allowed_methods: ['TOTP'], expires_at }))
+    await page.route('**/me/sessions/revoke-other-own', route => { effects++; return route.abort() })
+    await page.getByRole('button', { name: 'Revocar mis demás sesiones' }).click()
+    if (ceremony === 'selection') await expect(page.getByRole('group', { name: 'Selecciona tu autenticador' })).toBeVisible()
+    else await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    await page.clock.fastForward(4000)
+    await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+    await expect(page.getByRole('status')).toContainText('caducado')
+    await expect(page.getByLabel('Contraseña')).toHaveCount(0)
+    await expect(page.getByLabel('Código', { exact: true })).toHaveCount(0)
+    expect(effects).toBe(0)
+  })
+}
