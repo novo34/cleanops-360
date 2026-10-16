@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { canonical } from './contracts.ts'
-import { numeric } from './config.ts'
+import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
@@ -52,6 +52,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
     const correlation = context.correlationId, operationHint = context.operation
     if (!uuid(correlation)) return Promise.reject(unavailable())
     return repository.transaction(async broker => {
+      const policy = await broker.call('policy', [])
+      if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
       const factors = createApprovedFactors(broker, deps.factors, correlation, now)
       let actor: Binding | undefined, raw = '', csrf = ''
       const reservations = new Map<string, Reservation>()
@@ -146,6 +148,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           if (!Array.isArray(parts) || parts.length !== 6 ||
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
+          if (operationHint && parts[4] !== operationHint) throw unavailable()
           const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
@@ -166,6 +169,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
+          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (operation !== 'confirmTotp' || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()

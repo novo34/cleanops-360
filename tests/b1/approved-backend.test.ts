@@ -5,6 +5,7 @@ import { TOTP, Secret } from 'otpauth'
 import { createApprovedPrivateBackend, type ApprovedBackendDependencies } from '../../lib/b1/approved-backend.ts'
 import { AuthError, createAuthHandler, names, digest, closedBackend, type Binding } from '../../lib/b1/service.ts'
 import { canonical } from '../../lib/b1/contracts.ts'
+import { profile } from '../../lib/b1/config.ts'
 import type { IdentityConnection } from '../../lib/b1/pg-identity-driver.ts'
 
 const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-000000000002'
@@ -14,7 +15,7 @@ const now = 1_700_000_010_000, absolute = now + 86_400_000
 const raw = 'a'.repeat(43), csrf = 'b'.repeat(43), origin = 'https://cleanops.example'
 const dummy = hash('dummy proof never authenticates', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
 const unavailable = (e: unknown) => e instanceof AuthError && e.status === 503
-type Options = { foreign?: boolean; allowed?: boolean; stepUp?: boolean; commitFailure?: boolean }
+type Options = { foreign?: boolean; allowed?: boolean; stepUp?: boolean; commitFailure?: boolean; badPolicy?: boolean }
 async function fixture(options: Options = {}) {
   const calls: { name: string; values: unknown[] }[] = [], releases: boolean[] = []
   const committed = { revoked: 0, completed: 0, discarded: 0, failures: 0 }
@@ -29,6 +30,7 @@ async function fixture(options: Options = {}) {
       if (sql === 'ROLLBACK') { staged = { ...committed }; return {} }
       if (sql === 'COMMIT') { if (options.commitFailure) throw Error('private commit failure'); Object.assign(committed, staged); return {} }
       let value: unknown = null
+      if (name === 'security_policy') value = options.badPolicy ? { ...profile.values, argon_memory: 1024 } : profile.values
       if (name === 'resolve_binding') value = binding
       if (name === 'active_summary') value = { state: 'ACTIVE', session_id: S, tenant_id: A, absolute_expires_at: new Date(absolute).toISOString() }
       if (name === 'binding_authorization') return { rows: [{ allowed: options.allowed ?? true, step_up: options.stepUp ?? true }] }
@@ -177,4 +179,17 @@ test('unsupported material-dependent ceremony fails closed and runtime remains c
     }), unavailable)
   }
   await assert.rejects(closedBackend.transaction(async () => true), unavailable)
+})
+
+test('unreviewed database profile rejects before binding and recovery requires one-time reservation', async () => {
+  const bad = await fixture({ badPolicy: true })
+  await assert.rejects(bad.backend.transaction(async tx => tx.resolve(cookies)), unavailable)
+  assert.equal(bad.calls.some(c => c.name === 'resolve_binding'), false)
+  assert.equal(bad.calls.at(-1)?.name, 'ROLLBACK')
+  const f = await fixture()
+  await assert.rejects(f.backend.transaction(async tx => {
+    const actor = await tx.resolve(cookies); assert.ok(actor)
+    return tx.execute('confirmTotp', { enrollment_id: C, proof: code() }, actor)
+  }), unavailable)
+  assert.equal(f.calls.some(c => c.name === 'consume_enrollment_cas'), false)
 })
