@@ -247,6 +247,10 @@ def main():
                 record("preexisting-containers-networks-volumes-unchanged","PASS" if before == after else "FAIL")
             except Exception:
                 record("footprint-verification","FAIL")
+        # A partial/base-only harness can never report full PG-TEST-01 acceptance.
+        for name in ["credential-CAS-concurrent-one-winner", "global-TOTP-CAS-concurrent-one-winner", "D1-method-version-revalidation"]:
+            if not any(item["name"] == name for item in REPORT["checks"]):
+                record(name, "BLOCKED", "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass.")
         REPORT["result"] = "PASS" if REPORT["cleanup"] == "PASS" and all(x["status"]=="PASS" for x in REPORT["checks"]) else "FAIL"
         target = ROOT/"artifacts"/"pg-test-01"
         target.mkdir(parents=True,exist_ok=True)
