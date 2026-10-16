@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, randomInt, randomUUID } from 'node:crypto'
 import { inspect } from 'node:util'
 import { Secret, TOTP } from 'otpauth'
-import { canonical } from './contracts.ts'
+import { canonical, valid } from './contracts.ts'
 import { numeric } from './config.ts'
 import { AuthError } from './service.ts'
 
@@ -35,11 +35,49 @@ export function selectEnabledMethod(
   methods: readonly Readonly<{ id: string; kind: 'EMAIL_OTP' | 'TOTP'; version: string }>[],
   selectedId?: string,
 ) {
-  if (!Array.isArray(methods) || methods.some(m => !m || !uuid(m.id) || !['EMAIL_OTP', 'TOTP'].includes(m.kind) || !/^[1-9][0-9]*$/.test(m.version)) ||
-      new Set(methods.map(m => m.id)).size !== methods.length) throw unavailable()
-  const selected = selectedId === undefined ? methods.length === 1 ? methods[0] : undefined : methods.find(m => m.id === selectedId)
+  if (!Array.isArray(methods) || methods.some(m => !m || !uuid(m.id) || !['EMAIL_OTP', 'TOTP'].includes(m.kind) || (typeof m.version !== 'string' || !/^[1-9][0-9]{0,18}$/.test(m.version) || (m.version.length === 19 && m.version > '9223372036854775807'))) ||
+      new Set(methods.map(m => m.id.toLowerCase())).size !== methods.length) throw unavailable()
+  const selected = selectedId === undefined ? methods.length === 1 ? methods[0] : undefined : methods.find(m => m.id.toLowerCase() === selectedId.toLowerCase())
   if (!selected) throw unavailable()
   return Object.freeze({ ...selected })
+}
+
+/** A selector is a locator only. methods MUST come from D1's locked ACTIVE set
+ * for the resolved actor/tenant, never from a request. The broker rechecks ID/version.
+ * Missing selection on an ambiguous set uses the existing V4 409 Error shape;
+ * no method list, identity or generation is disclosed by that error. */
+export function selectTotpMethod(
+  methods: readonly Readonly<{ id: string; kind: 'EMAIL_OTP' | 'TOTP'; version: string }>[],
+  selectedId?: unknown,
+) {
+  if (selectedId !== undefined && !valid({ type: 'string', format: 'uuid', minLength: 36, maxLength: 36 }, selectedId))
+    throw new AuthError(400, 'INVALID_PARAMETER')
+  // Validate the entire trusted set, including duplicate IDs across method kinds.
+  if (!Array.isArray(methods)) throw unavailable()
+  if (methods.length) selectEnabledMethod(methods, methods[0]?.id)
+  const eligible = methods.filter(m => m.kind === 'TOTP')
+  if (selectedId === undefined && eligible.length > 1) throw new AuthError(409, 'TOTP_SELECTION_REQUIRED')
+  const match = selectedId === undefined ? eligible[0] :
+    eligible.find(m => m.id.toLowerCase() === (selectedId as string).toLowerCase())
+  if (!match) throw new AuthError(401, 'AUTH_INVALID')
+  return selectEnabledMethod(eligible, match.id)
+}
+
+/** Normalize private server metadata only. No UA/headers/device fingerprint parser.
+ * Callback provenance is a deployment trust boundary, not proven by string contents.
+ * V4 permits at most 120 PostgreSQL characters per label; never truncate.
+ * Default serialization/inspection/spread omits private label values. */
+export function prepareSessionLabels(value: unknown): Readonly<{ device: string; browser: string }> {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(k => !['device', 'browser'].includes(k)) || !Object.hasOwn(value, 'device') || !Object.hasOwn(value, 'browser')) throw unavailable()
+  const record = value as Record<string, unknown>
+  const normalize = (label: unknown) => {
+    if (typeof label !== 'string' || label.length > numeric('json_body_max') || /[\p{Cc}\p{Cf}]/u.test(label)) throw unavailable()
+    const normalized = label.normalize('NFC').replace(/\p{Zs}+/gu, ' ').trim()
+    if (!normalized.length || [...normalized].length > 120) throw unavailable()
+    return normalized
+  }
+  return privateArtifact({}, { device: normalize(record.device), browser: normalize(record.browser) })
 }
 
 /** Candidate envelope for the pending contract. Standard AES-256-GCM, 96-bit random

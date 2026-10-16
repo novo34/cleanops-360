@@ -16,7 +16,7 @@ const raw='a'.repeat(43), csrf='b'.repeat(43), origin='https://cleanops.example'
 const initialNow=1_700_000_010_000, password='Synthetic login password 123'
 const stored=hash(password,{type:argon2id,memoryCost:65536,timeCost:3,parallelism:1})
 type Options={mode?:'ACTIVE'|'PREAUTH'|'BOOTSTRAP'; state?:'PENDING_MFA'|'ENROLLMENT_REQUIRED'; risk?:string; foreign?:boolean; stale?:boolean; expired?:boolean;
- auditFailure?:boolean; commitFailure?:boolean; missingLabels?:boolean; multiple?:boolean; noTotp?:boolean; revoked?:boolean}
+ auditFailure?:boolean; commitFailure?:boolean; missingLabels?:boolean; multiple?:boolean; noTotp?:boolean; revoked?:boolean; duplicate?:boolean; labels?:{device:string;browser:string}}
 type Challenge={id:string;version:string;state:string;grant:string|null;resource:string|null;expires:number}
 type Reservation={hash:string;oneTime:boolean;done:boolean;data:unknown}
 type State={counter:number|null;verified:boolean;consumed:boolean;sessions:number;audits:number;attempts:number;
@@ -80,7 +80,7 @@ async function fixture(options:Options={}) {
     else if(name==='trusted_mfa_material'){
      if(options.revoked||(values[1]==='ISSUE_SESSION'&&!staged.verified))throw err('AUTH_INVALID')
      const methods=options.noTotp?[{id:M,kind:'EMAIL_OTP',version:generation}]:
-      [{id:M,kind:'TOTP',version:generation},...(options.multiple?[{id:M2,kind:'TOTP',version:generation}]:[])]
+      [{id:M,kind:'TOTP',version:generation},...(options.multiple?[{id:M2,kind:'TOTP',version:generation}]:[]),...(options.duplicate?[{id:M,kind:'TOTP',version:generation}]:[])]
      value={tenantId:tenant,userId:U,bindingId:values[0]===null?S:Q,riskClass:options.risk??'SENSITIVE',enabledMethods:methods,
       recipient:values[1]==='ISSUE_SESSION'?null:'private-recipient@example.invalid',expiresAt:new Date(time+(options.expired?-1:30_000)).toISOString()}
     }
@@ -129,7 +129,7 @@ async function fixture(options:Options={}) {
   cursorKey:Buffer.alloc(32,4),now:()=>time,
   transport(){return{network:Buffer.alloc(32,5),device:Buffer.alloc(32,6)}},
   normalizeEmail(email){return email.trim().toLowerCase()},
-  sessionLabels:options.missingLabels?undefined:()=>({device:'Synthetic device',browser:'Synthetic browser'}),
+  sessionLabels:options.missingLabels?undefined:()=>(options.labels??{device:'Synthetic device',browser:'Synthetic browser'}),
  }
  const backend=createApprovedPrivateBackend(pool,deps),handler=createAuthHandler(backend,origin,()=>time)
  async function request(operation:string,body:unknown,key?:string){
@@ -253,4 +253,54 @@ test('PREAUTH enrollment confirmation is closed before material/decryption/CAS w
  assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null)
  assert.equal(f.calls.some(c=>c.name==='totp_material_locked'||c.name==='consume_enrollment_cas'),false)
  assert.equal(f.state.sessions,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+})
+
+test('missing selection over HTTP yields safe 409 before challenge/factor effects; concurrent ambiguity rolls back',async()=>{
+ const f=await fixture({mode:'ACTIVE',multiple:true})
+ const responses=await Promise.all([
+  f.request('startStepUp',{grant_id:'B1-SELF-05'},'selection-required-key-1'),
+  f.request('startStepUp',{grant_id:'B1-SELF-05'},'selection-required-key-2'),
+ ])
+ for(const response of responses){
+  assert.equal(response.status,409)
+  const text=await response.text();privateFree(text)
+  assert.equal(JSON.parse(text).error.code,'TOTP_SELECTION_REQUIRED')
+  assert.ok(!text.includes(M));assert.ok(!text.includes(M2))
+  assert.equal(response.headers.get('set-cookie'),null)
+ }
+ assert.equal(f.state.audits,0);assert.equal(f.state.counter,null)
+ assert.equal(f.calls.some(c=>c.name==='issue_bound_challenge'||c.name==='consume_totp_cas'),false)
+ assert.equal(f.calls.filter(c=>c.name==='ROLLBACK').length,2)
+})
+test('V4 HTTP rejects unapproved selector and all client authority fields without broker side effects',async()=>{
+ for(const fields of [{totp_method_id:M},{totp_method_id:'invalid'},{tenantId:B},{userId:U},{methodVersion:'3'},{riskClass:'OPERATIONAL'}]){
+  const f=await fixture({mode:'ACTIVE',multiple:true})
+  const response=await f.request('startStepUp',{grant_id:'B1-SELF-05',...fields},'closed-http-selector-key')
+  assert.equal(response.status,422)
+  assert.equal(f.connects,0)
+  assert.equal(response.headers.get('set-cookie'),null)
+ }
+})
+test('resend selects the prior trusted UUID among multiple methods; revoked/duplicate/stale choices stay closed',async()=>{
+ const valid=await fixture({mode:'ACTIVE',multiple:true})
+ assert.equal((await valid.request('resendOtp',{challenge_id:C},'explicit-resend-key-123')).status,200)
+ assert.equal(valid.calls.find(c=>c.name==='issue_bound_challenge')!.values[2],M)
+ for(const options of [{noTotp:true},{duplicate:true},{stale:true},{foreign:true},{expired:true}]){
+  const f=await fixture({mode:'ACTIVE',multiple:true,...options})
+  const response=await f.request('resendOtp',{challenge_id:C},'invalid-selection-key-123')
+  assert.ok(response.status>=400);assert.equal(response.headers.get('set-cookie'),null)
+  assert.equal(f.state.audits,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+ }
+})
+test('session metadata is normalized at the private callback boundary and never reflected in HTTP',async()=>{
+ const f=await fixture({labels:{device:'  Private  device ',browser:' Café '}})
+ const response=await f.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
+ assert.equal(response.status,200)
+ const call=f.calls.find(c=>c.name==='issue_active_session')!
+ assert.equal(call.values[5],'Private device');assert.equal(call.values[6],'Café')
+ const body=await response.text();assert.ok(!body.includes('Private device'));assert.ok(!body.includes('Café'))
+ const bad=await fixture({labels:{device:'Device\r\nlog-canary',browser:'Browser'}})
+ const error=await bad.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
+ assert.equal(error.status,503);assert.equal(bad.state.counter,null);assert.equal(bad.state.sessions,0)
+ assert.ok(!(await error.text()).includes('log-canary'));assert.equal(bad.calls.at(-1)?.name,'ROLLBACK')
 })

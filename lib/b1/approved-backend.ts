@@ -2,7 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { canonical } from './contracts.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
-import { selectEnabledMethod, sessionPolicyForRisk } from './ceremony-preparation.ts'
+import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels } from './ceremony-preparation.ts'
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
@@ -105,7 +105,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string) {
         const value = await material(cookie, purpose, expected, grant, resource)
         // EMAIL is closed; multiple TOTP rows need an explicit trusted method ID.
-        const selected = selectEnabledMethod(value.enabledMethods.filter(m => m.kind === 'TOTP'), selectedId)
+        const selected = selectTotpMethod(value.enabledMethods, selectedId)
         if (expectedVersion !== undefined && selected.version !== expectedVersion) throw invalid()
         const challenge = await broker.call('boundChallenge', [cookie, 'TOTP', selected.id, selected.version, null, null, null, grant, resource, correlation])
         const detail = await broker.call('totpMaterial', [cookie, challenge, purpose])
@@ -132,8 +132,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       }
       async function issueSession(binding: Binding): Promise<Effect> {
         const value = await material(raw, 'ISSUE_SESSION', binding), policy = sessionPolicyForRisk(value.riskClass)
-        const labels = deps.sessionLabels?.()
-        if (!labels || [labels.device, labels.browser].some(v => typeof v !== 'string' || v.length > 120 || /[\r\n\0]/.test(v))) throw unavailable()
+        const labels = prepareSessionLabels(deps.sessionLabels?.())
         const cookie = token(), newCsrf = token()
         const result = await broker.call('issueSession', [raw, hex(digest(cookie)), hex(digest(newCsrf)),
           policy.absoluteSeconds, policy.idleSeconds, labels.device, labels.browser, correlation])
@@ -228,7 +227,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
                   !(await auth(actor, grant, resource === null ? undefined : String(resource))).allowed) throw new AuthError(403, 'POLICY_DENIED')
             }
             const fresh = await material(rawPreauth, purpose, actor, grant as string | null, resource as string | null)
-            const selected = selectEnabledMethod(fresh.enabledMethods.filter(m => m.kind === 'TOTP'), String(detail.binding.methodId))
+            const selected = selectTotpMethod(fresh.enabledMethods, String(detail.binding.methodId))
             if (selected.version !== detail.version) throw invalid()
           }
           if (!result.replay) reservations.set(scope, { operation, key, hash: requestHash, oneTime, raw: rawPreauth, done: false })
