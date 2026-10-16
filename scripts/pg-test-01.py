@@ -216,13 +216,18 @@ def main():
             result = sql(text)
             if result.returncode:
                 match = re.search(r"ERROR:\s+[0-9A-Z]{5}:\s+([^\n]+)",result.stderr)
-                record("install-"+name,"FAIL",{"sqlstate":state(result),"message":match.group(1)[:220] if match else "No decoded PostgreSQL diagnostic"})
+                record("install-"+name,"FAIL",{"sqlstate":state(result),"message":match.group(1)[:220] if match else "No decoded PostgreSQL diagnostic", "verified_source_diagnostic":result.stderr[:3500]})
                 blocked = True
             else:
                 record("install-"+name,"PASS")
                 base_ok = base_ok or name == "V4"
         if base_ok and fixtures():
             checks_v4()
+        if not base_ok:
+            check("failed-install-transaction-rolled-back", "SELECT count(*) FROM pg_namespace WHERE nspname IN('app','auth_api','identity_private','crypto');", "0")
+            check("failed-install-roles-rolled-back", "SELECT count(*) FROM pg_roles WHERE rolname LIKE 'cleanops_%';", "0")
+            for name in ["service-ACL-and-SECURITY-DEFINER", "RLS-21-tables", "multi-tenant-binding", "row-lock-concurrency", "rollback-and-COMMIT-failure", "B1-data-backup-restore"]:
+                record(name, "BLOCKED", "V4 schema failed atomic installation; no test objects/privileges substituted.")
         if blocked:
             for name in ["B1-X-credential-CAS","B1-X-global-TOTP-counter-CAS","D1-locked-material-and-challenge-generation","D1-concurrent-consume"]:
                 record(name,"BLOCKED","Exact approved overlay not installed; no replacement/guard removal authorized.")
