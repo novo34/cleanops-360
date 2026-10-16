@@ -30,7 +30,9 @@ export interface Transaction {
   reserve(scope: string, requestHash: string): Promise<{ replay: boolean; requestHash?: string; data?: unknown; oneTime?: boolean; expiresAt?: number }>
   discard(scope: string): Promise<void>
   complete(scope: string, requestHash: string, data: unknown, oneTime: boolean): Promise<void>
-  /** Identity service verifies passwords/TOTP with mature libraries, never a browser assertion.
+  /** Identity service uses verifyPasswordFactor from ./password.ts for password proofs; TOTP remains pending.
+   * Persist progressive rehash via its compare-and-swap callback under the credential lock in this transaction.
+   * A verified password alone never authorizes MFA, tenant selection or session issuance.
    * Invalid factors commit attempts before returning an AuthError result; infrastructure errors roll back.
    * All successes include audit in the same commit. Method may return AuthError to commit a failed attempt. */
   execute(operation: string, input: Input, binding: Binding): Promise<Effect | AuthError>

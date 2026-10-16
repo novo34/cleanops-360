@@ -14,6 +14,7 @@
     "test:b1": "node --experimental-strip-types --test --test-isolation=none tests/b1/*.test.ts"
   },
   "dependencies": {
+    "argon2": "0.44.0",
     "lucide-react": "0.468.0",
     "next": "16.4.0",
     "pg": "8.16.3",
