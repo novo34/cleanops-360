@@ -85,9 +85,10 @@ test('real TOTP passes exact method version/counter CAS, replays and foreign ten
 test('invalid TOTP records one failed proof, secret-provider failure aborts without attestation', async () => {
   const actor: Binding = { kind: 'ACTIVE', id: S, sessionId: S, tenantId: T, userId: U, csrfDigest: 'a'.repeat(64), expiresAt: now + 60_000 }
   const f = fixture(name => name === 'totpMaterial' ? {
+    session_id: S, grant_key: 'B1-SELF-05', resource_id: null,
     binding: { tenantId: T, userId: U, methodId: M, ceremonyId: C, purpose: 'STEP_UP' }, version: '3', lastCounter: null,
     expiresAt: now + 60_000, algorithm: 'SHA1', secret_ciphertext: Buffer.from('encrypted').toString('base64'), key_version: 'key-1',
-  } : name === 'consumeTotp' ? false : undefined)
+  } : name === 'consumeTotp' ? false : name === 'authorization' ? [{ allowed: true, step_up: true }] : undefined)
   const k = await keys(), factors = createApprovedFactors(f.broker, k, C, () => now)
   assert.ok(denied(await factors.totp('bad', actor, null, C, 'STEP_UP')))
   assert.equal(f.calls.filter(c => c.name === 'consumeTotp').length, 1)
@@ -95,4 +96,21 @@ test('invalid TOTP records one failed proof, secret-provider failure aborts with
   k.decryptTotp = async () => { throw Error('key material must not escape') }
   await assert.rejects(factors.totp('123456', actor, null, C, 'STEP_UP'), unavailable)
   assert.equal(f.calls.filter(c => c.name === 'consumeTotp').length, 1)
+})
+
+test('step-up revalidates server grant/session authorization before decrypt or counter CAS', async () => {
+ const actor: Binding = { kind: 'ACTIVE', id: S, sessionId: S, tenantId: T, userId: U, csrfDigest: 'a'.repeat(64), expiresAt: now + 60_000 }
+ const f = fixture(name => name === 'totpMaterial' ? {
+  binding: { tenantId: T, userId: U, methodId: M, ceremonyId: C, purpose: 'STEP_UP' },
+  session_id: S, grant_key: 'B1-SELF-08', resource_id: P, version: '3', lastCounter: null,
+  expiresAt: now + 60_000, algorithm: 'SHA1', secret_ciphertext: Buffer.from('encrypted').toString('base64'), key_version: 'key-1',
+ } : name === 'authorization' ? [{ allowed: false, step_up: false }] : undefined)
+ const k = await keys()
+ let decrypts = 0
+ k.decryptTotp = async () => { decrypts++; throw Error('must never decrypt') }
+ await assert.rejects(createApprovedFactors(f.broker, k, C, () => now).totp('123456', actor, null, C, 'STEP_UP'),
+  (e: unknown) => e instanceof AuthError && e.status === 403)
+ assert.equal(decrypts, 0)
+ assert.deepEqual(f.calls.find(c => c.name === 'authorization')!.args, [null, 'B1-SELF-08', P])
+ assert.equal(f.calls.some(c => c.name === 'consumeTotp'), false)
 })
