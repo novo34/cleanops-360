@@ -24,3 +24,5 @@ jobs:
       - run: npm run test:b1
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.b1.config.ts
