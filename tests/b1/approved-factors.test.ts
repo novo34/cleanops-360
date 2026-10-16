@@ -20,7 +20,7 @@ function fixture(answer: (name: keyof BrokerArgs, args: unknown[]) => unknown) {
 }
 async function keys(): Promise<PrivateFactorKeys> {
   return {
-    dummyPasswordHash: await hash('dummy password never an identity', cost), auditKey: Buffer.alloc(32, 1), otpKey: Buffer.alloc(32, 2),
+    dummyPasswordHash: await hash('dummy password never an identity', cost), auditKey: Buffer.alloc(32, 1), otpKey: Buffer.alloc(32, 2), recoveryKey: Buffer.alloc(32, 3),
     async decryptTotp() { return new TextEncoder().encode('12345678901234567890') },
   }
 }

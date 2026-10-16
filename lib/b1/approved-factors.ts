@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto'
 import { canonical } from './contracts.ts'
+import { numeric } from './config.ts'
 import { AuthError, type Binding } from './service.ts'
 import { verifyPasswordFactor } from './password.ts'
 import { verifyTotpFactor, type TotpBinding, type TotpRecord } from './totp.ts'
@@ -19,6 +20,7 @@ export interface PrivateFactorKeys {
   dummyPasswordHash: string
   auditKey: Buffer
   otpKey: Buffer
+  recoveryKey: Buffer
   /** Authenticated key-provider implementation, validating method/tenant/user/version AAD.
    * Returns fresh owned plaintext; no network/second database connection in this callback. */
   decryptTotp(ciphertext: Buffer, keyVersion: string, record: TotpRecord): Promise<Uint8Array>
@@ -29,6 +31,12 @@ export type CredentialProof = Readonly<{ principalId: string; version: string }>
 export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys, correlation: string, now = Date.now) {
   if (!uuid(correlation) || !Buffer.isBuffer(keys.auditKey) || keys.auditKey.length < 32 ||
       !Buffer.isBuffer(keys.otpKey) || keys.otpKey.length < 32 || !keys.dummyPasswordHash.startsWith('$argon2id$')) throw unavailable()
+  const dummy = /^\$argon2id\$v=19\$m=([0-9]+),t=([0-9]+),p=([0-9]+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/.exec(keys.dummyPasswordHash)
+  if (!dummy || Number(dummy[1]) !== numeric('argon_memory') || Number(dummy[2]) !== numeric('argon_iterations') ||
+      Number(dummy[3]) !== numeric('argon_parallelism') ||
+      Buffer.from(dummy[4], 'base64').length !== numeric('argon_salt') ||
+      Buffer.from(dummy[5], 'base64').length !== 32 ||
+      [dummy[4], dummy[5]].some(v => Buffer.from(v, 'base64').toString('base64').replace(/=+$/, '') !== v)) throw unavailable()
   const proofs = new WeakMap<CredentialProof, string>()
   async function denied(code: 'LOGIN_DENIED' | 'MFA_DENIED', subject: string) {
     const pseudonym = createHmac('sha256', keys.auditKey).update(canonical([code, subject])).digest()

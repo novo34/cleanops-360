@@ -15,7 +15,7 @@ export type Input = Record<string, unknown>
 export type Binding = {
   kind: 'BOOTSTRAP' | 'PREAUTH' | 'ACTIVE'; id: string; csrfDigest: string; expiresAt: number
   state?: 'TENANT_SELECTION_REQUIRED' | 'ENROLLMENT_REQUIRED' | 'PENDING_MFA'
-  tenantId?: string; userId?: string; sessionId?: string
+  tenantId?: string; userId?: string; sessionId?: string; absoluteExpiresAt?: number
 }
 export type Transition = { kind: 'PREAUTH' | 'ACTIVE'; token: string; csrf: string; expiresAt: number }
 export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean }
@@ -40,7 +40,7 @@ export interface Transaction {
   execute(operation: string, input: Input, binding: Binding): Promise<Effect | AuthError>
 }
 export interface Backend {
-  transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>
+  transaction<T>(work: (tx: Transaction) => Promise<T>, context?: { correlationId: string; operation: string }): Promise<T>
   /** Persist digest-only bootstrap binding and CSRF with preauth_ttl, or fail closed. */
   bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number): Promise<void>
 }
@@ -197,7 +197,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           const authState = authData.state ?? (authData.auth as Input | undefined)?.state
           if (binding.kind === 'ACTIVE' && ['verifyMfa','confirmTotp'].includes(operationId)) {
             const auth = operationId === 'confirmTotp' ? authData.auth as Input : authData
-            if (effect.transition || auth.session_id !== binding.sessionId || auth.tenant_id !== binding.tenantId || Date.parse(String(auth.absolute_expires_at)) > binding.expiresAt) throw new AuthError(503, 'INVALID_STEP_UP_TRANSITION')
+            if (effect.transition || auth.session_id !== binding.sessionId || auth.tenant_id !== binding.tenantId || Date.parse(String(auth.absolute_expires_at)) > (binding.absoluteExpiresAt ?? binding.expiresAt)) throw new AuthError(503, 'INVALID_STEP_UP_TRANSITION')
           }
           if (operationId === 'getCurrentIdentity' && (authData.id !== binding.userId || authData.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')
           if (operationId === 'listSelfSessions' && (authData.items as Input[]).some(s => s.user_id !== binding.userId || s.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')
@@ -216,7 +216,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           }
           if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp'].includes(operationId))
           return effect
-        })
+        }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome
         if (!valid(operation.responses['200'].content['application/json'].schema, { data: outcome.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
         const headers = new Headers()
