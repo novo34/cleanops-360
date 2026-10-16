@@ -1,9 +1,13 @@
+import { inspect } from 'node:util'
 import { AuthError } from './service.ts'
 import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool } from './pg-identity-driver.ts'
 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures are copied from canonical V4; values are always separate pg parameters. */
 const statements = {
+"mfaMaterial": {"sql":"SELECT auth_api.trusted_mfa_material($1::text, $2::text, $3::text, $4::uuid) AS value","arity":4,"kind":"json"},
+"boundChallenge": {"sql":"SELECT auth_api.issue_bound_challenge($1::text, $2::text, $3::uuid, $4::bigint, $5::bytea, $6::bytea, $7::text, $8::text, $9::uuid, $10::uuid) AS value","arity":10,"kind":"uuid"},
+"enrollAssigned": {"sql":"SELECT auth_api.begin_totp_enrollment_assigned($1::text, $2::uuid, $3::uuid, $4::uuid, $5::bigint, $6::bytea, $7::text, $8::text, $9::uuid) AS value","arity":9,"kind":"json"},
 "credentialLocked": {"sql":"SELECT * FROM auth_api.credential_material_locked($1::text)","arity":1,"kind":"rows"},
 "rehashCas": {"sql":"SELECT auth_api.rehash_credential_cas($1::uuid, $2::bigint, $3::text, $4::text) AS value","arity":4,"kind":"boolean"},
 "preauthVerified": {"sql":"SELECT auth_api.new_preauth_verified($1::uuid, $2::uuid, $3::bigint, $4::text, $5::bytea, $6::bytea) AS value","arity":6,"kind":"uuid"},
@@ -165,7 +169,21 @@ const statements = {
     "kind": "void"
   }
 } as const
+export type MfaPurpose = 'LOGIN' | 'STEP_UP' | 'ENROLLMENT' | 'ISSUE_SESSION'
+export type D1EnabledMethod = Readonly<{ id: string; kind: 'TOTP' | 'EMAIL_OTP'; version: string }>
+/** Private result, never an HTTP payload. Serialization/inspection are redacted. */
+export type D1MfaMaterial = Readonly<{
+  tenantId: string; userId: string; bindingId: string
+  riskClass: 'SENSITIVE' | 'OPERATIONAL'; enabledMethods: readonly D1EnabledMethod[]
+  recipient: string | null; expiresAt: string
+}>
+export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: '1'; expiresAt: string }>
 export type BrokerArgs = {
+  mfaMaterial: [preauth: string | null, purpose: MfaPurpose, grant: string | null, resource: string | null]
+  boundChallenge: [preauth: string | null, kind: 'TOTP' | 'EMAIL_OTP', method: string, expectedVersion: string,
+    proof: Buffer | null, encryptedPayload: Buffer | null, payloadKey: string | null, grant: string | null, resource: string | null, correlation: string]
+  enrollAssigned: [preauth: string | null, tenant: string, user: string, method: string, initialVersion: '1',
+    ciphertext: Buffer, keyVersion: string, algorithm: 'SHA1' | 'SHA256' | 'SHA512', correlation: string]
   credentialLocked: [normalizedEmail: string]
   rehashCas: [principal: string, version: string, expected: string, replacement: string]
   preauthVerified: [principal: string, tenant: string | null, version: string, expected: string, cookie: Buffer, csrf: Buffer]
@@ -209,7 +227,8 @@ export type BrokerArgs = {
     principal: Buffer | null, network: Buffer | null, device: Buffer | null, correlation: string]
 }
 type Row = Record<string, unknown>
-type Result<K extends keyof BrokerArgs> = typeof statements[K]['kind'] extends 'rows' ? Row[] :
+type Result<K extends keyof BrokerArgs> = K extends 'mfaMaterial' ? D1MfaMaterial :
+  K extends 'enrollAssigned' ? D1AssignedEnrollment : typeof statements[K]['kind'] extends 'rows' ? Row[] :
   typeof statements[K]['kind'] extends 'void' ? void :
   typeof statements[K]['kind'] extends 'boolean' ? boolean :
   typeof statements[K]['kind'] extends 'count' ? number :
@@ -235,12 +254,45 @@ function safeError(error: unknown): AuthError {
   }
   return unavailable()
 }
-function decode<K extends keyof BrokerArgs>(operation: K, result: unknown): Result<K> {
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v)
+const timestamp = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isSafeInteger(Date.parse(v))
+const generation = (v: unknown): v is string => typeof v === 'string' && /^[1-9][0-9]{0,18}$/.test(v) && BigInt(v) <= 9223372036854775807n
+function keys(value: Row, names: string[]) {
+  return Object.keys(value).length === names.length && names.every(k => Object.hasOwn(value, k))
+}
+function d1Material(value: unknown, args: BrokerArgs['mfaMaterial']): D1MfaMaterial {
+  if (!object(value) || !keys(value, ['tenantId', 'userId', 'bindingId', 'riskClass', 'enabledMethods', 'recipient', 'expiresAt']) ||
+      !uuid(value.tenantId) || !uuid(value.userId) || !uuid(value.bindingId) ||
+      !['SENSITIVE', 'OPERATIONAL'].includes(String(value.riskClass)) || !timestamp(value.expiresAt) ||
+      !Array.isArray(value.enabledMethods)) throw unavailable()
+  const methods: D1EnabledMethod[] = value.enabledMethods.map(m => {
+    if (!object(m) || !keys(m, ['id', 'kind', 'version']) || !uuid(m.id) ||
+        (m.kind !== 'TOTP' && m.kind !== 'EMAIL_OTP') || !generation(m.version)) throw unavailable()
+    return Object.freeze({ id: m.id, kind: m.kind, version: m.version })
+  })
+  if (new Set(methods.map(m => m.id.toLowerCase())).size !== methods.length ||
+      !(value.recipient === null || (typeof value.recipient === 'string' && value.recipient.length > 0 &&
+        value.recipient.length <= 254 && !/[\r\n\0]/.test(value.recipient))) ||
+      (['ENROLLMENT', 'ISSUE_SESSION'].includes(args[1]) && value.recipient !== null)) throw unavailable()
+  const result = { tenantId: value.tenantId, userId: value.userId, bindingId: value.bindingId,
+    riskClass: value.riskClass as D1MfaMaterial['riskClass'], enabledMethods: Object.freeze(methods), expiresAt: value.expiresAt }
+  Object.defineProperty(result, 'recipient', { value: value.recipient, enumerable: false })
+  Object.defineProperty(result, 'toJSON', { value: () => '[REDACTED_D1_MATERIAL]' })
+  Object.defineProperty(result, inspect.custom, { value: () => '[REDACTED_D1_MATERIAL]' })
+  return Object.freeze(result) as D1MfaMaterial
+}
+function decode<K extends keyof BrokerArgs>(operation: K, result: unknown, args: BrokerArgs[K]): Result<K> {
   if (!object(result) || !Array.isArray(result.rows) || !result.rows.every(object)) throw unavailable()
   const { kind } = statements[operation], rows = result.rows as Row[]
   if (kind === 'rows') return rows as Result<K>
   if (rows.length !== 1 || !Object.hasOwn(rows[0], 'value')) throw unavailable()
   const value = rows[0].value
+  if (operation === 'mfaMaterial') return d1Material(value, args as BrokerArgs['mfaMaterial']) as Result<K>
+  if (operation === 'enrollAssigned') {
+    if (!object(value) || !keys(value, ['methodId', 'initialVersion', 'expiresAt']) || !uuid(value.methodId) ||
+        value.methodId !== (args as BrokerArgs['enrollAssigned'])[3] || value.initialVersion !== '1' || !timestamp(value.expiresAt)) throw unavailable()
+    return Object.freeze({ methodId: value.methodId, initialVersion: '1', expiresAt: value.expiresAt }) as Result<K>
+  }
   if (kind === 'void') return undefined as Result<K>
   if (kind === 'boolean' && typeof value !== 'boolean') throw unavailable()
   if (kind === 'count' && (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)) throw unavailable()
@@ -268,7 +320,7 @@ export function createV4IdentityRepository(pool: IdentityPool) {
             const values = args.map(copy)
             const query = Promise.resolve().then(() => connection.query(statements[operation].sql, values))
             pending = query
-            try { return decode(operation, await query) }
+            try { return decode(operation, await query, values as unknown as BrokerArgs[K]) }
             catch (error) { failed = true; throw safeError(error) }
             finally { pending = undefined }
           },

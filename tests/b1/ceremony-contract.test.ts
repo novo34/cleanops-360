@@ -80,7 +80,7 @@ test('trusted context, expiry after wait, no redundant membership upgrade, assig
  assert.doesNotMatch(enrollment, /ON CONFLICT|UPSERT/)
  assert.ok(enrollment.indexOf('trusted_mfa_material') < enrollment.indexOf('UPDATE app.mfa_methods'))
 })
-test('canonical V4 and approved B1-X are unchanged; pending contracts stay unwired', () => {
+test('canonical V4/B1-X unchanged; approved D1 calls match pinned contract without runtime activation', () => {
  const originals: Record<string, string> = {"docs/canonical/auth-review/v4/b1-review-only.sql":"a06dc23cbc889382b30924a1edc4cead66eeb3e0","docs/proposals/b1-v4-extension/review-only.sql":"1499e90389b6e7c4d94b1dd17ed35cd4b539d436"}
  for (const [path, expected] of Object.entries(originals)) {
   const text = read(path)
@@ -88,7 +88,7 @@ test('canonical V4 and approved B1-X are unchanged; pending contracts stay unwir
   assert.equal(hash, expected, path)
  }
  const broker = read('lib/b1/v4-broker.ts')
- for (const item of matrix.functions.filter(f => f.change === 'NEW')) assert.ok(!broker.includes(item.name))
+ for (const item of matrix.functions.filter(f => f.change === 'NEW')) assert.ok(broker.includes('SELECT auth_api.' + item.name + '('))
  assert.match(read('lib/b1/runtime.ts'), /closedBackend/)
  assert.ok(!read('lib/b1/approved-backend.ts').includes('ceremony-preparation'))
  assert.doesNotMatch(read('lib/b1/ceremony-preparation.ts'), /console\.|fetch\(|\.query\(/)

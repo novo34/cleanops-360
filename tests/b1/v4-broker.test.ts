@@ -42,9 +42,10 @@ test('broker uses canonical functions and placeholders; no SQL value interpolati
   // Static drift check for every literal statement, not SQL execution.
   const source = readFileSync(new URL('../../lib/b1/v4-broker.ts', import.meta.url), 'utf8')
   const functions = [...source.matchAll(/SELECT (?:\* FROM )?auth_api\.([a-z_]+)\(/g)].map(match => match[1])
-  assert.equal(functions.length, 43)
+  assert.equal(functions.length, 46)
   const extension = readFileSync(new URL('../../docs/proposals/b1-v4-extension/review-only.sql', import.meta.url), 'utf8')
-  for (const name of functions) assert.ok(ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '('), name)
+  const d1 = readFileSync(new URL('../../docs/proposals/b1-ceremony-material/review-only.sql', import.meta.url), 'utf8')
+  for (const name of functions) assert.ok(d1.includes('CREATE FUNCTION auth_api.' + name + '(') || ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '('), name)
 })
 
 test('database error poisons the transaction even if the consumer catches it', async () => {

@@ -261,9 +261,11 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             } finally { digests.forEach(value => value.fill(0)) }
           }
           if (operation === 'verifyMfa') {
+            // D1 approval does not include D4 verified-recipient/delivery contracts.
+            if (input.method === 'EMAIL_OTP') throw unavailable()
             const result = input.method === 'TOTP' ?
               await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN') :
-              input.method === 'EMAIL_OTP' ? await factors.emailOtp(String(input.proof), binding, preauth(), String(input.challenge_id)) : invalid()
+              invalid()
             if (result instanceof AuthError) return result
             if (binding.kind === 'ACTIVE') return { data: await activeSummary(binding) }
             // No trusted risk_class exists in approved broker outputs: never guess session lifetimes.

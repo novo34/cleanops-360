@@ -193,3 +193,16 @@ test('unreviewed database profile rejects before binding and recovery requires o
   }), unavailable)
   assert.equal(f.calls.some(c => c.name === 'consume_enrollment_cas'), false)
 })
+
+test('D1 does not enable EMAIL OTP without D4; HTTP errors contain no proof or cookie', async () => {
+ const f = await fixture(), handler = createAuthHandler(f.backend, origin, () => now)
+ const response = await handler.handle(new Request(origin + '/auth/mfa/verify', {
+  method: 'POST', headers, body: JSON.stringify({ challenge_id: C, method: 'EMAIL_OTP', proof: '123456' }),
+ }), 'verifyMfa')
+ assert.equal(response.status, 503)
+ const body = await response.text()
+ assert.ok(!body.includes('123456'))
+ assert.equal(response.headers.get('set-cookie'), null)
+ assert.equal(f.calls.some(c => c.name === 'email_otp_material' || c.name === 'consume_email_otp'), false)
+ assert.equal(f.calls.at(-1)?.name, 'ROLLBACK')
+})
