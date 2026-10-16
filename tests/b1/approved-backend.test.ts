@@ -45,7 +45,7 @@ async function fixture(options: Options = {}) {
       if (name === 'discard_owned') { staged.discarded++; value = true }
       if (name === 'revoke_own_session' || name === 'revoke_other_own_sessions') { staged.revoked++; value = 1 }
       if (name === 'totp_material_locked') value = { binding: { tenantId: A, userId: U, methodId: M, ceremonyId: C, purpose: values[2] },
-        version: '3', lastCounter: counter, expiresAt: now + 30_000, algorithm: 'SHA1', secret_ciphertext: Buffer.from('ciphertext').toString('base64'), key_version: 'test-key' }
+        session_id: S, grant_key: 'B1-SELF-05', resource_id: null, version: '3', lastCounter: counter, expiresAt: now + 30_000, algorithm: 'SHA1', secret_ciphertext: Buffer.from('ciphertext').toString('base64'), key_version: 'test-key' }
       if (name === 'consume_totp_cas') {
         if (values[5] === null) { staged.failures++; value = false }
         else { value = values[4] === counter && (counter === null || Number(values[5]) > counter); if (value) counter = Number(values[5]) }

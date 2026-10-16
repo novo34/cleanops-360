@@ -2,6 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { canonical } from './contracts.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
+import { selectEnabledMethod, sessionPolicyForRisk } from './ceremony-preparation.ts'
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
@@ -24,6 +25,8 @@ export interface ApprovedBackendDependencies {
   transport(): Readonly<{ network: Buffer; device: Buffer }>
   /** Same normalization policy as account provisioning, never password normalization. */
   normalizeEmail(email: string): string
+  /** Trusted private labels for new sessions; no browser/header defaults. */
+  sessionLabels?(): Readonly<{ device: string; browser: string }>
 }
 type Reservation = { operation: string; key: Buffer; hash: string; oneTime: boolean; raw: string | null; done: boolean }
 /** Uninstalled private Backend for the approved extension. One broker/connection for all
@@ -70,18 +73,75 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         const data = await broker.call('activeSummary', [])
         if (!object(data) || data.state !== 'ACTIVE' || data.session_id !== binding.sessionId || data.tenant_id !== binding.tenantId ||
             Date.parse(String(data.absolute_expires_at)) > (binding.absoluteExpiresAt ?? binding.expiresAt)) throw unavailable()
-        return data
+        return { state: 'ACTIVE', session_id: data.session_id, tenant_id: data.tenant_id, absolute_expires_at: date(data.absolute_expires_at) }
       }
-      async function preauthResult(cookie: string): Promise<{ data: Input; expiresAt: number }> {
+      async function ownedInternal<T>(cookie: string | null, operation: string, input: Input, work: () => Promise<T>): Promise<T> {
+        const scope = 'internal:' + randomUUID(), key = hex(digest(token())), hash = digest(canonical(input))
+        const result = await broker.call('reserveOwned', [cookie, operation, key, hex(hash), true])
+        if (!object(result) || result.replay !== false || result.requestHash !== hash || result.oneTime !== true ||
+            typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
+        const r: Reservation = { operation, key, hash, oneTime: true, raw: cookie, done: false }
+        reservations.set(scope, r)
+        const outcome = await work()
+        const ok = outcome instanceof AuthError ?
+          await broker.call('discardOwned', [cookie, operation, key, hex(hash)]) :
+          await broker.call('completeOwned', [cookie, operation, key, hex(hash), null])
+        if (!ok) throw unavailable()
+        r.done = true
+        return outcome
+      }
+      async function material(cookie: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ISSUE_SESSION',
+        expected: { id: string; tenantId?: string; userId?: string; expiresAt: number }, grant: string | null = null, resource: string | null = null) {
+        const value = await broker.call('mfaMaterial', [cookie, purpose, grant, resource])
+        const expiresAt = Date.parse(value.expiresAt)
+        if (value.bindingId !== expected.id || value.tenantId !== expected.tenantId ||
+            (expected.userId !== undefined && value.userId !== expected.userId) ||
+            !Number.isSafeInteger(expiresAt) || expiresAt <= now() || expiresAt > expected.expiresAt) throw invalid()
+        sessionPolicyForRisk(value.riskClass)
+        return value
+      }
+      async function totpChallenge(cookie: string | null, purpose: 'LOGIN' | 'STEP_UP',
+        expected: { id: string; tenantId?: string; userId?: string; expiresAt: number },
+        grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string) {
+        const value = await material(cookie, purpose, expected, grant, resource)
+        // EMAIL is closed; multiple TOTP rows need an explicit trusted method ID.
+        const selected = selectEnabledMethod(value.enabledMethods.filter(m => m.kind === 'TOTP'), selectedId)
+        if (expectedVersion !== undefined && selected.version !== expectedVersion) throw invalid()
+        const challenge = await broker.call('boundChallenge', [cookie, 'TOTP', selected.id, selected.version, null, null, null, grant, resource, correlation])
+        const detail = await broker.call('totpMaterial', [cookie, challenge, purpose])
+        if (!object(detail) || !object(detail.binding) || detail.binding.tenantId !== value.tenantId ||
+            detail.binding.userId !== value.userId || detail.binding.methodId !== selected.id ||
+            detail.binding.ceremonyId !== challenge || detail.binding.purpose !== purpose || detail.version !== selected.version ||
+            (detail.grant_key ?? null) !== grant || (detail.resource_id ?? null) !== resource ||
+            (purpose === 'STEP_UP' && detail.session_id !== expected.id) ||
+            typeof detail.expiresAt !== 'number' || !Number.isSafeInteger(detail.expiresAt) ||
+            detail.expiresAt <= now() || detail.expiresAt > Date.parse(value.expiresAt)) throw unavailable()
+        return { challenge_id: challenge, allowed_methods: ['TOTP'], expires_at: new Date(detail.expiresAt).toISOString() }
+      }
+      async function preauthResult(cookie: string, expected?: { id: string; tenantId: string }): Promise<{ data: Input; expiresAt: number }> {
         const summary = await broker.call('preauthSummary', [cookie])
         if (!object(summary)) throw unavailable()
         const expiresAt = Date.parse(String(summary.expires_at))
         if (!Number.isSafeInteger(expiresAt) || expiresAt <= now() || expiresAt > now() + numeric('preauth_ttl') * 1000) throw unavailable()
         if (summary.state === 'TENANT_SELECTION_REQUIRED') return { data: { state: summary.state, expires_at: new Date(expiresAt).toISOString() }, expiresAt }
         if (summary.state === 'ENROLLMENT_REQUIRED') return { data: { state: summary.state, allowed_methods: ['TOTP'], expires_at: new Date(expiresAt).toISOString() }, expiresAt }
-        // The approved broker still exposes no method discovery/challenge recipient policy.
-        // Never guess a factor or emit a PENDING_MFA response without a real challenge.
-        throw unavailable()
+        if (summary.state !== 'PENDING_MFA' || !expected) throw unavailable()
+        const data = await ownedInternal(cookie, operationHint === 'switchTenant' ? 'switchTenant' : 'login', { binding: expected.id, tenant: expected.tenantId }, () =>
+          totpChallenge(cookie, 'LOGIN', { ...expected, expiresAt }))
+        return { data: { state: 'PENDING_MFA', ...data }, expiresAt }
+      }
+      async function issueSession(binding: Binding): Promise<Effect> {
+        const value = await material(raw, 'ISSUE_SESSION', binding), policy = sessionPolicyForRisk(value.riskClass)
+        const labels = deps.sessionLabels?.()
+        if (!labels || [labels.device, labels.browser].some(v => typeof v !== 'string' || v.length > 120 || /[\r\n\0]/.test(v))) throw unavailable()
+        const cookie = token(), newCsrf = token()
+        const result = await broker.call('issueSession', [raw, hex(digest(cookie)), hex(digest(newCsrf)),
+          policy.absoluteSeconds, policy.idleSeconds, labels.device, labels.browser, correlation])
+        if (!object(result) || result.state !== 'ACTIVE' || !uuid(result.session_id) || result.tenant_id !== binding.tenantId) throw unavailable()
+        const absolute = Date.parse(String(result.absolute_expires_at))
+        if (!Number.isSafeInteger(absolute) || absolute <= now() || absolute > now() + policy.absoluteSeconds * 1000) throw unavailable()
+        return { data: { state: 'ACTIVE', session_id: result.session_id, tenant_id: result.tenant_id, absolute_expires_at: new Date(absolute).toISOString() },
+          transition: { kind: 'ACTIVE', token: cookie, csrf: newCsrf, expiresAt: Math.min(absolute, now() + policy.idleSeconds * 1000) } }
       }
       async function auth(binding: Binding, rule: string, resource?: string) {
         owns(binding)
@@ -153,6 +213,24 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
+          if (result.replay && ['startStepUp', 'resendOtp'].includes(operation)) {
+            if (!object(result.data) || !uuid(result.data.challenge_id) ||
+                Date.parse(String(result.data.expires_at)) <= now()) throw unavailable()
+            const purpose = actor.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN'
+            const detail = await broker.call('totpMaterial', [rawPreauth, result.data.challenge_id, purpose])
+            if (!object(detail) || !object(detail.binding) || detail.binding.tenantId !== actor.tenantId ||
+                detail.binding.userId !== actor.userId || detail.binding.ceremonyId !== result.data.challenge_id ||
+                detail.binding.purpose !== purpose || typeof detail.expiresAt !== 'number' ||
+                detail.expiresAt <= now() || detail.expiresAt !== Date.parse(String(result.data.expires_at))) throw invalid()
+            const grant = detail.grant_key ?? null, resource = detail.resource_id ?? null
+            if (actor.kind === 'ACTIVE') {
+              if (typeof grant !== 'string' || (resource !== null && !uuid(resource)) ||
+                  !(await auth(actor, grant, resource === null ? undefined : String(resource))).allowed) throw new AuthError(403, 'POLICY_DENIED')
+            }
+            const fresh = await material(rawPreauth, purpose, actor, grant as string | null, resource as string | null)
+            const selected = selectEnabledMethod(fresh.enabledMethods.filter(m => m.kind === 'TOTP'), String(detail.binding.methodId))
+            if (selected.version !== detail.version) throw invalid()
+          }
           if (!result.replay) reservations.set(scope, { operation, key, hash: requestHash, oneTime, raw: rawPreauth, done: false })
           return { replay: result.replay, requestHash, oneTime, expiresAt: result.expiresAt, data: result.data }
         },
@@ -169,7 +247,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp'].includes(operation) &&
+          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp', 'startStepUp', 'resendOtp'].includes(operation) &&
               ![...reservations.values()].some(r => !r.done && r.operation === operation && (operation !== 'confirmTotp' || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
@@ -216,30 +294,53 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const proof = await factors.password(email, String(input.password))
             if (proof instanceof AuthError) return proof
             const cookie = token(), newCsrf = token()
-            await factors.preauth(proof, null, hex(digest(cookie)), hex(digest(newCsrf)))
+            const preauthId = await factors.preauth(proof, null, hex(digest(cookie)), hex(digest(newCsrf)))
             const memberships = await broker.call('memberships', [cookie])
             if (memberships.length > numeric('membership_max') || memberships.some(r => !uuid(r.id))) throw unavailable()
             const matching = input.organization_hint === undefined ? [] : memberships.filter(r => r.id === input.organization_hint)
             const chosen = matching.length === 1 ? matching[0] : memberships.length === 1 ? memberships[0] : undefined
             if (chosen) await broker.call('selectTenant', [cookie, String(chosen.id), correlation])
-            const result = await preauthResult(cookie)
+            const result = await preauthResult(cookie, chosen ? { id: preauthId, tenantId: String(chosen.id) } : undefined)
             return { data: result.data, transition: { kind: 'PREAUTH', token: cookie, csrf: newCsrf, expiresAt: result.expiresAt } }
           }
           if (operation === 'switchTenant') {
             const target = String(input.target_tenant_id)
             if (!uuid(target)) throw invalid()
-            if (binding.kind === 'PREAUTH') {
-              await broker.call('selectTenant', [raw, target, correlation])
-              const result = await preauthResult(raw)
-              // V4 selection keeps its proof binding; rotate cookies only via broker-supported switch.
-              return { data: result.data, transition: { kind: 'PREAUTH', token: raw, csrf, expiresAt: result.expiresAt } }
-            }
+            // No approved PREAUTH selection rotation primitive; keep that path closed.
+            if (binding.kind === 'PREAUTH') throw unavailable()
             const cookie = token(), newCsrf = token()
-            await broker.call('beginSwitch', [cookie, hex(digest(newCsrf)), target, correlation])
-            const result = await preauthResult(cookie)
+            const preauthId = await broker.call('beginSwitch', [cookie, hex(digest(newCsrf)), target, correlation])
+            const result = await preauthResult(cookie, { id: preauthId, tenantId: target })
             return { data: result.data, transition: { kind: 'PREAUTH', token: cookie, csrf: newCsrf, expiresAt: result.expiresAt } }
           }
+          if (operation === 'startStepUp') {
+            if (binding.kind !== 'ACTIVE') throw invalid()
+            const grant = String(input.grant_id), resource = input.resource_id === undefined ? null : String(input.resource_id)
+            if (!['B1-SELF-04', 'B1-SELF-05', 'B1-SELF-06', 'B1-SELF-08'].includes(grant) ||
+                ((grant === 'B1-SELF-08') !== (resource !== null)) || (resource !== null && !uuid(resource))) throw invalid()
+            if (!(await auth(binding, grant, resource ?? undefined)).allowed) throw new AuthError(403, 'POLICY_DENIED')
+            return { data: await totpChallenge(null, 'STEP_UP', binding, grant, resource) }
+          }
+          if (operation === 'resendOtp') {
+            const purpose = binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN', cookie = preauth()
+            const previous = await broker.call('totpMaterial', [cookie, String(input.challenge_id), purpose])
+            if (!object(previous) || !object(previous.binding) || previous.binding.tenantId !== binding.tenantId ||
+                previous.binding.userId !== binding.userId || previous.binding.ceremonyId !== input.challenge_id ||
+                previous.binding.purpose !== purpose || !uuid(previous.binding.methodId) ||
+                typeof previous.expiresAt !== 'number' || previous.expiresAt <= now()) throw invalid()
+            const grant = previous.grant_key ?? null, resource = previous.resource_id ?? null
+            if (binding.kind === 'ACTIVE') {
+              if (typeof grant !== 'string' || (resource !== null && !uuid(resource)) ||
+                  !(await auth(binding, grant, resource === null ? undefined : String(resource))).allowed) throw new AuthError(403, 'POLICY_DENIED')
+            } else if (grant !== null || resource !== null) throw invalid()
+            const data = await totpChallenge(cookie, purpose, binding, grant as string | null, resource as string | null, previous.binding.methodId, String(previous.version))
+            return { data: { challenge_id: data.challenge_id, method: 'TOTP', expires_at: data.expires_at } }
+          }
           if (operation === 'confirmTotp') {
+            // No PREAUTH enrollment proof consumption pending D2/D3 provisioning.
+            if (binding.kind !== 'ACTIVE') throw unavailable()
+            const authorization = await auth(binding, 'B1-SELF-06')
+            if (!authorization.allowed || !authorization.step_up) throw new AuthError(403, 'STEP_UP_REQUIRED')
             if (!Buffer.isBuffer(deps.factors.recoveryKey) || deps.factors.recoveryKey.length < 32 || !binding.tenantId || !binding.userId) throw unavailable()
             const { Secret } = await import('otpauth')
             const codes: string[] = [], digests: Buffer[] = []
@@ -261,18 +362,16 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             } finally { digests.forEach(value => value.fill(0)) }
           }
           if (operation === 'verifyMfa') {
-            // D1 approval does not include D4 verified-recipient/delivery contracts.
-            if (input.method === 'EMAIL_OTP') throw unavailable()
-            const result = input.method === 'TOTP' ?
-              await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN') :
-              invalid()
-            if (result instanceof AuthError) return result
-            if (binding.kind === 'ACTIVE') return { data: await activeSummary(binding) }
-            // No trusted risk_class exists in approved broker outputs: never guess session lifetimes.
-            throw unavailable()
+            if (input.method !== 'TOTP') throw unavailable() // D4 remains closed.
+            if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA')) throw invalid()
+            return ownedInternal(preauth(), 'verifyMfa', input, async () => {
+              const result = await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN')
+              if (result instanceof AuthError) return result
+              if (binding.kind === 'ACTIVE') return { data: await activeSummary(binding) }
+              return issueSession(binding)
+            })
           }
-          // Enrollment allocation/AAD, method discovery and session risk material are
-          // genuine missing broker inputs, not interchangeable with callbacks returning ALLOW.
+          // Real enrollment remains closed pending D2/D3; no fallback provisioning.
           throw unavailable()
         },
       }

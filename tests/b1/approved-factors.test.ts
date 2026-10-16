@@ -62,7 +62,8 @@ test('real TOTP passes exact method version/counter CAS, replays and foreign ten
   const actor: Binding = { kind: 'ACTIVE', id: S, sessionId: S, tenantId: T, userId: U, csrfDigest: 'a'.repeat(64), expiresAt: now + 60_000 }
   let counter = null as number | null, tenant = T
   const f = fixture((name, args) => {
-    if (name === 'totpMaterial') return { binding: { tenantId: tenant, userId: U, methodId: M, ceremonyId: C, purpose: 'STEP_UP' },
+    if (name === 'authorization') return [{ allowed: true, step_up: true }]
+    if (name === 'totpMaterial') return { session_id: S, grant_key: 'B1-SELF-05', resource_id: null, binding: { tenantId: tenant, userId: U, methodId: M, ceremonyId: C, purpose: 'STEP_UP' },
       version: '3', lastCounter: counter, expiresAt: now + 60_000, algorithm: 'SHA1', secret_ciphertext: Buffer.from('encrypted').toString('base64'), key_version: 'key-1' }
     if (name === 'consumeTotp') {
       assert.equal(args[3], '3')

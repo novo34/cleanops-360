@@ -81,6 +81,14 @@ export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys,
       const b = material.binding
       if (b.tenantId !== actor.tenantId || b.userId !== actor.userId || !uuid(b.methodId) ||
           b.purpose !== purpose || b.ceremonyId !== ceremony) return denied('MFA_DENIED', actor.id)
+      if (purpose === 'STEP_UP') {
+        const grant = material.grant_key, resource = material.resource_id ?? null
+        if (material.session_id !== actor.sessionId || typeof grant !== 'string' ||
+            !['B1-SELF-04', 'B1-SELF-05', 'B1-SELF-06', 'B1-SELF-08'].includes(grant) ||
+            ((grant === 'B1-SELF-08') !== (resource !== null)) || (resource !== null && !uuid(resource))) throw unavailable()
+        const authorization = await broker.call('authorization', [null, grant, resource as string | null])
+        if (authorization.length !== 1 || authorization[0].allowed !== true) throw new AuthError(403, 'POLICY_DENIED')
+      }
       const binding: TotpBinding = Object.freeze({ tenantId: actor.tenantId, userId: actor.userId, methodId: b.methodId, purpose, ceremonyId: ceremony })
       const version = generation(material.version)
       if ((material.lastCounter !== null && (typeof material.lastCounter !== 'number' || !Number.isSafeInteger(material.lastCounter) || material.lastCounter < 0)) ||
