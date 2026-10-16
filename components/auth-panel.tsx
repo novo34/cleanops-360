@@ -6,6 +6,7 @@ import { emptyView, receiveAuth, type AuthState } from '@/lib/b1/ui-state'
 
 type Selection = { state: 'TOTP_SELECTION_REQUIRED'; methods: { method_id: string; kind: 'TOTP' }[]; expires_at: string }
 type StepContext = { grant_id: string; resource_id?: string }
+function expired(expiresAt: string) { return Date.parse(expiresAt) <= Date.now() }
 type Tenant = { id: string; name: string }
 type Session = { id: string; device_label: string; browser_label: string; is_current: boolean }
 export function AuthPanel() {
@@ -70,13 +71,13 @@ export function AuthPanel() {
     } else { setSelection(null); setChallenge(result as { challenge_id: string; allowed_methods: string[]; expires_at: string }) }
   }
   async function selectMethod() {
-    if (!selection || !selection.methods.some(m => m.method_id === selected) || Date.parse(selection.expires_at) <= Date.now()) return
+    if (!selection || !selection.methods.some(m => m.method_id === selected) || expired(selection.expires_at)) return
     const body = { totp_method_id: selected, ...stepContext.current }
     let key = selectionKeys.current.get(selected)
     if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(selected, key) }
     const result = await call('selectTotpMethod', body, undefined, key)
     if (!result) return
-    if (Date.parse(result.expires_at) <= Date.now() || (stepContext.current ? result.state !== undefined : result.state !== 'PENDING_MFA')) {
+    if (expired(result.expires_at) || (stepContext.current ? result.state !== undefined : result.state !== 'PENDING_MFA')) {
       clearCeremony(); setView(emptyView); setMessage('Respuesta no válida. Vuelve a iniciar el acceso.'); return
     }
     setSelection(null); setSelected(''); selectionKeys.current.clear()
