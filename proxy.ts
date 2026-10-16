@@ -1,7 +1,8 @@
+import { runtimeHandler } from "./lib/b1/runtime"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
   const csp = [
     "default-src 'self'",
@@ -22,6 +23,16 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", csp)
   const response = NextResponse.next({ request: { headers: requestHeaders } })
   response.headers.set("Content-Security-Policy", csp)
+  if (request.nextUrl.pathname === "/login") {
+    response.headers.set("Cache-Control", "no-store")
+    response.headers.set("Vary", "Cookie")
+    try {
+      const bootstrap = await runtimeHandler().bootstrap()
+      if (!(bootstrap instanceof Response)) {
+        for (const value of bootstrap.headers.getSetCookie()) response.headers.append("Set-Cookie", value)
+      }
+    } catch { /* No bootstrap cookie is emitted on configuration/dependency failure. */ }
+  }
   return response
 }
 

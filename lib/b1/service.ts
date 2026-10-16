@@ -1,0 +1,224 @@
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { numeric, profile } from './config.ts'
+import { canonical, operations, valid, type Operation } from './contracts.ts'
+
+export class AuthError extends Error {
+  status: number; code: string; retryAfter?: number
+  constructor(status: number, code: string, retryAfter?: number) { super(code); this.status = status; this.code = code; this.retryAfter = retryAfter }
+}
+export const names = Object.freeze({ session: '__Host-cleanops_session', preauth: '__Host-cleanops_preauth', csrf: '__Host-cleanops_csrf' })
+export const digest = (s: string) => createHash('sha256').update(s).digest('hex')
+const cookieNames: readonly string[] = Object.values(names)
+const tokenPattern = /^[A-Za-z0-9_-]{43}$/
+export function token(): string { return randomBytes(numeric('session_token_entropy')).toString('base64url') }
+export type Input = Record<string, unknown>
+export type Binding = {
+  kind: 'BOOTSTRAP' | 'PREAUTH' | 'ACTIVE'; id: string; csrfDigest: string; expiresAt: number
+  state?: 'TENANT_SELECTION_REQUIRED' | 'ENROLLMENT_REQUIRED' | 'PENDING_MFA'
+  tenantId?: string; userId?: string; sessionId?: string
+}
+export type Transition = { kind: 'PREAUTH' | 'ACTIVE'; token: string; csrf: string; expiresAt: number }
+export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean }
+export interface Transaction {
+  /** Must revalidate expiry, revocation, credential version, membership and tenant under locks. */
+  resolve(cookies: Record<string, string>): Promise<Binding | null>
+  /** Private, trusted actor; no identity/permission derived from payload or role names. */
+  authorize(binding: Binding, rule: string, resource?: string): Promise<boolean>
+  stepUp(binding: Binding, rule: string, resource?: string): Promise<boolean>
+  rateLimit(operation: string, binding: Binding): Promise<number | null>
+  /** Atomic reserve + effect + audit + completion on this same transaction/connection. */
+  reserve(scope: string, requestHash: string): Promise<{ replay: boolean; requestHash?: string; data?: unknown; oneTime?: boolean; expiresAt?: number }>
+  discard(scope: string): Promise<void>
+  complete(scope: string, requestHash: string, data: unknown, oneTime: boolean): Promise<void>
+  /** Identity service verifies passwords/TOTP with mature libraries, never a browser assertion.
+   * Invalid factors commit attempts before returning an AuthError result; infrastructure errors roll back.
+   * All successes include audit in the same commit. Method may return AuthError to commit a failed attempt. */
+  execute(operation: string, input: Input, binding: Binding): Promise<Effect | AuthError>
+}
+export interface Backend {
+  transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>
+  /** Persist digest-only bootstrap binding and CSRF with preauth_ttl, or fail closed. */
+  bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number): Promise<void>
+}
+export const closedBackend: Backend = {
+  async transaction() { throw new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE') },
+  async bootstrap() { throw new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE') },
+}
+const safeEqual = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b))
+export function cookie(name: string, value: string, seconds: number, httpOnly = true): string {
+  if (!cookieNames.includes(name) || (value && !tokenPattern.test(value)) || !Number.isFinite(seconds)) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+  return `${name}=${value}; Path=/; Secure; SameSite=Lax; Max-Age=${Math.max(0, Math.floor(seconds))}${httpOnly ? '; HttpOnly' : ''}`
+}
+function cookies(request: Request): Record<string, string> {
+  const result: Record<string, string> = Object.create(null)
+  for (const part of (request.headers.get('cookie') ?? '').split(';')) {
+    const [name, ...rest] = part.trim().split('=')
+    if (!cookieNames.includes(name)) continue
+    const value = rest.join('=')
+    if (result[name] || !tokenPattern.test(value)) throw new AuthError(400, 'INVALID_COOKIE')
+    result[name] = value
+  }
+  return result
+}
+async function body(request: Request): Promise<Uint8Array> {
+  const limit = numeric('json_body_max')
+  const declared = request.headers.get('content-length')
+  if (declared && (!/^\d+$/.test(declared) || Number(declared) > limit)) throw new AuthError(413, 'BODY_TOO_LARGE')
+  const reader = request.body?.getReader()
+  if (!reader) return new Uint8Array()
+  const chunks: Uint8Array[] = []; let size = 0
+  try {
+    while (true) {
+      const part = await reader.read()
+      if (part.done) break
+      size += part.value.length
+      if (size > limit) { await reader.cancel(); throw new AuthError(413, 'BODY_TOO_LARGE') }
+      chunks.push(part.value)
+    }
+  } finally { reader.releaseLock() }
+  const bytes = new Uint8Array(size); let offset = 0
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length }
+  return bytes
+}
+function stateAllowed(operation: string, binding: Binding) {
+  if (operation === 'login') return binding.kind === 'BOOTSTRAP'
+  if (operation === 'listAuthorizedTenants') return binding.kind !== 'BOOTSTRAP'
+  if (operation === 'switchTenant') return binding.kind === 'ACTIVE' || binding.state === 'TENANT_SELECTION_REQUIRED'
+  if (operation === 'enrollTotp' || operation === 'confirmTotp') return binding.kind === 'ACTIVE' || binding.state === 'ENROLLMENT_REQUIRED'
+  if (operation === 'verifyMfa' || operation === 'resendOtp') return binding.kind === 'ACTIVE' || binding.state === 'PENDING_MFA'
+  return binding.kind === 'ACTIVE'
+}
+function ruleFor(operation: Operation, input: Input): string | undefined {
+  if (operation.operationId === 'startStepUp') return String(input.grant_id)
+  return operation['x-rule']
+}
+function resourceFor(operation: string, input: Input): string | undefined {
+  if (operation === 'switchTenant') return String(input.target_tenant_id)
+  if (operation === 'startStepUp' && input.resource_id) return String(input.resource_id)
+  return undefined
+}
+export function createAuthHandler(backend: Backend, origin: string, now = () => Date.now()) {
+  // This is a trusted deployment value, never Host/X-Forwarded-Host from the request.
+  let trusted: URL
+  try { trusted = new URL(origin) } catch { throw new Error('AUTH_ORIGIN_REQUIRED') }
+  if (trusted.protocol !== 'https:' || trusted.origin !== origin) throw new Error('AUTH_HTTPS_ORIGIN_REQUIRED')
+  const response = (data: unknown, status: number, correlation: string, extra: Headers = new Headers()) => {
+    extra.set('Cache-Control', 'no-store'); extra.set('Vary', 'Cookie'); extra.set('Content-Type', 'application/json; charset=utf-8')
+    return new Response(JSON.stringify(status === 200 ? { data, meta: { correlation_id: correlation } } : data), { status, headers: extra })
+  }
+  const failure = (error: unknown, correlation: string) => {
+    const e = error instanceof AuthError ? error : new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
+    const headers = new Headers()
+    if (e.status === 429) headers.set('Retry-After', String(Math.max(1, Math.min(900, Math.ceil(e.retryAfter ?? 1)))))
+    return response({ error: { code: e.code, message: 'No se pudo completar la solicitud.', details: [] }, correlation_id: correlation }, e.status, correlation, headers)
+  }
+  return {
+    async bootstrap(): Promise<{ headers: Headers } | Response> {
+      const correlation = randomUUID()
+      try {
+        const binding = token(), csrf = token(), expiresAt = now() + numeric('preauth_ttl') * 1000
+        await backend.bootstrap(digest(binding), digest(csrf), expiresAt)
+        const headers = new Headers({ 'Cache-Control': 'no-store', Vary: 'Cookie' })
+        headers.append('Set-Cookie', cookie(names.preauth, binding, numeric('preauth_ttl')))
+        headers.append('Set-Cookie', cookie(names.csrf, csrf, numeric('preauth_ttl'), false))
+        return { headers }
+      } catch (error) { return failure(error, correlation) }
+    },
+    async handle(request: Request, operationId: string): Promise<Response> {
+      const correlation = randomUUID()
+      try {
+        const operation = operations.find(o => o.operationId === operationId)
+        if (!operation) throw new AuthError(404, 'NOT_FOUND')
+        const url = new URL(request.url)
+        const route = operation.path === '/me/sessions/{session_id}' ? /^\/me\/sessions\/([^/]+)$/.exec(url.pathname) : null
+        if (url.origin !== origin || request.method !== operation.method || (!route && url.pathname !== operation.path)) throw new AuthError(400, 'INVALID_ROUTE')
+        if (request.headers.has('content-encoding')) throw new AuthError(415, 'UNSUPPORTED_ENCODING')
+        const query = Object.fromEntries(url.searchParams)
+        for (const key of url.searchParams.keys()) if (url.searchParams.getAll(key).length !== 1 || !operation.parameters.some(p => p.in === 'query' && p.name === key)) throw new AuthError(400, 'INVALID_QUERY')
+        const input: Input = {}
+        for (const parameter of operation.parameters) {
+          let value: unknown = parameter.in === 'header' ? request.headers.get(parameter.name) : parameter.in === 'query' ? query[parameter.name] : route?.[1]
+          if (value === undefined || value === null) { if (parameter.required) throw new AuthError(400, 'MISSING_PARAMETER'); continue }
+          if (parameter.schema.type === 'integer') value = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : NaN
+          if (!valid(parameter.schema, value)) throw new AuthError(400, 'INVALID_PARAMETER')
+          if (parameter.in !== 'header') input[parameter.name] = value
+        }
+        if (operation.parameters.some(p => p.in === 'query' && p.name === 'limit') && input.limit === undefined) input.limit = numeric('page_default')
+        const raw = await body(request)
+        if (operation.requestBody) {
+          if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')) throw new AuthError(415, 'JSON_REQUIRED')
+          let parsed: unknown
+          try { parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) } catch { throw new AuthError(400, 'INVALID_JSON') }
+          if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
+          Object.assign(input, parsed)
+        } else if (raw.length) throw new AuthError(400, 'BODY_NOT_ALLOWED')
+        const received = cookies(request)
+        if (request.method !== 'GET') {
+          const referer = request.headers.get('referer')
+          if (request.headers.get('origin') !== origin || request.headers.get('sec-fetch-site') !== 'same-origin' || (referer && new URL(referer).origin !== origin)) throw new AuthError(403, 'CSRF_ORIGIN')
+          const csrf = request.headers.get('x-csrf-token') ?? ''
+          if (!received[names.csrf] || !safeEqual(csrf, received[names.csrf])) throw new AuthError(403, 'CSRF_INVALID')
+        }
+        const outcome = await backend.transaction(async tx => {
+          const binding = await tx.resolve(received)
+          if (!binding || binding.expiresAt <= now() || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
+          if (request.method !== 'GET' && !safeEqual(digest(received[names.csrf]), binding.csrfDigest)) throw new AuthError(403, 'CSRF_INVALID')
+          const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
+          if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
+          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp'].includes(operationId)
+          if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
+          const retry = await tx.rateLimit(operationId, binding)
+          // Return instead of throw so the transaction commits failed-attempt counters.
+          if (retry !== null) return new AuthError(429, 'RATE_LIMITED', retry)
+          const key = request.headers.get('idempotency-key')
+          const scope = key ? canonical([binding.kind, binding.id, binding.tenantId ?? null, binding.userId ?? null, operationId, key]) : null
+          const requestHash = digest(canonical(input))
+          if (scope) {
+            const reservation = await tx.reserve(scope, requestHash)
+            if (reservation.replay) {
+              if (reservation.requestHash !== requestHash) throw new AuthError(409, 'IDEMPOTENCY_MISMATCH')
+              if ((reservation.expiresAt ?? 0) <= now()) throw new AuthError(409, 'IDEMPOTENCY_EXPIRED')
+              if (reservation.oneTime) throw new AuthError(409, 'RESULT_NOT_REPLAYABLE')
+              return { data: reservation.data } as Effect
+            }
+          }
+          const effect = await tx.execute(operationId, input, binding)
+          if (effect instanceof AuthError) {
+            if (scope) await tx.discard(scope)
+            return effect
+          }
+          if (!valid(operation.responses['200'].content['application/json'].schema, { data: effect.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+          if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
+          const authData = effect.data as Input
+          const authState = authData.state ?? (authData.auth as Input | undefined)?.state
+          const mustRotate = operationId === 'login' || operationId === 'switchTenant' || (binding.kind === 'PREAUTH' && ['verifyMfa','confirmTotp'].includes(operationId))
+          if (mustRotate && !effect.transition) throw new AuthError(503, 'MISSING_COOKIE_TRANSITION')
+          if (operationId === 'logout' || (operationId === 'revokeSelfSession' && input.session_id === binding.sessionId)) effect.clearSession = true
+          if (effect.transition) {
+            const { kind, token: value, csrf, expiresAt } = effect.transition
+            if (!tokenPattern.test(value) || !tokenPattern.test(csrf) || expiresAt <= now()) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+            if ((kind === 'ACTIVE') !== (authState === 'ACTIVE')) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+            const absolute = authData.absolute_expires_at ?? (authData.auth as Input | undefined)?.absolute_expires_at
+            if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+            if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+          }
+          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp'].includes(operationId))
+          return effect
+        })
+        if (outcome instanceof AuthError) throw outcome
+        if (!valid(operation.responses['200'].content['application/json'].schema, { data: outcome.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+        const headers = new Headers()
+        // Cookies are emitted only after the transaction promise confirms commit.
+        if (outcome.transition) {
+          const t = outcome.transition, age = (t.expiresAt - now()) / 1000
+          headers.append('Set-Cookie', cookie(t.kind === 'ACTIVE' ? names.session : names.preauth, t.token, age))
+          headers.append('Set-Cookie', cookie(names.csrf, t.csrf, age, false))
+          if (t.kind === 'ACTIVE') headers.append('Set-Cookie', cookie(names.preauth, '', 0))
+        }
+        if (outcome.clearSession) { headers.append('Set-Cookie', cookie(names.session, '', 0)); headers.append('Set-Cookie', cookie(names.csrf, '', 0, false)) }
+        return response(outcome.data, 200, correlation, headers)
+      } catch (error) { return failure(error, correlation) }
+    },
+    profile,
+  }
+}

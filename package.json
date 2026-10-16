@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sbom": "cyclonedx-npm --output-file sbom.cdx.json --output-format json --output-reproducible",
-    "db:migrate": "node scripts/migrate-postgres.mjs"
+    "db:migrate": "node scripts/migrate-postgres.mjs",
+    "test:b1": "node --experimental-strip-types --test --test-isolation=none tests/b1/*.test.ts"
   },
   "dependencies": {
     "lucide-react": "0.468.0",
