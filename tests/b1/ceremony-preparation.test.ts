@@ -93,6 +93,7 @@ test('key rewrap preserves the secret and counter identity; old ciphertext stays
  assert.throws(() => openEnrollmentSecret(next, key, 'old', context))
  assert.throws(() => openEnrollmentSecret(old, nextKey, 'next', context))
  assert.throws(() => rewrapEnrollmentSecret(old, nextKey, 'old', key, 'next', context))
+ assert.throws(() => rewrapEnrollmentSecret(old, key, 'old', nextKey, 'old', context))
 })
 test('private preparation redacts default JSON/inspection and excludes secret properties from spreads', () => {
  const prepared = prepareTotpEnrollment({ tenantId, userId, bindingId },

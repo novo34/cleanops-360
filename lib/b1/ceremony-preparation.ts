@@ -82,6 +82,7 @@ export function rewrapEnrollmentSecret(
   envelope: Buffer, oldKey: Buffer, oldKeyVersion: string,
   newKey: Buffer, newKeyVersion: string, context: EnrollmentAad,
 ): Buffer {
+  if (oldKeyVersion === newKeyVersion) throw unavailable()
   const plaintext = openEnrollmentSecret(envelope, oldKey, oldKeyVersion, context)
   try { return sealEnrollmentSecret(plaintext, newKey, newKeyVersion, context) }
   finally { plaintext.fill(0) }
