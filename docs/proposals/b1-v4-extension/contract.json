@@ -1,0 +1,61 @@
+{
+  "status": "PROPOSED_REQUIRES_OWNER_APPROVAL",
+  "reviewOnly": true,
+  "implementationUnblocked": false,
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "baseCommit": "e6f7d1d9490684d38982959696d73b6c38215af6",
+  "canonical": {
+    "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+    "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0"
+  },
+  "decisions": [
+    {
+      "id": "B1-X-CREDENTIAL",
+      "approval": "REQUIRED",
+      "change": "Locked credential material; hash/version CAS for cost-only rehash; version-bound preauth; restrict old issuer entry points",
+      "compatible": "Argon2id and logical credential generations retained; no new factor or password policy"
+    },
+    {
+      "id": "B1-X-TOTP",
+      "approval": "REQUIRED",
+      "change": "Method version/explicit algorithm, locked context-complete material and expected-version/counter consumption",
+      "compatible": "V4 period/digits/window and global per-method monotonic counter retained"
+    },
+    {
+      "id": "B1-X-BINDING",
+      "approval": "REQUIRED",
+      "change": "Full private Binding, same eight rules and policy-version-bound step-up, transaction-owned idempotency reservations/discard",
+      "compatible": "No new business role/grant, tenant isolation/default deny preserved"
+    }
+  ],
+  "lockOrder": [
+    "principal",
+    "credential",
+    "sessions ordered by tenant/id (origin included)",
+    "preauth/bootstrap",
+    "organizations/users ordered by tenant/id",
+    "policy_versions ordered by tenant",
+    "method",
+    "challenge",
+    "idempotency"
+  ],
+  "errors": {
+    "invalid": "401 AUTH_INVALID",
+    "denied": "403 POLICY_DENIED",
+    "stepUp": "403 STEP_UP_REQUIRED",
+    "staleCAS": "false; no success; failed proof counters commit when changed",
+    "reservation": "409; never delete COMPLETED or another transaction reservation",
+    "infrastructure": "503; rollback/discard connection; no automatic retry"
+  },
+  "evidence": "Static/contract tests only; SQL compilation, RLS, locks and concurrency remain unverified",
+  "approvalDoesNotAuthorize": [
+    "SQL execution",
+    "migration/grants/seeds",
+    "runtime wiring",
+    "gate closure",
+    "production activation",
+    "merge",
+    "deployment"
+  ]
+}
