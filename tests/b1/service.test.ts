@@ -200,3 +200,14 @@ test('even a malformed private adapter cannot return another tenant identity or 
   await expectError(await handler.handle(request('/me/sessions','GET'),'listSelfSessions'),503,'INVALID_SUBJECT_RESPONSE')
   assert.equal(f.commits,0)
 })
+
+
+test('login and MFA verification never become replayable when a caller adds an idempotency header', async () => {
+  const { handler, f, records } = fixture('PREAUTH','PENDING_MFA')
+  const req=()=>request('/auth/mfa/verify','POST',{challenge_id:uuid,method:'TOTP',proof:'123456'})
+  f.effect={data:active(),transition:{kind:'ACTIVE',token:token(),csrf:token(),expiresAt:clock()+28800000}}
+  assert.equal((await handler.handle(req(),'verifyMfa')).status,200)
+  f.effect=new AuthError(401,'AUTH_INVALID')
+  await expectError(await handler.handle(req(),'verifyMfa'),401,'AUTH_INVALID')
+  assert.equal(f.calls,2);assert.equal(records.size,0)
+})

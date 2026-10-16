@@ -170,7 +170,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
           if (retry !== null) return new AuthError(429, 'RATE_LIMITED', retry)
-          const key = request.headers.get('idempotency-key')
+          const key = operation.parameters.some(p => p.in === 'header' && p.name === 'Idempotency-Key') ? request.headers.get('idempotency-key') : null
           const scope = key ? canonical([binding.kind, binding.id, binding.tenantId ?? null, binding.userId ?? null, operationId, key]) : null
           const requestHash = digest(canonical(input))
           if (scope) {

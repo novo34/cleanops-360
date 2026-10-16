@@ -14,7 +14,7 @@ Source: original V4 contracts in `docs/canonical/auth-review/v4/`, published and
 
 ## Coverage and actual execution
 
-`npm run test:b1` (Node 24, native TypeScript, `--test-isolation=none`): 19 PASS, 0 FAIL. Includes positive dispatch/validated responses and unauthenticated denial for all 13 operations, contract bounds, fixture login→selection→MFA→ACTIVE, tenant-scoped idempotency, pending-switch source cookie, retry/one-time secret handling, CSRF, denied policy/step-up, byte/encoding limits, commit failure and safe dependency errors.
+`npm run test:b1` (Node 24, native TypeScript, `--test-isolation=none`): 20 PASS, 0 FAIL. Includes positive dispatch/validated responses and unauthenticated denial for all 13 operations, contract bounds, fixture login→selection→MFA→ACTIVE, tenant-scoped idempotency, pending-switch source cookie, retry/one-time secret handling, CSRF, denied policy/step-up, byte/encoding limits, commit failure and safe dependency errors.
 
 `python scripts/generate-b1-contracts.py --check`: PASS. These are no-database tests with explicit mock transactions/private verifier outcomes. They do not prove real password/TOTP verification, database locking, RLS or browser rendering.
 
