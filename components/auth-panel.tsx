@@ -14,14 +14,21 @@ export function AuthPanel() {
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
   const stepContext = useRef<StepContext | null>(null)
-  const inFlight = useRef(false)
+  const activeRequest = useRef<AbortController | null>(null)
   const generation = useRef(0)
   const selectionKeys = useRef(new Map<string, string>())
   function clearCeremony() {
     generation.current++
+    activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear()
     stepContext.current = null
     setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null)
+  }
+  function endCeremony(notice: string, invalidateSession = false) {
+    clearCeremony(); setEnrollment(null)
+    setView(previous => !invalidateSession && previous.auth?.state === 'ACTIVE' && !expired(previous.auth.absolute_expires_at)
+      ? { ...emptyView, auth: previous.auth } : emptyView)
+    setMessage(notice)
   }
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -29,41 +36,61 @@ export function AuthPanel() {
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string } | null>(null)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
   useEffect(() => {
-    const expires = selection?.expires_at ?? challenge?.expires_at
-    if (!expires) return
+    const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
+    const deadlines = [selection?.expires_at, challenge?.expires_at, authExpiry].filter((value): value is string => !!value)
+    if (!deadlines.length) return
+    const remaining = Math.min(...deadlines.map(value => Date.parse(value))) - Date.now()
     const timer = setTimeout(() => {
-      clearCeremony(); setView(emptyView); setMessage('La verificación ha caducado. Vuelve a iniciar el acceso.')
-    }, Math.max(0, Date.parse(expires) - Date.now()))
+      endCeremony('La verificación ha caducado. Inicia una nueva verificación.')
+    }, Math.min(2_147_483_647, Math.max(0, remaining)))
     return () => clearTimeout(timer)
-  }, [selection, challenge])
+  }, [selection, challenge, view.auth])
+  function requestKey(scope: string) {
+    let key = selectionKeys.current.get(scope)
+    if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(scope, key) }
+    return key
+  }
   async function call(operation: string, body?: object, sessionId?: string, idempotencyKey?: string) {
-    if (inFlight.current) return null
-    inFlight.current = true
+    if (activeRequest.current) return null
+    const controller = new AbortController()
+    activeRequest.current = controller
     const requestGeneration = generation.current
     setBusy(true); setMessage('')
     try {
       const op = operations.find(o => o.operationId === operation)!
-      if (op.requestBody && !valid(op.requestBody.content['application/json'].schema, body)) throw new Error('Revisa los campos de la solicitud.')
+      if (op.requestBody && !valid(op.requestBody.content['application/json'].schema, body)) throw new Error('INVALID_REQUEST')
       const path = op.path.replace('{session_id}', sessionId ?? '')
       const csrf = document.cookie.split('; ').find(c => c.startsWith('__Host-cleanops_csrf='))?.split('=')[1]
-      if (op.method !== 'GET' && !csrf) throw new Error('Autenticación no disponible. Vuelve a cargar esta página para reintentar.')
+      if (op.method !== 'GET' && !csrf) throw new Error('CSRF_REQUIRED')
       const response = await fetch(path, { method: op.method, credentials: 'same-origin', cache: 'no-store',
+        redirect: 'error', signal: controller.signal,
         headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-          ...(op.parameters.some(p => p.name === 'Idempotency-Key') ? { 'Idempotency-Key': idempotencyKey ?? crypto.randomUUID() } : {}) },
+          ...(op.parameters.some(p => p.name === 'Idempotency-Key') ? { 'Idempotency-Key': idempotencyKey ?? (operation === 'startStepUp' ? requestKey('step-up:' + JSON.stringify(body)) : crypto.randomUUID()) } : {}) },
         body: body ? JSON.stringify(body) : undefined })
+      if (requestGeneration !== generation.current) return null
+      // Authentication loss is authoritative even if the error body is malformed.
+      if (response.status === 401) { endCeremony('La sesión ha caducado. Vuelve a iniciar el acceso.', true); return null }
+      // Ceremony/authorization failure is not evidence that the ACTIVE session was revoked.
+      if ([403, 409, 410].includes(response.status)) { endCeremony('No se pudo completar la verificación. Inicia una nueva verificación.'); return null }
+      if (!/^application\/json(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) throw new Error('INVALID_CONTENT_TYPE')
       const result = await response.json()
       if (requestGeneration !== generation.current) return null
-      if (!response.ok) {
-        if (!valid(contract.components.schemas.Error, result)) throw new Error('Respuesta no válida; vuelve a iniciar el acceso.')
-        if ([401, 403, 409, 410].includes(response.status)) { clearCeremony(); setView(emptyView); setEnrollment(null) }
-        throw new Error(response.status === 429 ? `Demasiados intentos. Reintenta en ${response.headers.get('Retry-After') ?? 'unos'} segundos.` : 'No se pudo completar la verificación. Vuelve a iniciar el acceso.')
+      if (response.status !== 200) {
+        if (!valid(contract.components.schemas.Error, result)) throw new Error('INVALID_ERROR')
+        setMessage(response.status === 429 ? 'Demasiados intentos. Espera antes de reintentar.' : 'No se pudo confirmar la solicitud. Reintenta o vuelve a iniciar el acceso.')
+        return null
       }
-      if (!valid(op.responses['200'].content['application/json'].schema, result)) throw new Error('Respuesta no válida; no se ha confirmado el cambio.')
+      if (!valid(op.responses['200'].content['application/json'].schema, result)) throw new Error('INVALID_RESPONSE')
       return result.data
-    } catch { setMessage('No se pudo confirmar la solicitud. Reintenta o vuelve a iniciar el acceso.'); return null }
-    finally { inFlight.current = false; setBusy(false) }
+    } catch {
+      if (requestGeneration === generation.current) setMessage('No se pudo confirmar la solicitud. Reintenta o vuelve a iniciar el acceso.')
+      return null
+    } finally {
+      if (activeRequest.current === controller) { activeRequest.current = null; setBusy(false) }
+    }
   }
   function prepare(result: Selection | { challenge_id: string; allowed_methods: string[]; expires_at: string }, context: StepContext | null) {
+    if (expired(result.expires_at)) { endCeremony('La verificación ha caducado. Inicia una nueva verificación.'); return }
     stepContext.current = context
     setSelected(''); selectionKeys.current.clear()
     if ('state' in result && result.state === 'TOTP_SELECTION_REQUIRED') {
@@ -71,20 +98,23 @@ export function AuthPanel() {
     } else { setSelection(null); setChallenge(result as { challenge_id: string; allowed_methods: string[]; expires_at: string }) }
   }
   async function selectMethod() {
-    if (!selection || !selection.methods.some(m => m.method_id === selected) || expired(selection.expires_at)) return
+    if (!selection || !selection.methods.some(m => m.method_id === selected)) return
+    if (expired(selection.expires_at)) { endCeremony('La verificación ha caducado. Inicia una nueva verificación.'); return }
     const body = { totp_method_id: selected, ...stepContext.current }
-    let key = selectionKeys.current.get(selected)
-    if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(selected, key) }
+    const key = requestKey(selected)
     const result = await call('selectTotpMethod', body, undefined, key)
     if (!result) return
-    if (expired(result.expires_at) || (stepContext.current ? result.state !== undefined : result.state !== 'PENDING_MFA')) {
-      clearCeremony(); setView(emptyView); setMessage('Respuesta no válida. Vuelve a iniciar el acceso.'); return
+    if (expired(result.expires_at) || result.allowed_methods.length !== 1 || result.allowed_methods[0] !== 'TOTP' || (stepContext.current ? result.state !== undefined : result.state !== 'PENDING_MFA')) {
+      endCeremony('Respuesta no válida. Inicia una nueva verificación.'); return
     }
     setSelection(null); setSelected(''); selectionKeys.current.clear()
     if (stepContext.current) setChallenge(result)
     else accept(result)
   }
   function accept(auth: AuthState | Selection) {
+    if (expired('absolute_expires_at' in auth ? auth.absolute_expires_at : auth.expires_at)) {
+      endCeremony('La verificación ha caducado. Vuelve a iniciar el acceso.'); return
+    }
     if (auth.state === 'TOTP_SELECTION_REQUIRED') { setView(emptyView); prepare(auth, null); return }
     setSelection(null); setSelected(''); selectionKeys.current.clear()
     setView(previous => receiveAuth(previous, auth)); setEnrollment(null); setChallenge(null)
@@ -94,16 +124,25 @@ export function AuthPanel() {
     const data = new FormData(form)
     const password = String(data.get('password')); form.reset()
     const auth = await call('login', { email: String(data.get('email')), password })
+    // The V4 service explicitly forbids issuing ACTIVE from password login.
+    if (auth?.state === 'ACTIVE') { endCeremony('Respuesta no válida. Vuelve a iniciar el acceso.', true); return }
     if (auth) accept(auth)
   }
   async function verify(form: HTMLFormElement) {
     if (!challenge) return
+    if (expired(challenge.expires_at)) { endCeremony('La verificación ha caducado. Inicia una nueva verificación.'); return }
     const data = new FormData(form); form.reset()
     const auth = await call('verifyMfa', { challenge_id: challenge.challenge_id, method: String(data.get('method')), proof: String(data.get('proof')) })
     if (auth) {
+      if (stepContext.current && (auth.state !== 'ACTIVE' || view.auth?.state !== 'ACTIVE'
+        || auth.session_id !== view.auth.session_id || auth.tenant_id !== view.auth.tenant_id || expired(auth.absolute_expires_at)
+        || Date.parse(auth.absolute_expires_at) > Date.parse(view.auth.absolute_expires_at))) {
+        endCeremony('Respuesta no válida. Inicia una nueva verificación.'); return
+      }
+      const action = pendingAction
+      clearCeremony()
       accept(auth)
-      if (pendingAction && auth.state === 'ACTIVE') {
-        const action = pendingAction; setPendingAction(null)
+      if (action && auth.state === 'ACTIVE' && !expired(auth.absolute_expires_at)) {
         const result = await call(action.operation, action.body)
         if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
@@ -148,7 +187,6 @@ export function AuthPanel() {
         </fieldset>
         <button type="submit" disabled={!selected}>Continuar con este método</button>
       </form>}
-      {(selection || challenge) && <button type="button" onClick={() => { clearCeremony(); setView(emptyView); setEnrollment(null); setMessage('Verificación cancelada. Vuelve a iniciar el acceso.') }}>Cancelar verificación</button>}
       {challenge && <form onSubmit={event => { event.preventDefault(); void verify(event.currentTarget) }}>
         <label>Método <select name="method">{challenge.allowed_methods.map(m => <option key={m}>{m}</option>)}</select></label>
         <p><label>Código <input name="proof" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required /></label></p>
@@ -175,5 +213,6 @@ export function AuthPanel() {
         <button onClick={async () => { const r = await call('logout'); if (r) { setView(emptyView); setPendingAction(null) } }}>Cerrar sesión</button>
       </section>}
     </fieldset>
+    {(selection || challenge) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}
   </main>
 }
