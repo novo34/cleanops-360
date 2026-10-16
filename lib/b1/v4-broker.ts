@@ -4,6 +4,20 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures are copied from canonical V4; values are always separate pg parameters. */
 const statements = {
+"credentialLocked": {"sql":"SELECT * FROM auth_api.credential_material_locked($1::text)","arity":1,"kind":"rows"},
+"rehashCas": {"sql":"SELECT auth_api.rehash_credential_cas($1::uuid, $2::bigint, $3::text, $4::text) AS value","arity":4,"kind":"boolean"},
+"preauthVerified": {"sql":"SELECT auth_api.new_preauth_verified($1::uuid, $2::uuid, $3::bigint, $4::text, $5::bytea, $6::bytea) AS value","arity":6,"kind":"uuid"},
+"binding": {"sql":"SELECT auth_api.resolve_binding($1::text, $2::text, $3::text) AS value","arity":3,"kind":"json"},
+"authorization": {"sql":"SELECT * FROM auth_api.binding_authorization($1::text, $2::text, $3::uuid)","arity":3,"kind":"rows"},
+"totpMaterial": {"sql":"SELECT auth_api.totp_material_locked($1::text, $2::uuid, $3::text) AS value","arity":3,"kind":"json"},
+"consumeTotp": {"sql":"SELECT auth_api.consume_totp_cas($1::text, $2::uuid, $3::text, $4::bigint, $5::bigint, $6::bigint, $7::uuid) AS value","arity":7,"kind":"boolean"},
+"consumeEnrollment": {"sql":"SELECT auth_api.consume_enrollment_cas($1::text, $2::uuid, $3::bigint, $4::bigint, $5::bigint, $6::bytea[], $7::uuid) AS value","arity":7,"kind":"boolean"},
+"enrollExplicit": {"sql":"SELECT auth_api.begin_totp_enrollment_explicit($1::text, $2::bytea, $3::text, $4::text, $5::uuid) AS value","arity":5,"kind":"uuid"},
+"otpMaterial": {"sql":"SELECT * FROM auth_api.email_otp_material($1::text, $2::uuid)","arity":2,"kind":"rows"},
+"consumeOtp": {"sql":"SELECT auth_api.consume_email_otp($1::text, $2::uuid, $3::bytea, $4::uuid) AS value","arity":4,"kind":"boolean"},
+"reserveOwned": {"sql":"SELECT auth_api.reserve_owned($1::text, $2::text, $3::bytea, $4::bytea, $5::boolean) AS value","arity":5,"kind":"json"},
+"discardOwned": {"sql":"SELECT auth_api.discard_owned($1::text, $2::text, $3::bytea, $4::bytea) AS value","arity":4,"kind":"boolean"},
+"completeOwned": {"sql":"SELECT auth_api.complete_owned($1::text, $2::text, $3::bytea, $4::bytea, $5::jsonb) AS value","arity":5,"kind":"boolean"},
   "verifiedTenant": { "sql": "SELECT identity_private.verified_tenant() AS value", "arity": 0, "kind": "uuid" },
   "beginContext": {
     "sql": "SELECT auth_api.begin_verified_context($1::text) AS value",
@@ -152,6 +166,20 @@ const statements = {
   }
 } as const
 export type BrokerArgs = {
+  credentialLocked: [normalizedEmail: string]
+  rehashCas: [principal: string, version: string, expected: string, replacement: string]
+  preauthVerified: [principal: string, tenant: string | null, version: string, expected: string, cookie: Buffer, csrf: Buffer]
+  binding: [cookie: string, csrf: string, mode: 'ACTIVE' | 'PREAUTH' | 'BOOTSTRAP']
+  authorization: [preauth: string | null, rule: string, resource: string | null]
+  totpMaterial: [preauth: string | null, ceremony: string, purpose: 'LOGIN' | 'STEP_UP' | 'ENROLLMENT']
+  consumeTotp: [preauth: string | null, ceremony: string, purpose: 'LOGIN' | 'STEP_UP', version: string, expected: number | null, counter: number | null, correlation: string]
+  consumeEnrollment: [preauth: string | null, ceremony: string, version: string, expected: number | null, counter: number, recovery: Buffer[], correlation: string]
+  enrollExplicit: [preauth: string | null, ciphertext: Buffer, keyVersion: string, algorithm: 'SHA1' | 'SHA256' | 'SHA512', correlation: string]
+  otpMaterial: [preauth: string | null, ceremony: string]
+  consumeOtp: [preauth: string | null, ceremony: string, digest: Buffer | null, correlation: string]
+  reserveOwned: [preauth: string | null, operation: string, key: Buffer, request: Buffer, oneTime: boolean]
+  discardOwned: [preauth: string | null, operation: string, key: Buffer, request: Buffer]
+  completeOwned: [preauth: string | null, operation: string, key: Buffer, request: Buffer, safeJson: string | null]
   verifiedTenant: []
   beginContext: [token: string]; policy: []; bootstrap: [digest: Buffer, csrf: Buffer]
   csrf: [cookie: string, csrf: string, mode: 'BOOTSTRAP' | 'PREAUTH' | 'ACTIVE']
@@ -195,6 +223,8 @@ function safeError(error: unknown): AuthError {
   // Match only stable, known broker messages; never surface server diagnostics or SQL.
   if (object(error)) {
     const codes: Record<string, [number, string]> = {
+      AUTH_INVALID: [401, 'AUTH_INVALID'], CREDENTIAL_CHANGED: [401, 'AUTH_INVALID'],
+      RESERVATION_NOT_OWNED: [409, 'IDEMPOTENCY_CONFLICT'],
       INVALID_SESSION: [401, 'AUTH_INVALID'], INVALID_CEREMONY: [401, 'AUTH_INVALID'],
       ACCESS_DENIED: [403, 'POLICY_DENIED'], STEP_UP_REQUIRED: [403, 'STEP_UP_REQUIRED'],
       RESOURCE_NOT_FOUND: [404, 'NOT_FOUND'], IDEMPOTENCY_MISMATCH: [409, 'IDEMPOTENCY_MISMATCH'],
