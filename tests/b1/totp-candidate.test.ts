@@ -29,6 +29,7 @@ test('D3 candidate is explicit 32-byte CSPRNG and CleanOps 360 URI, not installe
   assert.equal(plaintext.length, 32)
   const uri = new URL(prepared.provisioningUri)
   assert.equal(uri.searchParams.get('issuer'), 'CleanOps 360')
+  assert.ok(decodeURIComponent(uri.pathname).startsWith('/CleanOps 360:'))
   assert.equal(uri.searchParams.get('algorithm'), 'SHA256')
   assert.equal(uri.searchParams.get('period'), String(numeric('totp_period')))
   assert.equal(uri.searchParams.get('digits'), String(numeric('totp_digits')))

@@ -177,3 +177,27 @@ erasure of URI strings or every library copy; keep private data short-lived and 
 Contract approval alone authorizes none of those database steps. The next executable
 code-only action after approval is typed broker/backend integration with simulated
 transaction failures, preserving closedBackend until separate gates are satisfied.
+
+## Final-approval packet after owner design directions
+
+Directions recorded at source HEAD a4fe5df2fef91c6551d6011dd5dc036514db120f are design
+inputs, not approval of SQL, key custody, providers, production policy or backend activation.
+[approval-request.json](approval-request.json) pins the exact D1 SQL and signature/ACL
+matrix by Git blob ID. D1 remains PENDING_FINAL_APPROVAL; no SQL change is made here.
+
+- D2: [KEY_OPERATIONS.md](KEY_OPERATIONS.md) specifies custody, isolation, residence,
+  key-version rotation, recovery and retention without choosing a provider.
+- D3: [TOTP_CANDIDATE.md](TOTP_CANDIDATE.md) evaluates SHA256/32 CSPRNG bytes/issuer
+  CleanOps 360 while preserving V4 period/digits/window; app compatibility remains unmeasured.
+- D4: [EMAIL_DELIVERY.md](EMAIL_DELIVERY.md) requires verified recipients, encrypted outbox,
+  asynchronous worker, idempotency, expiry, bounded retries and uncertain-send reconciliation.
+
+D1's normalized-recipient material alone does NOT establish recipient verification.
+EMAIL must stay closed until an approved verification-evidence and worker-completion
+contract exists. Existing claim_mail/finish_mail cannot express every proposed D4 state:
+see the specific delta analysis in EMAIL_DELIVERY.md. These are separate explicit future
+contract decisions, not silently added to D1 or permission to activate after D1 approval.
+
+Code independent of those decisions is limited to a pure retry/idempotency-key planner
+and candidate cryptographic/URI tests. Neither is imported by broker/backend/runtime.
+The candidate D3 values are test inputs and approval-request data, never installed defaults.
