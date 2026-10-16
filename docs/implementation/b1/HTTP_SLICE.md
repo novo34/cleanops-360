@@ -20,6 +20,8 @@ Source: original V4 contracts in `docs/canonical/auth-review/v4/`, published and
 
 Local lint, TypeScript check, Vitest and Next build were attempted: blocked because eslint/tsc/vitest/next are absent. Dependency installation cannot reach the configured proxy in this workspace. No repeated installation loop. Next's installed guide directory is also unavailable. New framework glue is limited to Request/Response route handlers, a page and the existing proxy; framework compilation/rendering remains unverified locally. CI `B1 no database` prepares these checks with Node 24 and empty DB variables. The inherited PostgreSQL workflow is skipped for B1 implementation PRs to avoid starting unauthorized PostgreSQL even as a CI service. No migration command appears in B1 CI.
 
+Remote CI evidence on 397127b2c16af0fdf4b7d0a8d31d1e983b2cb512: [B1 no database run 38847777350](https://github.com/novo34/cleanops-360/actions/runs/38847777350) completed SUCCESS: dependency install, lint, typecheck, 19 B1 tests, 13 Vitest tests and Next production build. Three PostgreSQL cases skipped; inherited PostgreSQL job skipped. Build enumerated all 13 auth routes plus `/login`. This removes the compilation blocker using GitHub CI while the local proxy limitation remains. Browser rendering/E2E is still not certified.
+
 ## Material limits / next adapter
 
 Production runtime is deliberately wired to `closedBackend`: 503, no bootstrap/session cookies, no identities/grants/seeds or enable flag. This increment is HTTP orchestration + UI with mock integration tests, not working integrated authentication. `CLEANOPS_AUTH_ORIGIN` must be the exact trusted HTTPS origin; absence/invalid configuration fails closed.

@@ -17,6 +17,7 @@ export function AuthPanel() {
     setBusy(true); setMessage('')
     try {
       const op = operations.find(o => o.operationId === operation)!
+      if (op.requestBody && !valid(op.requestBody.content['application/json'].schema, body)) throw new Error('Revisa los campos de la solicitud.')
       const path = op.path.replace('{session_id}', sessionId ?? '')
       const csrf = document.cookie.split('; ').find(c => c.startsWith('__Host-cleanops_csrf='))?.split('=')[1]
       if (op.method !== 'GET' && !csrf) throw new Error('Autenticación no disponible. Vuelve a cargar esta página para reintentar.')
@@ -82,7 +83,7 @@ export function AuthPanel() {
     <fieldset disabled={busy} style={{ border: 0, padding: 0 }}>
       {!view.auth && !challenge && <form onSubmit={event => { event.preventDefault(); void login(event.currentTarget) }}>
         <p><label>Email <input name="email" type="email" autoComplete="username" required maxLength={254} /></label></p>
-        <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required minLength={12} maxLength={128} /></label></p>
+        <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label></p>
         <button type="submit">Continuar</button>
       </form>}
       {view.auth && <p>{view.auth.state === 'ACTIVE' ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
