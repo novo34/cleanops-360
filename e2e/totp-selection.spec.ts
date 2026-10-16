@@ -9,7 +9,7 @@ const pending = () => ({ state: 'PENDING_MFA', challenge_id: id, allowed_methods
 const active = () => ({ state: 'ACTIVE', session_id: id, tenant_id: other, absolute_expires_at: expiry() })
 const envelope = (data: unknown) => ({ data, meta: { correlation_id: id } })
 async function setup(page: Page, data: unknown = selection()) {
-  await page.context().addCookies([{ name: '__Host-cleanops_csrf', value: 'a'.repeat(43), url: 'http://127.0.0.1:3000', secure: true, sameSite: 'Strict' }])
+  await page.context().addCookies([{ name: '__Host-cleanops_csrf', value: 'a'.repeat(43), url: 'https://127.0.0.1:3000', secure: true, sameSite: 'Strict' }])
   await page.route('**/auth/login', route => route.fulfill({ json: envelope(data) }))
   await page.goto('/login')
   await page.getByLabel('Email', { exact: true }).fill('fixture@example.invalid')
@@ -92,4 +92,20 @@ test('ACTIVE step-up retains exact grant, keyboard selection, only verifies befo
   expect(effects).toBe(0)
   await page.getByRole('button', { name: 'Cancelar verificación' }).click()
   expect(effects).toBe(0)
+})
+
+test('cancel selection on mobile sends no challenge request; duplicate method response is rejected', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 720 })
+  let requests = 0
+  await page.route('**/auth/mfa/totp/select', route => { requests++; return route.abort() })
+  await setup(page)
+  await page.getByRole('button', { name: 'Cancelar verificación' }).click()
+  await expect(page.getByLabel('Contraseña')).toBeVisible()
+  expect(requests).toBe(0)
+  const duplicate = selection()
+  duplicate.methods[1] = duplicate.methods[0]
+  await setup(page, duplicate)
+  await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+  await expect(page.getByRole('group', { name: 'Selecciona tu autenticador' })).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

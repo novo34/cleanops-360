@@ -3,7 +3,7 @@ export default defineConfig({
   testDir: './e2e',
   testMatch: 'totp-selection.spec.ts',
   retries: 0,
-  use: { baseURL: 'http://127.0.0.1:3000', trace: 'off' },
+  use: { baseURL: 'https://127.0.0.1:3000', trace: 'off', ignoreHTTPSErrors: true },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: { command: 'npm start -- --hostname 127.0.0.1', url: 'http://127.0.0.1:3000/login', reuseExistingServer: false },
+  webServer: { command: 'node scripts/b1-ui-fixture-server.mjs', url: 'https://127.0.0.1:3000/login', reuseExistingServer: false, ignoreHTTPSErrors: true },
 })
