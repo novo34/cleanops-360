@@ -102,7 +102,7 @@ export function AuthPanel() {
     const auth = await call('verifyMfa', { challenge_id: challenge.challenge_id, method: String(data.get('method')), proof: String(data.get('proof')) })
     if (auth) {
       accept(auth)
-      if (pendingAction) {
+      if (pendingAction && auth.state === 'ACTIVE') {
         const action = pendingAction; setPendingAction(null)
         const result = await call(action.operation, action.body)
         if (result?.state && result.state !== 'REVOKED') accept(result)
@@ -136,7 +136,7 @@ export function AuthPanel() {
         <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label></p>
         <button type="submit">Continuar</button>
       </form>}
-      {view.auth && <p>{view.auth.state === 'ACTIVE' ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
+      {view.auth && <p>{view.auth.state === 'ACTIVE' && !selection && !challenge ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
       {selection && <form onSubmit={event => { event.preventDefault(); void selectMethod() }}>
         <fieldset>
           <legend>Selecciona tu autenticador</legend>
