@@ -16,14 +16,14 @@ const raw='a'.repeat(43), csrf='b'.repeat(43), origin='https://cleanops.example'
 const initialNow=1_700_000_010_000, password='Synthetic login password 123'
 const stored=hash(password,{type:argon2id,memoryCost:65536,timeCost:3,parallelism:1})
 type Options={mode?:'ACTIVE'|'PREAUTH'|'BOOTSTRAP'; state?:'PENDING_MFA'|'ENROLLMENT_REQUIRED'; risk?:string; foreign?:boolean; stale?:boolean; expired?:boolean;
- auditFailure?:boolean; commitFailure?:boolean; missingLabels?:boolean; multiple?:boolean; noTotp?:boolean; revoked?:boolean; duplicate?:boolean; labels?:{device:string;browser:string}}
-type Challenge={id:string;version:string;state:string;grant:string|null;resource:string|null;expires:number}
+ auditFailure?:boolean; commitFailure?:boolean; missingLabels?:boolean; multiple?:boolean; noTotp?:boolean; revoked?:boolean; duplicate?:boolean; labels?:{device:string;browser:string}; maxMethods?:number|null; rateLimited?:boolean; cooldown?:boolean}
+type Challenge={id:string;method:string;version:string;state:string;grant:string|null;resource:string|null;expires:number}
 type Reservation={hash:string;oneTime:boolean;done:boolean;data:unknown}
 type State={counter:number|null;verified:boolean;consumed:boolean;sessions:number;audits:number;attempts:number;
  challenges:Record<string,Challenge>;reservations:Record<string,Reservation>}
 async function fixture(options:Options={}) {
  let time=initialNow, generation='3', queue=Promise.resolve(), connects=0
- const initialChallenge:Challenge={id:C,version:'3',state:'ISSUED',grant:options.mode==='ACTIVE'?'B1-SELF-05':null,resource:null,expires:time+30_000}
+ const initialChallenge:Challenge={id:C,method:M,version:'3',state:'ISSUED',grant:options.mode==='ACTIVE'?'B1-SELF-05':null,resource:null,expires:time+30_000}
  let committed:State={counter:null,verified:false,consumed:false,sessions:0,audits:0,attempts:0,challenges:{[C]:initialChallenge},reservations:{}}
  const calls:{connection:number;name:string;values:unknown[]}[]=[], releases:boolean[]=[]
  const mode=options.mode??'PREAUTH'
@@ -55,7 +55,7 @@ async function fixture(options:Options={}) {
     }
     else if(name==='active_summary')value={state:'ACTIVE',session_id:S,tenant_id:A,absolute_expires_at:new Date(initialNow+86_400_000).toISOString(),secret_ciphertext:'must-not-leak'}
     else if(name==='binding_authorization')return{rows:[{allowed:!options.revoked,step_up:true}]}
-    else if(name==='rate_attempt')value=0
+    else if(name==='rate_attempt')value=options.rateLimited?60:0
     else if(name==='credential_material_locked')return{rows:[{principal_id:P,password_hash:await stored,credential_version:'7'}]}
     else if(name==='new_preauth_verified')value=Q
     else if(name==='memberships')return{rows:[{id:A,name:'A'}]}
@@ -86,10 +86,11 @@ async function fixture(options:Options={}) {
     }
     else if(name==='issue_bound_challenge'){
      if(!Object.values(staged.reservations).some(r=>!r.done))throw err('RESERVATION_NOT_OWNED')
+     if(options.cooldown)throw err('RATE_LIMITED')
      if(options.stale||values[3]!==generation)throw err('AUTH_INVALID')
      const challengeId=Object.keys(staged.challenges).includes(C)&&staged.challenges[C].grant===values[7]?N:C
      for(const c of Object.values(staged.challenges))c.state='REVOKED'
-     staged.challenges[challengeId]={id:challengeId,version:generation,state:'ISSUED',grant:values[7] as string|null,resource:values[8] as string|null,expires:time+30_000}
+     staged.challenges[challengeId]={id:challengeId,method:values[2] as string,version:generation,state:'ISSUED',grant:values[7] as string|null,resource:values[8] as string|null,expires:time+30_000}
      staged.audits++
      if(options.auditFailure)throw err('audit private diagnostic')
      value=challengeId
@@ -97,7 +98,7 @@ async function fixture(options:Options={}) {
     else if(name==='totp_material_locked'){
      const c=staged.challenges[String(values[1])]
      if(!c||c.state!=='ISSUED'||c.version!==generation||c.expires<=time)throw err('AUTH_INVALID')
-     value={binding:{tenantId:tenant,userId:U,methodId:M,ceremonyId:c.id,purpose:values[2]},version:generation,lastCounter:staged.counter,
+     value={binding:{tenantId:tenant,userId:U,methodId:c.method,ceremonyId:c.id,purpose:values[2]},version:generation,lastCounter:staged.counter,
       expiresAt:c.expires,algorithm:'SHA1',secret_ciphertext:Buffer.from('ciphertext-canary').toString('base64'),key_version:'fixture-key',
       grant_key:c.grant,resource_id:c.resource,session_id:mode==='ACTIVE'?S:null}
     }
@@ -127,17 +128,18 @@ async function fixture(options:Options={}) {
   factors:{dummyPasswordHash:await stored,auditKey:Buffer.alloc(32,1),otpKey:Buffer.alloc(32,2),recoveryKey:Buffer.alloc(32,3),
    async decryptTotp(){return new TextEncoder().encode('12345678901234567890')}},
   cursorKey:Buffer.alloc(32,4),now:()=>time,
+  maxEligibleTotpMethods:options.maxMethods===null?undefined:options.maxMethods??4,
   transport(){return{network:Buffer.alloc(32,5),device:Buffer.alloc(32,6)}},
   normalizeEmail(email){return email.trim().toLowerCase()},
   sessionLabels:options.missingLabels?undefined:()=>(options.labels??{device:'Synthetic device',browser:'Synthetic browser'}),
  }
  const backend=createApprovedPrivateBackend(pool,deps),handler=createAuthHandler(backend,origin,()=>time)
- async function request(operation:string,body:unknown,key?:string){
-  const route=operation==='login'?'/auth/login':operation==='startStepUp'?'/auth/step-up':operation==='resendOtp'?'/auth/otp/resend':operation==='confirmTotp'?'/mfa/totp/confirm':'/auth/mfa/verify'
+ async function request(operation:string,body:unknown,key?:string,rawBody?:string){
+  const route=operation==='login'?'/auth/login':operation==='startStepUp'?'/auth/step-up':operation==='resendOtp'?'/auth/otp/resend':operation==='confirmTotp'?'/mfa/totp/confirm':operation==='selectTotpMethod'?'/auth/mfa/totp/select':'/auth/mfa/verify'
   const name=mode==='ACTIVE'?names.session:names.preauth
   return handler.handle(new Request(origin+route,{method:'POST',
    headers:{cookie:name+'='+raw+'; '+names.csrf+'='+csrf,origin,'sec-fetch-site':'same-origin','x-csrf-token':csrf,'content-type':'application/json',...(key?{'idempotency-key':key}:{})},
-   body:JSON.stringify(body)}),operation)
+   body:rawBody??JSON.stringify(body)}),operation)
  }
  return{backend,request,calls,releases,get state(){return structuredClone(committed)},get connects(){return connects},
   advance(ms:number){time+=ms},setGeneration(v:string){generation=v},options}
@@ -194,7 +196,7 @@ test('TOTP resend binds old method/context, replaces challenge and never invokes
  assert.equal(f.calls.some(c=>c.name==='issue_challenge'||c.name==='consume_email_otp'),false)
 })
 test('ambiguous/no-TOTP, foreign context, stale generation and expiry abort preparation without effects',async()=>{
- for(const options of [{multiple:true},{noTotp:true},{foreign:true},{stale:true},{expired:true},{auditFailure:true},{risk:'UNKNOWN'}]){
+ for(const options of [{noTotp:true},{foreign:true},{stale:true},{expired:true},{auditFailure:true},{risk:'UNKNOWN'}]){
   const f=await fixture({mode:'ACTIVE',...options})
   const response=await f.request('startStepUp',{grant_id:'B1-SELF-05'},'step-key-fail-test-123')
   assert.ok(response.status>=400)
@@ -255,22 +257,22 @@ test('PREAUTH enrollment confirmation is closed before material/decryption/CAS w
  assert.equal(f.state.sessions,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
 })
 
-test('missing selection over HTTP yields safe 409 before challenge/factor effects; concurrent ambiguity rolls back',async()=>{
+test('approved missing selection response exposes own locators only; concurrent discovery has no challenge/factor effects',async()=>{
  const f=await fixture({mode:'ACTIVE',multiple:true})
  const responses=await Promise.all([
   f.request('startStepUp',{grant_id:'B1-SELF-05'},'selection-required-key-1'),
   f.request('startStepUp',{grant_id:'B1-SELF-05'},'selection-required-key-2'),
  ])
  for(const response of responses){
-  assert.equal(response.status,409)
+  assert.equal(response.status,200)
   const text=await response.text();privateFree(text)
-  assert.equal(JSON.parse(text).error.code,'TOTP_SELECTION_REQUIRED')
-  assert.ok(!text.includes(M));assert.ok(!text.includes(M2))
+  assert.equal(JSON.parse(text).data.state,'TOTP_SELECTION_REQUIRED')
+  assert.deepEqual(JSON.parse(text).data.methods.map((m:{method_id:string})=>m.method_id),[M,M2])
   assert.equal(response.headers.get('set-cookie'),null)
  }
  assert.equal(f.state.audits,0);assert.equal(f.state.counter,null)
  assert.equal(f.calls.some(c=>c.name==='issue_bound_challenge'||c.name==='consume_totp_cas'),false)
- assert.equal(f.calls.filter(c=>c.name==='ROLLBACK').length,2)
+ assert.equal(f.calls.filter(c=>c.name==='COMMIT').length,2)
 })
 test('V4 HTTP rejects unapproved selector and all client authority fields without broker side effects',async()=>{
  for(const fields of [{totp_method_id:M},{totp_method_id:'invalid'},{tenantId:B},{userId:U},{methodVersion:'3'},{riskClass:'OPERATIONAL'}]){
@@ -303,4 +305,90 @@ test('session metadata is normalized at the private callback boundary and never 
  const error=await bad.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
  assert.equal(error.status,503);assert.equal(bad.state.counter,null);assert.equal(bad.state.sessions,0)
  assert.ok(!(await error.text()).includes('log-canary'));assert.equal(bad.calls.at(-1)?.name,'ROLLBACK')
+})
+
+test('approved selector creates bound TOTP challenges in ACTIVE and proven PREAUTH without consuming any factor',async()=>{
+ for(const mode of ['ACTIVE','PREAUTH'] as const){
+  const f=await fixture({mode,multiple:true})
+  const input={totp_method_id:M2,...(mode==='ACTIVE'?{grant_id:'B1-SELF-05'}:{})}
+  const response=await f.request('selectTotpMethod',input,'totp-select-http-key-123')
+  assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+  const body=await response.text();privateFree(body)
+  assert.equal(JSON.parse(body).data.state,mode==='PREAUTH'?'PENDING_MFA':undefined)
+  assert.equal(f.calls.find(c=>c.name==='issue_bound_challenge')!.values[2],M2)
+  assert.equal(f.calls.find(c=>c.name==='issue_bound_challenge')!.values[3],'3')
+  assert.equal(f.state.attempts,0);assert.equal(f.state.sessions,0);assert.equal(f.state.audits,1)
+  assert.equal(f.connects,1);assert.equal(f.calls.at(-1)?.name,'COMMIT')
+ }
+})
+test('multi-method login returns own choices and PREAUTH only after commit, never an ACTIVE session',async()=>{
+ const f=await fixture({mode:'BOOTSTRAP',multiple:true})
+ const response=await f.request('login',{email:'synthetic@example.invalid',password})
+ assert.equal(response.status,200);assert.ok(response.headers.has('set-cookie'))
+ const text=await response.text();privateFree(text)
+ assert.equal(JSON.parse(text).data.state,'TOTP_SELECTION_REQUIRED')
+ assert.deepEqual(JSON.parse(text).data.methods.map((m:{method_id:string})=>m.method_id),[M,M2])
+ assert.equal(f.state.sessions,0);assert.equal(f.state.audits,0)
+ assert.equal(f.calls.some(c=>c.name==='issue_bound_challenge'||c.name==='consume_totp_cas'),false)
+})
+test('selector schema and context reject authority injection, missing ACTIVE grant, forbidden PREAUTH grant and bootstrap',async()=>{
+ for(const [mode,input,status] of [
+  ['ACTIVE',{totp_method_id:'bad',grant_id:'B1-SELF-05'},422],
+  ['ACTIVE',{totp_method_id:M},422],
+  ['PREAUTH',{totp_method_id:M,grant_id:'B1-SELF-05'},422],
+  ['ACTIVE',{totp_method_id:M,grant_id:'B1-SELF-08'},422],
+  ['ACTIVE',{totp_method_id:M,grant_id:'B1-SELF-05',riskClass:'OPERATIONAL'},422],
+  ['ACTIVE',{totp_method_id:M,grant_id:'B1-SELF-05',tenantId:B},422],
+  ['ACTIVE',{totp_method_id:M,grant_id:'B1-SELF-05',methodVersion:'3'},422],
+  ['BOOTSTRAP',{totp_method_id:M},401],
+ ] as const){
+  const f=await fixture({mode,multiple:true})
+  const response=await f.request('selectTotpMethod',input,'invalid-selector-key-123')
+  assert.equal(response.status,status);assert.equal(f.state.audits,0)
+  assert.equal(f.calls.some(c=>c.name==='issue_bound_challenge'),false)
+  assert.equal(response.headers.get('set-cookie'),null)
+ }
+})
+test('duplicate and escaped duplicate selector keys reject before connection with generic HTTP error',async()=>{
+ for(const rawBody of [
+  '{"totp_method_id":"'+M+'","totp_method_id":"'+M2+'","grant_id":"B1-SELF-05"}',
+  '{"totp_method_id":"'+M+'","totp_method_\\u0069d":"'+M2+'","grant_id":"B1-SELF-05"}',
+  '{"totp_method_id":"'+M+'","grant_id":"B1-SELF-05","grant_id":"B1-SELF-08"}',
+ ]){
+  const f=await fixture({mode:'ACTIVE',multiple:true})
+  const response=await f.request('selectTotpMethod',{},'duplicate-selector-key-123',rawBody)
+  assert.equal(response.status,400);assert.equal(f.connects,0)
+  const body=await response.text();assert.ok(!body.includes(M));assert.ok(!body.includes(M2))
+ }
+})
+test('foreign/revoked/stale/expired choices and audit/COMMIT failure roll back selector effects',async()=>{
+ for(const options of [{foreign:true},{noTotp:true},{stale:true},{expired:true},{auditFailure:true},{commitFailure:true},{revoked:true},{duplicate:true}]){
+  const f=await fixture({mode:'ACTIVE',multiple:true,...options})
+  const response=await f.request('selectTotpMethod',{totp_method_id:M2,grant_id:'B1-SELF-05'},'selector-rollback-key-123')
+  assert.ok(response.status>=400);assert.equal(f.state.audits,0);assert.equal(f.state.attempts,0)
+  assert.equal(response.headers.get('set-cookie'),null);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+ }
+ const alien=await fixture({mode:'ACTIVE',multiple:true})
+ assert.equal((await alien.request('selectTotpMethod',{totp_method_id:P,grant_id:'B1-SELF-05'},'foreign-method-key-123')).status,401)
+})
+test('concurrent same-key selection has one challenge/audit and replay revalidates generation',async()=>{
+ const f=await fixture({mode:'ACTIVE',multiple:true}),input={totp_method_id:M2,grant_id:'B1-SELF-05'},key='concurrent-select-key-123'
+ const responses=await Promise.all([f.request('selectTotpMethod',input,key),f.request('selectTotpMethod',input,key)])
+ assert.deepEqual(responses.map(r=>r.status),[200,200])
+ assert.deepEqual((await responses[0].json()).data,(await responses[1].json()).data)
+ assert.equal(f.state.audits,1);assert.equal(f.calls.filter(c=>c.name==='issue_bound_challenge').length,1)
+ const changed=await f.request('selectTotpMethod',{...input,totp_method_id:M},key)
+ assert.equal(changed.status,409)
+ f.setGeneration('4')
+ assert.equal((await f.request('selectTotpMethod',input,key)).status,401)
+})
+test('explicit limit is required and enforced; rate and cooldown never issue a challenge',async()=>{
+ for(const options of [{maxMethods:null},{maxMethods:1},{rateLimited:true},{cooldown:true}]){
+  const f=await fixture({mode:'ACTIVE',multiple:true,...options})
+  const response=await f.request('selectTotpMethod',{totp_method_id:M2,grant_id:'B1-SELF-05'},'bounded-select-key-123')
+  assert.ok(response.status>=400);assert.equal(f.state.audits,0)
+  if(options.rateLimited)assert.equal(response.status,429)
+ }
+ for(const maxMethods of [0,-1,1.5,Number.MAX_SAFE_INTEGER])
+  await assert.rejects(fixture({maxMethods}))
 })

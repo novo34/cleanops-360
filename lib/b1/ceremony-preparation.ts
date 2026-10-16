@@ -63,6 +63,27 @@ export function selectTotpMethod(
   return selectEnabledMethod(eligible, match.id)
 }
 
+/** Explicit private limit, never a production default. The upper bound derives
+ * from the existing JSON byte budget and exact safe projection shape. */
+export function validateTotpMethodLimit(value: unknown): number {
+  const id = '11111111-1111-4111-8111-111111111111'
+  const base = { data: { state: 'TOTP_SELECTION_REQUIRED', methods: [], expires_at: '9999-12-31T23:59:59.999Z' }, meta: { correlation_id: id } }
+  const maximum = Math.floor((numeric('json_body_max') - Buffer.byteLength(JSON.stringify(base))) /
+    (Buffer.byteLength(JSON.stringify({ method_id: id, kind: 'TOTP' })) + 1))
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1 || value > maximum) throw unavailable()
+  return value
+}
+export function eligibleTotpMethods(
+  methods: readonly Readonly<{ id: string; kind: 'EMAIL_OTP' | 'TOTP'; version: string }>[], limit: unknown,
+) {
+  const maximum = validateTotpMethodLimit(limit)
+  if (!Array.isArray(methods)) throw unavailable()
+  if (methods.length) selectEnabledMethod(methods, methods[0]?.id)
+  const eligible = methods.filter(m => m.kind === 'TOTP')
+  if (eligible.length > maximum) throw unavailable()
+  return eligible
+}
+
 /** Normalize private server metadata only. No UA/headers/device fingerprint parser.
  * Callback provenance is a deployment trust boundary, not proven by string contents.
  * V4 permits at most 120 PostgreSQL characters per label; never truncate.

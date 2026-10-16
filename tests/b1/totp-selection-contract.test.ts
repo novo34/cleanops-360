@@ -26,7 +26,7 @@ test('candidate selection response projects only own opaque IDs/kind/expiry; dup
  for(const key of ['recipient','secret_ciphertext','key_version','riskClass','methodVersion','provisioningUri'])
   assert.equal(valid(output,{...base,[key]:'secret-canary'}),false)
 })
-test('review patch is scoped and never loaded; existing 13 operations and AuthResult are unchanged',()=>{
+test('approved patch is scoped: 14 operations and no widening of AuthResult',()=>{
  assert.equal(patch.length,5)
  assert.deepEqual(patch.map(p=>p.path),[
   '/components/schemas/TotpMethodSelectionInput','/components/schemas/TotpSelectionRequired',
@@ -34,19 +34,30 @@ test('review patch is scoped and never loaded; existing 13 operations and AuthRe
   '/paths/~1auth~1mfa~1totp~1select',
  ])
  const current=JSON.parse(read('lib/b1/openapi.json'))
- assert.equal(Object.values(current.paths).flatMap(v=>Object.values(v as object)).length,13)
- assert.equal(current.components.schemas.TotpSelectionRequired,undefined)
- assert.equal(current.paths['/auth/mfa/totp/select'],undefined)
+ assert.equal(Object.values(current.paths).flatMap(v=>Object.values(v as object)).length,14)
+ assert.deepEqual(current.components.schemas.TotpSelectionRequired,schema('TotpSelectionRequired'))
+ assert.equal(current.paths['/auth/mfa/totp/select'].post.operationId,'selectTotpMethod')
+ assert.deepEqual(current.components.schemas.AuthResult.oneOf.map((r:{$ref:string})=>r.$ref),['Active','PendingMfa','EnrollmentRequired','TenantSelection'].map(n=>'#/components/schemas/'+n))
  for(const path of ['lib/b1/runtime.ts','lib/b1/service.ts','lib/b1/approved-backend.ts'])
   assert.ok(!read(path).includes('review-only.openapi-patch'),path)
  assert.match(read('lib/b1/runtime.ts'),/closedBackend/)
  assert.match(read(root+'REVIEW.md'),/PROPOSED_REQUIRES_OWNER_APPROVAL/)
 })
-test('runtime OpenAPI and canonical HTTP contract retain reviewed Git blobs',()=>{
+test('effective OpenAPI is exactly the approved delta; original canonical HTTP remains unchanged',()=>{
  const originals={
-  'lib/b1/openapi.json':'9860177ab7fb665a237a16f8ff9e2c07b7417616',
   'docs/canonical/auth-review/v4/HTTP_CONTRACT.md':'259c7b839eeec9a466b506693422c9e448d976ee',
  }
+ const current=JSON.parse(read('lib/b1/openapi.json'))
+ const baseline=structuredClone(current)
+ delete baseline.paths['/auth/mfa/totp/select']
+ delete baseline.components.schemas.TotpMethodSelectionInput
+ delete baseline.components.schemas.TotpSelectionRequired
+ baseline.components.schemas.loginResponse.properties.data={$ref:'#/components/schemas/AuthResult'}
+ baseline.components.schemas.startStepUpResponse.properties.data={$ref:'#/components/schemas/StepUpResult'}
+ const text=JSON.stringify(baseline,null,2)+'\n'
+ assert.equal(createHash('sha1').update('blob '+Buffer.byteLength(text)+'\0').update(text).digest('hex'),'9860177ab7fb665a237a16f8ff9e2c07b7417616')
+ assert.equal(read('docs/canonical/auth-review/v4/h1-h3-totp-selection.openapi-patch.json'),read(root+'review-only.openapi-patch.json'))
+ assert.match(read('docs/canonical/auth-review/v4/H1_H3_APPROVAL.md'),/limited owner approval/)
  for(const [path,expected] of Object.entries(originals)){
   const text=read(path)
   assert.equal(createHash('sha1').update('blob '+Buffer.byteLength(text)+'\0').update(text).digest('hex'),expected)

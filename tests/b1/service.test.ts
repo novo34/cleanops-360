@@ -142,11 +142,12 @@ test('backend token leakage or premature ACTIVE login aborts and never sets cook
 })
 
 
-test('all 13 HTTP operations dispatch validated requests and responses through a transaction', async () => {
+test('all 14 HTTP operations dispatch validated requests and responses through a transaction', async () => {
   for (const operation of operations) {
     const { handler, f } = fixture()
     const bodySchema = operation.requestBody?.content['application/json'].schema
     const body = bodySchema ? sample(bodySchema) : undefined
+    if (operation.operationId === 'selectTotpMethod') (body as Input).grant_id = 'B1-SELF-05'
     const path = operation.path.replace('{session_id}', uuid)
     const example = sample(operation.responses['200'].content['application/json'].schema) as { data: Input }
     f.effect = { data: example.data }

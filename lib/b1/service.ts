@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { parseSelectorJson } from './selector-json.ts'
 import { numeric, profile } from './config.ts'
 import { canonical, operations, valid, type Operation } from './contracts.ts'
 
@@ -89,16 +90,17 @@ function stateAllowed(operation: string, binding: Binding) {
   if (operation === 'listAuthorizedTenants') return binding.kind !== 'BOOTSTRAP'
   if (operation === 'switchTenant') return binding.kind === 'ACTIVE' || binding.state === 'TENANT_SELECTION_REQUIRED'
   if (operation === 'enrollTotp' || operation === 'confirmTotp') return binding.kind === 'ACTIVE' || binding.state === 'ENROLLMENT_REQUIRED'
-  if (operation === 'verifyMfa' || operation === 'resendOtp') return binding.kind === 'ACTIVE' || binding.state === 'PENDING_MFA'
+  if (operation === 'verifyMfa' || operation === 'resendOtp' || operation === 'selectTotpMethod') return binding.kind === 'ACTIVE' || binding.state === 'PENDING_MFA'
   return binding.kind === 'ACTIVE'
 }
 function ruleFor(operation: Operation, input: Input): string | undefined {
   if (operation.operationId === 'startStepUp') return String(input.grant_id)
+  if (operation.operationId === 'selectTotpMethod' && input.grant_id !== undefined) return String(input.grant_id)
   return operation['x-rule']
 }
 function resourceFor(operation: string, input: Input): string | undefined {
   if (operation === 'switchTenant') return String(input.target_tenant_id)
-  if (operation === 'startStepUp' && input.resource_id) return String(input.resource_id)
+  if (['startStepUp', 'selectTotpMethod'].includes(operation) && input.resource_id) return String(input.resource_id)
   return undefined
 }
 export function createAuthHandler(backend: Backend, origin: string, now = () => Date.now()) {
@@ -152,7 +154,10 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
         if (operation.requestBody) {
           if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')) throw new AuthError(415, 'JSON_REQUIRED')
           let parsed: unknown
-          try { parsed = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) } catch { throw new AuthError(400, 'INVALID_JSON') }
+          try {
+            const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
+            parsed = operationId === 'selectTotpMethod' ? parseSelectorJson(text) : JSON.parse(text)
+          } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)
         } else if (raw.length) throw new AuthError(400, 'BODY_NOT_ALLOWED')
@@ -167,6 +172,10 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           const binding = await tx.resolve(received)
           if (!binding || binding.expiresAt <= now() || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
           if (request.method !== 'GET' && !safeEqual(digest(received[names.csrf]), binding.csrfDigest)) throw new AuthError(403, 'CSRF_INVALID')
+          if (operationId === 'selectTotpMethod') {
+            if (binding.kind === 'ACTIVE' ? input.grant_id === undefined : input.grant_id !== undefined || input.resource_id !== undefined)
+              throw new AuthError(422, 'INVALID_INPUT')
+          }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
           if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
           const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp'].includes(operationId)
@@ -183,6 +192,12 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
               if (reservation.requestHash !== requestHash) throw new AuthError(409, 'IDEMPOTENCY_MISMATCH')
               if ((reservation.expiresAt ?? 0) <= now()) throw new AuthError(409, 'IDEMPOTENCY_EXPIRED')
               if (reservation.oneTime) throw new AuthError(409, 'RESULT_NOT_REPLAYABLE')
+              if (operationId === 'selectTotpMethod') {
+                const data = reservation.data as Input
+                if (!data || (binding.kind === 'PREAUTH' ? data.state !== 'PENDING_MFA' : data.state !== undefined) ||
+                    !valid(operation.responses['200'].content['application/json'].schema, { data, meta: { correlation_id: correlation } }))
+                  throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+              }
               return { data: reservation.data } as Effect
             }
           }
@@ -194,6 +209,9 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (!valid(operation.responses['200'].content['application/json'].schema, { data: effect.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
+          if (operationId === 'selectTotpMethod' &&
+              (effect.transition || (binding.kind === 'PREAUTH' ? authData.state !== 'PENDING_MFA' : authData.state !== undefined)))
+            throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
           const authState = authData.state ?? (authData.auth as Input | undefined)?.state
           if (binding.kind === 'ACTIVE' && ['verifyMfa','confirmTotp'].includes(operationId)) {
             const auth = operationId === 'confirmTotp' ? authData.auth as Input : authData

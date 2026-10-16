@@ -2,7 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { canonical } from './contracts.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
-import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels } from './ceremony-preparation.ts'
+import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleTotpMethods, validateTotpMethodLimit } from './ceremony-preparation.ts'
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
@@ -26,14 +26,19 @@ export interface ApprovedBackendDependencies {
   /** Same normalization policy as account provisioning, never password normalization. */
   normalizeEmail(email: string): string
   /** Trusted private labels for new sessions; no browser/header defaults. */
+  /** Explicit private bound; no production default. */
+  maxEligibleTotpMethods?: number
   sessionLabels?(): Readonly<{ device: string; browser: string }>
 }
+type PreparedChallenge = { challenge_id: string; allowed_methods: string[]; expires_at: string }
+type RequiredSelection = { state: 'TOTP_SELECTION_REQUIRED'; methods: { method_id: string; kind: 'TOTP' }[]; expires_at: string }
 type Reservation = { operation: string; key: Buffer; hash: string; oneTime: boolean; raw: string | null; done: boolean }
 /** Uninstalled private Backend for the approved extension. One broker/connection for all
  * reads, factor proofs, CAS, effects, audit and idempotency. No runtime flag or setter. */
 export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedBackendDependencies): Backend {
   if (!Buffer.isBuffer(deps.cursorKey) || deps.cursorKey.length < 32) throw unavailable()
   const repository = createV4IdentityRepository(pool), now = deps.now ?? Date.now
+  const methodLimit = deps.maxEligibleTotpMethods === undefined ? undefined : validateTotpMethodLimit(deps.maxEligibleTotpMethods)
   function cursor(actor: Binding, kind: string, last: unknown): string {
     const payload = Buffer.from(canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null, kind, actor.expiresAt, last])).toString('base64url')
     return payload + '.' + createHmac('sha256', deps.cursorKey).update(payload).digest('base64url')
@@ -60,6 +65,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const factors = createApprovedFactors(broker, deps.factors, correlation, now)
       let actor: Binding | undefined, raw = '', csrf = ''
       const reservations = new Map<string, Reservation>()
+      let stepUpRequest: { grant: string; resource: string | null } | undefined
       function owns(binding: Binding) { if (!actor || binding !== actor) throw invalid(); return actor }
       function preauth() { if (!actor || actor.kind === 'BOOTSTRAP') throw invalid(); return actor.kind === 'PREAUTH' ? raw : null }
       async function resolveAgain() {
@@ -97,14 +103,19 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         if (value.bindingId !== expected.id || value.tenantId !== expected.tenantId ||
             (expected.userId !== undefined && value.userId !== expected.userId) ||
             !Number.isSafeInteger(expiresAt) || expiresAt <= now() || expiresAt > expected.expiresAt) throw invalid()
+        if (purpose !== 'ISSUE_SESSION') eligibleTotpMethods(value.enabledMethods, methodLimit)
         sessionPolicyForRisk(value.riskClass)
         return value
       }
       async function totpChallenge(cookie: string | null, purpose: 'LOGIN' | 'STEP_UP',
         expected: { id: string; tenantId?: string; userId?: string; expiresAt: number },
-        grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string) {
+        grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string,
+        allowSelection = false): Promise<PreparedChallenge | RequiredSelection> {
         const value = await material(cookie, purpose, expected, grant, resource)
-        // EMAIL is closed; multiple TOTP rows need an explicit trusted method ID.
+        const eligible = eligibleTotpMethods(value.enabledMethods, methodLimit)
+        if (allowSelection && selectedId === undefined && eligible.length > 1)
+          return { state: 'TOTP_SELECTION_REQUIRED', methods: eligible.map(m => ({ method_id: m.id, kind: 'TOTP' })), expires_at: date(value.expiresAt) }
+        // Selector is a locator; generation always comes from the locked material.
         const selected = selectTotpMethod(value.enabledMethods, selectedId)
         if (expectedVersion !== undefined && selected.version !== expectedVersion) throw invalid()
         const challenge = await broker.call('boundChallenge', [cookie, 'TOTP', selected.id, selected.version, null, null, null, grant, resource, correlation])
@@ -127,8 +138,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         if (summary.state === 'ENROLLMENT_REQUIRED') return { data: { state: summary.state, allowed_methods: ['TOTP'], expires_at: new Date(expiresAt).toISOString() }, expiresAt }
         if (summary.state !== 'PENDING_MFA' || !expected) throw unavailable()
         const data = await ownedInternal(cookie, operationHint === 'switchTenant' ? 'switchTenant' : 'login', { binding: expected.id, tenant: expected.tenantId }, () =>
-          totpChallenge(cookie, 'LOGIN', { ...expected, expiresAt }))
-        return { data: { state: 'PENDING_MFA', ...data }, expiresAt }
+          totpChallenge(cookie, 'LOGIN', { ...expected, expiresAt }, null, null, undefined, undefined, true))
+        return { data: 'state' in data ? data : { state: 'PENDING_MFA', ...data }, expiresAt }
       }
       async function issueSession(binding: Binding): Promise<Effect> {
         const value = await material(raw, 'ISSUE_SESSION', binding), policy = sessionPolicyForRisk(value.riskClass)
@@ -146,6 +157,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         owns(binding)
         const rows = await broker.call('authorization', [preauth(), rule, resource ?? null])
         if (rows.length !== 1 || typeof rows[0].allowed !== 'boolean' || typeof rows[0].step_up !== 'boolean') throw unavailable()
+        if (binding.kind === 'ACTIVE' && rows[0].allowed === true) stepUpRequest = { grant: rule, resource: resource ?? null }
         return rows[0]
       }
       function reservation(scope: string) {
@@ -156,7 +168,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const tx: Transaction = {
         async resolve(cookies) {
           if (actor) throw unavailable()
-          const preferPreauth = ['verifyMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'resendOtp'].includes(operationHint)
+          const preferPreauth = ['verifyMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
           const mode = operationHint === 'login' ? 'BOOTSTRAP' :
             preferPreauth && cookies[names.preauth] ? 'PREAUTH' : cookies[names.session] ? 'ACTIVE' : 'PREAUTH'
           raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''
@@ -188,7 +200,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['login', 'verifyMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp'].includes(operation)) return null
+          if (!['login', 'verifyMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
           const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'confirmTotp'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
@@ -212,7 +224,17 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
-          if (result.replay && ['startStepUp', 'resendOtp'].includes(operation)) {
+          if (result.replay && ['startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation)) {
+            if (operation === 'startStepUp' && object(result.data) && result.data.state === 'TOTP_SELECTION_REQUIRED') {
+              if (!stepUpRequest) throw unavailable()
+              const current = await material(rawPreauth, 'STEP_UP', actor, stepUpRequest.grant, stepUpRequest.resource)
+              const methods = eligibleTotpMethods(current.enabledMethods, methodLimit).map(m => ({ method_id: m.id, kind: 'TOTP' }))
+              if (methods.length < 2 || canonical(methods) !== canonical(result.data.methods) ||
+                  Date.parse(String(result.data.expires_at)) <= now() ||
+                  Date.parse(String(result.data.expires_at)) > Date.parse(current.expiresAt))
+                throw new AuthError(409, 'SELECTION_CHANGED')
+              return { replay: true, requestHash, oneTime, expiresAt: result.expiresAt, data: result.data }
+            }
             if (!object(result.data) || !uuid(result.data.challenge_id) ||
                 Date.parse(String(result.data.expires_at)) <= now()) throw unavailable()
             const purpose = actor.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN'
@@ -246,7 +268,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp', 'startStepUp', 'resendOtp'].includes(operation) &&
+          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
               ![...reservations.values()].some(r => !r.done && r.operation === operation && (operation !== 'confirmTotp' || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
@@ -318,7 +340,24 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if (!['B1-SELF-04', 'B1-SELF-05', 'B1-SELF-06', 'B1-SELF-08'].includes(grant) ||
                 ((grant === 'B1-SELF-08') !== (resource !== null)) || (resource !== null && !uuid(resource))) throw invalid()
             if (!(await auth(binding, grant, resource ?? undefined)).allowed) throw new AuthError(403, 'POLICY_DENIED')
-            return { data: await totpChallenge(null, 'STEP_UP', binding, grant, resource) }
+            return { data: await totpChallenge(null, 'STEP_UP', binding, grant, resource, undefined, undefined, true) }
+          }
+          if (operation === 'selectTotpMethod') {
+            validateTotpMethodLimit(methodLimit)
+            if (typeof input.totp_method_id !== 'string') throw new AuthError(422, 'INVALID_INPUT')
+            if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA')) throw invalid()
+            const grant = input.grant_id === undefined ? null : String(input.grant_id)
+            const resource = input.resource_id === undefined ? null : String(input.resource_id)
+            if (binding.kind === 'ACTIVE') {
+              if (grant === null || !['B1-SELF-04', 'B1-SELF-05', 'B1-SELF-06', 'B1-SELF-08'].includes(grant) ||
+                  ((grant === 'B1-SELF-08') !== (resource !== null)) || (resource !== null && !uuid(resource)))
+                throw new AuthError(422, 'INVALID_INPUT')
+              if (!(await auth(binding, grant, resource ?? undefined)).allowed) throw new AuthError(403, 'POLICY_DENIED')
+            } else if (grant !== null || resource !== null) throw new AuthError(422, 'INVALID_INPUT')
+            const data = await totpChallenge(preauth(), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN',
+              binding, grant, resource, input.totp_method_id as string)
+            if ('state' in data) throw unavailable()
+            return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
           }
           if (operation === 'resendOtp') {
             const purpose = binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN', cookie = preauth()
@@ -333,6 +372,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
                   !(await auth(binding, grant, resource === null ? undefined : String(resource))).allowed) throw new AuthError(403, 'POLICY_DENIED')
             } else if (grant !== null || resource !== null) throw invalid()
             const data = await totpChallenge(cookie, purpose, binding, grant as string | null, resource as string | null, previous.binding.methodId, String(previous.version))
+            if ('state' in data) throw unavailable()
             return { data: { challenge_id: data.challenge_id, method: 'TOTP', expires_at: data.expires_at } }
           }
           if (operation === 'confirmTotp') {
