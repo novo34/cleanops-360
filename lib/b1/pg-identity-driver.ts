@@ -8,7 +8,7 @@ const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
  * access, arbitrary request-derived SQL, privileged owner role or user-controlled GUC.
  * This transport does not grant any authority or implement broker functions itself. */
 export interface IdentityConnection {
-  query(sql: string): Promise<unknown>
+  query(sql: string, values?: unknown[]): Promise<unknown>
   release(discard?: boolean): void
 }
 export interface IdentityPool {
@@ -22,6 +22,25 @@ export type BootstrapWriter = (connection: IdentityConnection, bindingDigest: st
  * thrown errors cause ROLLBACK. On uncertain commit, always discard the connection. */
 export function createPgIdentityDriver(pool: IdentityPool, broker: BrokerFactory, writeBootstrap: BootstrapWriter): PrivateTransactionalDriver {
   if (!pool || typeof pool.connect !== 'function' || typeof broker !== 'function' || typeof writeBootstrap !== 'function') throw unavailable()
+  const { run } = createPgIdentityUnitOfWork(pool)
+  return Object.freeze({
+    transaction<T>(work: (tx: Transaction) => Promise<T>) {
+      return run(connection => work(broker(connection)))
+    },
+    bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number) {
+      if (!/^[a-f0-9]{64}$/.test(bindingDigest) || !/^[a-f0-9]{64}$/.test(csrfDigest) ||
+          !Number.isSafeInteger(expiresAt) || expiresAt <= 0) throw unavailable()
+      return run(connection => writeBootstrap(connection, bindingDigest, csrfDigest, expiresAt))
+    },
+  })
+}
+
+/** Structural compile-time check only; importing pg types cannot open a connection. */
+export type PgClientForReview = Pick<PoolClient, 'query' | 'release'>
+
+/** Shared transaction runner for concrete V4 repositories; never wired by runtime. */
+export function createPgIdentityUnitOfWork(pool: IdentityPool) {
+  if (!pool || typeof pool.connect !== 'function') throw unavailable()
   async function run<T>(operation: (connection: IdentityConnection) => Promise<T>): Promise<T> {
     let connection: IdentityConnection | undefined
     let begun = false
@@ -46,17 +65,5 @@ export function createPgIdentityDriver(pool: IdentityPool, broker: BrokerFactory
       if (connection) connection.release(!committed)
     }
   }
-  return Object.freeze({
-    transaction<T>(work: (tx: Transaction) => Promise<T>) {
-      return run(connection => work(broker(connection)))
-    },
-    bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number) {
-      if (!/^[a-f0-9]{64}$/.test(bindingDigest) || !/^[a-f0-9]{64}$/.test(csrfDigest) ||
-          !Number.isSafeInteger(expiresAt) || expiresAt <= 0) throw unavailable()
-      return run(connection => writeBootstrap(connection, bindingDigest, csrfDigest, expiresAt))
-    },
-  })
+  return Object.freeze({ run })
 }
-
-/** Structural compile-time check only; importing pg types cannot open a connection. */
-export type PgClientForReview = Pick<PoolClient, 'query' | 'release'>
