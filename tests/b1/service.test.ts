@@ -10,7 +10,7 @@ const uuid = '11111111-1111-4111-8111-111111111111', dest = '22222222-2222-4222-
 const csrf = 'C'.repeat(43), bindingToken = 'B'.repeat(43)
 const active = (tenant = uuid) => ({ state: 'ACTIVE', session_id: uuid, tenant_id: tenant, absolute_expires_at: new Date(clock()+28800000).toISOString() })
 const pending = () => ({ state: 'PENDING_MFA', challenge_id: uuid, allowed_methods: ['TOTP'], expires_at: new Date(clock()+600000).toISOString() })
-const binding = (kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']): Binding => ({ kind, state, id: 'verified-test-binding', csrfDigest: digest(csrf), expiresAt: clock()+600000, tenantId: uuid, userId: uuid, sessionId: uuid })
+const binding = (kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']): Binding => ({ kind, state, id: 'verified-test-binding', csrfDigest: digest(csrf), expiresAt: clock()+(kind === 'ACTIVE' ? 28800000 : 600000), tenantId: uuid, userId: uuid, sessionId: uuid })
 function fixture(kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']) {
   const records = new Map<string, { replay: boolean; requestHash: string; data: unknown; oneTime: boolean; expiresAt: number }>()
   const f = { binding: binding(kind, state) as Binding | null, allow: true, step: true, retry: null as number | null, commits: 0, calls: 0, commitFailure: false,
@@ -68,7 +68,7 @@ test('bootstrap persists only digests before emitting secure host cookies', asyn
 test('origin, fetch metadata, duplicate cookies, server CSRF binding, unknown query and illegal selectors', async () => {
   const {handler,f} = fixture()
   const body = { reason: 'self' }
-  for (const headers of [{ Origin: 'https://evil.test' },{ 'Sec-Fetch-Site':'cross-site' },{ 'X-CSRF-Token':'X'.repeat(43) },{ Cookie:`${names.session}=${bindingToken}; ${names.csrf}=${csrf}; ${names.csrf}=${csrf}` }]) {
+  for (const headers of [{ Origin: 'https://evil.test' },{ 'Sec-Fetch-Site':'cross-site' },{ 'X-CSRF-Token':'X'.repeat(43) },{ Cookie:`${names.session}=${bindingToken}; ${names.csrf}=${csrf}; ${names.csrf}=${csrf}` }] as Record<string,string>[]) {
     const response = await handler.handle(request('/me/sessions/revoke-other-own','POST',body,headers),'revokeOtherOwnSessions'); assert.ok([400,403].includes(response.status)); assert.equal(f.calls,0)
   }
   f.binding!.csrfDigest = digest('different')
@@ -178,4 +178,25 @@ test('pending switch preserves source cookie and replay never crosses a tenant b
   f.binding = { ...binding(), tenantId:dest, id:'other-verified-binding' }
   assert.equal((await handler.handle(req(),'revokeOtherOwnSessions')).status,200)
   assert.equal(f.calls,3) // switch + separate operation in each tenant
+})
+
+
+test('step-up verification cannot create a session or extend the existing absolute deadline', async () => {
+  const { handler, f } = fixture()
+  const req=()=>request('/auth/mfa/verify','POST',{challenge_id:uuid,method:'TOTP',proof:'123456'})
+  f.effect={data:active(),transition:{kind:'ACTIVE',token:token(),csrf:token(),expiresAt:clock()+28800000}}
+  await expectError(await handler.handle(req(),'verifyMfa'),503,'INVALID_STEP_UP_TRANSITION')
+  f.effect={data:{...active(),session_id:dest}}
+  await expectError(await handler.handle(req(),'verifyMfa'),503,'INVALID_STEP_UP_TRANSITION')
+  f.effect={data:{...active(),absolute_expires_at:new Date(clock()+28800001).toISOString()}}
+  await expectError(await handler.handle(req(),'verifyMfa'),503,'INVALID_STEP_UP_TRANSITION')
+  assert.equal(f.commits,0)
+})
+test('even a malformed private adapter cannot return another tenant identity or session', async () => {
+  const { handler, f } = fixture()
+  f.effect={data:{id:dest,tenant_id:dest,display_name:'Foreign',email:'synthetic@example.test'}}
+  await expectError(await handler.handle(request('/auth/me','GET'),'getCurrentIdentity'),503,'INVALID_SUBJECT_RESPONSE')
+  f.effect={data:{items:[{id:uuid,tenant_id:dest,user_id:uuid,created_at:new Date(clock()).toISOString(),last_activity_at:new Date(clock()).toISOString(),absolute_expires_at:new Date(clock()+1000).toISOString(),device_label:'fixture',browser_label:'fixture',is_current:false}],next_cursor:null}}
+  await expectError(await handler.handle(request('/me/sessions','GET'),'listSelfSessions'),503,'INVALID_SUBJECT_RESPONSE')
+  assert.equal(f.commits,0)
 })

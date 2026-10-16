@@ -191,6 +191,14 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
           const authState = authData.state ?? (authData.auth as Input | undefined)?.state
+          if (binding.kind === 'ACTIVE' && ['verifyMfa','confirmTotp'].includes(operationId)) {
+            const auth = operationId === 'confirmTotp' ? authData.auth as Input : authData
+            if (effect.transition || auth.session_id !== binding.sessionId || auth.tenant_id !== binding.tenantId || Date.parse(String(auth.absolute_expires_at)) > binding.expiresAt) throw new AuthError(503, 'INVALID_STEP_UP_TRANSITION')
+          }
+          if (operationId === 'getCurrentIdentity' && (authData.id !== binding.userId || authData.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')
+          if (operationId === 'listSelfSessions' && (authData.items as Input[]).some(s => s.user_id !== binding.userId || s.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')
+          if (operationId === 'switchTenant' && authState === 'ACTIVE' && (authData.tenant_id !== input.target_tenant_id || authData.session_id === binding.sessionId)) throw new AuthError(503, 'INVALID_SWITCH_TRANSITION')
+          if (['logout','revokeSelfSession'].includes(operationId) && Number(authData.revoked_count) > 1) throw new AuthError(503, 'INVALID_REVOCATION_RESULT')
           const mustRotate = operationId === 'login' || operationId === 'switchTenant' || (binding.kind === 'PREAUTH' && ['verifyMfa','confirmTotp'].includes(operationId))
           if (mustRotate && !effect.transition) throw new AuthError(503, 'MISSING_COOKIE_TRANSITION')
           if (operationId === 'logout' || (operationId === 'revokeSelfSession' && input.session_id === binding.sessionId)) effect.clearSession = true
