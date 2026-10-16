@@ -3,7 +3,7 @@ import { AuthError } from './service.ts'
 import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool } from './pg-identity-driver.ts'
 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
- * Signatures are copied from canonical V4; values are always separate pg parameters. */
+ * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
 "mfaMaterial": {"sql":"SELECT auth_api.trusted_mfa_material($1::text, $2::text, $3::text, $4::uuid) AS value","arity":4,"kind":"json"},
 "boundChallenge": {"sql":"SELECT auth_api.issue_bound_challenge($1::text, $2::text, $3::uuid, $4::bigint, $5::bytea, $6::bytea, $7::text, $8::text, $9::uuid, $10::uuid) AS value","arity":10,"kind":"uuid"},
@@ -256,14 +256,14 @@ function safeError(error: unknown): AuthError {
 }
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v)
 const timestamp = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isSafeInteger(Date.parse(v))
-const generation = (v: unknown): v is string => typeof v === 'string' && /^[1-9][0-9]{0,18}$/.test(v) && BigInt(v) <= 9223372036854775807n
+const generation = (v: unknown): v is string => typeof v === 'string' && /^[1-9][0-9]{0,18}$/.test(v) && (v.length < 19 || v <= '9223372036854775807')
 function keys(value: Row, names: string[]) {
   return Object.keys(value).length === names.length && names.every(k => Object.hasOwn(value, k))
 }
 function d1Material(value: unknown, args: BrokerArgs['mfaMaterial']): D1MfaMaterial {
   if (!object(value) || !keys(value, ['tenantId', 'userId', 'bindingId', 'riskClass', 'enabledMethods', 'recipient', 'expiresAt']) ||
       !uuid(value.tenantId) || !uuid(value.userId) || !uuid(value.bindingId) ||
-      !['SENSITIVE', 'OPERATIONAL'].includes(String(value.riskClass)) || !timestamp(value.expiresAt) ||
+      (value.riskClass !== 'SENSITIVE' && value.riskClass !== 'OPERATIONAL') || !timestamp(value.expiresAt) ||
       !Array.isArray(value.enabledMethods)) throw unavailable()
   const methods: D1EnabledMethod[] = value.enabledMethods.map(m => {
     if (!object(m) || !keys(m, ['id', 'kind', 'version']) || !uuid(m.id) ||

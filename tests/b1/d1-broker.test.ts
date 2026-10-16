@@ -136,6 +136,7 @@ test('unowned mutation poisons transaction even when caller catches denial', asy
 test('strict private material rejects corrupt and privilege-expanding shapes and redacts recipient', async () => {
  for (const malformed of [
   (m: Record<string, unknown>) => ({ ...m, riskClass: null }),
+  (m: Record<string, unknown>) => ({ ...m, riskClass: { toString: () => 'SENSITIVE' } }),
   (m: Record<string, unknown>) => ({ ...m, expiresAt: 'invalid' }),
   (m: Record<string, unknown>) => ({ ...m, arbitrary: 'secret' }),
   (m: Record<string, unknown>) => ({ ...m, enabledMethods: [{ id: M, kind: 'TOTP', version: '9223372036854775808' }] }),
@@ -203,4 +204,16 @@ test('pinned approval inventory and both existing replacement signatures remain 
  })
  assert.ok(f.calls.some(c => c.sql === 'SELECT auth_api.totp_material_locked($1::text, $2::uuid, $3::text) AS value'))
  assert.ok(f.calls.some(c => c.sql === 'SELECT auth_api.consume_email_otp($1::text, $2::uuid, $3::bytea, $4::uuid) AS value'))
+})
+
+test('generation stays an exact decimal string up to PostgreSQL bigint limit', async () => {
+ const f = fixture({ malformed: m => ({ ...m, enabledMethods: [{ id: M, kind: 'TOTP', version: '9223372036854775807' }] }) })
+ await createV4IdentityRepository(f.pool).transaction(async broker => {
+  const material = await broker.call('mfaMaterial', [raw, 'LOGIN', null, null])
+  assert.equal(material.enabledMethods[0].version, '9223372036854775807')
+ })
+ for (const version of ['0', '-1', '01', '1.5', '9223372036854775808', '99999999999999999999']) {
+  const bad = fixture({ malformed: m => ({ ...m, enabledMethods: [{ id: M, kind: 'TOTP', version }] }) })
+  await assert.rejects(createV4IdentityRepository(bad.pool).transaction(b => b.call('mfaMaterial', [raw, 'LOGIN', null, null])), unavailable)
+ }
 })
