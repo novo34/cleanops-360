@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPrivateBackend, requireOwnSession, verifiedActiveBinding, type LockedSession } from '../../lib/b1/private-adapter.ts'
-import { AuthError, closedBackend, type Transaction } from '../../lib/b1/service.ts'
+import { AuthError, closedBackend } from '../../lib/b1/service.ts'
 
 const now = 1_700_000_000_000
 const valid: LockedSession = {
@@ -48,7 +48,7 @@ test('own-session checks cannot cross tenant or user or bulk-revoke the current 
 test('private driver is not runtime enabled and hides storage failures', async () => {
   await assert.rejects(closedBackend.transaction(async () => true), unavailable)
   const backend = createPrivateBackend({
-    async transaction<T>(_work: (tx: Transaction) => Promise<T>): Promise<T> { throw new Error('db secret') },
+    async transaction<T>(): Promise<T> { throw new Error('db secret') },
     async bootstrap() { throw new Error('private connection') },
   })
   await assert.rejects(backend.transaction(async () => true), unavailable)
