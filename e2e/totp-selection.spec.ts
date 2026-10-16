@@ -25,7 +25,7 @@ async function succeed(route: Route, operation: string, data: unknown, csrf?: st
   }
   if (op.method !== 'GET') {
     expect(headers.origin).toBe(origin)
-    expect(headers['sec-fetch-site']).toBe('same-origin')
+    // Fetch Metadata is browser-generated after Playwright interception; checked on the real TLS wire below.
     expect(headers.cookie).toContain('__Host-cleanops_csrf=' + headers['x-csrf-token'])
     expect(headers.cookie).toContain(operation === 'login' || !headers.cookie.includes('__Host-cleanops_session=') ? '__Host-cleanops_preauth=' : '__Host-cleanops_session=')
   }
@@ -194,6 +194,8 @@ for (const status of [401, 403, 409, 410, 429]) {
 }
 for (const scenario of ['201', '202', '204', 'redirect', 'json', 'schema', 'content-type', 'wrong-factor', 'wrong-mode'] as const) {
   test('PREAUTH rejects unexpected ' + scenario + ' without advancing', async ({ page }) => {
+    let redirected = 0
+    await page.route('**/auth/mfa/verify', route => { redirected++; return route.fulfill({ json: envelope(pending()) }) })
     await page.route('**/auth/mfa/totp/select', route => {
       if (scenario === 'json') return route.fulfill({ contentType: 'application/json', body: '{' })
       if (scenario === 'content-type') return route.fulfill({ contentType: 'text/html', body: JSON.stringify(envelope(pending())) })
@@ -212,6 +214,7 @@ for (const scenario of ['201', '202', '204', 'redirect', 'json', 'schema', 'cont
     await expect(page.getByLabel('Código', { exact: true })).toHaveCount(0)
     await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
     await expect(page.getByText('must-not-render')).toHaveCount(0)
+    expect(redirected).toBe(0)
   })
 }
 for (const malformed of [true, false]) {
@@ -338,4 +341,17 @@ test('lost step-up response and 429 selection retry preserve their own idempoten
   expect(starts).toHaveLength(2); expect(starts[0]).toBe(starts[1])
   expect(selects).toHaveLength(2); expect(selects[0]).toBe(selects[1])
   expect(starts[0]).not.toBe(selects[0])
+})
+
+test('real TLS wire carries same-origin Fetch Metadata and rotated CSRF cookies', async ({ page }) => {
+  await setup(page)
+  const evidence = await page.evaluate(async () => {
+    const csrf = document.cookie.split('; ').find(cookie => cookie.startsWith('__Host-cleanops_csrf='))?.split('=')[1] ?? ''
+    const response = await fetch('/__b1_fixture_probe', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': csrf } })
+    return { secureContext: window.isSecureContext, evidence: await response.json(), visibleCookies: document.cookie }
+  })
+  expect(evidence.secureContext).toBe(true)
+  expect(evidence.evidence).toEqual({ sameOrigin: true, sameSite: true, csrfMatches: true, bindingPresent: true })
+  expect(evidence.visibleCookies).not.toContain('__Host-cleanops_preauth=')
+  expect(evidence.visibleCookies).not.toContain('__Host-cleanops_session=')
 })
