@@ -9,7 +9,7 @@ export function parseSelectorJson(text: string): unknown {
   let parsed: unknown
   try { parsed = JSON.parse(text) } catch { throw invalid() }
   const stack: ({ kind: 'object'; keys: Set<string>; key: boolean } | { kind: 'array' })[] = []
-  for (const token of text.matchAll(/"(?:\\.|[^"\\])*"|[{}\[\]:,]/g)) {
+  for (const token of text.matchAll(/"(?:\\.|[^"\\])*"|[{}[\]:,]/g)) {
     const value = token[0], top = stack.at(-1)
     if (value === '{') stack.push({ kind: 'object', keys: new Set(), key: true })
     else if (value === '[') stack.push({ kind: 'array' })
