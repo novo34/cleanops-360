@@ -4,6 +4,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures are copied from canonical V4; values are always separate pg parameters. */
 const statements = {
+  "verifiedTenant": { "sql": "SELECT identity_private.verified_tenant() AS value", "arity": 0, "kind": "uuid" },
   "beginContext": {
     "sql": "SELECT auth_api.begin_verified_context($1::text) AS value",
     "arity": 1,
@@ -151,6 +152,7 @@ const statements = {
   }
 } as const
 export type BrokerArgs = {
+  verifiedTenant: []
   beginContext: [token: string]; policy: []; bootstrap: [digest: Buffer, csrf: Buffer]
   csrf: [cookie: string, csrf: string, mode: 'BOOTSTRAP' | 'PREAUTH' | 'ACTIVE']
   loginMaterial: [normalizedEmail: string]
