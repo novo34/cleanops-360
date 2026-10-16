@@ -32,13 +32,13 @@
   "lockOrder": [
     "principal",
     "credential",
-    "sessions ordered by tenant/id (origin included)",
+    "subject sessions (principal already serialized; additional sets ordered tenant/id)",
     "preauth/bootstrap",
     "organizations/users ordered by tenant/id",
-    "policy_versions ordered by tenant",
+    "policy_versions ordered by full source/target set",
+    "idempotency reservation when required",
     "method",
-    "challenge",
-    "idempotency"
+    "challenge"
   ],
   "errors": {
     "invalid": "401 AUTH_INVALID",
@@ -57,5 +57,104 @@
     "production activation",
     "merge",
     "deployment"
-  ]
+  ],
+  "functions": [
+    {
+      "signature": "identity_private.version_totp_method()",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.lock_principal(uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.lock_memberships(uuid,uuid[])",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.context()",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.checked_preauth(text)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.credential_material_locked(text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.rehash_credential_cas(uuid,bigint,text,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.new_preauth_verified(uuid,uuid,bigint,text,bytea,bytea)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.resolve_binding(text,text,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.binding_authorization(text,text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "identity_private.guard(text,boolean,uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.totp_material_locked(text,uuid,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.verify_challenge(text,uuid,bytea,bigint,uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.consume_totp_cas(text,uuid,text,bigint,bigint,bigint,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.consume_enrollment_cas(text,uuid,bigint,bigint,bigint,bytea[],uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.reserve_owned(text,text,bytea,bytea,boolean)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "identity_private.finish_owned(text,text,bytea,bytea,jsonb,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.discard_owned(text,text,bytea,bytea)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.complete_owned(text,text,bytea,bytea,jsonb)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.reserve_idempotency(text,bytea,bytea,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.reserve_ceremony(text,text,bytea,bytea,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.begin_totp_enrollment_explicit(text,bytea,text,text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.email_otp_material(text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.consume_email_otp(text,uuid,bytea,uuid)",
+      "caller": "identity_service_only"
+    }
+  ],
+  "patch": "docs/proposals/b1-v4-extension/review-only.sql"
 }
