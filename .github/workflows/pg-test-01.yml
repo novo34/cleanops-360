@@ -1,0 +1,27 @@
+name: PG-TEST-01 authorized isolated PostgreSQL
+on:
+  pull_request:
+    paths:
+      - scripts/pg-test-01.py
+      - .github/workflows/pg-test-01.yml
+      - docs/implementation/b1/pg-test-01/**
+permissions:
+  contents: read
+jobs:
+  pg-test-01:
+    if: github.event.pull_request.number == 7 && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Authorized exact-blob isolated validation
+        run: python3 scripts/pg-test-01.py
+      - name: Redacted PostgreSQL evidence
+        if: always()
+        run: |
+          if [ -f artifacts/pg-test-01/report.json ]; then
+            cat artifacts/pg-test-01/report.json
+          fi
