@@ -1,15 +1,32 @@
-# Incremento UI/API/PG — estado de ejecución
+# Incremento UI/API/PG — ejecución real PASS
 
-- Base: 318a77f4fc67623810e6fdfa080bb2fe0da0ecae; primer commit fda096b762b4bd1e35c951e9aae545bbf1f39e61.
-- UI: reintentos idempotentes de mutaciones, limpieza de ceremonia y campos de sesión reales.
-- Pruebas nuevas unitarias: 3 PASS (node --experimental-strip-types --test --test-isolation=none tests/b1/ui-request-keys.test.ts).
-- Sintaxis: py_compile de los dos módulos Python modificados, node --check del proxy TLS y Node strip-types --check del backend de prueba: PASS.
-- Pruebas estáticas locales: 17 PASS / 3 SKIP (pglast no instalado). No se atribuye nueva aceptación SQL ni se repiten las 294 comprobaciones PostgreSQL/HTTP aprobadas.
-- Regresión Chromium de pérdida de respuesta logout y E2E real UI/API/PG: preparados, NO EJECUTADOS.
-- CI nuevo: la API actions/runs?head_sha=fda096b762b4bd1e35c951e9aae545bbf1f39e61 devuelve workflow_runs vacío. Check de Vercel no se considera prueba B1. No se ha solicitado despliegue.
-- Instalación local bloqueada: npm ci falla connect EPERM hacia el proxy 172.31.0.157:8080; el intento de permiso de red quedó interrumpido sin resultado. No hay dependencias locales para lint/typecheck/Vitest/build/Chromium.
-- El conector disponible permite leer logs y reintentar jobs anteriores, pero no ofrece workflow_dispatch ni ejecución de un nuevo workflow para este HEAD. No reejecutar un run antiguo para atribuir su resultado al código nuevo.
-- No se han creado contenedores para este incremento: E2E pendiente de runner. El harness prepara eliminación por label propia y comprobación de recursos preexistentes.
-- SQL/ACL/canónicos sin cambios; closedBackend, EMAIL/enrolamiento dependiente y AUTH-GATE-05 permanecen cerrados/OPEN según corresponda.
+Fuente ejecutada: c34783024fac52da1582eb75c6494e518fd31339. Commit previo fda096b762b4bd1e35c951e9aae545bbf1f39e61; base318a77f4fc67623810e6fdfa080bb2fe0da0ecae.
 
-Siguiente acción técnica: ejecutar el workflow B1 real browser PostgreSQL isolated para el HEAD publicado en un runner autorizado; comprobar primero lint/typecheck/build y después el test real con scripts/pg-b1-browser.py. No declarar PASS hasta recibir el reporte depurado y limpieza PASS. Las decisiones humanas concretas independientes están en E1-DECISIONS.md.
+## UI y evidencia real
+
+[Actions39069778121](https://github.com/novo34/cleanops-360/actions/runs/39069778121), job117504797690 SUCCESS. EXECUTION_REPORT.json conserva proveniencia exacta, hashes y resultados individuales.
+- **11 checks PASS /0FAIL/0BLOCKED/0SKIP**, incluyendo **un** recorrido Chromium real, no once recorridos. Tiempo de fase browser ~6s.
+- Instalación desde cero del SQL05 exacto aprobado, cuatro blobs históricos e integridad/diff/ACL PASS.
+- Browser real sin page.route/cookies inyectadas: login password → PENDING_MFA (sin panel ACTIVE) → TOTP real → ACTIVE → identidad → sesiones con metadatos/fechas → step-up → revocación de las demás → logout → 401.
+- Estado de sesión y contador TOTP confirmados con consultas de inspección de fixture; al finalizar, las sesiones de ese usuario están REVOKED. Consultas funcionales usan identity_service, no superusuario. Admin únicamente prepara fixtures e inspecciona aserciones.
+- Datos sintéticos; Argon2id64MiB/3/p1 y envelopev2/TOTP con claves efímeras. No constituye custodia D2, enrolamiento D3 ni interoperabilidad de apps externas.
+- Docker PG16 networknone/sin puertos ni volúmenes compartidos; TLS de UI solo loopback en runner. Recursos propios eliminados; inventarios preexistentes idénticos. Imagen oficial por digest registrada.
+- La aplicación y proxy de producción siguen usando closedBackend. La composición privada existe solo en scripts de prueba.
+- Las 294 comprobaciones PG/HTTP previas siguen aprobadas y NO se repitieron; no se incrementa su contador con estos checks.
+
+## Correcciones independientes y pruebas
+
+- UI reutilizada, sin interfaz paralela: muestra dispositivo/navegador, creación, última actividad y caducidad absoluta de los datos de sesión ya publicados.
+- Reintentos de mutaciones tras fallo de red conservan Idempotency-Key. Confirmación/cancelación limpian identidad local; cambio de cuerpo/destino produce otra. Solo digests/UUID efímeros en memoria, sin persistir factores/cookies/cuerpos/logs.
+- Cancelación durante hashing no puede reservar una identidad de la ceremonia siguiente.
+- Tres unitarias nuevas PASS localmente. Sintaxis Python y Node PASS. Una regresión HTTP Chromium añadida para logout con respuesta perdida. Primera CI sin DB39069778104: lint/typecheck/B1/Vitest/build PASS, Chromium55PASS/1FAIL porque el nuevo fixture omitía revoked_count requerido por Result. El validador detectó correctamente la inconsistencia. Se corrige únicamente el fixture a {state:REVOKED,revoked_count:1}, sin cambiar contrato ni UI. Revalidación de CI del commit de corrección pendiente; no se sustituye por el E2E PostgreSQL PASS.
+
+## Bloqueos y estado
+
+El retraso inicial de creación de runs quedó resuelto: este HEAD tiene ejecución real SUCCESS. npm local falló EPERM en proxy; no impidió la ejecución autorizada en runner y no es bloqueo vigente para este resultado.
+
+MATRIX.md /REQUIREMENTS.json trazan individualmente44 obligaciones, con evidencia parcial nueva para8 referencias. **0/44 aceptadas completas**: no se promueven requisitos de extremo a extremo por un recorrido parcial ni se atribuye aceptación PO.
+
+Pendientes reales: D2 custodia/infraestructura e identidades; D3 perfil y apps obligatorias; D4 verificación de destinatario/outbox/entrega; C-SCOPE contratos de recuperación/reset/trusted device/AUTHZ; C-LOGIN conciliación de política operativa con V4. Alternativas, riesgos y recomendación en E1-DECISIONS.md. EMAIL, enrolamiento dependiente y recuperación total no se declaran implementados. B1/AUTH-GATE-05 OPEN; no otro módulo.
+
+Siguiente acción: aprobar D2/D3 con custodio/infraestructura y apps reales para completar el enrolamiento público; en paralelo decidir los addenda C-SCOPE/C-LOGIN y D4. Cualquier SQL/ACL nuevo requiere aprobación exacta antes de instalar. No se solicita repetir aprobación de CONSOLIDATED05.

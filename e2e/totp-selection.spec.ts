@@ -385,7 +385,7 @@ test('uncertain logout retries reuse the mutation key and confirmed logout clear
   await page.route('**/auth/logout', async route => {
     keys.push(route.request().headers()['idempotency-key'])
     if (keys.length === 1) await route.abort('failed')
-    else await succeed(route, 'logout', { state: 'REVOKED' })
+    else await succeed(route, 'logout', { state: 'REVOKED', revoked_count: 1 })
   })
   await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('No se pudo confirmar')

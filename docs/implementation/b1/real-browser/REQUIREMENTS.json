@@ -3,7 +3,12 @@
   "canonicalRows": 44,
   "accepted": 0,
   "prior294": "PASS; run 39068144839; not repeated",
-  "browserRun": "NOT_CREATED_IN_GITHUB_ACTIONS_AT_RECORDING",
+  "browserRun": {
+    "head": "c34783024fac52da1582eb75c6494e518fd31339",
+    "run": 39069778121,
+    "job": 117504797690,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+  },
   "runtime": "closedBackend",
   "b1": "OPEN",
   "authGate05": "OPEN",
@@ -106,8 +111,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-001",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Validar la UI de login contra el backend real y completar aceptación; HTTP/Argon2id/PG se evidencian separadamente."
     },
@@ -219,8 +243,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-017",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Validar presentación UI y todos los errores reales seguros; pruebas HTTP de contraseña conocida/ausente se vinculan como evidencia parcial."
     },
@@ -312,8 +355,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-040",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Completar aceptación UI/API/PG de Account → Security → Active Sessions; el recorrido HTTP privado se evalúa aparte."
     },
@@ -325,8 +387,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-041",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Validar los cuatro campos de sesión en la UI con datos reales y aceptación PO."
     },
@@ -348,8 +429,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-043",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Completar E2E UI de revocación bulk preservando la sesión actual y otras empresas; no promover el caso HTTP a aceptación UI."
     },
@@ -391,8 +491,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-047",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Completar UI y todas las acciones sensibles según política aprobada; step-up privado/bulk HTTP se vincula como evidencia parcial."
     },
@@ -424,8 +543,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-TEN-003",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
     },
@@ -447,8 +585,27 @@
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-SEC-020",
       "priorPartialStatus": "PASS",
       "newBrowserEvidence": {
-        "status": "NOT_EXECUTED",
-        "test": "e2e/b1-real-postgres.spec.ts"
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "c34783024fac52da1582eb75c6494e518fd31339",
+          "run": 39069778121,
+          "job": 117504797690,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ]
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
       },
       "remainingAcceptanceObligation": "Completar proveedor de claves, provisión, exposición en sinks y aceptación de seguridad de todo el flujo; las bibliotecas maduras ya se ejercitan."
     },
@@ -472,5 +629,6 @@
       "newBrowserEvidence": null,
       "remainingAcceptanceObligation": "Completar auditoría Auth en todos los flujos pendientes, fallos, recuperación y sinks reales; no inferir cobertura total de unos casos atómicos."
     }
-  ]
+  ],
+  "browserResult": "PASS"
 }

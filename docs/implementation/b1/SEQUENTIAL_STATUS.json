@@ -52,5 +52,17 @@
   "proposedCandidate": null,
   "nextAuthorization": "OWNER_OPERATIONAL_AND_CONTRACT_DECISIONS_IN_CLOSURE_PLAN_E1",
   "latestPrecheck": "docs/implementation/b1/consolidated-test-05/SUMMARY.json",
-  "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance."
+  "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
+  "lastRealBrowserExecution": {
+    "sourceHead": "c34783024fac52da1582eb75c6494e518fd31339",
+    "run": 39069778121,
+    "job": 117504797690,
+    "status": "PASS",
+    "scope": "Existing UI -> real private HTTP adapter -> approved PG16; login/TOTP/session/identity/step-up/bulk/logout",
+    "mockedResponses": false,
+    "publicRuntime": "closedBackend",
+    "cleanup": "PASS",
+    "preexistingResources": "UNCHANGED",
+    "requirementsAccepted": 0
+  }
 }

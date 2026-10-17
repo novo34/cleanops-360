@@ -47,7 +47,11 @@ El transporte conserva Origin/Fetch Metadata/CSRF del navegador. Claves efímera
 fixtures preconfigurados, no aprobación D2/D3 ni enrolamiento público.
 
 Prueba comprueba UI, persistencia de sesión/contador, step-up, revocación, logout y 401
-posterior. Estado PASS solo tras Actions. No retener JSON Playwright sin depurar: factores
+posterior. Recorrido real PASS en Actions 39069778121, fuente c34783024fac52da1582eb75c6494e518fd31339. No retener JSON Playwright sin depurar: factores
 pueden aparecer en errores; publicar únicamente nombres/status y limpieza/huellas.
 Cada requisito mantiene aceptación individual en la matriz: cubrir parcialmente un
 recorrido no convierte automáticamente una obligación completa en ACCEPTED.
+
+## Ejecución verificada
+
+[Run39069778121](https://github.com/novo34/cleanops-360/actions/runs/39069778121): 11 comprobaciones PASS, 0 FAIL/BLOCKED/SKIP, limpieza PASS. Incluye una prueba Chromium end-to-end real; los otros diez checks son preparación, integridad, instalación y aislamiento/proceso. No presentar once checks como once recorridos UI. El recorrido usa TOTP preconfigurado sintético, no enrolamiento público ni compatibilidad de apps externas.
