@@ -1,0 +1,3913 @@
+{
+  "source": "docs/implementation/b1/closure/requirements.json",
+  "sourceRows": 44,
+  "sourceSha256": "1b28c72f826781393d668d97393e588ea917ae2b104571a686ac8cb5a875e92a",
+  "accepted": 0,
+  "rule": "PASS requires complete requirement evidence and acceptance; no inheritance of SQL check PASS.",
+  "postgresScopeResult": "PASS",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "requirements": [
+    {
+      "id": "REQ-PR-006",
+      "requirement": "Cada feature deber\u00e1 desarrollarse de extremo a extremo: DB \u2192 backend \u2192 API \u2192 permisos \u2192 UI \u2192 seguridad \u2192 pruebas \u2192 staging \u2192 validaci\u00f3n Codex \u2192 prueba manual Product Owner.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "BLOCKED",
+      "originalClosureObligation": "Completar toda esta matriz con integraci\u00f3n real y staging autorizado, revisi\u00f3n independiente y prueba manual PO. La aceptaci\u00f3n del selector simulado no acepta B1 ni AUTH-GATE-05.",
+      "remainingAcceptanceObligation": "Completar E0\u2013E9, UI/API/PG real de todo B1 y aceptaci\u00f3n PO; el runtime operativo sigue closedBackend.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "E2E-01",
+          "CI-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-PR-007",
+      "requirement": "No se iniciar\u00e1 una fase dependiente hasta que la fase anterior est\u00e9 `ACCEPTED`, salvo autorizaci\u00f3n expl\u00edcita del Product Owner.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "BLOCKED",
+      "originalClosureObligation": "Completar toda esta matriz con integraci\u00f3n real y staging autorizado, revisi\u00f3n independiente y prueba manual PO. La aceptaci\u00f3n del selector simulado no acepta B1 ni AUTH-GATE-05.",
+      "remainingAcceptanceObligation": "Mantener bloqueado el siguiente m\u00f3dulo hasta la aceptaci\u00f3n formal completa de B1 y AUTH-GATE-05.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "E2E-01",
+          "CI-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-001",
+      "requirement": "Permisos por acci\u00f3n: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-002",
+      "requirement": "\u00c1mbitos: tenant, m\u00f3dulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-003",
+      "requirement": "El sistema deber\u00e1 permitir overrides individuales por usuario.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-004",
+      "requirement": "Deber\u00e1 permitir accesos temporales con `start_at` y `expires_at`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-005",
+      "requirement": "La UI incluir\u00e1 `Administration \u2192 Users \u2192 User Detail \u2192 Manage Access`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-006",
+      "requirement": "La autorizaci\u00f3n deber\u00e1 aplicarse tambi\u00e9n en API, no solo UI.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTHZ-007",
+      "requirement": "`explicit deny` prevalecer\u00e1 sobre cualquier concesi\u00f3n; las pol\u00edticas de aislamiento tenant y las restricciones de plataforma no podr\u00e1n sobrepasarse mediante overrides. Ante falta de autorizaci\u00f3n, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las pol\u00edticas superiores. Denegaciones y concesiones se aplicar\u00e1n en API, con caducidad y auditor\u00eda.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, m\u00e1s all\u00e1 de las ocho reglas B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-binding_authorization",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUTHZ-MATRIX-01",
+          "SCOPE-01",
+          "DENY-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-001",
+      "requirement": "Login mediante email + password.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Integrar Argon2id, corpus local versionado, normalizaci\u00f3n coherente con provisi\u00f3n, hash ficticio y rate dimensions confiables; probar cookies PREAUTH reales.",
+      "remainingAcceptanceObligation": "Validar la UI de login contra el backend real y completar aceptaci\u00f3n; HTTP/Argon2id/PG se evidencian separadamente.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "credential-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "credential-CAS-stale-version",
+            "status": "PASS"
+          },
+          {
+            "name": "credential-material-locked-private-projection",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-denies-unverified-credential-version",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-verified-create-0",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-verified-create-1",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-verified-create-2",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-verified-create-3",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-credential_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-rehash_credential_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-denied-after-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-password-denial-no-enumeration",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-password-login",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/password.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "LOGIN-01",
+          "SESSION-02"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-002",
+      "requirement": "Tras validar credenciales, se exigir\u00e1 segundo factor seg\u00fan la pol\u00edtica de riesgo del rol: obligatorio para administradores, comerciales, planificaci\u00f3n, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigir\u00e1n step-up MFA aunque el login operativo se haya permitido sin MFA.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Resolver C-LOGIN: SRS permite MFA configurable para operativos; V4 y service.ts/frontend rechazan ACTIVE desde login siempre. Addendum m\u00ednimo para pol\u00edtica confiable configurable, sin relajar MFA sensible/step-up ni inferir riesgo del cliente.",
+      "remainingAcceptanceObligation": "Resolver C-LOGIN y aprobar la pol\u00edtica can\u00f3nica de MFA por riesgo; no introducir bypass operativo.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "full-authentication-MFA-transitions",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "LOGIN-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-003",
+      "requirement": "M\u00e9todos MFA: c\u00f3digo OTP por email o TOTP Authenticator.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "Completar D4 y el flujo EMAIL operativo verificado; TOTP privado real no acepta por s\u00ed solo ambos canales ni su UI.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "synthetic-TOTP-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "global-TOTP-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-race-one-verified-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-totp_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_totp_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-email_otp_material",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_email_otp",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "synthetic-EMAIL-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-encrypted-outbox-atomic-issue",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-claim-no-network",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-finish-synthetic-delivery",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-outbox-ciphertext-purged",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-valid-proof-atomic-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-004",
+      "requirement": "TOTP deber\u00e1 ser compatible con aplicaciones est\u00e1ndar.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D3: elegir algoritmo/entrop\u00eda/issuer/label, probar QR y c\u00f3digos de autenticadores reales con versiones registradas; no degradaci\u00f3n impl\u00edcita.",
+      "remainingAcceptanceObligation": "D3: verificar apps/plataformas/versiones requeridas con autenticadores reales; OTPAuth no demuestra interoperabilidad externa.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "synthetic-TOTP-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "global-TOTP-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-race-one-verified-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-totp_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_totp_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_enrollment_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-assigned-ID-and-version",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-confirm-CAS",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-state-version-trigger",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/totp.ts",
+          "docs/proposals/b1-ceremony-material/TOTP_CANDIDATE.md"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-010",
+      "requirement": "OTP de un solo uso.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "D4: verificar el consumo de un solo uso por todos los recorridos EMAIL reales y sus reintentos de entrega.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "synthetic-TOTP-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "global-TOTP-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-race-one-verified-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-totp_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_totp_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-valid-proof-atomic-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-011",
+      "requirement": "C\u00f3digo OTP por email v\u00e1lido durante 5 minutos, de un solo uso y con invalidaci\u00f3n por consumo o reenv\u00edo.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "D4: destinatario verificado, TTL300s y reenv\u00edo/consumo/expiraci\u00f3n de entrega integral, sin extensi\u00f3n de TTL.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-email_otp_material",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_email_otp",
+            "status": "PASS"
+          },
+          {
+            "name": "synthetic-EMAIL-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-encrypted-outbox-atomic-issue",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-claim-no-network",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-finish-synthetic-delivery",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-outbox-ciphertext-purged",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-valid-proof-atomic-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-012",
+      "requirement": "OTP almacenado como hash.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "D2/D4: HMAC y claves reales de EMAIL, almacenamiento y canales de entrega completos; fixtures SQL no acreditan custodia.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-email_otp_material",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_email_otp",
+            "status": "PASS"
+          },
+          {
+            "name": "synthetic-EMAIL-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-encrypted-outbox-atomic-issue",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-claim-no-network",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-finish-synthetic-delivery",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-outbox-ciphertext-purged",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-valid-proof-atomic-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-013",
+      "requirement": "Reenv\u00edo invalida c\u00f3digos anteriores.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "Completar el reenv\u00edo EMAIL p\u00fablico con invalidaci\u00f3n at\u00f3mica de retos/outbox anteriores y versiones de destinatario.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "D1-bound-challenge-0",
+            "status": "PASS"
+          },
+          {
+            "name": "challenge-cooldown-enforced-1",
+            "status": "PASS"
+          },
+          {
+            "name": "D1-bound-challenge-1",
+            "status": "PASS"
+          },
+          {
+            "name": "challenge-cooldown-enforced-2",
+            "status": "PASS"
+          },
+          {
+            "name": "D1-bound-challenge-2",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-email_otp_material",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_email_otp",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_bound_challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "synthetic-EMAIL-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-encrypted-outbox-atomic-issue",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-claim-no-network",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-worker-finish-synthetic-delivery",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-outbox-ciphertext-purged",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-valid-proof-atomic-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "prior-generation-challenge-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-method-cannot-issue-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.mfa_challenges",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.mfa_challenges",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.mfa_challenges",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.mfa_challenges",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-014",
+      "requirement": "Cooldown de reenv\u00edo.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "Completar cooldown EMAIL en la UI/API/worker real; el cooldown TOTP nativo ya se ejecut\u00f3 con espera real.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "challenge-cooldown-enforced-1",
+            "status": "PASS"
+          },
+          {
+            "name": "challenge-cooldown-enforced-2",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-015",
+      "requirement": "Rate limit por usuario, IP y dispositivo.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "Validar l\u00edmites de las tres dimensiones con ingreso confiable, carga y flujos reales completos; perfil actual de ensayo.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-rate_attempt",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-016",
+      "requirement": "L\u00edmite de intentos.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
+      "remainingAcceptanceObligation": "Cubrir presupuestos de intentos y bloqueo por todos los canales p\u00fablicos, incluidos EMAIL y recuperaci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/mail-delivery-plan.ts",
+          "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md"
+        ],
+        "requiredAcceptanceCases": [
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-017",
+      "requirement": "Mensajes que no permitan enumeraci\u00f3n de cuentas.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Medir mensajes y tiempos de cuenta ausente/inactiva/credencial/factor incorrecto bajo carga; asegurar rate/backoff sin enumeraci\u00f3n ni lockout permanente.",
+      "remainingAcceptanceObligation": "Validar presentaci\u00f3n UI y todos los errores reales seguros; pruebas HTTP de contrase\u00f1a conocida/ausente se vinculan como evidencia parcial.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "D1-method-foreign-UUID-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "owned-retry-request-mismatch-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-invalid-proof-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "EMAIL-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "CSRF-bootstrap-wrong-token-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-denied-after-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "prior-generation-challenge-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "missing-context-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "forged-guc-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-token-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-password-login",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "LOGIN-01",
+          "OTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-020",
+      "requirement": "Activaci\u00f3n mediante QR.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
+      "remainingAcceptanceObligation": "D2/D3: enrolamiento p\u00fablico con QR y app real; la ruta de enrolamiento permanece cerrada.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-consume_enrollment_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-assigned-ID-and-version",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-confirm-CAS",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-state-version-trigger",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/ceremony-preparation.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-021",
+      "requirement": "No se activa hasta validar el primer c\u00f3digo.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
+      "remainingAcceptanceObligation": "D2/D3: primer c\u00f3digo real antes de activar m\u00e9todo/sesi\u00f3n por UI/API; SQL de confirmaci\u00f3n/CAS queda como evidencia parcial.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-consume_enrollment_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-assigned-ID-and-version",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-confirm-CAS",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-state-version-trigger",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/ceremony-preparation.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-022",
+      "requirement": "Secreto TOTP cifrado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
+      "remainingAcceptanceObligation": "D2: custodio/proveedor, aislamiento, rotaci\u00f3n y recuperaci\u00f3n de claves reales; envelope v2 se prueba solo con clave sint\u00e9tica ef\u00edmera.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "synthetic-TOTP-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "global-TOTP-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-race-one-verified-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-totp_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_totp_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_enrollment_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-assigned-ID-and-version",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-confirm-CAS",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-state-version-trigger",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/ceremony-preparation.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-030",
+      "requirement": "Generaci\u00f3n al activar TOTP.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
+      "remainingAcceptanceObligation": "Completar enrolamiento p\u00fablico y generaci\u00f3n de recovery codes con proveedor/HMAC aprobados.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.recovery_codes",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01",
+          "RECOVERY-CODE-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-031",
+      "requirement": "Mostrar una \u00fanica vez.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
+      "remainingAcceptanceObligation": "Validar entrega \u00fanica de recovery codes en UI/API e idempotencia integral; no inferirla del lote de digests SQL.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.recovery_codes",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01",
+          "RECOVERY-CODE-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-032",
+      "requirement": "Guardar como hash.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
+      "remainingAcceptanceObligation": "Validar HMAC/custodia y ausencia de plaintext en todo el flujo real de recovery codes.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.recovery_codes",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01",
+          "RECOVERY-CODE-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-033",
+      "requirement": "Un solo uso.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
+      "remainingAcceptanceObligation": "Aprobar e integrar contrato p\u00fablico completo de recuperaci\u00f3n; el consumidor interno sin grant p\u00fablico no satisface ese flujo.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "enrollment-persisted-recovery-batch",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.recovery_codes",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TOTP-01",
+          "RECOVERY-CODE-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-034",
+      "requirement": "MFA reset por admin deber\u00e1 quedar auditado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "C-SCOPE/AUTH-GATE-03: V4 excluye reset ajeno; SRS exige reset administrativo auditado. Addendum con permiso propio distinto de B1-SELF, verificaci\u00f3n de identidad, revocaciones y auditor\u00eda; ninguna autoridad por nombre de rol.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar el contrato/ACL administrativo de reset MFA; no heredar permisos B1-SELF.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "pgtest_runtime-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "success-audit-atomic",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUDIT-01",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-040",
+      "requirement": "Pantalla `Account \u2192 Security \u2192 Active Sessions`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Conectar Account/Security a sesiones reales, paginaci\u00f3n y revocaciones; estados accesibles sin tokens/digests.",
+      "remainingAcceptanceObligation": "Completar aceptaci\u00f3n UI/API/PG de Account \u2192 Security \u2192 Active Sessions; el recorrido HTTP privado se eval\u00faa aparte.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "pgtest_identity-PG05-cannot-assume-purger",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-PG05-no-direct-helper",
+            "status": "PASS"
+          },
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-real-runtime-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-token-usable",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_active_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-current_identity",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.ceremony_idempotency",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.configuration",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.csrf_bootstrap",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.preauth",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.principals",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.rate_buckets",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.security_log",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-super-create-bypass-membership",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-cannot-assume-broker",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-cannot-create-schema",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.auth_outbox",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.idempotency_records",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.mfa_challenges",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.mfa_methods",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.organizations",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.policy_versions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.recovery_codes",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.self_service_rules",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.step_up_evidence",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.users",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.ceremony_idempotency",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.configuration",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.csrf_bootstrap",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.preauth",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.principals",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.rate_buckets",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.security_log",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-dml-acl",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.ceremony_idempotency",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.configuration",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.csrf_bootstrap",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.preauth",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.principals",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.rate_buckets",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.security_log",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.ceremony_idempotency",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.configuration",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.csrf_bootstrap",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.preauth",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.principals",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.rate_buckets",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.security_log",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "bound-identity-a",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-a",
+            "status": "PASS"
+          },
+          {
+            "name": "bound-identity-d",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-d",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-session-state-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-identity",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "E2E-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-041",
+      "requirement": "Mostrar dispositivo, navegador, creaci\u00f3n y \u00faltima actividad.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "A\u00f1adir creaci\u00f3n y \u00faltima actividad a la UI (hoy solo dispositivo/navegador), consumir p\u00e1ginas reales y etiquetado normalizado no identificador; probar actualizaci\u00f3n de actividad sin ampliar absoluta.",
+      "remainingAcceptanceObligation": "Validar los cuatro campos de sesi\u00f3n en la UI con datos reales y aceptaci\u00f3n PO.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-real-runtime-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-token-usable",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_active_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-a",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-d",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-session-state-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "E2E-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-042",
+      "requirement": "Revocar sesi\u00f3n individual.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ensayar revocaci\u00f3n propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula \u00e9xito.",
+      "remainingAcceptanceObligation": "Completar E2E UI de revocaci\u00f3n individual con respuestas reales y aceptaci\u00f3n; comprobar la evidencia SQL/HTTP adjunta.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "revoke-own-after-lock-release",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-token-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-logout-revoked-token",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "REVOKE-OWN-01",
+          "REVOKE-OWN-02",
+          "REVOKE-OWN-03",
+          "REVOKE-OWN-04",
+          "REVOKE-OWN-05"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-043",
+      "requirement": "Revocar todas las dem\u00e1s sesiones.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ensayar revocaci\u00f3n propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula \u00e9xito.",
+      "remainingAcceptanceObligation": "Completar E2E UI de revocaci\u00f3n bulk preservando la sesi\u00f3n actual y otras empresas; no promover el caso HTTP a aceptaci\u00f3n UI.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-method-cannot-issue-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "revoke-own-after-lock-release",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-token-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-logout-revoked-token",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "REVOKE-OWN-01",
+          "REVOKE-OWN-02",
+          "REVOKE-OWN-03",
+          "REVOKE-OWN-04",
+          "REVOKE-OWN-05"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-044",
+      "requirement": "Timeout por inactividad: 30 minutos para administraci\u00f3n/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la pol\u00edtica restrictiva correspondiente. La clasificaci\u00f3n de roles en los tests ser\u00e1 expl\u00edcita.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "remainingAcceptanceObligation": "Validar caducidad por inactividad por riesgo en todos los recorridos UI/API y aceptar el perfil operativo.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-two-principal-expiry-fixtures",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-real-runtime-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-token-usable",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_active_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-a",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-d",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-session-state-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "CTX-04"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-045",
+      "requirement": "Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duraci\u00f3n num\u00e9rica permanece como par\u00e1metro t\u00e9cnico sujeto a validaci\u00f3n de seguridad antes de habilitar autenticaci\u00f3n en producci\u00f3n.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "remainingAcceptanceObligation": "Validar caducidad absoluta independiente del idle en todos los recorridos y aceptar el perfil operativo.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-two-principal-expiry-fixtures",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-real-runtime-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-token-usable",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_active_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-a",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-d",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-session-state-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "CTX-04"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-046",
+      "requirement": "`Remember device` v\u00e1lido por 30 d\u00edas tras MFA y revocable por administrador, cambio de contrase\u00f1a, reset MFA o riesgo; no ampl\u00eda la validez de la sesi\u00f3n. La empresa podr\u00e1 deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza \u226430 d\u00edas, pol\u00edtica tenant y revocaci\u00f3n por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth \u00edntegro.",
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y contrato real de trusted device y revocaciones; no trasladarlo a otra fase.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "preauth-denies-unverified-credential-version",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-denied-after-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-method-cannot-issue-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "revoked-token-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-logout-revoked-token",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "SESSION-02",
+          "SESSION-03"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUTH-047",
+      "requirement": "Step-up MFA para acciones sensibles.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Probar step-up TOTP y EMAIL real ligado a sesi\u00f3n/tenant/grant/recurso/versi\u00f3n, reautorizaci\u00f3n tras lock y sin extender sesi\u00f3n; factor por s\u00ed solo no concede permiso.",
+      "remainingAcceptanceObligation": "Completar UI y todas las acciones sensibles seg\u00fan pol\u00edtica aprobada; step-up privado/bulk HTTP se vincula como evidencia parcial.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "step-up-bound-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-evidence-policy-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-03",
+          "E2E-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-TEN-001",
+      "requirement": "Todo dato deber\u00e1 pertenecer a un tenant.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptaci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-force-RLS-distinct-owner",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "rls-enabled-forced-21-tables",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-rls-21-tables",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/v4-broker.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TENANT-01",
+          "CTX-01",
+          "CTX-02",
+          "CTX-03",
+          "CTX-04",
+          "SWITCH-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-TEN-002",
+      "requirement": "Tenant A nunca podr\u00e1 acceder a datos de Tenant B.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptaci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "D1-method-foreign-UUID-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/v4-broker.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TENANT-01",
+          "CTX-01",
+          "CTX-02",
+          "CTX-03",
+          "CTX-04",
+          "SWITCH-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-TEN-003",
+      "requirement": "El aislamiento se aplicar\u00e1 en backend/API.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptaci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "D1-method-foreign-UUID-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_verified_context",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-gc_context",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-binding-server-context",
+            "status": "PASS"
+          },
+          {
+            "name": "PREAUTH-binding-server-context",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.tx_context",
+            "status": "PASS"
+          },
+          {
+            "name": "missing-context-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "context-cannot-switch",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-identity",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/v4-broker.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TENANT-01",
+          "CTX-01",
+          "CTX-02",
+          "CTX-03",
+          "CTX-04",
+          "SWITCH-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-TEN-004",
+      "requirement": "Deber\u00e1n existir tests autom\u00e1ticos de tenant isolation.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptaci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-force-RLS-distinct-owner",
+            "status": "PASS"
+          },
+          {
+            "name": "D1-method-foreign-UUID-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-select_tenant",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-tenant-method-selection-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-disabled",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-disabled-tenant-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-survives-disabling-first",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-tenant-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "rls-enabled-forced-21-tables",
+            "status": "PASS"
+          },
+          {
+            "name": "tenant-immutability-trigger-stays-invoker",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+            "status": "PASS"
+          },
+          {
+            "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+            "status": "PASS"
+          },
+          {
+            "name": "cross-tenant-fk",
+            "status": "PASS"
+          },
+          {
+            "name": "other-tenant-and-user-intact",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-rls-21-tables",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts",
+          "lib/b1/v4-broker.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "TENANT-01",
+          "CTX-01",
+          "CTX-02",
+          "CTX-03",
+          "CTX-04",
+          "SWITCH-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-SEC-020",
+      "requirement": "El MVP emplear\u00e1 librer\u00edas maduras para hash, autenticaci\u00f3n y TOTP, sin implementar criptograf\u00eda propia. El registro, sesi\u00f3n y credenciales se verificar\u00e1n con pruebas de seguridad.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Conservar bibliotecas maduras; medir Argon2id/corpus/secretos y rehash CAS; comprobar criptograf\u00eda, provisi\u00f3n y logs con key provider real.",
+      "remainingAcceptanceObligation": "Completar proveedor de claves, provisi\u00f3n, exposici\u00f3n en sinks y aceptaci\u00f3n de seguridad de todo el flujo; las bibliotecas maduras ya se ejercitan.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "credential-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "credential-CAS-stale-version",
+            "status": "PASS"
+          },
+          {
+            "name": "credential-material-locked-private-projection",
+            "status": "PASS"
+          },
+          {
+            "name": "preauth-denies-unverified-credential-version",
+            "status": "PASS"
+          },
+          {
+            "name": "synthetic-TOTP-method-fixture",
+            "status": "PASS"
+          },
+          {
+            "name": "global-TOTP-CAS-concurrent-one-winner",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-race-one-verified-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-global-counter-replay-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-credential_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-rehash_credential_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-totp_material_locked",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_totp_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-consume_enrollment_cas",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-begin_totp_enrollment_assigned",
+            "status": "PASS"
+          },
+          {
+            "name": "step-up-CAS-consume",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-preauth-credential-bound",
+            "status": "PASS"
+          },
+          {
+            "name": "enrollment-confirm-CAS",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "ACTIVE-denied-after-credential-version-change",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-credential-version-restored",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-identity_private.credentials",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-base64-native-transport",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-password-denial-no-enumeration",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-password-login",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-identity",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-step-up-bulk-revocation",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-logout-revoked-token",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "LOGIN-01",
+          "TOTP-01",
+          "SESSION-02"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-SEC-021",
+      "requirement": "La caducidad absoluta de sesi\u00f3n tendr\u00e1 un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 d\u00edas de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "remainingAcceptanceObligation": "Aceptar perfil operativo de expiraci\u00f3n absoluta y probarlo integralmente, sin promover valores de ensayo a producci\u00f3n.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-two-principal-expiry-fixtures",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "issue-session-requires-verified-MFA",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-real-runtime-binding",
+            "status": "PASS"
+          },
+          {
+            "name": "issued-session-token-usable",
+            "status": "PASS"
+          },
+          {
+            "name": "consumed-preauth-cannot-reissue-session",
+            "status": "PASS"
+          },
+          {
+            "name": "TOTP-expired-counter-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-issue_active_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_own_session",
+            "status": "PASS"
+          },
+          {
+            "name": "API-plan-probe-revoke_other_own_sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "fixture-expired-challenge",
+            "status": "PASS"
+          },
+          {
+            "name": "expired-challenge-material-denied",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.sessions",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-a",
+            "status": "PASS"
+          },
+          {
+            "name": "own-sessions-d",
+            "status": "PASS"
+          },
+          {
+            "name": "restore-session-state-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-malformed-TOTP-no-session",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-persisted-session-counter",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-sessions-list",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "SESSION-01",
+          "CTX-04"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    },
+    {
+      "id": "REQ-AUD-001",
+      "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deber\u00e1n registrar actor, fecha, entidad, acci\u00f3n y resultado, sin exponer secretos o datos de otros tenants (cap\u00edtulos de auditor\u00eda).",
+      "status": "BLOCKED",
+      "accepted": false,
+      "partialExecutedEvidenceStatus": "PASS",
+      "originalClosureObligation": "\u00c9xito+evento+idempotencia en un commit; intentos fallidos persistidos, fallos de infraestructura rollback, auditor\u00eda append-only, canal restringido de fallos y retenci\u00f3n/restore con tenant/actor intactos.",
+      "remainingAcceptanceObligation": "Completar auditor\u00eda Auth en todos los flujos pendientes, fallos, recuperaci\u00f3n y sinks reales; no inferir cobertura total de unos casos at\u00f3micos.",
+      "evidence": {
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+          "run": 39068144839,
+          "job": 117499979503,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+        },
+        "partialExecutedChecks": [
+          {
+            "name": "PG05-purger-no-login-super-bypass-or-membership",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-broker-log-insert-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-exact-column-rights",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-helper-owner-signature-void-definer-searchpath",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-force-RLS-distinct-owner",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-PG05-cannot-assume-purger",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-PG05-no-direct-helper",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-PG05-cannot-assume-purger",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-PG05-no-direct-helper",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-PG05-cannot-assume-purger",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-PG05-no-direct-helper",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-PG05-cannot-assume-purger",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-PG05-no-direct-helper",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-broker-no-read-expires_at",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-broker-no-read-id",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-broker-no-read-count(*)",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-broker-no-direct-delete",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-two-principal-expiry-fixtures",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-sees-expired-only",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-no-other-log-columns",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-cannot-delete-future",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-future-records-remain",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-purger-cannot-update",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-functional-GC-rollback",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-rollback-keeps-expired",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-concurrent-GC-returns-no-data",
+            "status": "PASS"
+          },
+          {
+            "name": "PG05-expired-deleted-future-preserved",
+            "status": "PASS"
+          },
+          {
+            "name": "broker-COMMIT-failure",
+            "status": "PASS"
+          },
+          {
+            "name": "broker-failed-COMMIT-no-reservation",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_runtime-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_identity-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_mail-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "pgtest_maintenance-no-table-app.audit_logs",
+            "status": "PASS"
+          },
+          {
+            "name": "explicit-rollback",
+            "status": "PASS"
+          },
+          {
+            "name": "transaction-error-rollback",
+            "status": "PASS"
+          },
+          {
+            "name": "rollback-confirmed",
+            "status": "PASS"
+          },
+          {
+            "name": "commit-transport-failure",
+            "status": "PASS"
+          },
+          {
+            "name": "failed-commit-no-effects",
+            "status": "PASS"
+          },
+          {
+            "name": "success-audit-atomic",
+            "status": "PASS"
+          },
+          {
+            "name": "HTTP-real-PG-TOTP-session-commit",
+            "status": "PASS"
+          }
+        ],
+        "existingCodeAndContractReferences": [
+          "lib/b1/service.ts",
+          "lib/b1/approved-backend.ts"
+        ],
+        "requiredAcceptanceCases": [
+          "AUDIT-01",
+          "RETAIN-01"
+        ]
+      },
+      "reason": "Partial isolated SQL/HTTP execution does not complete the canonical implementation/integration/UI/operational and owner-acceptance obligations. See the specific remaining obligation for this row."
+    }
+  ]
+}

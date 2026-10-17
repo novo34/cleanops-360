@@ -1,5 +1,5 @@
 {
-  "referenceHead": "d84dd8b8d73ec9c6f9e066a08f6c54c4e35f17d5",
+  "referenceHead": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -19,11 +19,12 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "EXACT_RESTRICTED_PURGE_ROLE_HELPER_RLS_ACL_APPROVAL",
+  "nextBlocker": "B1_FULL_UI_INTEGRATION_AND_E1_D2_D3_D4_C_SCOPE_C_LOGIN",
   "candidate": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
-    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
-    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql"
   },
   "fullDiff": {
     "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
@@ -31,29 +32,25 @@
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "OPEN",
+  "pgTest01": "PASS_ISOLATED_APPROVED_SCOPE",
   "lastPostgresExecution": {
-    "authorization": "PG-TEST-01-CONSOLIDATED-03",
-    "status": "FAIL",
+    "authorization": "PG-TEST-01-CONSOLIDATED-05",
+    "status": "PASS",
     "installation": "PASS",
-    "run": 39046545296,
-    "counts": {
-      "PASS": 253,
-      "FAIL": 1,
+    "run": 39068144839,
+    "checks": {
+      "PASS": 294,
+      "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
     },
-    "sqlstate": "42501",
-    "function": "auth_api.gc_ephemeral()",
-    "cause": "Missing broker SELECT(expires_at) for existing security_log DELETE predicate",
+    "privateHTTPRealPostgres": "PASS",
+    "fullProductUIE2E": "BLOCKED",
     "cleanup": "PASS",
-    "requirementsComplete": 0
+    "requirementsAccepted": 0
   },
-  "proposedCandidate": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql",
-    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
-    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c"
-  },
-  "nextAuthorization": "PG-TEST-01-CONSOLIDATED-05",
-  "latestPrecheck": "docs/implementation/b1/consolidated-test-04/PRECHECK.json"
+  "proposedCandidate": null,
+  "nextAuthorization": "OWNER_OPERATIONAL_AND_CONTRACT_DECISIONS_IN_CLOSURE_PLAN_E1",
+  "latestPrecheck": "docs/implementation/b1/consolidated-test-05/SUMMARY.json",
+  "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance."
 }
