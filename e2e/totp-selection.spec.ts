@@ -378,3 +378,20 @@ for (const ceremony of ['selection', 'challenge'] as const) {
     expect(effects).toBe(0)
   })
 }
+
+test('uncertain logout retries reuse the mutation key and confirmed logout clears private state', async ({ page }) => {
+  await setupActive(page)
+  const keys: string[] = []
+  await page.route('**/auth/logout', async route => {
+    keys.push(route.request().headers()['idempotency-key'])
+    if (keys.length === 1) await route.abort('failed')
+    else await succeed(route, 'logout', { state: 'REVOKED' })
+  })
+  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
+  await expect(page.getByLabel('Contraseña')).toBeVisible()
+  expect(keys.length).toBe(2)
+  expect(keys[0]).toBe(keys[1])
+})

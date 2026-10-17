@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { contract, operations, valid } from '@/lib/b1/contracts'
+import { UiRequestKeys } from '@/lib/b1/ui-request-keys'
 import { emptyView, receiveAuth, type AuthState } from '@/lib/b1/ui-state'
 
 type Selection = { state: 'TOTP_SELECTION_REQUIRED'; methods: { method_id: string; kind: 'TOTP' }[]; expires_at: string }
@@ -16,11 +17,12 @@ export function AuthPanel() {
   const stepContext = useRef<StepContext | null>(null)
   const activeRequest = useRef<AbortController | null>(null)
   const generation = useRef(0)
+  const requestKeys = useRef(new UiRequestKeys())
   const selectionKeys = useRef(new Map<string, string>())
   function clearCeremony() {
     generation.current++
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
-    selectionKeys.current.clear()
+    selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
     setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null)
   }
@@ -62,10 +64,13 @@ export function AuthPanel() {
       const path = op.path.replace('{session_id}', sessionId ?? '')
       const csrf = document.cookie.split('; ').find(c => c.startsWith('__Host-cleanops_csrf='))?.split('=')[1]
       if (op.method !== 'GET' && !csrf) throw new Error('CSRF_REQUIRED')
+      const retry = op.parameters.some(p => p.name === 'Idempotency-Key') && !idempotencyKey && operation !== 'startStepUp'
+        ? await requestKeys.current.forRequest(operation, path, body) : null
+      if (requestGeneration !== generation.current) return null
       const response = await fetch(path, { method: op.method, credentials: 'same-origin', cache: 'no-store',
         redirect: 'error', signal: controller.signal,
         headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
-          ...(op.parameters.some(p => p.name === 'Idempotency-Key') ? { 'Idempotency-Key': idempotencyKey ?? (operation === 'startStepUp' ? requestKey('step-up:' + JSON.stringify(body)) : crypto.randomUUID()) } : {}) },
+          ...(op.parameters.some(p => p.name === 'Idempotency-Key') ? { 'Idempotency-Key': idempotencyKey ?? (operation === 'startStepUp' ? requestKey('step-up:' + JSON.stringify(body)) : retry!.key) } : {}) },
         body: body ? JSON.stringify(body) : undefined })
       if (requestGeneration !== generation.current) return null
       // Authentication loss is authoritative even if the error body is malformed.
@@ -81,6 +86,7 @@ export function AuthPanel() {
         return null
       }
       if (!valid(op.responses['200'].content['application/json'].schema, result)) throw new Error('INVALID_RESPONSE')
+      retry?.confirmed()
       return result.data
     } catch {
       if (requestGeneration === generation.current) setMessage('No se pudo confirmar la solicitud. Reintenta o vuelve a iniciar el acceso.')
@@ -208,9 +214,9 @@ export function AuthPanel() {
         <h2>Seguridad de la cuenta</h2>
         <button onClick={async () => { const r = await call('getCurrentIdentity'); if (r) setMessage(`Sesión de ${r.display_name}`) }}>Mi identidad</button>
         <button onClick={async () => { const r = await call('listSelfSessions'); if (r) setView(v => ({ ...v, sessions: r.items })) }}>Mis sesiones</button>
-        <ul>{(view.sessions as Session[]).map(s => <li key={s.id}>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}<button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) setView(emptyView); else setView(v => ({ ...v, sessions: [] })) } }}>Revocar</button></li>)}</ul>
+        <ul>{(view.sessions as Session[]).map(s => <li key={s.id}>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}<button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else setView(v => ({ ...v, sessions: [] })) } }}>Revocar</button></li>)}</ul>
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })) } }}>Revocar mis demás sesiones</button>
-        <button onClick={async () => { const r = await call('logout'); if (r) { setView(emptyView); setPendingAction(null) } }}>Cerrar sesión</button>
+        <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView) } }}>Cerrar sesión</button>
       </section>}
     </fieldset>
     {(selection || challenge) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}

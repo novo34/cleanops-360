@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 
 
-def run(b):
+def copy_runtime(b, extra=()):
     root=b.ROOT; destination='/opt/b1-pg05'
     def require(result):
         if result.returncode:
@@ -12,7 +12,7 @@ def run(b):
             raise RuntimeError('PG05_TEST_TRANSPORT_FAILED')
     require(b.docker('exec',b.CID,'mkdir','-p',destination+'/scripts',destination+'/node_modules'))
     require(b.docker('cp','-L',shutil.which('node'),b.CID+':'+destination+'/node'))
-    for name in ['lib','package.json','scripts/pg05-http-real.ts']:
+    for name in ['lib','package.json','scripts/pg05-http-real.ts', *extra]:
         target=destination+'/'+name
         require(b.docker('cp',str(root/name),b.CID+':'+target))
     lock=json.loads((root/'package-lock.json').read_text())['packages']
@@ -30,6 +30,11 @@ def run(b):
         target=destination+'/'+package
         require(b.docker('exec',b.CID,'mkdir','-p',str(Path(target).parent)))
         require(b.docker('cp',str(source),b.CID+':'+target))
+
+
+def run(b):
+    copy_runtime(b)
+    destination='/opt/b1-pg05'
     result=b.docker('exec','-i',b.CID,destination+'/node','--experimental-strip-types',destination+'/scripts/pg05-http-real.ts',data=json.dumps({'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}),timeout=90)
     try:
         # Script emits only redacted check names/statuses, never dependency errors,
