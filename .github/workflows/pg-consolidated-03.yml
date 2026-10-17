@@ -8,7 +8,7 @@ jobs:
   authorized-consolidated:
     # One authorized transition from the verified source HEAD only. Evidence/fix
     # commits after this run must not repeatedly reinstall the failing candidate.
-    if: github.event.pull_request.number == 7 && github.event.before == '433a5081bff2f7642a989b670a3e2b79e956dbeb' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == '3358f725e030d12b54aaeb20d808c99493d52561' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

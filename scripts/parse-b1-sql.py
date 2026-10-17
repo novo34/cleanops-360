@@ -16,7 +16,7 @@ spec.loader.exec_module(lexer)
 
 def inspect(path):
     sql = path.read_text()
-    errors, functions = [], []
+    errors, functions, adaptations = [], [], []
     try:
         parse_sql(sql)
     except Exception as error:
@@ -38,14 +38,24 @@ def inspect(path):
         functions.append(name)
         try:
             if language.group(1).lower() == 'plpgsql':
-                parse_plpgsql(statement)
+                try:
+                    parse_plpgsql(statement)
+                except Exception:
+                    # libpg_query 16.1 does not register RETURNS TABLE OUT parameters
+                    # for bare RETURN NEXT. Parse the remaining grammar using a
+                    # parser-only placeholder; NEVER submit this text to PostgreSQL.
+                    if not re.search(r'RETURNS\s+TABLE\b', statement, re.I) or not re.search(r'RETURN\s+NEXT\s*;', statement, re.I):
+                        raise
+                    adjusted = re.sub(r'RETURN\s+NEXT\s*;', 'RETURN NEXT NULL;', statement, flags=re.I)
+                    parse_plpgsql(adjusted)
+                    adaptations.append({'scope': name, 'reason': 'libpg_query OUT-parameter limitation', 'parserOnly': 'RETURN NEXT NULL placeholder; original native CREATE still mandatory'})
             else:
                 body = next(t for t in tokens if re.match(r'^\$[A-Za-z_0-9]*\$', t))
                 tag = re.match(r'^\$[A-Za-z_0-9]*\$', body).group()
                 parse_sql(body[len(tag):-len(tag)])
         except Exception as error:
             errors.append({'scope': name, 'error': str(error)})
-    return {'path': str(path.relative_to(ROOT)), 'functionDeclarations': len(functions), 'errors': errors,
+    return {'path': str(path.relative_to(ROOT)), 'functionDeclarations': len(functions), 'errors': errors, 'parserAdaptations': adaptations,
             'limitations': 'No catalog/type/privilege/dynamic-query planning. Real PG16 tests remain mandatory.'}
 
 

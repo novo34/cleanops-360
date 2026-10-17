@@ -7,6 +7,7 @@ import json
 import re
 import secrets
 import threading
+import time
 import uuid
 
 
@@ -15,7 +16,6 @@ def run(b):
     runtime = b.ROLE['runtime']
     uid = lambda: str(uuid.uuid4())
     quote = lambda s: "'" + str(s).replace("'", "''") + "'"
-    digest = lambda s: "crypto.digest(convert_to(" + quote(s) + ",'UTF8'),'sha256')"
     # Digest values are prepared outside service SQL: services have no crypto ACL.
     import hashlib
     digest = lambda s: "decode('" + hashlib.sha256(s.encode()).hexdigest() + "','hex')"
@@ -80,6 +80,16 @@ def run(b):
             continue
         cookies.append(cookie)
         call(f'preauth-state-pending-MFA-{i}', f"SELECT auth_api.preauth_summary({quote(cookie)})->>'state';", 'PENDING_MFA')
+        if i >= 3:
+            continue  # Leave a fresh PENDING_MFA binding for negative/owned tests.
+        if challenges:
+            call(f'challenge-cooldown-enforced-{i}', f"SELECT auth_api.issue_bound_challenge({quote(cookie)},'TOTP','{method}',1,NULL,NULL,NULL,NULL,NULL,{corr()});", failure='P0001')
+            values = json.loads((b.ROOT/'lib/b1/security-values.json').read_text())['values']
+            remaining = next(v['value'] for v in values if v['key']=='otp_resend_cooldown') + 1
+            while remaining:
+                pause = min(20, remaining)
+                time.sleep(pause)
+                remaining -= pause
         challenge, error = scalar(f"SELECT auth_api.issue_bound_challenge({quote(cookie)},'TOTP','{method}',1,NULL,NULL,NULL,NULL,NULL,{corr()});")
         b.record(f'D1-bound-challenge-{i}', 'PASS' if challenge and not error else 'FAIL', {'sqlstate': error} if error else None)
         if challenge and not error:
@@ -135,7 +145,7 @@ def run(b):
         # A committed PENDING row remains owned by its original backend/xid.
         # Exactly one creates it, the other must be denied; never steal ownership.
         b.record('owned-reservations-concurrent-consume','PASS' if states==['P0001','false'] and any('RESERVATION_NOT_OWNED' in r.stderr for r in results) else 'FAIL', {'outcomes':states})
-        call('owned-reserve-complete-atomic', statement, 'false\nt')
+        call('owned-reserve-complete-atomic', statement, 'f\nt')
         call('owned-safe-result-idempotent-replay',f"SELECT auth_api.reserve_owned({quote(cookie)},'synthetic-test',{kh},{rh},false)->>'replay';",'true')
         call('owned-retry-request-mismatch-denied',f"SELECT auth_api.reserve_owned({quote(cookie)},'synthetic-test',{kh},{digest('other-request')},false);", failure='P0001')
     else:
