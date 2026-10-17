@@ -2,6 +2,7 @@
 """Only new browser integration; approved 294-check result is not rerun or re-credited."""
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -33,7 +34,9 @@ def browser():
         def collect(suite):
             for test in suite.get('specs', []):
                 statuses = [r['status'] for t in test['tests'] for r in t['results']]
-                b.record('Browser-PG-'+test['title'], 'PASS' if statuses == ['passed'] else 'FAIL', {'attemptStatuses':statuses})
+                phases=[a['description'] for t in test['tests'] for a in t.get('annotations',[]) if a.get('type')=='phase' and re.fullmatch('[A-Z_]{1,40}',a.get('description',''))]
+                locations=[int(line) for t in test['tests'] for r in t['results'] for error in r.get('errors',[]) for line in re.findall(r'e2e/b1-real-postgres\.spec\.ts:(\d+):',error.get('stack',''))]
+                b.record('Browser-PG-'+test['title'], 'PASS' if statuses == ['passed'] else 'FAIL', {'attemptStatuses':statuses,'phases':phases,'testLineNumbers':sorted(set(locations))})
             for sub in suite.get('suites', []): collect(sub)
         for suite in report.get('suites', []): collect(suite)
         path.unlink()
