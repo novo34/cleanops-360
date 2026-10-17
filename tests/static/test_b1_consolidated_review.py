@@ -80,5 +80,36 @@ class ConsolidatedRevision2Tests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Both TOTP material definitions'):
             generator.validate_revision2(broken)
 
+
+class ConsolidatedRevision3Tests(unittest.TestCase):
+    def module(self):
+        spec = importlib.util.spec_from_file_location('case_review', ROOT / 'scripts/review-b1-case-operands.py')
+        value = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(value)
+        return value
+
+    def test_revision3_changes_one_body_and_inventories_every_case(self):
+        module = self.module()
+        artifacts = module.build()
+        report = json.loads(artifacts['static-review.json'])
+        self.assertEqual(len(report['caseSites']), 29)
+        self.assertEqual(len(report['parentDefects']), 1)
+        self.assertFalse(any(site['barePredicateOperand'] for site in report['caseSites']))
+        self.assertEqual(report['changedStatements'], 1)
+        self.assertEqual(report['signatureChanges'], 0)
+        self.assertEqual(report['aclChanges'], 0)
+        self.assertFalse(report['installed'])
+        for path, content in artifacts.items():
+            self.assertEqual((module.TARGET / path).read_text(), content)
+
+    def test_other_functions_and_comparison_operators_are_not_whitelisted(self):
+        inventory = self.module().inventory
+        for operator in ('<>', '=', '!=', '<=', '>=', '<', '>', 'IS DISTINCT FROM', 'IS NOT DISTINCT FROM'):
+            with self.subTest(operator=operator):
+                bare = f"IF factor {operator} CASE WHEN enabled THEN 'A' ELSE 'B' END THEN RETURN false; END IF;"
+                self.assertTrue(inventory(bare)[0]['barePredicateOperand'])
+                self.assertFalse(inventory(bare.replace('CASE', '(CASE').replace('END THEN', 'END) THEN'))[0]['barePredicateOperand'])
+        self.assertFalse(inventory("IF ready THEN UPDATE private.t SET state=CASE WHEN ok THEN 'A' ELSE 'B' END;")[0]['barePredicateOperand'])
+
 if __name__ == '__main__':
     unittest.main()

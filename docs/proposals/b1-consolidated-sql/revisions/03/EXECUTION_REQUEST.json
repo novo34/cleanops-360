@@ -1,0 +1,14 @@
+{
+  "authorizationRequested": "PG-TEST-01-CONSOLIDATED-03",
+  "ownerApproved": false,
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
+  },
+  "diff": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
+  "scope": "Exact candidate only; NEW isolated PG16 Docker, synthetic data, no public ports/shared volumes. Clean compilation first, then mandatory authentication/MFA/session/ACL/RLS/CAS/concurrency/rollback/COMMIT/backup-restore tests. Cleanup and immutable originals.",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN"
+}

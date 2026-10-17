@@ -1,5 +1,5 @@
 {
-  "referenceHead": "b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99",
+  "referenceHead": "c1f384def052458a623c90645967a164a2d76ed7",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -21,29 +21,30 @@
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
   "nextBlocker": "AUTHORIZE_REVISED_CONSOLIDATED_SQL_AFTER_D1_COMPILATION_FAILURE",
   "candidate": {
-    "path": "docs/proposals/b1-consolidated-sql/schema.review.sql",
-    "gitBlob": "7507a29dc58c27fa4b9ab7f3b6dd628397485c9a",
-    "sha256": "42169677305df68612d44a6c0f0a4b4bafe1ec142d041e9a9a0e426d84e97863"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql",
+    "gitBlob": "d723ff9f615caafa701418dbaea60dec43479bba",
+    "sha256": "a1c524b9821319d830f4a753fb8691dde218e291341d90bd1d3ea14254c1e3fd"
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/FULL.diff",
-    "sha256": "42aff60d9c4c77a495f5517f44a42bfdbc3713b18b5f3852ae2e271023e51d54"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/02/APPROVED_TO_02.diff",
+    "sha256": "991629834080bc1ba156ab2f1a4342a4c4c6164223cd26047549310b51d1c3b6"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
   "pgTest01": "OPEN",
   "lastPostgresExecution": {
-    "authorization": "PG-TEST-01-CONSOLIDATED-01",
+    "authorization": "PG-TEST-01-CONSOLIDATED-02",
     "status": "FAIL",
-    "run": 39036655470,
+    "run": 39044517403,
     "sqlstate": "42601",
+    "function": "auth_api.consume_email_otp",
     "cleanup": "PASS",
     "requirementsComplete": 0
   },
   "proposedCandidate": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql",
-    "gitBlob": "d723ff9f615caafa701418dbaea60dec43479bba",
-    "sha256": "a1c524b9821319d830f4a753fb8691dde218e291341d90bd1d3ea14254c1e3fd"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
   },
-  "nextAuthorization": "PG-TEST-01-CONSOLIDATED-02"
+  "nextAuthorization": "PG-TEST-01-CONSOLIDATED-03"
 }

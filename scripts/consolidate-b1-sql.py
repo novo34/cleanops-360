@@ -32,7 +32,7 @@ def validate_revision2(sql):
         raise ValueError('Both TOTP material definitions must have their CASE operand parenthesized')
 
 def generate(revision="01"):
-    if revision not in ("01", "02"):
+    if revision not in ("01", "02", "03"):
         raise ValueError("Unsupported consolidated revision")
     sources, parts = [], []
     for name, path, expected in SOURCES:
@@ -57,8 +57,10 @@ def generate(revision="01"):
                 raise ValueError('Unexpected review guard: ' + name)
             text = text.replace(GUARD, '')
         corrections = list(REPLACEMENTS[name])
-        if revision == '02' and name == 'D1':
+        if revision in ('02', '03') and name == 'D1':
             corrections.extend(REPLACEMENTS['B1-X'])
+        if revision == '03' and name == 'D1':
+            corrections.append(("OR x.purpose IS DISTINCT FROM CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END", "OR x.purpose IS DISTINCT FROM (CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END)"))
         for old, new in corrections:
             if text.count(old) != 1:
                 raise ValueError('Unexpected correction site: ' + name)
@@ -69,7 +71,7 @@ def generate(revision="01"):
            '-- Fresh empty PostgreSQL 16 only AFTER separate owner approval of this exact hash.\n'
            '-- Not approved, not SQL-compiled, not a migration. B1/AUTH-GATE-05 OPEN; closedBackend.\n'
            'BEGIN;\n\n' + '\n\n'.join(parts) + '\n\nCOMMIT;\n')
-    if revision == '02':
+    if revision in ('02', '03'):
         validate_revision2(sql)
     manifest = {
         'status': 'PROPOSED_CANONICAL_CONSOLIDATION_REVIEW_ONLY',
@@ -86,18 +88,24 @@ def generate(revision="01"):
         'sqlCompiled': False, 'installationAuthorized': False, 'installed': False,
         'authGate05': 'OPEN', 'runtime': 'closedBackend',
     }
-    if revision == '02':
+    if revision in ('02', '03'):
         manifest['revision'] = '02'
         manifest['sourceHead'] = 'b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99'
         manifest['supersedes'] = {'gitBlob': '7507a29dc58c27fa4b9ab7f3b6dd628397485c9a', 'failedRun': 39036655470}
         manifest['candidate']['path'] = 'docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql'
         manifest['transformations'].append('D1 replacement of totp_material_locked: parenthesize the same CASE operand; both definitions regression-checked. No ACL/signature/predicate changes.')
+    if revision == '03':
+        manifest['revision'] = '03'
+        manifest['sourceHead'] = 'c1f384def052458a623c90645967a164a2d76ed7'
+        manifest['supersedes'] = {'gitBlob': 'd723ff9f615caafa701418dbaea60dec43479bba', 'failedRun': 39044517403}
+        manifest['candidate']['path'] = 'docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql'
+        manifest['transformations'].append('Parenthesize the D1 consume_email_otp IS DISTINCT FROM CASE operand; no signature, ACL or predicate changes.')
     return sql, json.dumps(manifest, indent=2) + '\n'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
-    parser.add_argument('--revision', choices=['01', '02'], default='01')
+    parser.add_argument('--revision', choices=['01', '02', '03'], default='01')
     args = parser.parse_args()
     sql, manifest = generate(args.revision)
     destination = TARGET if args.revision == '01' else TARGET / 'revisions' / args.revision

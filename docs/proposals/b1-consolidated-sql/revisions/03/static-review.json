@@ -1,0 +1,206 @@
+{
+  "status": "REVIEW_ONLY_NOT_AUTHORIZED_NOT_INSTALLED",
+  "candidate": {
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779",
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e"
+  },
+  "parent": {
+    "sha256": "a1c524b9821319d830f4a753fb8691dde218e291341d90bd1d3ea14254c1e3fd",
+    "gitBlob": "d723ff9f615caafa701418dbaea60dec43479bba"
+  },
+  "failedRun": 39044517403,
+  "changedFunction": "auth_api.consume_email_otp(text,uuid,bytea,uuid)",
+  "changedStatements": 1,
+  "signatureChanges": 0,
+  "aclChanges": 0,
+  "policyChanges": 0,
+  "caseSites": [
+    {
+      "line": 290,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " VALUES(t,gen_random_uuid(),u,CASE WHEN u IS NULL THEN 'SYSTEM' ELSE 'USER' END,a,r,'SUCCESS',corr,clock_timestamp(),jsonb_build_object('count',n));"
+    },
+    {
+      "line": 307,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " ttl:=CASE WHEN method_kind='EMAIL_OTP' THEN 300 ELSE identity_private.cfg('preauth_ttl') END;"
+    },
+    {
+      "line": 337,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.mfa_challenges SET attempts=attempts+1,state=CASE WHEN ok THEN 'VERIFIED' WHEN attempts+1>=identity_private.cfg('otp_attempts') THEN 'EXHAUSTED' ELSE 'ISSUED' END,consumed_at=CASE WHEN ok THEN clock_timestamp() ELSE NULL END WHERE tenant_id=t AND id=x.id;"
+    },
+    {
+      "line": 337,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.mfa_challenges SET attempts=attempts+1,state=CASE WHEN ok THEN 'VERIFIED' WHEN attempts+1>=identity_private.cfg('otp_attempts') THEN 'EXHAUSTED' ELSE 'ISSUED' END,consumed_at=CASE WHEN ok THEN clock_timestamp() ELSE NULL END WHERE tenant_id=t AND id=x.id;"
+    },
+    {
+      "line": 389,
+      "barePredicateOperand": false,
+      "context": "PARENTHESIZED_PREDICATE",
+      "sourceLine": " IF absolute_seconds<>(CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END)"
+    },
+    {
+      "line": 390,
+      "barePredicateOperand": false,
+      "context": "PARENTHESIZED_PREDICATE",
+      "sourceLine": " OR idle_seconds<>(CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END) THEN RAISE EXCEPTION 'RISK_POLICY_MISMATCH'; END IF;"
+    },
+    {
+      "line": 404,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " PERFORM identity_private.append_audit(q.tenant_id,q.user_id,CASE WHEN q.origin_session_id IS NULL THEN 'auth.login' ELSE 'tenant.switch.in' END,k,1,corr);"
+    },
+    {
+      "line": 430,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.idempotency_records SET state='COMPLETED',response_safe=CASE WHEN one_time_result THEN NULL ELSE safe_response END WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND operation=operation_name AND key_digest=key_hash AND state='PENDING'; IF NOT FOUND THEN RAISE EXCEPTION 'IDEMPOTENCY_NOT_RESERVED'; END IF;"
+    },
+    {
+      "line": 445,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": "BEGIN q:=identity_private.checked_preauth(raw_preauth); UPDATE identity_private.ceremony_idempotency SET state='COMPLETED',response_safe=CASE WHEN one_time_result THEN NULL ELSE safe_response END WHERE binding_digest=q.cookie_digest AND operation=operation_name AND key_digest=key_hash AND state='PENDING'; IF NOT FOUND THEN RAISE EXCEPTION 'IDEMPOTENCY_NOT_RESERVED'; END IF; END $fn$;"
+    },
+    {
+      "line": 455,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " wait_seconds:=CASE WHEN v>=limit_count THEN LEAST(identity_private.cfg('rate_window'),ceil(extract(epoch FROM bucket+make_interval(secs=>identity_private.cfg('rate_window'))-statement_timestamp()))::integer) ELSE 0 END;"
+    },
+    {
+      "line": 479,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.auth_outbox SET payload_ciphertext=CASE WHEN delivered THEN decode('','hex') ELSE payload_ciphertext END,state=CASE WHEN delivered THEN 'SENT' WHEN attempts>=identity_private.cfg('outbox_max_attempts') THEN 'FAILED' ELSE 'PENDING' END,lease_until=NULL,claim_digest=NULL,available_at=clock_timestamp()+make_interval(secs=>identity_private.cfg('outbox_retry_delay'))"
+    },
+    {
+      "line": 479,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.auth_outbox SET payload_ciphertext=CASE WHEN delivered THEN decode('','hex') ELSE payload_ciphertext END,state=CASE WHEN delivered THEN 'SENT' WHEN attempts>=identity_private.cfg('outbox_max_attempts') THEN 'FAILED' ELSE 'PENDING' END,lease_until=NULL,claim_digest=NULL,available_at=clock_timestamp()+make_interval(secs=>identity_private.cfg('outbox_retry_delay'))"
+    },
+    {
+      "line": 550,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " s:=CASE WHEN t IS NULL THEN 'SELECTION' WHEN EXISTS(SELECT 1 FROM app.mfa_methods WHERE tenant_id=t AND user_id=u AND state='ACTIVE') THEN 'PENDING_MFA' ELSE 'ENROLLMENT_REQUIRED' END;"
+    },
+    {
+      "line": 581,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE identity_private.preauth SET tenant_id=target_tenant,user_id=u,state=CASE WHEN EXISTS(SELECT 1 FROM app.mfa_methods WHERE tenant_id=target_tenant AND user_id=u AND state='ACTIVE') THEN 'PENDING_MFA' ELSE 'ENROLLMENT_REQUIRED' END WHERE id=q.id;"
+    },
+    {
+      "line": 673,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": "BEGIN q:=identity_private.checked_preauth(raw_cookie); RETURN jsonb_build_object('state',CASE WHEN q.state='SELECTION' THEN 'TENANT_SELECTION_REQUIRED' ELSE q.state END,'expires_at',q.expires_at); END $fn$;"
+    },
+    {
+      "line": 886,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": "   'state',CASE WHEN q.state='SELECTION' THEN 'TENANT_SELECTION_REQUIRED' ELSE q.state END,"
+    },
+    {
+      "line": 926,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " PERFORM 1 FROM app.policy_versions WHERE tenant_id=ANY(ARRAY[t,CASE WHEN rule_key='B1-SELF-08' THEN resource ELSE NULL END]) ORDER BY tenant_id FOR SHARE;"
+    },
+    {
+      "line": 975,
+      "barePredicateOperand": false,
+      "context": "PARENTHESIZED_PREDICATE",
+      "sourceLine": " OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+    },
+    {
+      "line": 1025,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.mfa_challenges SET attempts=attempts+1,state=CASE WHEN ok THEN 'VERIFIED' WHEN attempts+1>=identity_private.cfg('otp_attempts') THEN 'EXHAUSTED' ELSE 'ISSUED' END,consumed_at=CASE WHEN ok THEN clock_timestamp() ELSE NULL END WHERE tenant_id=t AND id=x.id;"
+    },
+    {
+      "line": 1025,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": " UPDATE app.mfa_challenges SET attempts=attempts+1,state=CASE WHEN ok THEN 'VERIFIED' WHEN attempts+1>=identity_private.cfg('otp_attempts') THEN 'EXHAUSTED' ELSE 'ISSUED' END,consumed_at=CASE WHEN ok THEN clock_timestamp() ELSE NULL END WHERE tenant_id=t AND id=x.id;"
+    },
+    {
+      "line": 1129,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": "   UPDATE app.idempotency_records SET state='COMPLETED',response_safe=CASE WHEN one_time THEN NULL ELSE safe_response END"
+    },
+    {
+      "line": 1139,
+      "barePredicateOperand": false,
+      "context": "SQL_UPDATE_EXPRESSION",
+      "sourceLine": "   UPDATE identity_private.ceremony_idempotency SET state='COMPLETED',response_safe=CASE WHEN one_time THEN NULL ELSE safe_response END"
+    },
+    {
+      "line": 1364,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": "  'recipient',CASE WHEN purpose IN('LOGIN','STEP_UP') THEN recipient ELSE NULL END,'expiresAt',until_at);"
+    },
+    {
+      "line": 1371,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " material:=auth_api.trusted_mfa_material(raw_preauth,CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END,grant_key,resource);"
+    },
+    {
+      "line": 1404,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " CASE WHEN raw_preauth IS NOT NULL THEN bid END,CASE WHEN raw_preauth IS NULL THEN bid END);"
+    },
+    {
+      "line": 1404,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " CASE WHEN raw_preauth IS NOT NULL THEN bid END,CASE WHEN raw_preauth IS NULL THEN bid END);"
+    },
+    {
+      "line": 1439,
+      "barePredicateOperand": false,
+      "context": "PARENTHESIZED_PREDICATE",
+      "sourceLine": " OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+    },
+    {
+      "line": 1479,
+      "barePredicateOperand": false,
+      "context": "SQL_OR_ASSIGNMENT_EXPRESSION",
+      "sourceLine": " material:=auth_api.trusted_mfa_material(raw_preauth,CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END,before_x.grant_key,before_x.resource_id);"
+    },
+    {
+      "line": 1483,
+      "barePredicateOperand": false,
+      "context": "PARENTHESIZED_PREDICATE",
+      "sourceLine": " OR x.purpose IS DISTINCT FROM (CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END)"
+    }
+  ],
+  "parentDefects": [
+    {
+      "line": 1483,
+      "barePredicateOperand": true,
+      "context": "PLPGSQL_PREDICATE_BARE",
+      "sourceLine": " OR x.purpose IS DISTINCT FROM CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END"
+    }
+  ],
+  "sqlCompiled": false,
+  "installed": false,
+  "limitation": "Lexical same-category review, not PostgreSQL compilation or proof of runtime SQL validity.",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend"
+}
