@@ -149,7 +149,7 @@ export function rewrapEnrollmentSecret(
 
 /** Defense against accidental object serialization/inspection, not a logger policy.
  * Explicitly reading a secret property still requires redaction at every sink. */
-function privateArtifact<P extends object, S extends object>(publicFields: P, secrets: S): Readonly<P & S> {
+export function privateArtifact<P extends object, S extends object>(publicFields: P, secrets: S): Readonly<P & S> {
   const result = { ...publicFields } as P & S
   for (const [name, value] of Object.entries(secrets)) Object.defineProperty(result, name, { value, enumerable: false })
   Object.defineProperty(result, 'toJSON', { value: () => '[REDACTED_PRIVATE_CEREMONY]' })

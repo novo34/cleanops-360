@@ -65,7 +65,7 @@ test('real UI password, TOTP, persisted session, step-up, revocation and logout'
     expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0)
     const denied = await page.request.get('/auth/me')
     expect(denied.status()).toBe(401)
-  } finally { await server.close() }
+  } finally { phase('CLEANUP'); await server.close(); phase('CLEANUP_DONE') }
 })
 
 test('real first enrollment confirms SHA256 with CAS, recovery codes and committed session', async ({ page }) => {
@@ -121,5 +121,5 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
     await expect(page.locator('code')).toHaveCount(0)
     await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
     await expect(page.getByLabel('Contraseña')).toBeVisible()
-  } finally { await server.close() }
+  } finally { phase('CLEANUP'); await server.close(); phase('CLEANUP_DONE') }
 })

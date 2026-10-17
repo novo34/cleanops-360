@@ -36,18 +36,18 @@ export function AuthPanel() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
-  const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string } | null>(null)
+  const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
   useEffect(() => {
     const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
-    const deadlines = [selection?.expires_at, challenge?.expires_at, authExpiry].filter((value): value is string => !!value)
+    const deadlines = [selection?.expires_at, challenge?.expires_at, enrollment?.expires_at, authExpiry].filter((value): value is string => !!value)
     if (!deadlines.length) return
     const remaining = Math.min(...deadlines.map(value => Date.parse(value))) - Date.now()
     const timer = setTimeout(() => {
       endCeremony('La verificación ha caducado. Inicia una nueva verificación.')
     }, Math.min(2_147_483_647, Math.max(0, remaining)))
     return () => clearTimeout(timer)
-  }, [selection, challenge, view.auth])
+  }, [selection, challenge, enrollment, view.auth])
   function requestKey(scope: string) {
     let key = selectionKeys.current.get(scope)
     if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(scope, key) }

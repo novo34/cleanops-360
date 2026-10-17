@@ -15,7 +15,8 @@ test('explicit V4 trial retry budget and expiry never extend OTP lifetime', () =
  assert.deepEqual(planMailRetry({ ...input, expiresAt: now }, policy), { action: 'STOP', reason: 'EXPIRED' })
  assert.deepEqual(planMailRetry({ ...input, expiresAt: now + policy.retryDelayMs }, policy), { action: 'STOP', reason: 'EXPIRED' })
  assert.deepEqual(planMailRetry({ ...input, outcome: 'PERMANENT_FAILURE' }, policy), { action: 'STOP', reason: 'PERMANENT_FAILURE' })
- assert.deepEqual(planMailRetry({ ...input, outcome: 'UNKNOWN', attempts: policy.maxAttempts }, policy), { action: 'RECONCILE', reason: 'UNKNOWN_DELIVERY' })
+ assert.deepEqual(planMailRetry({ ...input, outcome: 'UNKNOWN', attempts: policy.maxAttempts }, policy), { action: 'QUARANTINE', reason: 'UNKNOWN_DELIVERY' })
+ assert.deepEqual(planMailRetry({ ...input, outcome: 'UNKNOWN', expiresAt: now }, policy), { action: 'QUARANTINE', reason: 'UNKNOWN_DELIVERY' })
 })
 test('bad policy/metadata fails closed; no default retry plan', () => {
  const input = { attempts: 1, now, expiresAt: now + 300_000, outcome: 'TRANSIENT_FAILURE' as const }
@@ -33,13 +34,13 @@ test('idempotency is stable per tenant/outbox, isolated and contains no recipien
  assert.notEqual(first, emailDeliveryIdempotencyKey(tenant, other))
  assert.throws(() => emailDeliveryIdempotencyKey('email@example.invalid', outbox))
 })
-test('simulated accepted-but-timeout delivery requires reconciliation without second send', () => {
+test('simulated accepted-but-timeout delivery is quarantined without second send', () => {
  let sends = 0
  const accepted = new Set<string>()
  const sendFixture = () => { sends++; accepted.add(emailDeliveryIdempotencyKey(tenant, outbox)); return 'UNKNOWN' as const }
  const outcome = sendFixture()
  const decision = planMailRetry({ attempts: 1, now, expiresAt: now + 300_000, outcome }, policy)
- assert.equal(decision.action, 'RECONCILE')
+ assert.equal(decision.action, 'QUARANTINE')
  assert.equal(sends, 1)
  assert.equal(accepted.size, 1)
  // Pure decision has no worker/queue/timer or side effects to redeliver.

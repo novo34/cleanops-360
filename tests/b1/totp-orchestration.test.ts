@@ -249,11 +249,12 @@ test('replay after expiry and foreign-tenant verification never emit session/coo
  await assert.rejects(closedBackend.transaction(async()=>true))
 })
 
-test('PREAUTH enrollment confirmation is closed before material/decryption/CAS while D2/D3 are pending',async()=>{
+test('approved PREAUTH confirmation rejects absent stored enrollment before CAS or session issuance',async()=>{
  const f=await fixture({state:'ENROLLMENT_REQUIRED'})
  const response=await f.request('confirmTotp',{enrollment_id:C,proof:proof()},'confirm-closed-key-123')
  assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null)
- assert.equal(f.calls.some(c=>c.name==='totp_material_locked'||c.name==='consume_enrollment_cas'),false)
+ assert.equal(f.calls.some(c=>c.name==='totp_material_locked'),true)
+ assert.equal(f.calls.some(c=>c.name==='consume_enrollment_cas'),false)
  assert.equal(f.state.sessions,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
 })
 

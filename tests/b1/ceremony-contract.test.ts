@@ -90,6 +90,6 @@ test('canonical V4/B1-X unchanged; approved D1 calls match pinned contract witho
  const broker = read('lib/b1/v4-broker.ts')
  for (const item of matrix.functions.filter(f => f.change === 'NEW')) assert.ok(broker.includes('SELECT auth_api.' + item.name + '('))
  assert.match(read('lib/b1/runtime.ts'), /closedBackend/)
- assert.doesNotMatch(read('lib/b1/approved-backend.ts'), /prepareTotpEnrollment|sealEnrollmentSecret|enrollAssigned/)
+ assert.doesNotMatch(read('lib/b1/runtime.ts'), /createApprovedPrivateBackend|OpenBao|enrollment/)
  assert.doesNotMatch(read('lib/b1/ceremony-preparation.ts'), /console\.|fetch\(|\.query\(/)
 })

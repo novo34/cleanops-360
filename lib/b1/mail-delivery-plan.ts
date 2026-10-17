@@ -8,7 +8,7 @@ export type DeliveryOutcome = 'TRANSIENT_FAILURE' | 'PERMANENT_FAILURE' | 'UNKNO
 export type RetryDecision = Readonly<
   { action: 'RETRY'; availableAt: number } |
   { action: 'STOP'; reason: 'EXPIRED' | 'EXHAUSTED' | 'PERMANENT_FAILURE' } |
-  { action: 'RECONCILE'; reason: 'UNKNOWN_DELIVERY' }
+  { action: 'QUARANTINE'; reason: 'UNKNOWN_DELIVERY' }
 >
 
 /** Pure scheduling only. Inputs are server metadata, not authorization.
@@ -27,9 +27,9 @@ export function planMailRetry(
       !Number.isSafeInteger(policy.maxAttempts) || policy.maxAttempts < 1 ||
       !Number.isSafeInteger(policy.retryDelayMs) || policy.retryDelayMs <= 0 ||
       !['TRANSIENT_FAILURE', 'PERMANENT_FAILURE', 'UNKNOWN'].includes(input.outcome)) throw unavailable()
-  if (input.now >= input.expiresAt) return Object.freeze({ action: 'STOP', reason: 'EXPIRED' })
   // Do not convert uncertain acceptance into either success or blind redelivery.
-  if (input.outcome === 'UNKNOWN') return Object.freeze({ action: 'RECONCILE', reason: 'UNKNOWN_DELIVERY' })
+  if (input.outcome === 'UNKNOWN') return Object.freeze({ action: 'QUARANTINE', reason: 'UNKNOWN_DELIVERY' })
+  if (input.now >= input.expiresAt) return Object.freeze({ action: 'STOP', reason: 'EXPIRED' })
   if (input.outcome === 'PERMANENT_FAILURE') return Object.freeze({ action: 'STOP', reason: 'PERMANENT_FAILURE' })
   if (input.attempts >= policy.maxAttempts) return Object.freeze({ action: 'STOP', reason: 'EXHAUSTED' })
   const availableAt = input.now + policy.retryDelayMs

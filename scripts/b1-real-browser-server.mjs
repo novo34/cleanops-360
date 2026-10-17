@@ -8,6 +8,15 @@ import { createInterface } from 'node:readline'
 import { createServer } from 'node:https'
 import { request } from 'node:http'
 
+// Only the server created by this test. Node close() alone waits for active
+// browser/stream connections even when the test flow has finished.
+export function closeOwnedServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close(error => error ? reject(error) : resolve())
+    server.closeAllConnections()
+  })
+}
+
 export async function startRealBrowserServer(scenario = 'existing') {
   const input = JSON.parse(process.env.B1_BROWSER_FIXTURE || '{}')
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
@@ -66,6 +75,6 @@ export async function startRealBrowserServer(scenario = 'existing') {
       } catch { outgoing.writeHead(503, { 'Cache-Control': 'no-store' }); outgoing.end() }
     })
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(3000, '127.0.0.1', resolve) })
-    return { rpc, async close() { await new Promise(resolve => server.close(resolve)); child.stdin.end(); child.kill('SIGTERM'); rmSync(directory, { recursive: true, force: true }) } }
+    return { rpc, async close() { await closeOwnedServer(server); child.stdin.end(); child.kill('SIGTERM'); rmSync(directory, { recursive: true, force: true }) } }
   } catch (error) { server?.close(); child.kill('SIGTERM'); rmSync(directory, { recursive: true, force: true }); throw error }
 }
