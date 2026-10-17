@@ -395,3 +395,31 @@ test('uncertain logout retries reuse the mutation key and confirmed logout clear
   expect(keys.length).toBe(2)
   expect(keys[0]).toBe(keys[1])
 })
+
+test('session cursor appends without duplicates, retains page on network error and clears on logout', async ({ page }) => {
+  await setupActive(page)
+  const session = (sessionId: string, current: boolean) => ({ id: sessionId, tenant_id: other, user_id: id,
+    device_label: 'Dispositivo privado', browser_label: 'Navegador privado', is_current: current,
+    created_at: new Date().toISOString(), last_activity_at: new Date().toISOString(), absolute_expires_at: expiry() })
+  let failed = false
+  await page.route('**/me/sessions*', async route => {
+    const cursor = new URL(route.request().url()).searchParams.get('cursor')
+    if (!cursor) await succeed(route, 'listSelfSessions', { items: [session(id, true)], next_cursor: 'fixture-next-page' })
+    else if (!failed) { failed = true; await route.abort('failed') }
+    else {
+      expect(cursor).toBe('fixture-next-page')
+      await succeed(route, 'listSelfSessions', { items: [session(id, true), session(other, false)], next_cursor: null })
+    }
+  })
+  await page.getByRole('button', { name: 'Mis sesiones', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Revocar', exact: true })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Cargar más sesiones', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+  await expect(page.getByRole('button', { name: 'Revocar', exact: true })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Cargar más sesiones', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Revocar', exact: true })).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Cargar más sesiones', exact: true })).toHaveCount(0)
+  await page.route('**/auth/logout', route => succeed(route, 'logout', { state: 'REVOKED', revoked_count: 1 }))
+  await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Revocar', exact: true })).toHaveCount(0)
+})

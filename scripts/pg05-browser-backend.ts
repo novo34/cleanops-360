@@ -27,6 +27,14 @@ try {
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
   await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  // Synthetic rows exercise the existing approved page_default, not a new UI default.
+  await admin.query(`INSERT INTO app.sessions
+    SELECT tenant_id,gen_random_uuid(),user_id,principal_id,
+      crypto.digest(gen_random_uuid()::text,'sha256'),csrf_digest,state,
+      created_at-g*interval '1 millisecond',last_activity_at,absolute_expires_at,idle_expires_at,
+      idle_seconds,revoked_at,mfa_verified_at,credential_version,device_label,browser_label
+    FROM (SELECT * FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 LIMIT 1) s
+    CROSS JOIN generate_series(1,$3::int) g`,[input.tenant,input.user,numeric('page_default')])
   const transportResult = await admin.query("SELECT encode(secret_ciphertext,'base64') AS encoded FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2", [input.tenant, method])
   const encoded: string = transportResult.rows[0].encoded
   assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
@@ -67,7 +75,7 @@ try {
       }
       if (message.kind === 'inspect') {
         const rows = await admin.query("SELECT s.state,m.last_totp_counter FROM app.sessions s JOIN app.mfa_methods m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id WHERE s.tenant_id=$1 AND s.user_id=$2 AND m.id=$3 ORDER BY s.created_at DESC", [input.tenant,input.user,method])
-        reply({ states: rows.rows.map(r => r.state), counterConsumed: rows.rows.some(r => r.last_totp_counter !== null) }); continue
+        reply({ expectedSessions: numeric('page_default') + 2, states: rows.rows.map(r => r.state), counterConsumed: rows.rows.some(r => r.last_totp_counter !== null) }); continue
       }
       if (message.kind === 'bootstrap') {
         const result = await handler.bootstrap()

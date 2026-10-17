@@ -14,6 +14,7 @@ export function AuthPanel() {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
+  const [sessionsCursor, setSessionsCursor] = useState<string | null>(null)
   const stepContext = useRef<StepContext | null>(null)
   const activeRequest = useRef<AbortController | null>(null)
   const generation = useRef(0)
@@ -24,7 +25,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -52,7 +53,7 @@ export function AuthPanel() {
     if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(scope, key) }
     return key
   }
-  async function call(operation: string, body?: object, sessionId?: string, idempotencyKey?: string) {
+  async function call(operation: string, body?: object, sessionId?: string, idempotencyKey?: string, query?: Record<string, string>) {
     if (activeRequest.current) return null
     const controller = new AbortController()
     activeRequest.current = controller
@@ -61,7 +62,11 @@ export function AuthPanel() {
     try {
       const op = operations.find(o => o.operationId === operation)!
       if (op.requestBody && !valid(op.requestBody.content['application/json'].schema, body)) throw new Error('INVALID_REQUEST')
-      const path = op.path.replace('{session_id}', sessionId ?? '')
+      if (query && Object.entries(query).some(([name, value]) => {
+        const parameter = op.parameters.find(p => p.in === 'query' && p.name === name)
+        return !parameter || !valid(parameter.schema, value)
+      })) throw new Error('INVALID_QUERY')
+      const path = op.path.replace('{session_id}', sessionId ?? '') + (query ? '?' + new URLSearchParams(query).toString() : '')
       const csrf = document.cookie.split('; ').find(c => c.startsWith('__Host-cleanops_csrf='))?.split('=')[1]
       if (op.method !== 'GET' && !csrf) throw new Error('CSRF_REQUIRED')
       const retry = op.parameters.some(p => p.name === 'Idempotency-Key') && !idempotencyKey && operation !== 'startStepUp'
@@ -160,6 +165,7 @@ export function AuthPanel() {
     if (result) setView(v => ({ ...v, tenants: result.items }))
   }
   async function choose(id: string) {
+    setSessionsCursor(null)
     const body = { target_tenant_id: id, reason: 'Selección explícita de empresa' }
     // Drop company records before any pending switch, including failed or cancelled ceremonies.
     setView(v => ({ ...v, sessions: [], tenants: [], codes: [] })); setEnrollment(null)
@@ -167,6 +173,14 @@ export function AuthPanel() {
       const result = await call('startStepUp', { grant_id: 'B1-SELF-08', resource_id: id })
       if (result) { setPendingAction({ operation: 'switchTenant', body }); prepare(result, { grant_id: 'B1-SELF-08', resource_id: id }) }
     } else { const auth = await call('switchTenant', body); if (auth) accept(auth) }
+  }
+  async function sessions(cursor?: string) {
+    const result = await call('listSelfSessions', undefined, undefined, undefined, cursor ? { cursor } : undefined)
+    if (!result) return
+    setView(previous => ({ ...previous, sessions: cursor
+      ? [...previous.sessions, ...result.items.filter((item: Session) => !(previous.sessions as Session[]).some(existing => existing.id === item.id))]
+      : result.items }))
+    setSessionsCursor(result.next_cursor)
   }
   async function enroll() {
     const result = await call('enrollTotp')
@@ -213,13 +227,14 @@ export function AuthPanel() {
       {view.auth?.state === 'ACTIVE' && !challenge && !selection && !enrollment && <section>
         <h2>Seguridad de la cuenta</h2>
         <button onClick={async () => { const r = await call('getCurrentIdentity'); if (r) setMessage(`Sesión de ${r.display_name}`) }}>Mi identidad</button>
-        <button onClick={async () => { const r = await call('listSelfSessions'); if (r) setView(v => ({ ...v, sessions: r.items })) }}>Mis sesiones</button>
+        <button onClick={() => void sessions()}>Mis sesiones</button>
         <ul>{(view.sessions as Session[]).map(s => <li key={s.id}><span>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}</span><dl>
           <dt>Creada</dt><dd><time dateTime={s.created_at}>{new Date(s.created_at).toLocaleString('es-CH')}</time></dd>
           <dt>Última actividad</dt><dd><time dateTime={s.last_activity_at}>{new Date(s.last_activity_at).toLocaleString('es-CH')}</time></dd>
           <dt>Caducidad absoluta</dt><dd><time dateTime={s.absolute_expires_at}>{new Date(s.absolute_expires_at).toLocaleString('es-CH')}</time></dd>
-        </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else setView(v => ({ ...v, sessions: [] })) } }}>Revocar</button></li>)}</ul>
-        <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })) } }}>Revocar mis demás sesiones</button>
+        </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else { setView(v => ({ ...v, sessions: [] })); setSessionsCursor(null) } } }}>Revocar</button></li>)}</ul>
+        {sessionsCursor && <button onClick={() => void sessions(sessionsCursor)}>Cargar más sesiones</button>}
+        <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
         <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView) } }}>Cerrar sesión</button>
       </section>}
     </fieldset>
