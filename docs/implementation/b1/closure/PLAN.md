@@ -288,3 +288,12 @@ claves, enrolamiento, recovery, RLS o infraestructura posteriormente.
 La publicación en producción es un acto de release separado, no una funcionalidad B1
 pendiente ni un permiso implícito por aprobar documentos/pruebas. Hasta autorización
 expresa permanecen closedBackend en producción, sin despliegue ni merge.
+
+## Adenda de autoridad E1 — 17-10-2026
+
+El propietario aprobó D2/D3/D4/C-SCOPE/C-LOGIN en la resolución canónica
+[acumulativa E1](../../../canonical/auth-review/E1-OWNER-RESOLUTION-2026-10-17.md).
+Las alternativas de los apartados anteriores quedan como historial de la decisión,
+no como solicitudes abiertas. C-LOGIN se resuelve con MFA obligatorio: la alternativa
+histórica de excepción OPERATIONAL sin MFA NO fue adoptada. Persisten solo parámetros
+operativos/evidencias y autorizaciones exactas de SQL/ACL nuevos identificadas allí.

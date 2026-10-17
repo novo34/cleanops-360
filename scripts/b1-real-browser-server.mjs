@@ -8,9 +8,11 @@ import { createInterface } from 'node:readline'
 import { createServer } from 'node:https'
 import { request } from 'node:http'
 
-export async function startRealBrowserServer() {
+export async function startRealBrowserServer(scenario = 'existing') {
   const input = JSON.parse(process.env.B1_BROWSER_FIXTURE || '{}')
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
+  if (!['existing','enrollment'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
+  input.scenario = scenario
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]
   if (!/^[a-f0-9]{32}$/.test(input.run || '')) throw Error('OWNERSHIP_LABEL_REQUIRED')

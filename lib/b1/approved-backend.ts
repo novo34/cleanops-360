@@ -2,7 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { canonical } from './contracts.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
-import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleTotpMethods, validateTotpMethodLimit } from './ceremony-preparation.ts'
+import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleTotpMethods, validateTotpMethodLimit, prepareTotpEnrollment, type CeremonySubject } from './ceremony-preparation.ts'
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
@@ -28,6 +28,13 @@ export interface ApprovedBackendDependencies {
   /** Trusted private labels for new sessions; no browser/header defaults. */
   /** Explicit private bound; no production default. */
   maxEligibleTotpMethods?: number
+  /** Private custody capability. Missing/unavailable custody fails closed; no runtime flag.
+   * Provider must scope TOTP write keys to the tenant and wipe borrowed key bytes.
+   * Operational OpenBao binding is not configured by this interface. */
+  enrollment?: {
+    withWriteKey<T>(tenantId: string, work: (key: Buffer, keyVersion: string) => T): Promise<T>
+    accountAlias(subject: CeremonySubject): Promise<string>
+  }
   sessionLabels?(): Readonly<{ device: string; browser: string }>
 }
 type PreparedChallenge = { challenge_id: string; allowed_methods: string[]; expires_at: string }
@@ -96,14 +103,14 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         r.done = true
         return outcome
       }
-      async function material(cookie: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ISSUE_SESSION',
+      async function material(cookie: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ISSUE_SESSION' | 'ENROLLMENT',
         expected: { id: string; tenantId?: string; userId?: string; expiresAt: number }, grant: string | null = null, resource: string | null = null) {
         const value = await broker.call('mfaMaterial', [cookie, purpose, grant, resource])
         const expiresAt = Date.parse(value.expiresAt)
         if (value.bindingId !== expected.id || value.tenantId !== expected.tenantId ||
             (expected.userId !== undefined && value.userId !== expected.userId) ||
             !Number.isSafeInteger(expiresAt) || expiresAt <= now() || expiresAt > expected.expiresAt) throw invalid()
-        if (purpose !== 'ISSUE_SESSION') eligibleTotpMethods(value.enabledMethods, methodLimit)
+        if (purpose === 'LOGIN' || purpose === 'STEP_UP') eligibleTotpMethods(value.enabledMethods, methodLimit)
         sessionPolicyForRisk(value.riskClass)
         return value
       }
@@ -268,8 +275,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'confirmTotp', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (operation !== 'confirmTotp' || r.oneTime))) throw unavailable()
+          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp'].includes(operation) || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()
@@ -375,11 +382,27 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if ('state' in data) throw unavailable()
             return { data: { challenge_id: data.challenge_id, method: 'TOTP', expires_at: data.expires_at } }
           }
+          if (operation === 'enrollTotp') {
+            if (!deps.enrollment || !binding.tenantId || !binding.userId ||
+                (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'ENROLLMENT_REQUIRED'))) throw unavailable()
+            const trusted = await material(preauth(), 'ENROLLMENT', binding)
+            const subject = Object.freeze({ tenantId: trusted.tenantId, userId: trusted.userId, bindingId: trusted.bindingId })
+            const label = await deps.enrollment.accountAlias(subject)
+            if (typeof label !== 'string' || !label.trim() || /[\p{Cc}\p{Cf}]/u.test(label)) throw unavailable()
+            const prepared = await deps.enrollment.withWriteKey(subject.tenantId, (key, keyVersion) =>
+              prepareTotpEnrollment(subject, { algorithm: 'SHA256', secretBytes: 32, issuer: 'CleanOps 360', label }, key, keyVersion))
+            try {
+              const assigned = await broker.call('enrollAssigned', [preauth(), subject.tenantId, subject.userId,
+                prepared.methodId, prepared.initialVersion, prepared.ciphertext, prepared.keyVersion, prepared.algorithm, correlation])
+              const expiresAt = Date.parse(assigned.expiresAt)
+              if (expiresAt <= now() || expiresAt > Date.parse(trusted.expiresAt)) throw unavailable()
+              return { data: { enrollment_id: assigned.methodId, provisioning_uri: prepared.provisioningUri, expires_at: date(assigned.expiresAt) } }
+            } finally { prepared.ciphertext.fill(0) }
+          }
           if (operation === 'confirmTotp') {
-            // No PREAUTH enrollment proof consumption pending D2/D3 provisioning.
-            if (binding.kind !== 'ACTIVE') throw unavailable()
+            if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'ENROLLMENT_REQUIRED')) throw invalid()
             const authorization = await auth(binding, 'B1-SELF-06')
-            if (!authorization.allowed || !authorization.step_up) throw new AuthError(403, 'STEP_UP_REQUIRED')
+            if (!authorization.allowed || (binding.kind === 'ACTIVE' && !authorization.step_up)) throw new AuthError(403, 'STEP_UP_REQUIRED')
             if (!Buffer.isBuffer(deps.factors.recoveryKey) || deps.factors.recoveryKey.length < 32 || !binding.tenantId || !binding.userId) throw unavailable()
             const { Secret } = await import('otpauth')
             const codes: string[] = [], digests: Buffer[] = []
@@ -396,8 +419,9 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               if (codes.length !== numeric('recovery_count')) throw unavailable()
               const result = await factors.totp(String(input.proof), binding, preauth(), String(input.enrollment_id), 'ENROLLMENT', digests)
               if (result instanceof AuthError) return result
-              if (binding.kind !== 'ACTIVE') throw unavailable()
-              return { data: { codes, display_once: true, auth: await activeSummary(binding) } }
+              if (binding.kind === 'ACTIVE') return { data: { codes, display_once: true, auth: await activeSummary(binding) } }
+              const issued = await issueSession(binding)
+              return { ...issued, data: { codes, display_once: true, auth: issued.data } }
             } finally { digests.forEach(value => value.fill(0)) }
           }
           if (operation === 'verifyMfa') {
@@ -410,7 +434,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               return issueSession(binding)
             })
           }
-          // Real enrollment remains closed pending D2/D3; no fallback provisioning.
+          // Unsupported ceremonies remain closed; no fallback custody or EMAIL delivery.
           throw unavailable()
         },
       }

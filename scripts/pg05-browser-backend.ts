@@ -26,7 +26,7 @@ try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
-  await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  if (input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
   // Synthetic rows exercise the existing approved page_default, not a new UI default.
   await admin.query(`INSERT INTO app.sessions
     SELECT tenant_id,gen_random_uuid(),user_id,principal_id,
@@ -36,8 +36,10 @@ try {
     FROM (SELECT * FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 LIMIT 1) s
     CROSS JOIN generate_series(1,$3::int) g`,[input.tenant,input.user,numeric('page_default')])
   const transportResult = await admin.query("SELECT encode(secret_ciphertext,'base64') AS encoded FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2", [input.tenant, method])
-  const encoded: string = transportResult.rows[0].encoded
-  assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
+  if (input.scenario !== 'enrollment') {
+    const encoded: string = transportResult.rows[0].encoded
+    assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
+  }
   const privatePool = { async connect() {
     const client = await identity.connect()
     return { async query(sql: string, values?: unknown[]) {
@@ -53,10 +55,15 @@ try {
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey: randomBytes(32), recoveryKey: randomBytes(32),
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
-        assert.equal(record.binding.userId, input.user); assert.equal(record.binding.methodId, method)
-        assert.equal(record.version, '1'); assert.equal(record.algorithm, 'SHA256'); assert.equal(bytes[0], 2)
-        return openEnrollmentSecret(bytes, key, version, enrollmentContext)
+        assert.equal(record.binding.userId, input.user);
+        if (input.scenario !== 'enrollment') assert.equal(record.binding.methodId, method)
+         assert.equal(record.algorithm, 'SHA256'); assert.equal(bytes[0], 2)
+        return openEnrollmentSecret(bytes, key, version, { ...enrollmentContext, methodId: record.binding.methodId })
       } },
+    enrollment: {
+      async withWriteKey(tenantId, work) { assert.equal(tenantId, input.tenant); const borrowed = Buffer.from(key); try { return work(borrowed, 'pg05-ephemeral') } finally { borrowed.fill(0) } },
+      async accountAlias() { return 'synthetic-enrollment-alias' },
+    },
     cursorKey: randomBytes(32), transport: () => ({ network: Buffer.alloc(32, 1), device: Buffer.alloc(32, 2) }),
     normalizeEmail: email => email.trim().toLowerCase(), maxEligibleTotpMethods: 4,
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
@@ -72,6 +79,11 @@ try {
       if (message.kind === 'proof') {
         const proof = TOTP.generate({ secret: new Secret({ buffer: Uint8Array.from(secret).buffer }), algorithm: 'SHA256', period: numeric('totp_period'), digits: numeric('totp_digits'), timestamp: Date.now() + (message.next ? numeric('totp_period') * 1000 : 0) })
         reply({ proof }); continue
+      }
+      if (message.kind === 'inspectEnrollment') {
+        const methods = await admin.query('SELECT state,algorithm,octet_length(secret_ciphertext) AS bytes,last_totp_counter,method_version FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at DESC',[input.tenant,input.user])
+        const codes = await admin.query('SELECT count(*)::int AS count FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL',[input.tenant,input.user])
+        reply({ methods: methods.rows, recoveryCount: codes.rows[0].count }); continue
       }
       if (message.kind === 'inspect') {
         const rows = await admin.query("SELECT s.state,m.last_totp_counter FROM app.sessions s JOIN app.mfa_methods m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id WHERE s.tenant_id=$1 AND s.user_id=$2 AND m.id=$3 ORDER BY s.created_at DESC", [input.tenant,input.user,method])

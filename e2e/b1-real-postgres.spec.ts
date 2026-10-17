@@ -67,3 +67,59 @@ test('real UI password, TOTP, persisted session, step-up, revocation and logout'
     expect(denied.status()).toBe(401)
   } finally { await server.close() }
 })
+
+test('real first enrollment confirms SHA256 with CAS, recovery codes and committed session', async ({ page }) => {
+  const phase = (description: string) => test.info().annotations.push({ type: 'phase', description })
+  phase('INIT_ENROLLMENT')
+  const server = await startRealBrowserServer('enrollment')
+  try {
+    phase('LOGIN_NO_METHOD')
+    await page.goto('/login')
+    await page.getByLabel('Email', { exact: true }).fill('u2@fixture.invalid')
+    await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+    await page.getByRole('button', { name: 'Continuar', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Configurar autenticador', exact: true })).toBeVisible()
+    await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
+    phase('ENROLL_PENDING')
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/mfa/totp/enroll')
+    await page.getByRole('button', { name: 'Configurar autenticador', exact: true }).click()
+    const enrolled = await response
+    expect(enrolled.status()).toBe(200)
+    const material = (await enrolled.json()).data
+    await expect(page.getByRole('heading', { name: 'Configura tu autenticador' })).toBeVisible()
+    const pending = await server.rpc({ kind: 'inspectEnrollment' })
+    expect(pending.methods[0].state === 'PENDING' && pending.methods[0].bytes === 61 && pending.methods[0].algorithm === 'SHA256').toBe(true)
+    expect(pending.recoveryCount).toBe(0)
+    phase('INVALID_FIRST_CODE')
+    const invalid = await page.request.post('/mfa/totp/confirm', { headers: { Origin: 'https://127.0.0.1:3000', 'Sec-Fetch-Site': 'same-origin',
+      'X-CSRF-Token': (await page.context().cookies()).find(c => c.name === '__Host-cleanops_csrf')!.value, 'Idempotency-Key': crypto.randomUUID() },
+      data: { enrollment_id: material.enrollment_id, proof: 'invalid' } })
+    expect(invalid.status()).toBe(422)
+    phase('CONFIRM_FIRST_CODE')
+    const { URI, TOTP } = await import('otpauth')
+    const authenticator = URI.parse(material.provisioning_uri)
+    expect(authenticator instanceof TOTP).toBe(true)
+    expect(authenticator.algorithm).toBe('SHA256')
+    expect(authenticator.issuer).toBe('CleanOps 360')
+    await page.getByLabel('Primer código', { exact: true }).fill(authenticator.generate())
+    const confirmed = page.waitForResponse(r => new URL(r.url()).pathname === '/mfa/totp/confirm')
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
+    const result = await confirmed
+    expect(result.status()).toBe(200)
+    await expect(page.getByRole('heading', { name: 'Códigos de recuperación' })).toBeVisible()
+    await expect(page.locator('code')).toHaveCount(10)
+    await expect(page.locator('output')).toHaveCount(0)
+    const stored = await server.rpc({ kind: 'inspectEnrollment' })
+    expect(stored.methods[0].state === 'ACTIVE' && stored.methods[0].last_totp_counter !== null).toBe(true)
+    expect(stored.recoveryCount).toBe(10)
+    phase('ONE_TIME_REPLAY_DENIED')
+    const replay = await page.request.post('/mfa/totp/confirm', { headers: { Origin: 'https://127.0.0.1:3000', 'Sec-Fetch-Site': 'same-origin',
+      'X-CSRF-Token': (await page.context().cookies()).find(c => c.name === '__Host-cleanops_csrf')!.value, 'Idempotency-Key': crypto.randomUUID() },
+      data: { enrollment_id: material.enrollment_id, proof: authenticator.generate() } })
+    expect([401,403,409]).toContain(replay.status())
+    await page.getByRole('button', { name: 'Ya los he guardado', exact: true }).click()
+    await expect(page.locator('code')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
+    await expect(page.getByLabel('Contraseña')).toBeVisible()
+  } finally { await server.close() }
+})
