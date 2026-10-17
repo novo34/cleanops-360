@@ -1,15 +1,20 @@
 name: PG-TEST-01 authorized isolated PostgreSQL
+# Historical PATCH-01 harness only. No automatic PR SQL installation.
+# The consolidated proposal is never selected by this workflow.
 on:
-  pull_request:
-    paths:
-      - scripts/pg-test-01.py
-      - .github/workflows/pg-test-01.yml
-      - docs/implementation/b1/pg-test-01/**
+  workflow_dispatch:
+    inputs:
+      authorization:
+        description: 'Historical isolated PG-TEST-01-PATCH-01 only; not consolidated SQL approval'
+        required: true
+        type: choice
+        options:
+          - PG-TEST-01-PATCH-01
 permissions:
   contents: read
 jobs:
   pg-test-01:
-    if: github.event.pull_request.number == 7 && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.ref == 'refs/heads/feat/b1-http-flows' && inputs.authorization == 'PG-TEST-01-PATCH-01'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -18,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Authorized exact-blob isolated validation
         run: python3 scripts/pg-test-01.py
