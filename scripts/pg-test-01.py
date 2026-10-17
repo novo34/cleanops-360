@@ -161,10 +161,38 @@ def checks_v4():
     check("create-owned-restore-db", "CREATE DATABASE restored;")
     restore = docker("exec",CID,"pg_restore","-U","postgres","--exit-on-error","-d","restored","/tmp/pgtest.dump")
     record("backup-restore", "PASS" if dump.returncode == 0 and restore.returncode == 0 else "FAIL")
-    restored = sql(f"SELECT count(*) FROM app.sessions WHERE state='REVOKED';", database="restored")
-    record("restore-revocation-preserved", "PASS" if restored.returncode == 0 and restored.stdout.strip() == "1" else "FAIL")
+    restored = sql(fingerprint, database="restored")
+    record("restore-session-state-preserved", "PASS" if restored.returncode == 0 and restored.stdout.strip() == original_state else "FAIL")
     restored = sql("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity;", database="restored")
     record("restore-rls-21-tables", "PASS" if restored.returncode == 0 and restored.stdout.strip() == "21" else "FAIL")
+
+def verified_candidates():
+    approval = json.loads((ROOT/'docs/implementation/b1/pg-test-01/PATCH_01_AUTHORIZATION.json').read_text())
+    def verify(path, blob, digest):
+        raw = (ROOT/path).read_bytes()
+        actual = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+        if actual != blob or hashlib.sha256(raw).hexdigest() != digest:
+            raise RuntimeError("PATCH_01_HASH_MISMATCH")
+        return raw
+    meta = approval['manifest']
+    verify(meta['path'], meta['gitBlob'], meta['sha256'])
+    guard = "DO $review_only$ BEGIN\n RAISE EXCEPTION 'REVIEW_ONLY_OWNER_APPROVAL_AND_EXECUTION_AUTHORIZATION_REQUIRED';\nEND $review_only$;\n"
+    payloads = []
+    for index, item in enumerate(approval['candidates']):
+        raw = verify(item['candidate'], item['candidateBlob'], item['sha256'])
+        expected = (ROOT/item['source']).read_text()
+        if index == 0:
+            expected = expected.replace("IF absolute_seconds<>CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END\n OR idle_seconds<>CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END THEN", "IF absolute_seconds<>(CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END)\n OR idle_seconds<>(CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END) THEN")
+        else:
+            if expected.count(guard) != 1:
+                raise RuntimeError("PATCH_01_DIFF_MISMATCH")
+            expected = expected.replace(guard, '')
+        if raw.decode() != expected:
+            raise RuntimeError("PATCH_01_DIFF_MISMATCH")
+        payloads.append((['V4','B1-X','D1'][index], raw.decode()))
+    REPORT['patchAuthorization'] = approval
+    record('authorized-patch-hashes-and-exact-diff', 'PASS')
+    return payloads
 
 def main():
     global CID
@@ -180,6 +208,7 @@ def main():
             if name != "D1-ACL":
                 payloads.append((name, raw.decode()))
         record("authorized-four-blobs", "PASS")
+        payloads = verified_candidates()
         before = footprint()
         pulled = docker("pull","postgres:16-alpine",timeout=180)
         if pulled.returncode:
@@ -219,8 +248,18 @@ def main():
                 record("install-"+name,"FAIL",{"sqlstate":state(result),"message":match.group(1)[:220] if match else "No decoded PostgreSQL diagnostic", "verified_source_diagnostic":result.stderr[:3500]})
                 blocked = True
             else:
-                record("install-"+name,"PASS")
-                base_ok = base_ok or name == "V4"
+                probes = {
+                    "V4": "SELECT count(*)=21 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r';",
+                    "B1-X": "SELECT to_regprocedure('auth_api.rehash_credential_cas(uuid,bigint,text,text)') IS NOT NULL;",
+                    "D1": "SELECT to_regprocedure('auth_api.trusted_mfa_material(text,text,text,uuid)') IS NOT NULL;",
+                }
+                persisted = sql(probes[name])
+                if persisted.returncode or persisted.stdout.strip() != 't':
+                    record("install-"+name,"FAIL", "SQL returned successfully but expected definitions did not persist. Unmodified candidate may end ROLLBACK.")
+                    blocked = True
+                else:
+                    record("install-"+name,"PASS")
+                    base_ok = base_ok or name == "V4"
         if base_ok and fixtures():
             checks_v4()
         if not base_ok:
@@ -230,9 +269,9 @@ def main():
                 record(name, "BLOCKED", "V4 schema failed atomic installation; no test objects/privileges substituted.")
         if blocked:
             for name in ["B1-X-credential-CAS","B1-X-global-TOTP-counter-CAS","D1-locked-material-and-challenge-generation","D1-concurrent-consume"]:
-                record(name,"BLOCKED","Exact approved overlay not installed; no replacement/guard removal authorized.")
+                record(name,"BLOCKED","Authorized candidate did not install; no additional SQL modifications authorized.")
     except Exception as error:
-        record("harness","FAIL",type(error).__name__+":"+str(error)[:120])
+        record("harness","FAIL",type(error).__name__+":"+(str(error)[:120] if isinstance(error, RuntimeError) else "REDACTED"))
     finally:
         if CID:
             label = docker("inspect","--format",'{{index .Config.Labels "cleanops.pgtest01"}}',CID)
@@ -260,3 +299,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -40,6 +40,21 @@ test('PG-TEST-01 evidence reports failed compilation and blocked product tests w
   const harness = read('scripts/pg-test-01.py').toString()
   for (const artifact of manifest.changes) {
     assert.ok(harness.includes(artifact.sourceBlob))
-    assert.ok(!harness.includes(artifact.candidateBlob))
+    const approval = JSON.parse(read('docs/implementation/b1/pg-test-01/PATCH_01_AUTHORIZATION.json').toString())
+    assert.ok(approval.candidates.some((entry: { candidateBlob: string }) => entry.candidateBlob === artifact.candidateBlob))
+  }
+})
+
+
+test('limited PATCH-01 authorization pins SHA-256 and forbids further SQL changes or activation', () => {
+  const approval = JSON.parse(read('docs/implementation/b1/pg-test-01/PATCH_01_AUTHORIZATION.json').toString())
+  assert.equal(approval.sourceHead, '66f97ea2bf7eaf49dd915b956879547753b496f1')
+  assert.equal(approval.newSqlChangesAuthorized, false)
+  assert.equal(approval.productionAuthorized, false)
+  assert.equal(approval.runtime, 'closedBackend')
+  assert.equal(approval.authGate05, 'OPEN')
+  assert.equal(createHash('sha256').update(read(approval.manifest.path)).digest('hex'), approval.manifest.sha256)
+  for (const entry of approval.candidates) {
+    assert.equal(createHash('sha256').update(read(entry.candidate)).digest('hex'), entry.sha256)
   }
 })
