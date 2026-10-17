@@ -105,7 +105,12 @@ def checks_v4():
     check("rls-enabled-forced-21-tables", "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity;", "21")
     check("non-login-non-bypass-broker-owns-no-tables", "SELECT (NOT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls AND NOT EXISTS(SELECT 1 FROM pg_class WHERE relkind='r' AND relowner=r.oid))::text FROM pg_roles r WHERE rolname='cleanops_auth_broker';", "true")
     check("definer-owner-and-search-path", """SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('auth_api','identity_private') AND
-(NOT p.prosecdef OR p.proowner<>'cleanops_auth_broker'::regrole OR NOT coalesce(p.proconfig,'{}') @> ARRAY['search_path=pg_catalog'] OR EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE'));""", "0")
+((NOT p.prosecdef AND p.oid<>'identity_private.reject_tenant_change()'::regprocedure) OR p.proowner<>'cleanops_auth_broker'::regrole OR NOT coalesce(p.proconfig,'{}') @> ARRAY['search_path=pg_catalog'] OR EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE'));""", "0")
+    check("tenant-immutability-trigger-stays-invoker", "SELECT (NOT prosecdef AND proconfig @> ARRAY['search_path=pg_catalog'])::text FROM pg_proc WHERE oid='identity_private.reject_tenant_change()'::regprocedure;", "true")
+    diagnostic = sql(session_sql('a') + "SELECT * FROM auth_api.current_identity();ROLLBACK;", ROLE['runtime'])
+    message = re.search(r"ERROR:\s+[0-9A-Z]{5}:\s+([^\n]+)", diagnostic.stderr)
+    REPORT['sessionDiagnostic'] = {'sqlstate': state(diagnostic), 'message': message.group(1)[:220] if message else 'No decoded PostgreSQL error'}
+    REPORT['brokerPolicyLockUpdatePrivilege'] = sql("SELECT has_any_column_privilege('cleanops_auth_broker','app.policy_versions','UPDATE');").stdout.strip()
     tables = sql("SELECT n.nspname||'.'||c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r' ORDER BY 1;")
     for role in ROLE.values():
         check(role + "-no-super-create-bypass-membership", "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND NOT pg_has_role(current_user,'cleanops_auth_broker','MEMBER') AND NOT pg_has_role(current_user,'cleanops_ddl_owner','MEMBER'))::text FROM pg_roles WHERE rolname=current_user;", "true", role)
@@ -151,10 +156,14 @@ def checks_v4():
         if peer.poll() is None:
             peer.kill(); peer.wait()
     check("failed-commit-no-effects", f"SELECT name FROM app.organizations WHERE id='{A}';", "Synthetic A")
-    check("revoke-own-after-lock-release", session_sql("a") + f"SELECT auth_api.revoke_own_session('{T}','{uuid.uuid4()}');COMMIT;", "1", ROLE["runtime"])
-    check("revoked-token-denied", session_sql("b") + "COMMIT;", role=ROLE["runtime"], failure="42501")
+    revoked = check("revoke-own-after-lock-release", session_sql("a") + f"SELECT auth_api.revoke_own_session('{T}','{uuid.uuid4()}');COMMIT;", "1", ROLE["runtime"])
+    if revoked:
+        check("revoked-token-denied", session_sql("b") + "COMMIT;", role=ROLE["runtime"], failure="42501")
+        check("success-audit-atomic", "SELECT count(*) FROM app.audit_logs WHERE action='self_sessions.revoke_self_session';", "1")
+    else:
+        record("revoked-token-denied", "BLOCKED", "Prerequisite revocation failed; target was never revoked.")
+        record("success-audit-atomic", "BLOCKED", "No successful revocation to assert atomic audit for.")
     check("other-tenant-and-user-intact", f"SELECT count(*) FROM app.sessions WHERE id IN('{X}','{Y}') AND state='ACTIVE';", "2")
-    check("success-audit-atomic", "SELECT count(*) FROM app.audit_logs WHERE action='self_sessions.revoke_self_session';", "1")
     fingerprint = "SELECT md5(string_agg(id::text||state,',' ORDER BY id)) FROM app.sessions;"
     original_state = sql(fingerprint).stdout.strip()
     dump = docker("exec",CID,"pg_dump","-U","postgres","-d","core","-Fc","-f","/tmp/pgtest.dump")

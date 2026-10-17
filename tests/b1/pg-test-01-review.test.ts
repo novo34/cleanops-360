@@ -58,3 +58,23 @@ test('limited PATCH-01 authorization pins SHA-256 and forbids further SQL change
     assert.equal(createHash('sha256').update(read(entry.candidate)).digest('hex'), entry.sha256)
   }
 })
+
+test('PATCH-02 stays uninstalled and changes only the demonstrated CASE and terminal transaction decision', () => {
+  const proposal = JSON.parse(read('docs/proposals/pg-test-01-fix-02/manifest.json').toString())
+  assert.equal(proposal.status, 'REVIEW_ONLY_NOT_AUTHORIZED_NOT_INSTALLED')
+  assert.equal(proposal.sqlExecuted, false)
+  assert.equal(proposal.activationAuthorized, false)
+  const source = read('docs/proposals/pg-test-01-fix/b1-x.candidate.sql').toString()
+  const fixed = source.replace("OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END", "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)")
+  assert.notEqual(fixed, source)
+  assert.equal(read(proposal.changes[0].path).toString(), fixed)
+  assert.equal(read(proposal.changes[1].path).toString(), fixed.replace(/ROLLBACK;\n$/, 'COMMIT;\n'))
+  assert.equal(read(proposal.changes[2].path).toString(), read('docs/proposals/pg-test-01-fix/d1.candidate.sql').toString().replace(/ROLLBACK;\n$/, 'COMMIT;\n'))
+  for (const entry of proposal.changes) {
+    assert.equal(gitBlob(read(entry.path)), entry.gitBlob)
+    assert.equal(createHash('sha256').update(read(entry.path)).digest('hex'), entry.sha256)
+    assert.ok(!read('scripts/pg-test-01.py').toString().includes(entry.path))
+    assert.ok(!read('docs/implementation/b1/pg-test-01/PATCH_01_AUTHORIZATION.json').toString().includes(entry.gitBlob))
+  }
+})
+
