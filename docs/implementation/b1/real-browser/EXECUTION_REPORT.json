@@ -64,7 +64,22 @@
       "detail": {
         "attemptStatuses": [
           "passed"
-        ]
+        ],
+        "phases": [
+          "INIT_BACKEND",
+          "LOGIN",
+          "TOTP",
+          "IDENTITY",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "REVOKE_INDIVIDUAL",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "STEPUP",
+          "BULK_RESULT",
+          "LOGOUT"
+        ],
+        "testLineNumbers": []
       }
     },
     {
@@ -158,9 +173,9 @@
   "submittedSqlSha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
   "result": "PASS",
   "provenance": {
-    "head": "c34783024fac52da1582eb75c6494e518fd31339",
-    "run": 39069778121,
-    "job": 117504797690,
-    "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+    "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+    "run": 39070380055,
+    "job": 117506569818,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
   }
 }

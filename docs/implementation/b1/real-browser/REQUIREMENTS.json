@@ -4,10 +4,10 @@
   "accepted": 0,
   "prior294": "PASS; run 39068144839; not repeated",
   "browserRun": {
-    "head": "c34783024fac52da1582eb75c6494e518fd31339",
-    "run": 39069778121,
-    "job": 117504797690,
-    "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+    "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+    "run": 39070380055,
+    "job": 117506569818,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
   },
   "runtime": "closedBackend",
   "b1": "OPEN",
@@ -115,10 +115,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -127,7 +127,22 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
@@ -247,10 +262,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -259,7 +274,22 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
@@ -359,10 +389,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -371,13 +401,28 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
         "scope": "Only exercised steps; not complete requirement acceptance"
       },
-      "remainingAcceptanceObligation": "Completar aceptación UI/API/PG de Account → Security → Active Sessions; el recorrido HTTP privado se evalúa aparte."
+      "remainingAcceptanceObligation": "Paginación, lista y revocaciones UI/API/PG ejecutadas con52 sesiones. Falta aceptación de la pantalla Account/Security en el producto completo y PO; runtime operativo sigue closedBackend."
     },
     {
       "id": "REQ-AUTH-041",
@@ -391,10 +436,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -403,13 +448,28 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
         "scope": "Only exercised steps; not complete requirement acceptance"
       },
-      "remainingAcceptanceObligation": "Validar los cuatro campos de sesión en la UI con datos reales y aceptación PO."
+      "remainingAcceptanceObligation": "Cuatro campos y páginas reales ya visibles/verificados en Chromium. Completar evidencia operativa de actualización de actividad sin ampliar absoluta y aceptación PO."
     },
     {
       "id": "REQ-AUTH-042",
@@ -418,8 +478,45 @@
       "accepted": false,
       "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-042",
       "priorPartialStatus": "PASS",
-      "newBrowserEvidence": null,
-      "remainingAcceptanceObligation": "Completar E2E UI de revocación individual con respuestas reales y aceptación; comprobar la evidencia SQL/HTTP adjunta."
+      "newBrowserEvidence": {
+        "status": "PASS",
+        "test": "e2e/b1-real-postgres.spec.ts",
+        "report": "EXECUTION_REPORT.json",
+        "provenance": {
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
+        },
+        "checks": [
+          {
+            "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+            "status": "PASS",
+            "detail": {
+              "attemptStatuses": [
+                "passed"
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
+            }
+          }
+        ],
+        "scope": "Only exercised steps; not complete requirement acceptance"
+      },
+      "remainingAcceptanceObligation": "Revocación individual UI/API/PG propia ejecutada; vincular revisión/aceptación integral con negativas y fallos previamente aprobados, sin inferir activación runtime."
     },
     {
       "id": "REQ-AUTH-043",
@@ -433,10 +530,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -445,13 +542,28 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
         "scope": "Only exercised steps; not complete requirement acceptance"
       },
-      "remainingAcceptanceObligation": "Completar E2E UI de revocación bulk preservando la sesión actual y otras empresas; no promover el caso HTTP a aceptación UI."
+      "remainingAcceptanceObligation": "UI/API/PG bulk tras step-up preserva exactamente la sesión actual; evidencia previa protege empresa ajena. Falta aceptación integral PO/operativa, sin convertir fixtures de infraestructura en sistema operativo aprobado."
     },
     {
       "id": "REQ-AUTH-044",
@@ -495,10 +607,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -507,7 +619,22 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
@@ -547,10 +674,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -559,7 +686,22 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],
@@ -589,10 +731,10 @@
         "test": "e2e/b1-real-postgres.spec.ts",
         "report": "EXECUTION_REPORT.json",
         "provenance": {
-          "head": "c34783024fac52da1582eb75c6494e518fd31339",
-          "run": 39069778121,
-          "job": 117504797690,
-          "url": "https://github.com/novo34/cleanops-360/actions/runs/39069778121"
+          "head": "b4b770beeac800e9825406480ffa1b320d2c2794",
+          "run": 39070380055,
+          "job": 117506569818,
+          "url": "https://github.com/novo34/cleanops-360/actions/runs/39070380055"
         },
         "checks": [
           {
@@ -601,7 +743,22 @@
             "detail": {
               "attemptStatuses": [
                 "passed"
-              ]
+              ],
+              "phases": [
+                "INIT_BACKEND",
+                "LOGIN",
+                "TOTP",
+                "IDENTITY",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "REVOKE_INDIVIDUAL",
+                "SESSIONS_FIRST",
+                "SESSIONS_NEXT",
+                "STEPUP",
+                "BULK_RESULT",
+                "LOGOUT"
+              ],
+              "testLineNumbers": []
             }
           }
         ],

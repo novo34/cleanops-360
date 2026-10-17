@@ -33,10 +33,10 @@ Aceptados completos: **0/44**. Evidencia parcial nueva: PASS. Las decisiones E1,
 | REQ-AUTH-032 | BLOCKED | PASS | Sin evidencia nueva | Validar HMAC/custodia y ausencia de plaintext en todo el flujo real de recovery codes. |
 | REQ-AUTH-033 | BLOCKED | PASS | Sin evidencia nueva | Aprobar e integrar contrato público completo de recuperación; el consumidor interno sin grant público no satisface ese flujo. |
 | REQ-AUTH-034 | BLOCKED | PASS | Sin evidencia nueva | Resolver C-SCOPE y aprobar el contrato/ACL administrativo de reset MFA; no heredar permisos B1-SELF. |
-| REQ-AUTH-040 | BLOCKED | PASS | PASS | Completar aceptación UI/API/PG de Account → Security → Active Sessions; el recorrido HTTP privado se evalúa aparte. |
-| REQ-AUTH-041 | BLOCKED | PASS | PASS | Validar los cuatro campos de sesión en la UI con datos reales y aceptación PO. |
-| REQ-AUTH-042 | BLOCKED | PASS | Sin evidencia nueva | Completar E2E UI de revocación individual con respuestas reales y aceptación; comprobar la evidencia SQL/HTTP adjunta. |
-| REQ-AUTH-043 | BLOCKED | PASS | PASS | Completar E2E UI de revocación bulk preservando la sesión actual y otras empresas; no promover el caso HTTP a aceptación UI. |
+| REQ-AUTH-040 | BLOCKED | PASS | PASS | Paginación, lista y revocaciones UI/API/PG ejecutadas con52 sesiones. Falta aceptación de la pantalla Account/Security en el producto completo y PO; runtime operativo sigue closedBackend. |
+| REQ-AUTH-041 | BLOCKED | PASS | PASS | Cuatro campos y páginas reales ya visibles/verificados en Chromium. Completar evidencia operativa de actualización de actividad sin ampliar absoluta y aceptación PO. |
+| REQ-AUTH-042 | BLOCKED | PASS | PASS | Revocación individual UI/API/PG propia ejecutada; vincular revisión/aceptación integral con negativas y fallos previamente aprobados, sin inferir activación runtime. |
+| REQ-AUTH-043 | BLOCKED | PASS | PASS | UI/API/PG bulk tras step-up preserva exactamente la sesión actual; evidencia previa protege empresa ajena. Falta aceptación integral PO/operativa, sin convertir fixtures de infraestructura en sistema operativo aprobado. |
 | REQ-AUTH-044 | BLOCKED | PASS | Sin evidencia nueva | Validar caducidad por inactividad por riesgo en todos los recorridos UI/API y aceptar el perfil operativo. |
 | REQ-AUTH-045 | BLOCKED | PASS | Sin evidencia nueva | Validar caducidad absoluta independiente del idle en todos los recorridos y aceptar el perfil operativo. |
 | REQ-AUTH-046 | BLOCKED | PASS | Sin evidencia nueva | Resolver C-SCOPE y contrato real de trusted device y revocaciones; no trasladarlo a otra fase. |

@@ -55,3 +55,5 @@ recorrido no convierte automáticamente una obligación completa en ACCEPTED.
 ## Ejecución verificada
 
 [Run39069778121](https://github.com/novo34/cleanops-360/actions/runs/39069778121): 11 comprobaciones PASS, 0 FAIL/BLOCKED/SKIP, limpieza PASS. Incluye una prueba Chromium end-to-end real; los otros diez checks son preparación, integridad, instalación y aislamiento/proceso. No presentar once checks como once recorridos UI. El recorrido usa TOTP preconfigurado sintético, no enrolamiento público ni compatibilidad de apps externas.
+
+Recorrido ampliado definitivo [39070380055](https://github.com/novo34/cleanops-360/actions/runs/39070380055) PASS, fuente b4b770beeac800e9825406480ffa1b320d2c2794: paginación real de52 sesiones, revocación individual, recarga, step-up/bulk y logout, además del login/TOTP. Sin DB CI39070380061 SUCCESS (57Chromium). Historial del timeout anterior preservado; no se atribuye una causa no demostrada.

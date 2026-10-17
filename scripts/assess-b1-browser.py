@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT/'docs/implementation/b1/real-browser'
-COVERED = {'REQ-AUTH-001','REQ-AUTH-017','REQ-AUTH-040','REQ-AUTH-041','REQ-AUTH-043','REQ-AUTH-047','REQ-TEN-003','REQ-SEC-020'}
+COVERED = {'REQ-AUTH-001','REQ-AUTH-017','REQ-AUTH-040','REQ-AUTH-041','REQ-AUTH-042','REQ-AUTH-043','REQ-AUTH-047','REQ-TEN-003','REQ-SEC-020'}
 
 def main():
     parser=argparse.ArgumentParser()
