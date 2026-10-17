@@ -32,7 +32,7 @@ def validate_revision2(sql):
         raise ValueError('Both TOTP material definitions must have their CASE operand parenthesized')
 
 def generate(revision="01"):
-    if revision not in ("01", "02", "03", "04"):
+    if revision not in ("01", "02", "03", "04", "05"):
         raise ValueError("Unsupported consolidated revision")
     sources, parts = [], []
     for name, path, expected in SOURCES:
@@ -57,13 +57,15 @@ def generate(revision="01"):
                 raise ValueError('Unexpected review guard: ' + name)
             text = text.replace(GUARD, '')
         corrections = list(REPLACEMENTS[name])
-        if revision in ('02', '03', '04') and name == 'D1':
+        if revision in ('02', '03', '04', '05') and name == 'D1':
             corrections.extend(REPLACEMENTS['B1-X'])
-        if revision in ('03', '04') and name == 'D1':
+        if revision in ('03', '04', '05') and name == 'D1':
             corrections.append(("OR x.purpose IS DISTINCT FROM CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END", "OR x.purpose IS DISTINCT FROM (CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END)"))
         if revision == '04' and name == 'V4':
             grant = 'GRANT DELETE ON identity_private.security_log TO cleanops_auth_broker;'
             corrections.append((grant, grant + '\nGRANT SELECT(expires_at) ON identity_private.security_log TO cleanops_auth_broker;'))
+        if revision == '05' and name == 'V4':
+            corrections.extend([('GRANT DELETE ON identity_private.security_log TO cleanops_auth_broker;', 'REVOKE DELETE ON identity_private.security_log FROM cleanops_auth_broker;'), ('DELETE FROM identity_private.security_log WHERE expires_at<=statement_timestamp();', 'PERFORM identity_private.purge_expired_security_log();')])
         for old, new in corrections:
             if text.count(old) != 1:
                 raise ValueError('Unexpected correction site: ' + name)
@@ -74,7 +76,7 @@ def generate(revision="01"):
            '-- Fresh empty PostgreSQL 16 only AFTER separate owner approval of this exact hash.\n'
            '-- Not approved, not SQL-compiled, not a migration. B1/AUTH-GATE-05 OPEN; closedBackend.\n'
            'BEGIN;\n\n' + '\n\n'.join(parts) + '\n\nCOMMIT;\n')
-    if revision in ('02', '03', '04'):
+    if revision in ('02', '03', '04', '05'):
         validate_revision2(sql)
     manifest = {
         'status': 'PROPOSED_CANONICAL_CONSOLIDATION_REVIEW_ONLY',
@@ -91,13 +93,13 @@ def generate(revision="01"):
         'sqlCompiled': False, 'installationAuthorized': False, 'installed': False,
         'authGate05': 'OPEN', 'runtime': 'closedBackend',
     }
-    if revision in ('02', '03', '04'):
+    if revision in ('02', '03', '04', '05'):
         manifest['revision'] = '02'
         manifest['sourceHead'] = 'b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99'
         manifest['supersedes'] = {'gitBlob': '7507a29dc58c27fa4b9ab7f3b6dd628397485c9a', 'failedRun': 39036655470}
         manifest['candidate']['path'] = 'docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql'
         manifest['transformations'].append('D1 replacement of totp_material_locked: parenthesize the same CASE operand; both definitions regression-checked. No ACL/signature/predicate changes.')
-    if revision in ('03', '04'):
+    if revision in ('03', '04', '05'):
         manifest['revision'] = '03'
         manifest['sourceHead'] = 'c1f384def052458a623c90645967a164a2d76ed7'
         manifest['supersedes'] = {'gitBlob': 'd723ff9f615caafa701418dbaea60dec43479bba', 'failedRun': 39044517403}
@@ -110,12 +112,22 @@ def generate(revision="01"):
         manifest['candidate']['path'] = 'docs/proposals/b1-consolidated-sql/revisions/04/schema.review.sql'
         manifest['transformations'].append('Minimal broker SELECT(expires_at) on security_log for the existing DELETE expiration predicate; explicit ACL change, REVIEW ONLY.')
         manifest['acl'] = 'Combined V4/B1-X/D1 plus exactly broker SELECT(expires_at) on identity_private.security_log; owner approval required.'
+    if revision == '05':
+        boundary = (TARGET / 'revisions/05/purge-boundary.review.sql').read_text()
+        sql = sql.removesuffix('COMMIT;\n') + boundary + '\nCOMMIT;\n'
+        manifest['revision'] = '05'
+        manifest['sourceHead'] = '97515fb26c4ccdd8593de1b090b24b771d7e4ecb'
+        manifest['supersedes'] = {'gitBlob': 'f2c3c7c1f0859b9a6e0e2ed2c701f3c5d060774c', 'reason': 'PG04 conditional row-visibility gate failed before installation'}
+        manifest['candidate'] = {'path': 'docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql', **hashes(sql.encode())}
+        manifest['purgeBoundarySource'] = {'path': 'docs/proposals/b1-consolidated-sql/revisions/05/purge-boundary.review.sql', **hashes(boundary.encode())}
+        manifest['transformations'].append('No PG04 broker SELECT. Revoke broker DELETE on security_log; replace existing GC DELETE with a void helper; dedicated NOLOGIN expiry-only RLS role, column ACL and private EXECUTE. REVIEW ONLY.')
+        manifest['acl'] = 'Explicit restricted-purge replacement: new internal role/helper and two expiry RLS policies; broker INSERT retained, no broker SELECT/DELETE. Owner approval required.'
     return sql, json.dumps(manifest, indent=2) + '\n'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
-    parser.add_argument('--revision', choices=['01', '02', '03', '04'], default='01')
+    parser.add_argument('--revision', choices=['01', '02', '03', '04', '05'], default='01')
     args = parser.parse_args()
     sql, manifest = generate(args.revision)
     destination = TARGET if args.revision == '01' else TARGET / 'revisions' / args.revision
