@@ -1,3 +1,8 @@
+> Revisión secuencial vigente: `SECURITY_REVIEW.md`, `FULL.diff` y
+> `static-review.json`. Solicitud mínima de ejecución: `EXECUTION_REQUEST.json`
+> (`PG-TEST-01-CONSOLIDATED-01`), todavía sin aprobación. El candidato conserva
+> exactamente el mismo hash; no se añade otro parche ni se instala SQL.
+
 # B1 — Propuesta canónica SQL consolidada, REVIEW ONLY
 
 Nueva estrategia autorizada por el propietario: preparar un único contrato limpio de

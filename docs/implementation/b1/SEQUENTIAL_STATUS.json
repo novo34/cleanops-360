@@ -1,0 +1,35 @@
+{
+  "referenceHead": "8026e989a2a76d9dec107700f710c415c1c6b994",
+  "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
+  "state": "OPEN",
+  "roadmapOrder": [
+    "Foundation",
+    "Authentication + MFA",
+    "Users + Roles + Permissions",
+    "Companies + Contacts"
+  ],
+  "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
+  "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
+  "verifiedEndToEnd": {
+    "numerator": 0,
+    "denominator": 44,
+    "percent": 0.0,
+    "verifiedRequirementIds": [],
+    "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
+  },
+  "demo": "UI IMPLEMENTED",
+  "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
+  "nextBlocker": "OWNER_APPROVAL_OF_PG-TEST-01-CONSOLIDATED-01",
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/schema.review.sql",
+    "gitBlob": "7507a29dc58c27fa4b9ab7f3b6dd628397485c9a",
+    "sha256": "42169677305df68612d44a6c0f0a4b4bafe1ec142d041e9a9a0e426d84e97863"
+  },
+  "fullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/FULL.diff",
+    "sha256": "42aff60d9c4c77a495f5517f44a42bfdbc3713b18b5f3852ae2e271023e51d54"
+  },
+  "runtime": "closedBackend",
+  "authGate05": "OPEN",
+  "pgTest01": "OPEN"
+}

@@ -1,3 +1,9 @@
+> **SUPERSEDED — instrucción prioritaria de ejecución secuencial.** La demo se conserva
+> exclusivamente como `UI IMPLEMENTED` reutilizable. Se suspenden las entregas D1/D2
+> de producto descritas abajo hasta cerrar el módulo real actual. No se borra esta
+> planificación histórica ni se declara ningún módulo COMPLETE. Estado vigente:
+> `docs/implementation/b1/SEQUENTIAL_STATUS.json` y `SEQUENTIAL_EXECUTION.md`.
+
 # Producto demostrable y backend B1 — dos líneas de entrega
 
 Base revisada: HEAD `994a9363d488ec4cc2fddd403ff368195b215067`, PR #7.

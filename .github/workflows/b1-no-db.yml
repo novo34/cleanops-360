@@ -22,6 +22,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: python3 scripts/consolidate-b1-sql.py --check
+      - run: python3 scripts/review-b1-consolidated.py --check
+      - run: python3 -m unittest discover -s tests/static -v
       - run: npm run test:b1
       - run: npm test
       - run: npm run build
