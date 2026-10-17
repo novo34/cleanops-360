@@ -82,8 +82,8 @@ try {
       }
       if (message.kind === 'inspectEnrollment') {
         const methods = await admin.query('SELECT state,algorithm,octet_length(secret_ciphertext) AS bytes,last_totp_counter,method_version FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at DESC',[input.tenant,input.user])
-        const codes = await admin.query('SELECT count(*)::int AS count FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL',[input.tenant,input.user])
-        reply({ methods: methods.rows, recoveryCount: codes.rows[0].count }); continue
+        const codes = await admin.query('SELECT count(*)::int AS count,bool_and(octet_length(digest)=32) AS hmac_only FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL',[input.tenant,input.user])
+        reply({ methods: methods.rows, recoveryCount: codes.rows[0].count, recoveryHmacOnly: codes.rows[0].hmac_only }); continue
       }
       if (message.kind === 'inspect') {
         const rows = await admin.query("SELECT s.state,m.last_totp_counter FROM app.sessions s JOIN app.mfa_methods m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id WHERE s.tenant_id=$1 AND s.user_id=$2 AND m.id=$3 ORDER BY s.created_at DESC", [input.tenant,input.user,method])
