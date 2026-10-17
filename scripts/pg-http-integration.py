@@ -5,9 +5,11 @@ import shutil
 
 
 def run(b):
-    root=b.ROOT; destination='/tmp/b1-pg05'
+    root=b.ROOT; destination='/opt/b1-pg05'
     def require(result):
-        if result.returncode:raise RuntimeError('PG05_TEST_TRANSPORT_FAILED')
+        if result.returncode:
+            b.REPORT['httpTransportDiagnostic']={'stage':'copy-runtime-dependencies','reason':'NO_SPACE' if 'no space left' in result.stderr.lower() else 'COPY_OR_PROCESS_FAILURE','exitCode':result.returncode}
+            raise RuntimeError('PG05_TEST_TRANSPORT_FAILED')
     require(b.docker('exec',b.CID,'mkdir','-p',destination+'/scripts',destination+'/node_modules'))
     require(b.docker('cp','-L',shutil.which('node'),b.CID+':'+destination+'/node'))
     for name in ['lib','package.json','scripts/pg05-http-real.ts']:

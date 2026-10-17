@@ -23,6 +23,8 @@ const encrypted = Buffer.concat([cipher.update(secret), cipher.final()])
 const envelope = Buffer.concat([Buffer.from([2]), nonce, cipher.getAuthTag(), encrypted])
 const jar: Record<string, string> = {}
 let failedStage = 'HTTP-PG-setup'
+let lastStatus = 0
+const queryFailures: { operation: string; sqlstate: string }[] = []
 const safe = (name: string) => { checks.push({ name, status: 'PASS' }) }
 function saveCookies(response: Response) {
   for (const c of response.headers.getSetCookie()) {
@@ -35,7 +37,18 @@ try {
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
   await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
-  const backend = createApprovedPrivateBackend(identity, {
+  const privatePool = { async connect() {
+    const client = await identity.connect()
+    return { async query(sql: string, values?: unknown[]) {
+      try { return await client.query(sql, values) }
+      catch (error) {
+        const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : 'UNKNOWN'
+        queryFailures.push({ operation: /(?:auth_api|identity_private)\.[a-z_]+/.exec(sql)?.[0] ?? 'transaction', sqlstate: /^[0-9A-Z]{5}$/.test(code) ? code : 'TRANSPORT' })
+        throw error
+      }
+    }, release(discard?: boolean) { client.release(discard) } }
+  } }
+  const backend = createApprovedPrivateBackend(privatePool, {
     factors: { dummyPasswordHash: passwordHash, auditKey: randomBytes(32), otpKey: randomBytes(32), recoveryKey: randomBytes(32),
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
@@ -57,6 +70,7 @@ try {
       cookie: Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; '), origin, 'sec-fetch-site': 'same-origin',
       'x-csrf-token': jar[names.csrf], 'content-type': 'application/json', 'idempotency-key': randomUUID(),
     }, body: body === undefined ? undefined : JSON.stringify(body) }), operation)
+    lastStatus = response.status
     const data = await response.json(); saveCookies(response)
     return { response, data }
   }
@@ -81,7 +95,7 @@ try {
   assert.equal(persisted.rows[0]?.state, 'ACTIVE'); assert.notEqual(persisted.rows[0]?.last_totp_counter, null)
   safe('HTTP-real-PG-persisted-session-counter')
 } catch {
-  checks.push({ name: failedStage, status: 'FAIL', detail: 'Redacted HTTP/crypto/database integration failure; no success inferred from isolated SQL tests' })
+  checks.push({ name: failedStage, status: 'FAIL', detail: 'HTTP status='+lastStatus+'; broker errors='+JSON.stringify(queryFailures)+'; no sensitive request/response logged' })
 } finally {
   key.fill(0); secret.fill(0)
   await identity.end(); await admin.end()

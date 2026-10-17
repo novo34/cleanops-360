@@ -1,0 +1,1298 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-05",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized-consolidated-blob-sha256-diff-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "function-bodies-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated",
+      "status": "PASS"
+    },
+    {
+      "name": "all-broker-contracts-persisted",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-purger-no-login-super-bypass-or-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-broker-log-insert-only",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-purger-exact-column-rights",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-helper-owner-signature-void-definer-searchpath",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-force-RLS-distinct-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_runtime-PG05-cannot-assume-purger",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-PG05-no-direct-helper",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-PG05-cannot-assume-purger",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-PG05-no-direct-helper",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-PG05-cannot-assume-purger",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-PG05-no-direct-helper",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-PG05-cannot-assume-purger",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-PG05-no-direct-helper",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-broker-no-read-expires_at",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-broker-no-read-id",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-broker-no-read-count(*)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-broker-no-direct-delete",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-two-principal-expiry-fixtures",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-purger-sees-expired-only",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-purger-no-other-log-columns",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-purger-cannot-delete-future",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-future-records-remain",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-purger-cannot-update",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "PG05-functional-GC-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-rollback-keeps-expired",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-concurrent-GC-returns-no-data",
+      "status": "PASS"
+    },
+    {
+      "name": "PG05-expired-deleted-future-preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "complete-catalog-inventory",
+      "status": "PASS"
+    },
+    {
+      "name": "installed-definition-counts",
+      "status": "PASS"
+    },
+    {
+      "name": "all-functions-have-pinned-search-path",
+      "status": "PASS"
+    },
+    {
+      "name": "credential-CAS-concurrent-one-winner",
+      "status": "PASS",
+      "detail": {
+        "outcomes": [
+          {
+            "sqlstate": null,
+            "value": "f"
+          },
+          {
+            "sqlstate": null,
+            "value": "t"
+          }
+        ]
+      }
+    },
+    {
+      "name": "credential-CAS-stale-version",
+      "status": "PASS"
+    },
+    {
+      "name": "credential-material-locked-private-projection",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-denies-unverified-credential-version",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "synthetic-TOTP-method-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-verified-create-0",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-state-pending-MFA-0",
+      "status": "PASS"
+    },
+    {
+      "name": "D1-bound-challenge-0",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-verified-create-1",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-state-pending-MFA-1",
+      "status": "PASS"
+    },
+    {
+      "name": "challenge-cooldown-enforced-1",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "D1-bound-challenge-1",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-verified-create-2",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-state-pending-MFA-2",
+      "status": "PASS"
+    },
+    {
+      "name": "challenge-cooldown-enforced-2",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "D1-bound-challenge-2",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-verified-create-3",
+      "status": "PASS"
+    },
+    {
+      "name": "preauth-state-pending-MFA-3",
+      "status": "PASS"
+    },
+    {
+      "name": "D1-method-version-revalidation",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "D1-method-foreign-UUID-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "global-TOTP-CAS-concurrent-one-winner",
+      "status": "PASS",
+      "detail": {
+        "outcomes": [
+          {
+            "sqlstate": null,
+            "value": "f"
+          },
+          {
+            "sqlstate": null,
+            "value": "t"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TOTP-race-one-verified-binding",
+      "status": "PASS"
+    },
+    {
+      "name": "issue-session-requires-verified-MFA",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "full-authentication-MFA-transitions",
+      "status": "PASS"
+    },
+    {
+      "name": "issued-session-real-runtime-binding",
+      "status": "PASS"
+    },
+    {
+      "name": "issued-session-token-usable",
+      "status": "PASS"
+    },
+    {
+      "name": "consumed-preauth-cannot-reissue-session",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "TOTP-global-counter-replay-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "TOTP-expired-counter-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-pending-reservation-cannot-be-stolen",
+      "status": "PASS",
+      "detail": {
+        "outcomes": [
+          "P0001",
+          "false"
+        ]
+      }
+    },
+    {
+      "name": "owned-reserve-complete-atomic",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-safe-result-idempotent-replay",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-retry-request-mismatch-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "API-plan-probe-begin_verified_context",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.begin_verified_context(text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-issue_active_session",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.issue_active_session(text,bytea,bytea,integer,integer,text,text,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-touch_activity",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.touch_activity()",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-rate_attempt",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.rate_attempt(bytea,text,text,integer)",
+        "sqlstate": "23502",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-record_security_event",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.record_security_event(text,bytea,bytea,bytea,uuid)",
+        "sqlstate": "23502",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-claim_mail",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.claim_mail(bytea)",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-finish_mail",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.finish_mail(uuid,uuid,bytea,boolean)",
+        "sqlstate": "P0001",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-gc_context",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.gc_context()",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-current_identity",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.current_identity()",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-own_sessions",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.own_sessions(integer,timestamp with time zone,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-revoke_own_session",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.revoke_own_session(uuid,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-revoke_other_own_sessions",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.revoke_other_own_sessions(uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-memberships",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.memberships(text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-select_tenant",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.select_tenant(text,uuid,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-begin_switch",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.begin_switch(text,bytea,uuid,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-security_policy",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.security_policy()",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-bootstrap_csrf",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.bootstrap_csrf(bytea,bytea)",
+        "sqlstate": "P0001",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-csrf_valid",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.csrf_valid(text,text,text)",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-gc_ephemeral",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.gc_ephemeral()",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-active_summary",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.active_summary()",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-preauth_summary",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.preauth_summary(text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-credential_material_locked",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.credential_material_locked(text)",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-rehash_credential_cas",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.rehash_credential_cas(uuid,bigint,text,text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-new_preauth_verified",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.new_preauth_verified(uuid,uuid,bigint,text,bytea,bytea)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-resolve_binding",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.resolve_binding(text,text,text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-binding_authorization",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.binding_authorization(text,text,uuid)",
+        "sqlstate": null,
+        "outcome": "EXECUTED_ROLLED_BACK"
+      }
+    },
+    {
+      "name": "API-plan-probe-totp_material_locked",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.totp_material_locked(text,uuid,text)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-consume_totp_cas",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.consume_totp_cas(text,uuid,text,bigint,bigint,bigint,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-consume_enrollment_cas",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.consume_enrollment_cas(text,uuid,bigint,bigint,bigint,bytea[],uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-reserve_owned",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.reserve_owned(text,text,bytea,bytea,boolean)",
+        "sqlstate": "P0001",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-discard_owned",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.discard_owned(text,text,bytea,bytea)",
+        "sqlstate": "P0001",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-complete_owned",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.complete_owned(text,text,bytea,bytea,jsonb)",
+        "sqlstate": "P0001",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-email_otp_material",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.email_otp_material(text,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-consume_email_otp",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.consume_email_otp(text,uuid,bytea,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-trusted_mfa_material",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.trusted_mfa_material(text,text,text,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-issue_bound_challenge",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.issue_bound_challenge(text,text,uuid,bigint,bytea,bytea,text,text,uuid,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "API-plan-probe-begin_totp_enrollment_assigned",
+      "status": "PASS",
+      "detail": {
+        "signature": "auth_api.begin_totp_enrollment_assigned(text,uuid,uuid,uuid,bigint,bytea,text,text,uuid)",
+        "sqlstate": "42501",
+        "outcome": "BUSINESS_REJECTION"
+      }
+    },
+    {
+      "name": "step-up-bound-challenge",
+      "status": "PASS"
+    },
+    {
+      "name": "step-up-CAS-consume",
+      "status": "PASS"
+    },
+    {
+      "name": "step-up-evidence-policy-bound",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign-tenant-method-selection-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "enrollment-preauth-credential-bound",
+      "status": "PASS"
+    },
+    {
+      "name": "enrollment-assigned-ID-and-version",
+      "status": "PASS"
+    },
+    {
+      "name": "enrollment-confirm-CAS",
+      "status": "PASS"
+    },
+    {
+      "name": "enrollment-persisted-recovery-batch",
+      "status": "PASS"
+    },
+    {
+      "name": "enrollment-state-version-trigger",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-EMAIL-method-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-encrypted-outbox-atomic-issue",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-worker-claim-no-network",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-worker-finish-synthetic-delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-outbox-ciphertext-purged",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-invalid-proof-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-valid-proof-atomic-consume",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-replay-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "broker-effects-error-rolls-back",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "22012"
+      }
+    },
+    {
+      "name": "broker-owned-reservation-not-persisted",
+      "status": "PASS"
+    },
+    {
+      "name": "terminate-owned-service-transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "broker-COMMIT-failure",
+      "status": "PASS"
+    },
+    {
+      "name": "broker-failed-COMMIT-no-reservation",
+      "status": "PASS"
+    },
+    {
+      "name": "CSRF-bootstrap-broker-create",
+      "status": "PASS"
+    },
+    {
+      "name": "CSRF-bootstrap-valid",
+      "status": "PASS"
+    },
+    {
+      "name": "CSRF-bootstrap-wrong-token-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "ACTIVE-binding-server-context",
+      "status": "PASS"
+    },
+    {
+      "name": "PREAUTH-binding-server-context",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-reservations-concurrent-consume",
+      "status": "PASS",
+      "detail": {
+        "outcomes": [
+          {
+            "sqlstate": null,
+            "value": "f"
+          },
+          {
+            "sqlstate": null,
+            "value": "t"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fixture-credential-version-change",
+      "status": "PASS"
+    },
+    {
+      "name": "ACTIVE-denied-after-credential-version-change",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "fixture-credential-version-restored",
+      "status": "PASS"
+    },
+    {
+      "name": "fixture-tenant-disabled",
+      "status": "PASS"
+    },
+    {
+      "name": "ACTIVE-disabled-tenant-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "other-tenant-survives-disabling-first",
+      "status": "PASS"
+    },
+    {
+      "name": "fixture-tenant-restored",
+      "status": "PASS"
+    },
+    {
+      "name": "fixture-expired-challenge",
+      "status": "PASS"
+    },
+    {
+      "name": "expired-challenge-material-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "fixture-method-generation-change",
+      "status": "PASS"
+    },
+    {
+      "name": "method-generation-trigger-incremented",
+      "status": "PASS"
+    },
+    {
+      "name": "prior-generation-challenge-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "fixture-method-revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "revoked-method-cannot-issue-challenge",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "harness",
+      "status": "FAIL",
+      "detail": "RuntimeError:PG05_TEST_TRANSPORT_FAILED"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-05",
+    "ownerApproved": true,
+    "sourceHead": "ef386d985d8a1c3331d7dd2d4cdf66468bf6f3d5",
+    "candidate": {
+      "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql",
+      "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+      "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c"
+    },
+    "fullDiff": {
+      "path": "docs/proposals/b1-consolidated-sql/revisions/05/PARENT_04_TO_05.diff",
+      "sha256": "53d14a06842edc9c66be097e3cbadb53143f1a6ebdb9d8d4a4fa977d26586e9a"
+    },
+    "originalSources": [
+      {
+        "name": "V4",
+        "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+        "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+        "sha256": "79f8c7a1a4165e2c1f08448ab12cadd43ff46a53d928970d77d261a878303b70"
+      },
+      {
+        "name": "B1-X",
+        "path": "docs/proposals/b1-v4-extension/review-only.sql",
+        "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+        "sha256": "49fcce0b89a1da59639dd0ee6d0c71206af5935ce28743fe70843783137df90f"
+      },
+      {
+        "name": "D1",
+        "path": "docs/proposals/b1-ceremony-material/review-only.sql",
+        "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+        "sha256": "446aa1513c9b413bf3bc9007206b5705f730d7d64a91f1c1f19b5b7a9783321b"
+      },
+      {
+        "name": "D1-ACL",
+        "path": "docs/proposals/b1-ceremony-material/approval-matrix.json",
+        "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+        "sha256": "abb97c7895983fbd061af6137d93a26f56bdf2eb9b954d01ea1984bf6b895ef3"
+      }
+    ],
+    "scope": {
+      "postgresMajor": 16,
+      "docker": "NEW_EPHEMERAL_OWN_LABEL",
+      "network": "none",
+      "publicPorts": false,
+      "sharedVolumes": false,
+      "data": "SYNTHETIC_ONLY",
+      "preexistingResources": "READ_ONLY_INVENTORY_NEVER_MUTATE"
+    },
+    "constraints": [
+      "Any changed SQL hash or extra privileges",
+      "Existing/shared/staging/production database changes",
+      "Production keys or data",
+      "External SMTP",
+      "Deployment",
+      "Merge",
+      "Backend runtime activation",
+      "B1 or AUTH-GATE-05 closure"
+    ],
+    "authority": "Explicit owner authorization of exact consolidated 05 in this session; isolated PG16 synthetic validation only.",
+    "runtime": "closedBackend",
+    "b1": "OPEN",
+    "authGate05": "OPEN",
+    "automaticClosureAuthorized": false
+  },
+  "candidate": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875
+  },
+  "submittedSqlSha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+  "installedCatalog": {
+    "policies": 35,
+    "triggers": 12,
+    "functions": 66,
+    "procedures": 0
+  },
+  "apiPlanningProbes": [
+    {
+      "signature": "auth_api.begin_verified_context(text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.issue_challenge(text,text,uuid,bytea,bytea,text,text,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.verify_challenge(text,uuid,bytea,bigint,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.begin_totp_enrollment(text,bytea,text,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.confirm_totp_enrollment(text,uuid,bigint,bytea[],uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.issue_active_session(text,bytea,bytea,integer,integer,text,text,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.touch_activity()",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.reserve_idempotency(text,bytea,bytea,boolean)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.complete_idempotency(text,bytea,jsonb)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.reserve_ceremony(text,text,bytea,bytea,boolean)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.complete_ceremony(text,text,bytea,jsonb)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.rate_attempt(bytea,text,text,integer)",
+      "sqlstate": "23502",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.record_security_event(text,bytea,bytea,bytea,uuid)",
+      "sqlstate": "23502",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.claim_mail(bytea)",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.finish_mail(uuid,uuid,bytea,boolean)",
+      "sqlstate": "P0001",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.consume_recovery_internal(text,bytea,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.gc_context()",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.current_identity()",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.own_sessions(integer,timestamp with time zone,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.revoke_own_session(uuid,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.revoke_other_own_sessions(uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.new_preauth(uuid,uuid,bytea,bytea)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.memberships(text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.select_tenant(text,uuid,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.begin_switch(text,bytea,uuid,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.security_policy()",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.bootstrap_csrf(bytea,bytea)",
+      "sqlstate": "P0001",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.csrf_valid(text,text,text)",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.login_material(text)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.challenge_material(text,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.enrollment_material(text,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.gc_ephemeral()",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.active_summary()",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.preauth_summary(text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.credential_material_locked(text)",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.rehash_credential_cas(uuid,bigint,text,text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.new_preauth_verified(uuid,uuid,bigint,text,bytea,bytea)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.resolve_binding(text,text,text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.binding_authorization(text,text,uuid)",
+      "sqlstate": null,
+      "outcome": "EXECUTED_ROLLED_BACK"
+    },
+    {
+      "signature": "auth_api.totp_material_locked(text,uuid,text)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.consume_totp_cas(text,uuid,text,bigint,bigint,bigint,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.consume_enrollment_cas(text,uuid,bigint,bigint,bigint,bytea[],uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.reserve_owned(text,text,bytea,bytea,boolean)",
+      "sqlstate": "P0001",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.discard_owned(text,text,bytea,bytea)",
+      "sqlstate": "P0001",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.complete_owned(text,text,bytea,bytea,jsonb)",
+      "sqlstate": "P0001",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.email_otp_material(text,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.consume_email_otp(text,uuid,bytea,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.begin_totp_enrollment_explicit(text,bytea,text,text,uuid)",
+      "scope": "PRIVATE_NOT_EXPOSED"
+    },
+    {
+      "signature": "auth_api.trusted_mfa_material(text,text,text,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.issue_bound_challenge(text,text,uuid,bigint,bytea,bytea,text,text,uuid,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    },
+    {
+      "signature": "auth_api.begin_totp_enrollment_assigned(text,uuid,uuid,uuid,bigint,bytea,text,text,uuid)",
+      "sqlstate": "42501",
+      "outcome": "BUSINESS_REJECTION"
+    }
+  ],
+  "protocolTestLimitations": [
+    "Synthetic opaque Argon2id/ciphertext fixtures test broker attestation and CAS, not cryptographic verification or key custody.",
+    "Counter values are attested synthetic service inputs; real crypto library/E2E acceptance is separate.",
+    "Catalog inventory and native installation validation do not prove every runtime branch or dynamic query."
+  ],
+  "result": "FAIL",
+  "mandatoryProductScenariosComplete": true,
+  "mandatoryProtocolCases": {
+    "credential-CAS-concurrent-one-winner": "PASS",
+    "global-TOTP-CAS-concurrent-one-winner": "PASS",
+    "D1-method-version-revalidation": "PASS",
+    "full-authentication-MFA-transitions": "PASS",
+    "owned-reservations-concurrent-consume": "PASS"
+  },
+  "b1RequirementsComplete": {
+    "count": 0,
+    "total": 44,
+    "basis": "No complete real B1 requirement accepted by this run."
+  },
+  "provenance": {
+    "head": "bdcc9c2ed37d45fd0c548e6b5de201dbfb2bf213",
+    "run": 39066786672,
+    "job": 117496015395
+  }
+}
