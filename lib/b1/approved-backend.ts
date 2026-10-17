@@ -1,4 +1,5 @@
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
+import { approvedTotpEnrollmentPolicy } from './enrollment-policy.ts'
 import { canonical } from './contracts.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
@@ -390,7 +391,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const label = await deps.enrollment.accountAlias(subject)
             if (typeof label !== 'string' || !label.trim() || /[\p{Cc}\p{Cf}]/u.test(label)) throw unavailable()
             const prepared = await deps.enrollment.withWriteKey(subject.tenantId, (key, keyVersion) =>
-              prepareTotpEnrollment(subject, { algorithm: 'SHA256', secretBytes: 32, issuer: 'CleanOps 360', label }, key, keyVersion))
+              prepareTotpEnrollment(subject, { ...approvedTotpEnrollmentPolicy, label }, key, keyVersion))
             try {
               const assigned = await broker.call('enrollAssigned', [preauth(), subject.tenantId, subject.userId,
                 prepared.methodId, prepared.initialVersion, prepared.ciphertext, prepared.keyVersion, prepared.algorithm, correlation])

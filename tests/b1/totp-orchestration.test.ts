@@ -96,6 +96,8 @@ async function fixture(options:Options={}) {
      value=challengeId
     }
     else if(name==='totp_material_locked'){
+     // This fixture contains ACTIVE challenge methods, never a PENDING enrollment.
+     if(values[2]==='ENROLLMENT')throw err('AUTH_INVALID')
      const c=staged.challenges[String(values[1])]
      if(!c||c.state!=='ISSUED'||c.version!==generation||c.expires<=time)throw err('AUTH_INVALID')
      value={binding:{tenantId:tenant,userId:U,methodId:c.method,ceremonyId:c.id,purpose:values[2]},version:generation,lastCounter:staged.counter,

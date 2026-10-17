@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { TotpEnrollmentQr } from './totp-enrollment-qr'
 import { contract, operations, valid } from '@/lib/b1/contracts'
 import { UiRequestKeys } from '@/lib/b1/ui-request-keys'
 import { emptyView, receiveAuth, type AuthState } from '@/lib/b1/ui-state'
@@ -215,6 +216,7 @@ export function AuthPanel() {
       </form>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && <button onClick={() => void enroll()}>Configurar autenticador</button>}
       {enrollment && <section><h2>Configura tu autenticador</h2><p>Introduce esta URI en tu aplicación. Se muestra una sola vez.</p>
+        <TotpEnrollmentQr key={enrollment.enrollment_id} uri={enrollment.provisioning_uri} />
         <output style={{ overflowWrap: 'anywhere' }}>{enrollment.provisioning_uri}</output>
         <form onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); form.reset(); const r = await call('confirmTotp', { enrollment_id: enrollment.enrollment_id, proof: String(data.get('proof')) }); if (r) { accept(r.auth); setView(v => ({ ...v, codes: r.codes })) } }}>
           <label>Primer código <input name="proof" inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} required /></label><button>Confirmar</button>
