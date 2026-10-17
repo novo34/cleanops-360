@@ -1,0 +1,49 @@
+name: PG-TEST-01 consolidated 03 authorized PG16
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  authorized-consolidated:
+    # One authorized transition from the verified source HEAD only. Evidence/fix
+    # commits after this run must not repeatedly reinstall the failing candidate.
+    if: github.event.pull_request.number == 7 && github.event.before == '433a5081bff2f7642a989b670a3e2b79e956dbeb' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify immutable consolidated proposal
+        run: |
+          python3 scripts/consolidate-b1-sql.py --revision 03 --check
+          python3 scripts/review-b1-case-operands.py --check
+      - name: PostgreSQL 16 offline parser dependency
+        run: python3 -m pip install pglast==6.2
+      - name: All function declarations offline grammar diagnostics
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/pg-consolidated-03
+          python3 scripts/parse-b1-sql.py > artifacts/pg-consolidated-03/parser.json
+      - name: Authorized new isolated PostgreSQL 16 run
+        run: python3 scripts/pg-consolidated-03.py
+      - name: Redacted exact-run evidence
+        if: always()
+        run: |
+          if [ -f artifacts/pg-consolidated-03/report.json ]; then
+            cat artifacts/pg-consolidated-03/report.json
+          elif [ -f artifacts/pg-test-01/report.json ]; then
+            cat artifacts/pg-test-01/report.json
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pg-consolidated-03-redacted-evidence
+          path: artifacts/pg-consolidated-03/*.json
+          if-no-files-found: ignore
+          retention-days: 7

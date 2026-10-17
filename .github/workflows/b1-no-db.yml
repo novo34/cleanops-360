@@ -27,6 +27,8 @@ jobs:
       - run: python3 scripts/consolidate-b1-sql.py --revision 03 --check
       - run: python3 scripts/review-b1-case-operands.py --check
       - run: python3 scripts/review-b1-consolidated.py --revision 02 --check
+      - run: python3 -m pip install pglast==6.2
+      - run: python3 scripts/parse-b1-sql.py
       - run: python3 -m unittest discover -s tests/static -v
       - run: npm run test:b1
       - run: npm test
