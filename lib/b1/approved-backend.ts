@@ -384,9 +384,10 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             return { data: { challenge_id: data.challenge_id, method: 'TOTP', expires_at: data.expires_at } }
           }
           if (operation === 'enrollTotp') {
-            if (!deps.enrollment || !binding.tenantId || !binding.userId ||
+            if (!deps.enrollment || methodLimit === undefined || !binding.tenantId || !binding.userId ||
                 (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'ENROLLMENT_REQUIRED'))) throw unavailable()
             const trusted = await material(preauth(), 'ENROLLMENT', binding)
+            if (eligibleTotpMethods(trusted.enabledMethods, methodLimit).length >= methodLimit) return new AuthError(409, 'METHOD_LIMIT')
             const subject = Object.freeze({ tenantId: trusted.tenantId, userId: trusted.userId, bindingId: trusted.bindingId })
             const label = await deps.enrollment.accountAlias(subject)
             if (typeof label !== 'string' || !label.trim() || /[\p{Cc}\p{Cf}]/u.test(label)) throw unavailable()

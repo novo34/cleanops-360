@@ -20,7 +20,7 @@ export function closeOwnedServer(server) {
 export async function startRealBrowserServer(scenario = 'existing') {
   const input = JSON.parse(process.env.B1_BROWSER_FIXTURE || '{}')
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
-  if (!['existing','enrollment'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
+  if (!['existing','enrollment','additional'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
   input.scenario = scenario
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]

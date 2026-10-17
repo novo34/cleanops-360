@@ -26,7 +26,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -38,6 +38,7 @@ export function AuthPanel() {
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
+  const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
   useEffect(() => {
     const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
@@ -152,11 +153,14 @@ export function AuthPanel() {
         endCeremony('Respuesta no válida. Inicia una nueva verificación.'); return
       }
       const action = pendingAction
+      const retainedEnrollment = stepContext.current?.grant_id === 'B1-SELF-06' ? enrollment : null
       clearCeremony()
       accept(auth)
+      if (retainedEnrollment && auth.state === 'ACTIVE') { setEnrollment(retainedEnrollment); setEnrollmentAuthorized(true) }
       if (action && auth.state === 'ACTIVE' && !expired(auth.absolute_expires_at)) {
         const result = await call(action.operation, action.body)
-        if (result?.state && result.state !== 'REVOKED') accept(result)
+        if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false) }
+        else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
       }
     }
@@ -215,12 +219,13 @@ export function AuthPanel() {
         {challenge.allowed_methods.includes('EMAIL_OTP') && <button type="button" onClick={async () => { const r = await call('resendOtp', { challenge_id: challenge.challenge_id }); if (r) setChallenge({ challenge_id: r.challenge_id, allowed_methods: [r.method], expires_at: r.expires_at }) }}>Reenviar código</button>}
       </form>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && <button onClick={() => void enroll()}>Configurar autenticador</button>}
-      {enrollment && <section><h2>Configura tu autenticador</h2><p>Introduce esta URI en tu aplicación. Se muestra una sola vez.</p>
+      {enrollment && !challenge && !selection && <section><h2>Configura tu autenticador</h2><p>Introduce esta URI en tu aplicación. Se muestra una sola vez.</p>
         <TotpEnrollmentQr key={enrollment.enrollment_id} uri={enrollment.provisioning_uri} />
         <output style={{ overflowWrap: 'anywhere' }}>{enrollment.provisioning_uri}</output>
-        <form onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); form.reset(); const r = await call('confirmTotp', { enrollment_id: enrollment.enrollment_id, proof: String(data.get('proof')) }); if (r) { accept(r.auth); setView(v => ({ ...v, codes: r.codes })) } }}>
+        {view.auth?.state === 'ACTIVE' && !enrollmentAuthorized && <><p>Confirmar otro autenticador reemplaza los códigos de recuperación anteriores.</p><button onClick={async () => { const result = await call('startStepUp', { grant_id: 'B1-SELF-06' }); if (result) prepare(result, { grant_id: 'B1-SELF-06' }) }}>Autorizar confirmación</button></>}
+        {(view.auth?.state !== 'ACTIVE' || enrollmentAuthorized) && <form onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); form.reset(); const r = await call('confirmTotp', { enrollment_id: enrollment.enrollment_id, proof: String(data.get('proof')) }); if (r) { accept(r.auth); setView(v => ({ ...v, codes: r.codes })) } }}>
           <label>Primer código <input name="proof" inputMode="numeric" pattern="[0-9]{6}" minLength={6} maxLength={6} required /></label><button>Confirmar</button>
-        </form></section>}
+        </form>}</section>}
       {view.codes.length > 0 && <section><h2>Códigos de recuperación</h2><p>Guárdalos de forma segura. No volverán a mostrarse.</p><ul>{view.codes.map(c => <li key={c}><code>{c}</code></li>)}</ul><button onClick={() => setView(v => ({ ...v, codes: [] }))}>Ya los he guardado</button></section>}
       {view.auth && !challenge && !selection && !enrollment && <section>
         <button onClick={() => void tenants()}>Seleccionar empresa</button>
@@ -228,6 +233,7 @@ export function AuthPanel() {
       </section>}
       {view.auth?.state === 'ACTIVE' && !challenge && !selection && !enrollment && <section>
         <h2>Seguridad de la cuenta</h2>
+        <button onClick={async () => { const result = await call('startStepUp', { grant_id: 'B1-SELF-05' }); if (result) { setPendingAction({ operation: 'enrollTotp' }); prepare(result, { grant_id: 'B1-SELF-05' }) } }}>Añadir autenticador</button>
         <button onClick={async () => { const r = await call('getCurrentIdentity'); if (r) setMessage(`Sesión de ${r.display_name}`) }}>Mi identidad</button>
         <button onClick={() => void sessions()}>Mis sesiones</button>
         <ul>{(view.sessions as Session[]).map(s => <li key={s.id}><span>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}</span><dl>

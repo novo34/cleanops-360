@@ -166,3 +166,87 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
     await expect(page.locator('code')).toHaveCount(0)
   } finally { phase('CLEANUP'); await server.close(); phase('CLEANUP_DONE') }
 })
+
+test('real ACTIVE additional enrollment requires both grants then supports explicit multi-method login',async({page})=>{
+  // Real canonical counter windows and resend cooldown require up to60s. The old
+  // test timeouts are unchanged; no SQL clock/profile/control is weakened.
+  test.setTimeout(120000)
+  const phase=(description:string)=>test.info().annotations.push({type:'phase',description})
+  phase('INIT_ADDITIONAL_ENROLLMENT')
+  const server=await startRealBrowserServer('additional')
+  try{
+    await page.goto('/login')
+    await page.getByLabel('Email',{exact:true}).fill('u2@fixture.invalid')
+    await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+    await page.getByRole('button',{name:'Continuar',exact:true}).click()
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    const firstLogin=Date.now(), proof=await server.rpc({kind:'proof'})
+    await page.getByLabel('Código',{exact:true}).fill(proof.proof)
+    await page.getByRole('button',{name:'Verificar',exact:true}).click()
+    await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+    const initialCookies=await page.context().cookies(), original=initialCookies.find(c=>c.name==='__Host-cleanops_session')!.value
+    phase('STEPUP_ENROLL_05')
+    await page.getByRole('button',{name:'Añadir autenticador',exact:true}).click()
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    const authorizeEnrollment=await server.rpc({kind:'proof',next:true})
+    await page.getByLabel('Código',{exact:true}).fill(authorizeEnrollment.proof)
+    const enrolled=page.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/enroll')
+    await page.getByRole('button',{name:'Verificar',exact:true}).click()
+    const enrollmentResponse=await enrolled
+    expect(enrollmentResponse.status()).toBe(200)
+    const material=(await enrollmentResponse.json()).data
+    await expect(page.getByRole('img',{name:'Código QR temporal para configurar tu autenticador'})).toBeVisible()
+    await expect(page.getByLabel('Primer código',{exact:true})).toHaveCount(0)
+    phase('DENY_WITHOUT_CONFIRM_GRANT')
+    const premature=await page.request.post('/mfa/totp/confirm',{headers:{Origin:'https://127.0.0.1:3000','Sec-Fetch-Site':'same-origin',
+      'X-CSRF-Token':(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_csrf')!.value,'Idempotency-Key':crypto.randomUUID()},
+      data:{enrollment_id:material.enrollment_id,proof:'000000'}})
+    expect(premature.status()).toBe(403)
+    const unconfirmed=await server.rpc({kind:'inspectEnrollment'})
+    expect(unconfirmed.methods[0].state==='PENDING' && unconfirmed.methods[0].last_totp_counter===null && unconfirmed.recoveryCount===10).toBe(true)
+    phase('STEPUP_CONFIRM_06')
+    await page.getByRole('button',{name:'Autorizar confirmación',exact:true}).click()
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    await expect(page.locator('output')).toHaveCount(0)
+    phase('WAIT_COUNTER_WINDOW')
+    const period=numeric('totp_period')*1000
+    await new Promise(resolve=>setTimeout(resolve,period-(Date.now()%period)+100))
+    const authorizeConfirmation=await server.rpc({kind:'proof',next:true})
+    await page.getByLabel('Código',{exact:true}).fill(authorizeConfirmation.proof)
+    await page.getByRole('button',{name:'Verificar',exact:true}).click()
+    await expect(page.getByLabel('Primer código',{exact:true})).toBeVisible()
+    const {URI,TOTP}=await import('otpauth'),app=URI.parse(material.provisioning_uri)
+    if(!(app instanceof TOTP))throw Error('INVALID_AUTHENTICATOR_TYPE')
+    phase('CONFIRM_ADDITIONAL_METHOD')
+    await page.getByLabel('Primer código',{exact:true}).fill(app.generate())
+    const confirmation=page.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/confirm')
+    await page.getByRole('button',{name:'Confirmar',exact:true}).click()
+    const result=await confirmation
+    expect(result.status()).toBe(200)
+    await expect(page.locator('code')).toHaveCount(10)
+    expect((await page.context().cookies()).find(c=>c.name==='__Host-cleanops_session')!.value===original).toBe(true)
+    const stored=await server.rpc({kind:'inspectEnrollment'})
+    expect(stored.methods.filter((m:{state:string})=>m.state==='ACTIVE').length).toBe(2)
+    expect(stored.recoveryCount===10 && stored.revokedRecoveryCount>=10 && stored.recoveryHmacOnly===true).toBe(true)
+    const logout=page.waitForNavigation({waitUntil:'domcontentloaded'})
+    await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();await logout
+    phase('EXPLICIT_MULTI_METHOD_LOGIN')
+    await page.getByLabel('Email',{exact:true}).fill('u2@fixture.invalid')
+    await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+    const selected=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
+    await page.getByRole('button',{name:'Continuar',exact:true}).click()
+    const choices=(await(await selected).json()).data
+    expect(choices.state).toBe('TOTP_SELECTION_REQUIRED')
+    const index=choices.methods.findIndex((m:{method_id:string})=>m.method_id===material.enrollment_id)
+    expect(index>=0).toBe(true)
+    phase('WAIT_RESEND_COOLDOWN')
+    await new Promise(resolve=>setTimeout(resolve,Math.max(0,firstLogin+numeric('otp_resend_cooldown')*1000+100-Date.now())))
+    await page.getByLabel('Aplicación de autenticación '+(index+1)).check()
+    await page.getByRole('button',{name:'Continuar con este método',exact:true}).click()
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    await page.getByLabel('Código',{exact:true}).fill(app.generate())
+    await page.getByRole('button',{name:'Verificar',exact:true}).click()
+    await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+    await expect(page.locator('code')).toHaveCount(0)
+  }finally{phase('CLEANUP');await server.close();phase('CLEANUP_DONE')}
+})
