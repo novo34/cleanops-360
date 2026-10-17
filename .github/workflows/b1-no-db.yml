@@ -29,6 +29,9 @@ jobs:
       - run: python3 scripts/review-b1-consolidated.py --revision 02 --check
       - run: python3 -m pip install pglast==6.2
       - run: python3 scripts/parse-b1-sql.py
+      - run: python3 scripts/consolidate-b1-sql.py --revision 04 --check
+      - run: python3 scripts/review-b1-maintenance-acl.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/04/schema.review.sql
       - run: python3 -m unittest discover -s tests/static -v
       - run: npm run test:b1
       - run: npm test

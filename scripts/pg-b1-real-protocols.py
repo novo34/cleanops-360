@@ -170,7 +170,7 @@ def run(b):
             unexpected = state and (state.startswith('42') and state!='42501' or state not in ('42501','P0001','22023','23502','23514','22004'))
             privilege = result.returncode and 'permission denied for' in result.stderr
             message=re.search(r'ERROR:\s+[0-9A-Z]{5}:\s+([^\n]+)',result.stderr)
-            detail={'signature':function['signature'],'sqlstate':state,'outcome':'BUSINESS_REJECTION' if state else 'EXECUTED_ROLLED_BACK'}
+            detail={'signature':function['signature'],'sqlstate':state,'outcome':'UNEXPECTED_PLANNING_OR_PRIVILEGE_FAILURE' if unexpected or privilege else 'BUSINESS_REJECTION' if state else 'EXECUTED_ROLLED_BACK'}
             if unexpected or privilege:
                 detail['message']=message.group(1)[:180] if message else 'Unclassified planning failure'
             probes.append(detail)

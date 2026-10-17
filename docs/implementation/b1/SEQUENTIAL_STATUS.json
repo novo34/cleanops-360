@@ -1,5 +1,5 @@
 {
-  "referenceHead": "c1f384def052458a623c90645967a164a2d76ed7",
+  "referenceHead": "d84dd8b8d73ec9c6f9e066a08f6c54c4e35f17d5",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -19,32 +19,40 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "AUTHORIZE_REVISED_CONSOLIDATED_SQL_AFTER_D1_COMPILATION_FAILURE",
+  "nextBlocker": "AUTHORIZE_MINIMAL_MAINTENANCE_COLUMN_READ_ACL",
   "candidate": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql",
-    "gitBlob": "d723ff9f615caafa701418dbaea60dec43479bba",
-    "sha256": "a1c524b9821319d830f4a753fb8691dde218e291341d90bd1d3ea14254c1e3fd"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/02/APPROVED_TO_02.diff",
-    "sha256": "991629834080bc1ba156ab2f1a4342a4c4c6164223cd26047549310b51d1c3b6"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
+    "sha256": "20501ce3609b8c3b8a5fb190055a62e68bd7d11c00aff3a51cbc73ad7d007397"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
   "pgTest01": "OPEN",
   "lastPostgresExecution": {
-    "authorization": "PG-TEST-01-CONSOLIDATED-02",
+    "authorization": "PG-TEST-01-CONSOLIDATED-03",
     "status": "FAIL",
-    "run": 39044517403,
-    "sqlstate": "42601",
-    "function": "auth_api.consume_email_otp",
+    "installation": "PASS",
+    "run": 39046545296,
+    "counts": {
+      "PASS": 253,
+      "FAIL": 1,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "sqlstate": "42501",
+    "function": "auth_api.gc_ephemeral()",
+    "cause": "Missing broker SELECT(expires_at) for existing security_log DELETE predicate",
     "cleanup": "PASS",
     "requirementsComplete": 0
   },
   "proposedCandidate": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
-    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
-    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/04/schema.review.sql",
+    "gitBlob": "f2c3c7c1f0859b9a6e0e2ed2c701f3c5d060774c",
+    "sha256": "81538c713e7e031a5acdc0b374f36a55e34ded733d9d08c99bc363c606d61083"
   },
-  "nextAuthorization": "PG-TEST-01-CONSOLIDATED-03"
+  "nextAuthorization": "PG-TEST-01-CONSOLIDATED-04"
 }

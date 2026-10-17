@@ -1,0 +1,10 @@
+--- CONSOLIDATED-03-AUTHORIZED
++++ CONSOLIDATED-04-REVIEW-ONLY
+@@ -650,6 +650,7 @@
+ END $fn$;
+ GRANT DELETE ON app.idempotency_records TO cleanops_auth_broker;
+ GRANT DELETE ON identity_private.security_log TO cleanops_auth_broker;
++GRANT SELECT(expires_at) ON identity_private.security_log TO cleanops_auth_broker;
+ CREATE FUNCTION auth_api.gc_ephemeral() RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+ BEGIN

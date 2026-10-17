@@ -1,0 +1,911 @@
+{
+  "declarations": 73,
+  "finalDefinitions": 65,
+  "functions": [
+    {
+      "name": "auth_api.active_summary",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.context",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.begin_switch",
+      "referencedRelations": [
+        "app.users",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.users",
+        "auth_api.new_preauth",
+        "auth_api.select_tenant",
+        "crypto.digest",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.begin_totp_enrollment",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "app.users",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "app.users",
+        "identity_private.append_audit",
+        "identity_private.checked_preauth",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.begin_totp_enrollment_assigned",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "auth_api.trusted_mfa_material",
+        "identity_private.append_audit",
+        "identity_private.cfg",
+        "identity_private.preauth"
+      ]
+    },
+    {
+      "name": "auth_api.begin_totp_enrollment_explicit",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "auth_api.begin_totp_enrollment",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.begin_verified_context",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "crypto.digest",
+        "identity_private.require_enabled",
+        "identity_private.tx_context",
+        "identity_private.valid_session"
+      ]
+    },
+    {
+      "name": "auth_api.binding_authorization",
+      "referencedRelations": [
+        "app.policy_versions",
+        "app.sessions",
+        "app.step_up_evidence",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.policy_versions",
+        "app.sessions",
+        "app.step_up_evidence",
+        "auth_api.memberships",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.lock_memberships",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.bootstrap_csrf",
+      "referencedRelations": [
+        "identity_private.csrf_bootstrap"
+      ],
+      "qualifiedReferences": [
+        "identity_private.cfg",
+        "identity_private.csrf_bootstrap",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.challenge_material",
+      "referencedRelations": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.claim_mail",
+      "referencedRelations": [
+        "app.auth_outbox",
+        "app.mfa_challenges",
+        "app.organizations",
+        "app.users"
+      ],
+      "qualifiedReferences": [
+        "app.auth_outbox",
+        "app.mfa_challenges",
+        "app.organizations",
+        "app.users",
+        "identity_private.cfg",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.complete_ceremony",
+      "referencedRelations": [
+        "identity_private.ceremony_idempotency",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "identity_private.ceremony_idempotency",
+        "identity_private.checked_preauth",
+        "identity_private.preauth"
+      ]
+    },
+    {
+      "name": "auth_api.complete_idempotency",
+      "referencedRelations": [
+        "app.idempotency_records",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.idempotency_records",
+        "identity_private.require_enabled",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.complete_owned",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "identity_private.finish_owned"
+      ]
+    },
+    {
+      "name": "auth_api.confirm_totp_enrollment",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "app.recovery_codes",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "app.recovery_codes",
+        "identity_private.append_audit",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.consume_email_otp",
+      "referencedRelations": [
+        "app.mfa_challenges",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_challenges",
+        "auth_api.trusted_mfa_material",
+        "auth_api.verify_challenge",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.consume_enrollment_cas",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "auth_api.confirm_totp_enrollment",
+        "auth_api.totp_material_locked",
+        "identity_private.cfg"
+      ]
+    },
+    {
+      "name": "auth_api.consume_recovery_internal",
+      "referencedRelations": [
+        "app.recovery_codes",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.recovery_codes",
+        "identity_private.append_audit",
+        "identity_private.checked_preauth",
+        "identity_private.preauth"
+      ]
+    },
+    {
+      "name": "auth_api.consume_totp_cas",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "auth_api.totp_material_locked",
+        "auth_api.verify_challenge",
+        "identity_private.cfg"
+      ]
+    },
+    {
+      "name": "auth_api.credential_material_locked",
+      "referencedRelations": [
+        "identity_private.credentials",
+        "identity_private.principals"
+      ],
+      "qualifiedReferences": [
+        "identity_private.credentials",
+        "identity_private.lock_principal",
+        "identity_private.principals",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.csrf_valid",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "crypto.digest",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth",
+        "identity_private.require_enabled",
+        "identity_private.valid_session"
+      ]
+    },
+    {
+      "name": "auth_api.current_identity",
+      "referencedRelations": [
+        "app.users",
+        "identity_private.principals",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.users",
+        "identity_private.guard",
+        "identity_private.principals",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.discard_owned",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "identity_private.finish_owned"
+      ]
+    },
+    {
+      "name": "auth_api.email_otp_material",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "auth_api.challenge_material"
+      ]
+    },
+    {
+      "name": "auth_api.enrollment_material",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.finish_mail",
+      "referencedRelations": [
+        "app.auth_outbox"
+      ],
+      "qualifiedReferences": [
+        "app.auth_outbox",
+        "identity_private.cfg"
+      ]
+    },
+    {
+      "name": "auth_api.gc_context",
+      "referencedRelations": [
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "identity_private.cfg",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.gc_ephemeral",
+      "referencedRelations": [
+        "app.auth_outbox",
+        "app.idempotency_records",
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "identity_private.ceremony_idempotency",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth",
+        "identity_private.rate_buckets",
+        "identity_private.security_log"
+      ],
+      "qualifiedReferences": [
+        "app.auth_outbox",
+        "app.idempotency_records",
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "identity_private.ceremony_idempotency",
+        "identity_private.cfg",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth",
+        "identity_private.rate_buckets",
+        "identity_private.security_log"
+      ]
+    },
+    {
+      "name": "auth_api.issue_active_session",
+      "referencedRelations": [
+        "app.organizations",
+        "app.sessions",
+        "app.users",
+        "identity_private.credentials",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.organizations",
+        "app.sessions",
+        "app.users",
+        "identity_private.append_audit",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.credentials",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.valid_session"
+      ]
+    },
+    {
+      "name": "auth_api.issue_bound_challenge",
+      "referencedRelations": [
+        "app.mfa_challenges"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_challenges",
+        "auth_api.issue_challenge",
+        "auth_api.trusted_mfa_material",
+        "identity_private.append_audit"
+      ]
+    },
+    {
+      "name": "auth_api.issue_challenge",
+      "referencedRelations": [
+        "app.auth_outbox",
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.users",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.auth_outbox",
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.users",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.login_material",
+      "referencedRelations": [
+        "identity_private.credentials",
+        "identity_private.principals"
+      ],
+      "qualifiedReferences": [
+        "identity_private.credentials",
+        "identity_private.principals",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.memberships",
+      "referencedRelations": [
+        "app.organizations",
+        "app.users",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.organizations",
+        "app.users",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.new_preauth",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.users",
+        "identity_private.credentials",
+        "identity_private.preauth",
+        "identity_private.principals"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.users",
+        "identity_private.cfg",
+        "identity_private.credentials",
+        "identity_private.preauth",
+        "identity_private.principals",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.new_preauth_verified",
+      "referencedRelations": [
+        "identity_private.credentials"
+      ],
+      "qualifiedReferences": [
+        "auth_api.new_preauth",
+        "identity_private.credentials",
+        "identity_private.lock_memberships",
+        "identity_private.lock_principal"
+      ]
+    },
+    {
+      "name": "auth_api.own_sessions",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.cfg",
+        "identity_private.guard",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.preauth_summary",
+      "referencedRelations": [
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "identity_private.checked_preauth",
+        "identity_private.preauth"
+      ]
+    },
+    {
+      "name": "auth_api.rate_attempt",
+      "referencedRelations": [
+        "identity_private.rate_buckets"
+      ],
+      "qualifiedReferences": [
+        "identity_private.cfg",
+        "identity_private.rate_buckets",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.record_security_event",
+      "referencedRelations": [
+        "identity_private.security_log"
+      ],
+      "qualifiedReferences": [
+        "identity_private.cfg",
+        "identity_private.security_log"
+      ]
+    },
+    {
+      "name": "auth_api.rehash_credential_cas",
+      "referencedRelations": [
+        "identity_private.credentials"
+      ],
+      "qualifiedReferences": [
+        "identity_private.credentials",
+        "identity_private.lock_principal"
+      ]
+    },
+    {
+      "name": "auth_api.reserve_ceremony",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "auth_api.reserve_owned"
+      ]
+    },
+    {
+      "name": "auth_api.reserve_idempotency",
+      "referencedRelations": [],
+      "qualifiedReferences": [
+        "auth_api.reserve_owned"
+      ]
+    },
+    {
+      "name": "auth_api.reserve_owned",
+      "referencedRelations": [
+        "app.idempotency_records",
+        "identity_private.ceremony_idempotency",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.idempotency_records",
+        "identity_private.ceremony_idempotency",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.resolve_binding",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "auth_api.begin_verified_context",
+        "auth_api.csrf_valid",
+        "crypto.digest",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.csrf_bootstrap",
+        "identity_private.preauth",
+        "identity_private.require_enabled",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.revoke_other_own_sessions",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.append_audit",
+        "identity_private.context",
+        "identity_private.guard",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.revoke_own_session",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.append_audit",
+        "identity_private.context",
+        "identity_private.guard",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.security_policy",
+      "referencedRelations": [
+        "identity_private.configuration"
+      ],
+      "qualifiedReferences": [
+        "identity_private.configuration",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "auth_api.select_tenant",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.users",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.users",
+        "identity_private.checked_preauth",
+        "identity_private.preauth",
+        "identity_private.rule_allowed"
+      ]
+    },
+    {
+      "name": "auth_api.totp_material_locked",
+      "referencedRelations": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.policy_versions",
+        "app.sessions",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.policy_versions",
+        "app.sessions",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.touch_activity",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.context",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.trusted_mfa_material",
+      "referencedRelations": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.policy_versions",
+        "app.sessions",
+        "app.users",
+        "identity_private.preauth",
+        "identity_private.principals",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_methods",
+        "app.organizations",
+        "app.policy_versions",
+        "app.sessions",
+        "app.users",
+        "identity_private.checked_preauth",
+        "identity_private.guard",
+        "identity_private.preauth",
+        "identity_private.principals",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "auth_api.verify_challenge",
+      "referencedRelations": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.policy_versions",
+        "app.step_up_evidence",
+        "identity_private.preauth",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.mfa_challenges",
+        "app.mfa_methods",
+        "app.policy_versions",
+        "app.step_up_evidence",
+        "identity_private.append_audit",
+        "identity_private.cfg",
+        "identity_private.checked_preauth",
+        "identity_private.context",
+        "identity_private.preauth",
+        "identity_private.rule_allowed",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "identity_private.append_audit",
+      "referencedRelations": [
+        "app.audit_logs"
+      ],
+      "qualifiedReferences": [
+        "app.audit_logs"
+      ]
+    },
+    {
+      "name": "identity_private.cfg",
+      "referencedRelations": [
+        "identity_private.configuration"
+      ],
+      "qualifiedReferences": [
+        "identity_private.configuration"
+      ]
+    },
+    {
+      "name": "identity_private.checked_preauth",
+      "referencedRelations": [
+        "app.sessions",
+        "app.users",
+        "identity_private.credentials",
+        "identity_private.preauth"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "app.users",
+        "crypto.digest",
+        "identity_private.credentials",
+        "identity_private.lock_memberships",
+        "identity_private.lock_principal",
+        "identity_private.preauth",
+        "identity_private.valid_session"
+      ]
+    },
+    {
+      "name": "identity_private.context",
+      "referencedRelations": [
+        "app.sessions",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.sessions",
+        "identity_private.lock_memberships",
+        "identity_private.lock_principal",
+        "identity_private.tx_context",
+        "identity_private.valid_session"
+      ]
+    },
+    {
+      "name": "identity_private.finish_owned",
+      "referencedRelations": [
+        "app.idempotency_records",
+        "identity_private.ceremony_idempotency",
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "app.idempotency_records",
+        "crypto.digest",
+        "identity_private.ceremony_idempotency",
+        "identity_private.cfg",
+        "identity_private.require_enabled",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "identity_private.guard",
+      "referencedRelations": [
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "auth_api.binding_authorization",
+        "identity_private.context",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "identity_private.lock_memberships",
+      "referencedRelations": [
+        "app.organizations",
+        "app.policy_versions",
+        "app.users"
+      ],
+      "qualifiedReferences": [
+        "app.organizations",
+        "app.policy_versions",
+        "app.users"
+      ]
+    },
+    {
+      "name": "identity_private.lock_principal",
+      "referencedRelations": [
+        "identity_private.credentials",
+        "identity_private.principals"
+      ],
+      "qualifiedReferences": [
+        "identity_private.credentials",
+        "identity_private.principals",
+        "identity_private.require_enabled"
+      ]
+    },
+    {
+      "name": "identity_private.reject_tenant_change",
+      "referencedRelations": [],
+      "qualifiedReferences": []
+    },
+    {
+      "name": "identity_private.require_enabled",
+      "referencedRelations": [
+        "identity_private.configuration"
+      ],
+      "qualifiedReferences": [
+        "identity_private.configuration"
+      ]
+    },
+    {
+      "name": "identity_private.rule_allowed",
+      "referencedRelations": [
+        "app.self_service_rules"
+      ],
+      "qualifiedReferences": [
+        "app.self_service_rules"
+      ]
+    },
+    {
+      "name": "identity_private.valid_session",
+      "referencedRelations": [
+        "app.organizations",
+        "app.sessions",
+        "app.users",
+        "identity_private.credentials",
+        "identity_private.principals"
+      ],
+      "qualifiedReferences": [
+        "app.organizations",
+        "app.sessions",
+        "app.users",
+        "identity_private.credentials",
+        "identity_private.principals"
+      ]
+    },
+    {
+      "name": "identity_private.verified_tenant",
+      "referencedRelations": [
+        "identity_private.tx_context"
+      ],
+      "qualifiedReferences": [
+        "identity_private.context",
+        "identity_private.tx_context"
+      ]
+    },
+    {
+      "name": "identity_private.version_totp_method",
+      "referencedRelations": [],
+      "qualifiedReferences": []
+    }
+  ],
+  "limitation": "Lexical qualified-reference inventory, not a catalog dependency planner or exhaustive runtime branch proof."
+}
