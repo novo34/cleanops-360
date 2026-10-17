@@ -19,3 +19,10 @@ test('ceremony cancellation drops request keys and delayed confirmation cannot c
   assert.notEqual(next.key,first.key)
   assert.equal((await keys.forRequest('logout','/auth/logout',undefined)).key,next.key)
 })
+
+test('cancellation during asynchronous hashing cannot reserve a key for a later ceremony', async () => {
+  const keys = new UiRequestKeys()
+  const pending = keys.forRequest('verifyMfa','/auth/mfa/verify',{ proof:'123456' })
+  keys.clear()
+  await assert.rejects(pending, /CEREMONY_CLOSED/)
+})

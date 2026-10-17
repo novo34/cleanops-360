@@ -1,0 +1,476 @@
+{
+  "sourceHead": "318a77f4fc67623810e6fdfa080bb2fe0da0ecae",
+  "canonicalRows": 44,
+  "accepted": 0,
+  "prior294": "PASS; run 39068144839; not repeated",
+  "browserRun": "NOT_CREATED_IN_GITHUB_ACTIONS_AT_RECORDING",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "requirements": [
+    {
+      "id": "REQ-PR-006",
+      "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-PR-006",
+      "priorPartialStatus": "BLOCKED",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar E0–E9, UI/API/PG real de todo B1 y aceptación PO; el runtime operativo sigue closedBackend."
+    },
+    {
+      "id": "REQ-PR-007",
+      "requirement": "No se iniciará una fase dependiente hasta que la fase anterior esté `ACCEPTED`, salvo autorización explícita del Product Owner.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-PR-007",
+      "priorPartialStatus": "BLOCKED",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Mantener bloqueado el siguiente módulo hasta la aceptación formal completa de B1 y AUTH-GATE-05."
+    },
+    {
+      "id": "REQ-AUTHZ-001",
+      "requirement": "Permisos por acción: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-001",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-002",
+      "requirement": "Ámbitos: tenant, módulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-002",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-003",
+      "requirement": "El sistema deberá permitir overrides individuales por usuario.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-003",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-004",
+      "requirement": "Deberá permitir accesos temporales con `start_at` y `expires_at`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-004",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-005",
+      "requirement": "La UI incluirá `Administration → Users → User Detail → Manage Access`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-005",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-006",
+      "requirement": "La autorización deberá aplicarse también en API, no solo UI.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-006",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTHZ-007",
+      "requirement": "`explicit deny` prevalecerá sobre cualquier concesión; las políticas de aislamiento tenant y las restricciones de plataforma no podrán sobrepasarse mediante overrides. Ante falta de autorización, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las políticas superiores. Denegaciones y concesiones se aplicarán en API, con caducidad y auditoría.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTHZ-007",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar/implementar los contratos AUTHZ completos, más allá de las ocho reglas B1-SELF."
+    },
+    {
+      "id": "REQ-AUTH-001",
+      "requirement": "Login mediante email + password.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-001",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Validar la UI de login contra el backend real y completar aceptación; HTTP/Argon2id/PG se evidencian separadamente."
+    },
+    {
+      "id": "REQ-AUTH-002",
+      "requirement": "Tras validar credenciales, se exigirá segundo factor según la política de riesgo del rol: obligatorio para administradores, comerciales, planificación, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigirán step-up MFA aunque el login operativo se haya permitido sin MFA.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-002",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-LOGIN y aprobar la política canónica de MFA por riesgo; no introducir bypass operativo."
+    },
+    {
+      "id": "REQ-AUTH-003",
+      "requirement": "Métodos MFA: código OTP por email o TOTP Authenticator.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-003",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar D4 y el flujo EMAIL operativo verificado; TOTP privado real no acepta por sí solo ambos canales ni su UI."
+    },
+    {
+      "id": "REQ-AUTH-004",
+      "requirement": "TOTP deberá ser compatible con aplicaciones estándar.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-004",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D3: verificar apps/plataformas/versiones requeridas con autenticadores reales; OTPAuth no demuestra interoperabilidad externa."
+    },
+    {
+      "id": "REQ-AUTH-010",
+      "requirement": "OTP de un solo uso.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-010",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D4: verificar el consumo de un solo uso por todos los recorridos EMAIL reales y sus reintentos de entrega."
+    },
+    {
+      "id": "REQ-AUTH-011",
+      "requirement": "Código OTP por email válido durante 5 minutos, de un solo uso y con invalidación por consumo o reenvío.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-011",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D4: destinatario verificado, TTL300s y reenvío/consumo/expiración de entrega integral, sin extensión de TTL."
+    },
+    {
+      "id": "REQ-AUTH-012",
+      "requirement": "OTP almacenado como hash.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-012",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D2/D4: HMAC y claves reales de EMAIL, almacenamiento y canales de entrega completos; fixtures SQL no acreditan custodia."
+    },
+    {
+      "id": "REQ-AUTH-013",
+      "requirement": "Reenvío invalida códigos anteriores.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-013",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar el reenvío EMAIL público con invalidación atómica de retos/outbox anteriores y versiones de destinatario."
+    },
+    {
+      "id": "REQ-AUTH-014",
+      "requirement": "Cooldown de reenvío.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-014",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar cooldown EMAIL en la UI/API/worker real; el cooldown TOTP nativo ya se ejecutó con espera real."
+    },
+    {
+      "id": "REQ-AUTH-015",
+      "requirement": "Rate limit por usuario, IP y dispositivo.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-015",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Validar límites de las tres dimensiones con ingreso confiable, carga y flujos reales completos; perfil actual de ensayo."
+    },
+    {
+      "id": "REQ-AUTH-016",
+      "requirement": "Límite de intentos.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-016",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Cubrir presupuestos de intentos y bloqueo por todos los canales públicos, incluidos EMAIL y recuperación."
+    },
+    {
+      "id": "REQ-AUTH-017",
+      "requirement": "Mensajes que no permitan enumeración de cuentas.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-017",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Validar presentación UI y todos los errores reales seguros; pruebas HTTP de contraseña conocida/ausente se vinculan como evidencia parcial."
+    },
+    {
+      "id": "REQ-AUTH-020",
+      "requirement": "Activación mediante QR.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-020",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D2/D3: enrolamiento público con QR y app real; la ruta de enrolamiento permanece cerrada."
+    },
+    {
+      "id": "REQ-AUTH-021",
+      "requirement": "No se activa hasta validar el primer código.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-021",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D2/D3: primer código real antes de activar método/sesión por UI/API; SQL de confirmación/CAS queda como evidencia parcial."
+    },
+    {
+      "id": "REQ-AUTH-022",
+      "requirement": "Secreto TOTP cifrado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-022",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "D2: custodio/proveedor, aislamiento, rotación y recuperación de claves reales; envelope v2 se prueba solo con clave sintética efímera."
+    },
+    {
+      "id": "REQ-AUTH-030",
+      "requirement": "Generación al activar TOTP.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-030",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar enrolamiento público y generación de recovery codes con proveedor/HMAC aprobados."
+    },
+    {
+      "id": "REQ-AUTH-031",
+      "requirement": "Mostrar una única vez.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-031",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Validar entrega única de recovery codes en UI/API e idempotencia integral; no inferirla del lote de digests SQL."
+    },
+    {
+      "id": "REQ-AUTH-032",
+      "requirement": "Guardar como hash.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-032",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Validar HMAC/custodia y ausencia de plaintext en todo el flujo real de recovery codes."
+    },
+    {
+      "id": "REQ-AUTH-033",
+      "requirement": "Un solo uso.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-033",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Aprobar e integrar contrato público completo de recuperación; el consumidor interno sin grant público no satisface ese flujo."
+    },
+    {
+      "id": "REQ-AUTH-034",
+      "requirement": "MFA reset por admin deberá quedar auditado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-034",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y aprobar el contrato/ACL administrativo de reset MFA; no heredar permisos B1-SELF."
+    },
+    {
+      "id": "REQ-AUTH-040",
+      "requirement": "Pantalla `Account → Security → Active Sessions`.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-040",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Completar aceptación UI/API/PG de Account → Security → Active Sessions; el recorrido HTTP privado se evalúa aparte."
+    },
+    {
+      "id": "REQ-AUTH-041",
+      "requirement": "Mostrar dispositivo, navegador, creación y última actividad.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-041",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Validar los cuatro campos de sesión en la UI con datos reales y aceptación PO."
+    },
+    {
+      "id": "REQ-AUTH-042",
+      "requirement": "Revocar sesión individual.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-042",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar E2E UI de revocación individual con respuestas reales y aceptación; comprobar la evidencia SQL/HTTP adjunta."
+    },
+    {
+      "id": "REQ-AUTH-043",
+      "requirement": "Revocar todas las demás sesiones.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-043",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Completar E2E UI de revocación bulk preservando la sesión actual y otras empresas; no promover el caso HTTP a aceptación UI."
+    },
+    {
+      "id": "REQ-AUTH-044",
+      "requirement": "Timeout por inactividad: 30 minutos para administración/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la política restrictiva correspondiente. La clasificación de roles en los tests será explícita.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-044",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Validar caducidad por inactividad por riesgo en todos los recorridos UI/API y aceptar el perfil operativo."
+    },
+    {
+      "id": "REQ-AUTH-045",
+      "requirement": "Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duración numérica permanece como parámetro técnico sujeto a validación de seguridad antes de habilitar autenticación en producción.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-045",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Validar caducidad absoluta independiente del idle en todos los recorridos y aceptar el perfil operativo."
+    },
+    {
+      "id": "REQ-AUTH-046",
+      "requirement": "`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-046",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Resolver C-SCOPE y contrato real de trusted device y revocaciones; no trasladarlo a otra fase."
+    },
+    {
+      "id": "REQ-AUTH-047",
+      "requirement": "Step-up MFA para acciones sensibles.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUTH-047",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Completar UI y todas las acciones sensibles según política aprobada; step-up privado/bulk HTTP se vincula como evidencia parcial."
+    },
+    {
+      "id": "REQ-TEN-001",
+      "requirement": "Todo dato deberá pertenecer a un tenant.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-TEN-001",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+    },
+    {
+      "id": "REQ-TEN-002",
+      "requirement": "Tenant A nunca podrá acceder a datos de Tenant B.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-TEN-002",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+    },
+    {
+      "id": "REQ-TEN-003",
+      "requirement": "El aislamiento se aplicará en backend/API.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-TEN-003",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+    },
+    {
+      "id": "REQ-TEN-004",
+      "requirement": "Deberán existir tests automáticos de tenant isolation.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-TEN-004",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+    },
+    {
+      "id": "REQ-SEC-020",
+      "requirement": "El MVP empleará librerías maduras para hash, autenticación y TOTP, sin implementar criptografía propia. El registro, sesión y credenciales se verificarán con pruebas de seguridad.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-SEC-020",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": {
+        "status": "NOT_EXECUTED",
+        "test": "e2e/b1-real-postgres.spec.ts"
+      },
+      "remainingAcceptanceObligation": "Completar proveedor de claves, provisión, exposición en sinks y aceptación de seguridad de todo el flujo; las bibliotecas maduras ya se ejercitan."
+    },
+    {
+      "id": "REQ-SEC-021",
+      "requirement": "La caducidad absoluta de sesión tendrá un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 días de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-SEC-021",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Aceptar perfil operativo de expiración absoluta y probarlo integralmente, sin promover valores de ensayo a producción."
+    },
+    {
+      "id": "REQ-AUD-001",
+      "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar actor, fecha, entidad, acción y resultado, sin exponer secretos o datos de otros tenants (capítulos de auditoría).",
+      "status": "BLOCKED",
+      "accepted": false,
+      "priorIndividualEvidence": "../consolidated-test-05/REQUIREMENTS.json#REQ-AUD-001",
+      "priorPartialStatus": "PASS",
+      "newBrowserEvidence": null,
+      "remainingAcceptanceObligation": "Completar auditoría Auth en todos los flujos pendientes, fallos, recuperación y sinks reales; no inferir cobertura total de unos casos atómicos."
+    }
+  ]
+}

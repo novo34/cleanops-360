@@ -22,7 +22,7 @@ def record(name, status, detail=None):
 
 def browser():
     approved.module('http_transport', 'pg-http-integration.py').copy_runtime(b, ('scripts/pg05-browser-backend.ts',))
-    fixture = {'container':b.CID,'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}
+    fixture = {'container':b.CID,'run':b.RUN,'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}
     environment = dict(b.ENV, B1_BROWSER_FIXTURE=json.dumps(fixture))
     result = subprocess.run(['npx','--no-install','playwright','test','--config=playwright.real-b1.config.ts'], cwd=ROOT, env=environment, text=True, capture_output=True, timeout=180)
     # Playwright assertion errors may contain submitted factors; retain only titles,

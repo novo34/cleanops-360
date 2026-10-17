@@ -13,6 +13,10 @@ export async function startRealBrowserServer() {
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]
+  if (!/^[a-f0-9]{32}$/.test(input.run || '')) throw Error('OWNERSHIP_LABEL_REQUIRED')
+  const metadata = JSON.parse(execFileSync('docker', ['--host=unix:///var/run/docker.sock', 'inspect', input.container], { env: environment, encoding: 'utf8' }))[0]
+  if (metadata.Config.Labels?.['cleanops.pgtest01'] !== input.run || metadata.HostConfig.NetworkMode !== 'none'
+    || Object.keys(metadata.HostConfig.PortBindings || {}).length || metadata.Mounts.some(m => ['bind','volume'].includes(m.Type))) throw Error('ISOLATION_OR_OWNERSHIP_MISMATCH')
   const child = spawn('docker', ['--host=unix:///var/run/docker.sock', 'exec', '-i', input.container, '/opt/b1-pg05/node', '--experimental-strip-types', '/opt/b1-pg05/scripts/pg05-browser-backend.ts'], { env: environment, stdio: ['pipe','pipe','ignore'] })
   const pending = []
   const lines = createInterface({ input: child.stdout })

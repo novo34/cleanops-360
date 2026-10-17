@@ -9,7 +9,7 @@ type Selection = { state: 'TOTP_SELECTION_REQUIRED'; methods: { method_id: strin
 type StepContext = { grant_id: string; resource_id?: string }
 function expired(expiresAt: string) { return Date.parse(expiresAt) <= Date.now() }
 type Tenant = { id: string; name: string }
-type Session = { id: string; device_label: string; browser_label: string; is_current: boolean }
+type Session = { id: string; device_label: string; browser_label: string; is_current: boolean; created_at: string; last_activity_at: string; absolute_expires_at: string }
 export function AuthPanel() {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -214,7 +214,11 @@ export function AuthPanel() {
         <h2>Seguridad de la cuenta</h2>
         <button onClick={async () => { const r = await call('getCurrentIdentity'); if (r) setMessage(`Sesión de ${r.display_name}`) }}>Mi identidad</button>
         <button onClick={async () => { const r = await call('listSelfSessions'); if (r) setView(v => ({ ...v, sessions: r.items })) }}>Mis sesiones</button>
-        <ul>{(view.sessions as Session[]).map(s => <li key={s.id}>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}<button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else setView(v => ({ ...v, sessions: [] })) } }}>Revocar</button></li>)}</ul>
+        <ul>{(view.sessions as Session[]).map(s => <li key={s.id}><span>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}</span><dl>
+          <dt>Creada</dt><dd><time dateTime={s.created_at}>{new Date(s.created_at).toLocaleString('es-CH')}</time></dd>
+          <dt>Última actividad</dt><dd><time dateTime={s.last_activity_at}>{new Date(s.last_activity_at).toLocaleString('es-CH')}</time></dd>
+          <dt>Caducidad absoluta</dt><dd><time dateTime={s.absolute_expires_at}>{new Date(s.absolute_expires_at).toLocaleString('es-CH')}</time></dd>
+        </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else setView(v => ({ ...v, sessions: [] })) } }}>Revocar</button></li>)}</ul>
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })) } }}>Revocar mis demás sesiones</button>
         <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView) } }}>Cerrar sesión</button>
       </section>}

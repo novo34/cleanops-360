@@ -23,6 +23,8 @@ test('real UI password, TOTP, persisted session, step-up, revocation and logout'
     await expect(page.getByRole('status')).toContainText('Synthetic A2')
     await page.getByRole('button', { name: 'Mis sesiones', exact: true }).click()
     await expect(page.getByText('Synthetic PG05 · Synthetic PG05 (actual)')).toBeVisible()
+    await expect(page.getByText('Última actividad', { exact: true }).first()).toBeVisible()
+    expect(await page.locator('time').count()).toBeGreaterThanOrEqual(3)
     await page.getByRole('button', { name: 'Revocar mis demás sesiones', exact: true }).click()
     await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
     const next = await server.rpc({ kind: 'proof', next: true })
