@@ -41,3 +41,13 @@ def run(b):
             b.record('HTTP-real-PG-process','FAIL','Child returned failure without a check failure')
     except Exception:
         b.record('HTTP-real-PG-process','FAIL','Redacted transport/ABI/dependency failure; no HTTP success claimed')
+    # Full data snapshot AFTER the real HTTP effects, without assuming test keys
+    # constitute operational recovery/custody. Global roles are the same owned cluster.
+    fingerprint="SELECT md5(string_agg(id::text||state,',' ORDER BY id)) FROM app.sessions;"
+    before=b.sql(fingerprint)
+    dump=b.docker('exec',b.CID,'pg_dump','-U','postgres','-d','core','-Fc','-f','/tmp/pg05-after-http.dump')
+    b.check('HTTP-PG-create-owned-restore-db','CREATE DATABASE restored_after_http;')
+    restore=b.docker('exec',b.CID,'pg_restore','-U','postgres','--exit-on-error','-d','restored_after_http','/tmp/pg05-after-http.dump')
+    b.record('HTTP-PG-backup-restore-post-effects','PASS' if not dump.returncode and not restore.returncode else 'FAIL')
+    restored=b.sql(fingerprint,database='restored_after_http')
+    b.record('HTTP-PG-all-21-tables-restored-identically','PASS' if not before.returncode and not restored.returncode and restored.stdout.strip()==before.stdout.strip() else 'FAIL')

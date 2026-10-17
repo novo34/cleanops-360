@@ -102,8 +102,8 @@ def main():
     def all_checks():
         module('pg05_security', 'pg-restricted-purge-tests.py').run(base)
         protocols.run(base)
-        module('pg05_http', 'pg-http-integration.py').run(base)
         previous_checks()
+        module('pg05_http', 'pg-http-integration.py').run(base)
     base.checks_v4 = all_checks
     base.REPORT['scope'] = 'PG-TEST-01-CONSOLIDATED-05'
     result = base.main()
