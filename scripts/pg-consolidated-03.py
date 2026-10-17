@@ -19,6 +19,12 @@ def module(name, filename):
 base = module('pg_isolation_transport', 'pg-test-01.py')
 review = module('consolidated_review', 'review-b1-case-operands.py')
 original_record, original_sql, original_fixtures = base.record, base.sql, base.fixtures
+original_check = base.check
+
+def check(name, text, expected=None, role='postgres', failure=None):
+    if name == 'own-sessions-a' and any(c['name'] == 'full-authentication-MFA-transitions' and c['status'] == 'PASS' for c in base.REPORT['checks']):
+        expected = '3'  # Two baseline sessions plus the one actually issued by the protocol test.
+    return original_check(name, text, expected, role, failure)
 
 
 def authorized_payload():
@@ -73,7 +79,7 @@ def fixtures():
 
 def main():
     base.verified_candidates = authorized_payload
-    base.record, base.sql, base.fixtures = record, sql, fixtures
+    base.record, base.sql, base.fixtures, base.check = record, sql, fixtures, check
     protocols = module('pg_real_protocols', 'pg-b1-real-protocols.py')
     previous_checks = base.checks_v4
     def all_checks():
