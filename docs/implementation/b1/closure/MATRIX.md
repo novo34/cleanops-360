@@ -100,3 +100,10 @@ Las pruebas REVOKE-OWN se identifican por YAML: SESSION_REVOCATION_CONTRACT usa 
 ## Evidencia existente, límites exactos
 
 CI del HEAD fuente: https://github.com/novo34/cleanops-360/actions/runs/38942514754 — lint/typecheck/build, 148 B1, 13 Vitest y 46 Chromium; tres pruebas PostgreSQL omitidas. Frontend aceptado solo en ese alcance. D1 y B1-X tienen llamadas/código/pruebas simuladas, no SQL instalado. D2 tiene helpers envelope v2/rewrap, no custodia/CAS persistente operativo. D3 tiene vectores/URI, no apps reales. D4 tiene planificación de retry, no worker/proveedor/contrato verificado. Esos límites se resuelven DENTRO del plan B1; nunca se convierten en exenciones de cierre.
+
+## Evaluación vigente posterior a la resolución E1
+
+Las filas anteriores conservan su evaluación histórica. La evaluación actual de
+los mismos44 IDs, con implementación/integración/pruebas/aceptación y evidencia
+individual, está en [e1-resolution/MATRIX.md](../e1-resolution/MATRIX.md) y su JSON.
+D2/D3/D4/C-SCOPE/C-LOGIN constan APROBADOS. No se exige reaprobar esas decisiones.

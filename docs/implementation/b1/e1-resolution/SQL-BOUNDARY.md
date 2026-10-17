@@ -69,3 +69,12 @@ real de comprobación de identidad, no una respuesta correcta inventada por el c
 
 El lote recovery HMAC y su presentación única sí se completan junto al enrolamiento
 actual. No confundir esa entrega con recuperación/reset/trusted-device ya implementados.
+
+## Rotación de PREAUTH al elegir empresa
+
+El switch desde ACTIVE tiene primitives existentes. El caso PREAUTH necesita rotar
+cookie/CSRF preservando la versión de contraseña verificada y revalidando membresía,
+empresa, método/política y estado, con consumo de binding anterior e idempotencia en
+la misma transacción. La versión05 no aporta esa primitiva de rotación segura.
+No se reutiliza el cookie viejo ni se fabrica una nueva prueba de contraseña en TS.
+Debe incluirse en la misma revisión consolidada, sin instalar parches intermedios.

@@ -19,7 +19,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "B1_FULL_UI_INTEGRATION_AND_E1_D2_D3_D4_C_SCOPE_C_LOGIN",
+  "nextBlocker": "NEW_D4_RECOVERY_TRUST_AUTHZ_PREAUTH_SQL_CONTRACTS_AND_OPERATIONAL_CUSTODY_APPS",
   "candidate": {
     "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
     "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
@@ -50,7 +50,7 @@
     "requirementsAccepted": 0
   },
   "proposedCandidate": null,
-  "nextAuthorization": "OWNER_OPERATIONAL_AND_CONTRACT_DECISIONS_IN_CLOSURE_PLAN_E1",
+  "nextAuthorization": "EXACT_NEW_CONSOLIDATED_SQL_ACL_AFTER_REVIEWABLE_ARTIFACT_PUBLICATION",
   "latestPrecheck": "docs/implementation/b1/consolidated-test-05/SUMMARY.json",
   "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
   "lastRealBrowserExecution": {
@@ -64,5 +64,25 @@
     "cleanup": "PASS",
     "preexistingResources": "UNCHANGED",
     "requirementsAccepted": 0
+  },
+  "architectureDecisions": {
+    "D2": "APPROVED_BY_OWNER_2026_10_17",
+    "D3": "APPROVED_BY_OWNER_2026_10_17",
+    "D4": "APPROVED_BY_OWNER_2026_10_17",
+    "C-SCOPE": "APPROVED_BY_OWNER_2026_10_17",
+    "C-LOGIN": "APPROVED_BY_OWNER_2026_10_17"
+  },
+  "latestE1Assessment": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
+  "lastE1Execution": {
+    "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+    "run": 39073390845,
+    "job": 117515471663,
+    "status": "PASS",
+    "realBrowserFlows": 4,
+    "checks": 14,
+    "cleanup": "PASS",
+    "runtime": "closedBackend",
+    "requirementsAccepted": 0,
+    "newPartialEvidenceRows": 18
   }
 }
