@@ -21,8 +21,16 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm run typecheck
+      - run: python3 scripts/consolidate-b1-sql.py --check
       - run: npm run test:b1
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --config=playwright.b1.config.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: demo-visual-review
+          path: test-results/demo-*.png
+          if-no-files-found: ignore
+          retention-days: 7
