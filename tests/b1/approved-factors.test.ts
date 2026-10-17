@@ -114,3 +114,31 @@ test('step-up revalidates server grant/session authorization before decrypt or c
  assert.deepEqual(f.calls.find(c => c.name === 'authorization')!.args, [null, 'B1-SELF-08', P])
  assert.equal(f.calls.some(c => c.name === 'consumeTotp'), false)
 })
+
+test('PostgreSQL base64 wrapping preserves ciphertext bytes; malformed whitespace never reaches decryption or CAS', async () => {
+  const actor: Binding = { kind: 'PREAUTH', id: S, state: 'PENDING_MFA', tenantId: T, userId: U, csrfDigest: 'a'.repeat(64), expiresAt: now + 60_000 }
+  const k = await keys()
+  const secret = Secret.fromUTF8('12345678901234567890')
+  const code = TOTP.generate({ secret, period: 30, digits: 6, algorithm: 'SHA1', timestamp: now })
+  for (const length of [57, 61, 114]) {
+    const ciphertext = Buffer.alloc(length, 3), canonical = ciphertext.toString('base64')
+    const wrapped = canonical.match(/.{1,76}/g)!.join('\n')
+    const variants = [canonical, wrapped, ...(canonical.length % 76 === 0 ? [wrapped + '\n'] : [])]
+    for (const encoded of [...variants, canonical.slice(0, 5) + '\n' + canonical.slice(5), wrapped + ' ']) {
+      let decrypts = 0, consumes = 0
+      const f = fixture(name => {
+        if (name === 'totpMaterial') return { binding: { tenantId: T, userId: U, methodId: M, ceremonyId: C, purpose: 'LOGIN' },
+          version: '1', lastCounter: null, expiresAt: now + 60_000, algorithm: 'SHA1', secret_ciphertext: encoded, key_version: 'fixture' }
+        if (name === 'consumeTotp') { consumes++; return true }
+        return undefined
+      })
+      k.decryptTotp = async bytes => { decrypts++; assert.deepEqual(bytes, ciphertext); return new TextEncoder().encode('12345678901234567890') }
+      const proof = createApprovedFactors(f.broker, k, C, () => now).totp(code, actor, 'synthetic-preauth', C, 'LOGIN')
+      if (variants.includes(encoded)) {
+        assert.deepEqual(await proof, { verified: true }); assert.equal(decrypts, 1); assert.equal(consumes, 1)
+      } else {
+        await assert.rejects(proof, unavailable); assert.equal(decrypts, 0); assert.equal(consumes, 0)
+      }
+    }
+  }
+})

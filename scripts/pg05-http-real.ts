@@ -23,6 +23,7 @@ const encrypted = Buffer.concat([cipher.update(secret), cipher.final()])
 const envelope = Buffer.concat([Buffer.from([2]), nonce, cipher.getAuthTag(), encrypted])
 const jar: Record<string, string> = {}
 let failedStage = 'HTTP-PG-setup'
+let ciphertextTransport: { bytes: number; lineLengths: number[] } | undefined
 let lastStatus = 0
 const queryFailures: { operation: string; sqlstate: string }[] = []
 const safe = (name: string) => { checks.push({ name, status: 'PASS' }) }
@@ -37,6 +38,11 @@ try {
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
   await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  const transportResult = await admin.query("SELECT encode(secret_ciphertext,'base64') AS encoded FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2", [input.tenant, method])
+  const encoded: string = transportResult.rows[0].encoded
+  assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
+  ciphertextTransport = { bytes: envelope.length, lineLengths: encoded.split('\n').map(line => line.length) }
+  safe('HTTP-real-PG-base64-native-transport')
   const privatePool = { async connect() {
     const client = await identity.connect()
     return { async query(sql: string, values?: unknown[]) {
@@ -100,5 +106,5 @@ try {
   key.fill(0); secret.fill(0)
   await identity.end(); await admin.end()
 }
-process.stdout.write(JSON.stringify({ scope: 'TEST_ONLY_HTTP_PRIVATE_BACKEND_ARGON2ID_TOTP_PG16', productionRuntime: 'closedBackend', browserUI: 'NOT_EXECUTED', checks }))
+process.stdout.write(JSON.stringify({ scope: 'TEST_ONLY_HTTP_PRIVATE_BACKEND_ARGON2ID_TOTP_PG16', productionRuntime: 'closedBackend', browserUI: 'NOT_EXECUTED', ciphertextTransport, checks }))
 process.exitCode = checks.some(c => c.status === 'FAIL') ? 1 : 0

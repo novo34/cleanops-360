@@ -105,7 +105,13 @@ export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys,
         async decryptSecret() {
           const ciphertext = Buffer.from(material.secret_ciphertext as string, 'base64')
           try {
-            if (!ciphertext.length || ciphertext.toString('base64') !== material.secret_ciphertext) throw unavailable()
+            const canonical = ciphertext.toString('base64')
+            // PostgreSQL encode(bytea,'base64') uses RFC 2045 76-column LF lines.
+            // Accept only those exact layouts or canonical unwrapped base64.
+            const wrapped = canonical.match(/.{1,76}/g)?.join('\n') ?? ''
+            const encoded = material.secret_ciphertext
+            if (!ciphertext.length || (encoded !== canonical && encoded !== wrapped &&
+                !(canonical.length % 76 === 0 && encoded === wrapped + '\n'))) throw unavailable()
             return await keys.decryptTotp(ciphertext, material.key_version as string, record)
           } finally { ciphertext.fill(0) }
         },
