@@ -24,6 +24,8 @@ const jar: Record<string, string> = {}
 let failedStage = 'HTTP-PG-setup'
 let ciphertextTransport: { bytes: number; lineLengths: number[] } | undefined
 let lastStatus = 0
+let lastOperation = ''
+let lastErrorCode = ''
 const queryFailures: { operation: string; sqlstate: string }[] = []
 const safe = (name: string) => { checks.push({ name, status: 'PASS' }) }
 function saveCookies(response: Response) {
@@ -75,7 +77,9 @@ try {
       'x-csrf-token': jar[names.csrf], 'content-type': 'application/json', 'idempotency-key': randomUUID(),
     }, body: body === undefined ? undefined : JSON.stringify(body) }), operation)
     lastStatus = response.status
+    lastOperation = operation
     const data = await response.json(); saveCookies(response)
+    lastErrorCode = typeof data?.error?.code === 'string' && /^[A-Z_]{1,64}$/.test(data.error.code) ? data.error.code : ''
     return { response, data }
   }
   failedStage = 'HTTP-real-PG-password-login'
@@ -119,7 +123,7 @@ try {
   const stepped = await request('/auth/mfa/verify', 'verifyMfa', { challenge_id: stepUp.data.data.challenge_id, method: 'TOTP', proof: nextProof })
   assert.equal(stepped.response.status, 200); assert.equal(stepped.response.headers.get('set-cookie'), null)
   assert.equal(stepped.data.data.session_id, verified.data.data.session_id)
-  const bulk = await request('/me/sessions/revoke-other-own', 'revokeOtherOwnSessions', undefined, 'POST')
+  const bulk = await request('/me/sessions/revoke-other-own', 'revokeOtherOwnSessions', { reason: 'Synthetic PG05 acceptance test' })
   assert.equal(bulk.response.status, 200); assert.ok(bulk.data.data.revoked_count >= 1)
   const remaining = await request('/me/sessions', 'listSelfSessions')
   assert.equal(remaining.response.status, 200)
@@ -136,7 +140,7 @@ try {
   assert.equal(afterLogout.response.status, 401)
   safe('HTTP-real-PG-logout-revoked-token')
 } catch {
-  checks.push({ name: failedStage, status: 'FAIL', detail: 'HTTP status='+lastStatus+'; broker errors='+JSON.stringify(queryFailures)+'; no sensitive request/response logged' })
+  checks.push({ name: failedStage, status: 'FAIL', detail: 'HTTP operation='+lastOperation+' status='+lastStatus+' code='+lastErrorCode+'; broker errors='+JSON.stringify(queryFailures)+'; no sensitive request/response logged' })
 } finally {
   key.fill(0); secret.fill(0)
   await identity.end(); await admin.end()
