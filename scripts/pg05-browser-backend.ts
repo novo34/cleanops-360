@@ -15,6 +15,7 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
+if(input.scenario==='multiple'){input.principal=randomUUID();input.user=randomUUID()}
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
@@ -26,9 +27,21 @@ const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentC
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
+  if(input.scenario==='multiple') {
+    await admin.query("INSERT INTO identity_private.principals VALUES($1,'multi@fixture.invalid','ACTIVE',now())",[input.principal])
+    await admin.query('INSERT INTO identity_private.credentials VALUES($1,$2,1,now())',[input.principal,passwordHash])
+    await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic multi','ACTIVE','SENSITIVE',now())",[input.tenant,input.user,input.principal])
+  }
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
   if (input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  if(input.scenario==='multiple') {
+    const extraId=randomUUID(),extraSecret=randomBytes(32)
+    try {
+      const extraCipher=sealEnrollmentSecret(extraSecret,key,'pg05-ephemeral',{...enrollmentContext,methodId:extraId})
+      await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')",[input.tenant,extraId,input.user,extraCipher])
+    } finally {extraSecret.fill(0)}
+  }
   await admin.query('UPDATE app.recovery_codes SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND revoked_at IS NULL',[input.tenant,input.user])
   if(input.scenario==='additional') {
     const batch=randomUUID()
@@ -75,7 +88,7 @@ try {
       async withWriteKey(tenantId, work) { assert.equal(tenantId, input.tenant); const borrowed = Buffer.from(key); try { return work(borrowed, 'pg05-ephemeral') } finally { borrowed.fill(0) } },
       async accountAlias() { return 'synthetic-enrollment-alias' },
     },
-    cursorKey: randomBytes(32), transport: () => ({ network: Buffer.alloc(32, 1), device: Buffer.alloc(32, 2) }),
+    cursorKey: randomBytes(32), transport: () => ({ network: Buffer.alloc(32, 1), device: Buffer.alloc(32, input.scenario==='multiple'?3:2) }),
     normalizeEmail: email => email.trim().toLowerCase(), maxEligibleTotpMethods: 4,
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
   })
@@ -87,6 +100,7 @@ try {
     if (line.done) break
     const message = JSON.parse(line.value)
     try {
+      if(message.kind==='primaryMethod'){reply({id:method});continue}
       if (message.kind === 'proof') {
         const proof = TOTP.generate({ secret: new Secret({ buffer: Uint8Array.from(secret).buffer }), algorithm: 'SHA256', period: numeric('totp_period'), digits: numeric('totp_digits'), timestamp: Date.now() + (message.next ? numeric('totp_period') * 1000 : 0) })
         reply({ proof }); continue

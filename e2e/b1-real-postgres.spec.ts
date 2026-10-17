@@ -167,7 +167,7 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
   } finally { phase('CLEANUP'); await server.close(); phase('CLEANUP_DONE') }
 })
 
-test('real ACTIVE additional enrollment requires both grants then supports explicit multi-method login',async({page})=>{
+test('real ACTIVE additional enrollment requires both grants and preserves rate limiting',async({page})=>{
   // Real canonical counter windows and resend cooldown require up to60s. The old
   // test timeouts are unchanged; no SQL clock/profile/control is weakened.
   test.setTimeout(120000)
@@ -180,7 +180,7 @@ test('real ACTIVE additional enrollment requires both grants then supports expli
     await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
     await page.getByRole('button',{name:'Continuar',exact:true}).click()
     await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
-    const firstLogin=Date.now(), proof=await server.rpc({kind:'proof'})
+    const proof=await server.rpc({kind:'proof'})
     await page.getByLabel('Código',{exact:true}).fill(proof.proof)
     await page.getByRole('button',{name:'Verificar',exact:true}).click()
     await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
@@ -239,8 +239,6 @@ test('real ACTIVE additional enrollment requires both grants then supports expli
     expect(choices.state).toBe('TOTP_SELECTION_REQUIRED')
     const index=choices.methods.findIndex((m:{method_id:string})=>m.method_id===material.enrollment_id)
     expect(index>=0).toBe(true)
-    phase('WAIT_RESEND_COOLDOWN')
-    await new Promise(resolve=>setTimeout(resolve,Math.max(0,firstLogin+numeric('otp_resend_cooldown')*1000+100-Date.now())))
     await page.getByLabel('Aplicación de autenticación '+(index+1)).check()
     const chosenMethod=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/mfa/totp/select')
     await page.getByRole('button',{name:'Continuar con este método',exact:true}).click()
@@ -250,8 +248,41 @@ test('real ACTIVE additional enrollment requires both grants then supports expli
     const verifiedMethod=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/mfa/verify')
     await page.getByRole('button',{name:'Verificar',exact:true}).click()
     const verifiedStatus=(await verifiedMethod).status();phase('VERIFY_STATUS_'+verifiedStatus)
-    expect(verifiedStatus).toBe(200)
-    await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+    expect(verifiedStatus).toBe(429)
+    await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
+    expect((await page.context().cookies()).some(c=>c.name==='__Host-cleanops_session')).toBe(false)
+    await expect(page.getByRole('status')).toContainText('Demasiados intentos')
     await expect(page.locator('code')).toHaveCount(0)
   }finally{phase('CLEANUP');await server.close();phase('CLEANUP_DONE')}
+})
+
+test('real authorized multi-method selection commits a session for a separate synthetic account',async({page})=>{
+ const phase=(description:string)=>test.info().annotations.push({type:'phase',description})
+ phase('INIT_MULTIPLE_ACCOUNT')
+ const server=await startRealBrowserServer('multiple')
+ try{
+  await page.goto('/login')
+  await page.getByLabel('Email',{exact:true}).fill('multi@fixture.invalid')
+  await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+  const login=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
+  await page.getByRole('button',{name:'Continuar',exact:true}).click()
+  const choice=(await(await login).json()).data
+  expect(choice.state).toBe('TOTP_SELECTION_REQUIRED');expect(choice.methods.length).toBe(2)
+  await expect(page.getByLabel('Código',{exact:true})).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Continuar con este método',exact:true})).toBeDisabled()
+  expect((await page.request.get('/auth/me')).status()).toBe(401)
+  const primary=await server.rpc({kind:'primaryMethod'}),index=choice.methods.findIndex((m:{method_id:string})=>m.method_id===primary.id)
+  expect(index>=0).toBe(true)
+  phase('SELECT_AUTHORIZED_METHOD')
+  await page.getByLabel('Aplicación de autenticación '+(index+1)).check()
+  await page.getByRole('button',{name:'Continuar con este método',exact:true}).click()
+  await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+  const proof=await server.rpc({kind:'proof'})
+  await page.getByLabel('Código',{exact:true}).fill(proof.proof)
+  const verified=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/mfa/verify')
+  await page.getByRole('button',{name:'Verificar',exact:true}).click()
+  expect((await verified).status()).toBe(200)
+  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+  expect((await page.request.get('/auth/me')).status()).toBe(200)
+ }finally{phase('CLEANUP');await server.close();phase('CLEANUP_DONE')}
 })
