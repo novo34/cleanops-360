@@ -1,0 +1,41 @@
+"""Run the real private TS/HTTP adapter inside the owned PG16 container via Unix socket."""
+import json
+from pathlib import Path
+import shutil
+
+
+def run(b):
+    root=b.ROOT; destination='/tmp/b1-pg05'
+    def require(result):
+        if result.returncode:raise RuntimeError('PG05_TEST_TRANSPORT_FAILED')
+    require(b.docker('exec',b.CID,'mkdir','-p',destination+'/scripts',destination+'/node_modules'))
+    require(b.docker('cp','-L',shutil.which('node'),b.CID+':'+destination+'/node'))
+    for name in ['lib','package.json','scripts/pg05-http-real.ts']:
+        target=destination+'/'+name
+        require(b.docker('cp',str(root/name),b.CID+':'+target))
+    lock=json.loads((root/'package-lock.json').read_text())['packages']
+    names={'pg','argon2','otpauth'}; selected=set();pending=list(names)
+    while pending:
+        name=pending.pop();path='node_modules/'+name
+        if path in selected:continue
+        package=lock.get(path)
+        if package is None:raise RuntimeError('PG05_LOCK_DEPENDENCY_MISSING')
+        selected.add(path)
+        pending.extend(package.get('dependencies',{}))
+    for package in sorted(selected):
+        source=root/package
+        if not source.is_dir():raise RuntimeError('PG05_DEPENDENCY_NOT_INSTALLED')
+        target=destination+'/'+package
+        require(b.docker('exec',b.CID,'mkdir','-p',str(Path(target).parent)))
+        require(b.docker('cp',str(source),b.CID+':'+target))
+    result=b.docker('exec','-i',b.CID,destination+'/node','--experimental-strip-types',destination+'/scripts/pg05-http-real.ts',data=json.dumps({'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}),timeout=90)
+    try:
+        # Script emits only redacted check names/statuses, never dependency errors,
+        # factors, cookies, key bytes, raw HTTP responses or connection information.
+        report=json.loads(result.stdout)
+        b.REPORT['httpPostgresIntegration']=report
+        for check in report['checks']:b.record(check['name'],check['status'],check.get('detail'))
+        if result.returncode and all(c['status']=='PASS' for c in report['checks']):
+            b.record('HTTP-real-PG-process','FAIL','Child returned failure without a check failure')
+    except Exception:
+        b.record('HTTP-real-PG-process','FAIL','Redacted transport/ABI/dependency failure; no HTTP success claimed')
