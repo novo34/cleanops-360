@@ -1,3 +1,9 @@
+> **Ejecución real 01: FAIL**, SQLSTATE42601 en reemplazo D1; rollback y limpieza
+> PASS. El blob aprobado 7507a29 queda intacto. Evidencia en
+> `docs/implementation/b1/consolidated-test-01/RESULT.md`. Revisión completa 02,
+> corregida en generador y NO instalada, en `revisions/02/REVIEW.md`.
+> La solicitud nueva es PG-TEST-01-CONSOLIDATED-02; no repetir autorización del anterior.
+
 > Revisión secuencial vigente: `SECURITY_REVIEW.md`, `FULL.diff` y
 > `static-review.json`. Solicitud mínima de ejecución: `EXECUTION_REQUEST.json`
 > (`PG-TEST-01-CONSOLIDATED-01`), todavía sin aprobación. El candidato conserva

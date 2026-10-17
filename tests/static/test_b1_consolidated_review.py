@@ -45,5 +45,40 @@ class ConsolidatedReviewTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'candidate hash mismatch'):
                     review.build(root)
 
+class ConsolidatedRevision2Tests(unittest.TestCase):
+    def generator(self):
+        spec = importlib.util.spec_from_file_location('generator', ROOT / 'scripts/consolidate-b1-sql.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_revision2_is_one_full_file_and_changes_only_the_missed_d1_case(self):
+        generator = self.generator()
+        old, _ = generator.generate('01')
+        new, manifest = generator.generate('02')
+        bare = "OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END"
+        fixed = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+        self.assertEqual(old.count(bare), 1)
+        self.assertEqual(new, old.replace(bare, fixed))
+        self.assertEqual(new.count(fixed), 2)
+        self.assertFalse(json.loads(manifest)['installationAuthorized'])
+        artifacts = review.build_revision2()
+        report = json.loads(artifacts['static-review.json'])
+        self.assertEqual(report['changedStatements'], 1)
+        self.assertEqual(report['aclChanges'], 0)
+        self.assertEqual(report['signatureChanges'], 0)
+        for path, content in artifacts.items():
+            self.assertEqual((review.TARGET / 'revisions/02' / path).read_bytes(), content.encode())
+
+    def test_regression_detects_the_overriding_d1_definition_reintroducing_the_defect(self):
+        generator = self.generator()
+        sql, _ = generator.generate('02')
+        prefix, d1 = sql.split('-- BEGIN SOURCE D1', 1)
+        fixed = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+        bare = "OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END"
+        broken = prefix + '-- BEGIN SOURCE D1' + d1.replace(fixed, bare)
+        with self.assertRaisesRegex(ValueError, 'Both TOTP material definitions'):
+            generator.validate_revision2(broken)
+
 if __name__ == '__main__':
     unittest.main()

@@ -148,12 +148,52 @@ def build(root=ROOT):
     }
     return {'FULL.diff': diff, 'static-review.json': json.dumps(report, indent=2) + '\n'}
 
+def build_revision2(root=ROOT):
+    # First revalidate the exact approved parent and all original source contracts.
+    build(root)
+    parent_path = root / 'docs/proposals/b1-consolidated-sql/schema.review.sql'
+    directory = root / 'docs/proposals/b1-consolidated-sql/revisions/02'
+    manifest = json.loads((directory / 'manifest.json').read_text())
+    parent, raw = parent_path.read_bytes(), (directory / 'schema.review.sql').read_bytes()
+    old = "OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END"
+    new = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+    if parent.decode().count(old) != 1 or raw.decode() != parent.decode().replace(old, new):
+        raise ValueError('Revision 02 may change only the missed D1 CASE operand')
+    if hashes(raw) != {key: manifest['candidate'][key] for key in ('sha256','gitBlob')}:
+        raise ValueError('Revision 02 manifest hash mismatch')
+    before, after = statements(parent.decode()), statements(raw.decode())
+    changed = [i for i, (a,b) in enumerate(zip(before, after)) if a != b]
+    if len(before) != len(after) or len(changed) != 1:
+        raise ValueError('Unexpected consolidated statement delta')
+    index = changed[0]
+    if classify(after[index]) != ('function', 'auth_api.totp_material_locked'):
+        raise ValueError('Unexpected revised function')
+    if before[index][:-1] != after[index][:-1]:
+        raise ValueError('Function header/signature changed')
+    acl_before = [item for item in before if classify(item)[0] == 'acl']
+    acl_after = [item for item in after if classify(item)[0] == 'acl']
+    if acl_before != acl_after:
+        raise ValueError('ACL delta forbidden in revision 02')
+    delta = ''.join(difflib.unified_diff(parent.decode().splitlines(keepends=True), raw.decode().splitlines(keepends=True), fromfile='approved/7507a29.sql', tofile='review-only/revision-02.sql', n=6))
+    originals = ''.join((root / source['path']).read_text() for source in manifest['sources'] if source['name'] != 'D1-ACL')
+    full = ''.join(difflib.unified_diff(originals.splitlines(keepends=True), raw.decode().splitlines(keepends=True), fromfile='originals/V4+B1-X+D1.raw.sql', tofile='review-only/revision-02.sql', n=4))
+    report = {'status':'REVIEW_ONLY_NOT_AUTHORIZED_NOT_INSTALLED', 'candidate':manifest['candidate'],
+              'approvedParent':hashes(parent),'changedFunction':'auth_api.totp_material_locked(text,uuid,text)',
+              'changedStatements':1,'signatureChanges':0,'aclChanges':0,'predicatePolicyChanges':0,
+              'correction':'Parenthesize exactly the D1 replacement CASE operand; both definitions covered by generator regression.',
+              'deltaSha256':hashes(delta.encode())['sha256'],'fullDiffSha256':hashes(full.encode())['sha256'],
+              'sqlCompiled':False,'installed':False,'authGate05':'OPEN','runtime':'closedBackend'}
+    return {'APPROVED_TO_02.diff':delta,'FULL_SOURCE.diff':full,'static-review.json':json.dumps(report,indent=2)+'\n'}
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--revision', choices=['01','02'], default='01')
     args = parser.parse_args()
-    for name, content in build().items():
-        target = TARGET / name
+    artifacts = build() if args.revision == '01' else build_revision2()
+    directory = TARGET if args.revision == '01' else TARGET / 'revisions' / '02'
+    for name, content in artifacts.items():
+        target = directory / name
         if args.check:
             if target.read_bytes() != content.encode():
                 raise ValueError('Stale review artifact: ' + name)

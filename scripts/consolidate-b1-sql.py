@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +25,15 @@ def hashes(raw):
     return {'gitBlob': hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest(),
             'sha256': hashlib.sha256(raw).hexdigest()}
 
-def generate():
+def validate_revision2(sql):
+    definitions = re.findall(r'CREATE(?: OR REPLACE)? FUNCTION auth_api\.totp_material_locked\(', sql)
+    corrected = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+    if len(definitions) != 2 or sql.count(corrected) != 2 or 'OR m.state<>CASE' in sql:
+        raise ValueError('Both TOTP material definitions must have their CASE operand parenthesized')
+
+def generate(revision="01"):
+    if revision not in ("01", "02"):
+        raise ValueError("Unsupported consolidated revision")
     sources, parts = [], []
     for name, path, expected in SOURCES:
         raw = (ROOT / path).read_bytes()
@@ -47,7 +56,10 @@ def generate():
             if text.count(GUARD) != 1:
                 raise ValueError('Unexpected review guard: ' + name)
             text = text.replace(GUARD, '')
-        for old, new in REPLACEMENTS[name]:
+        corrections = list(REPLACEMENTS[name])
+        if revision == '02' and name == 'D1':
+            corrections.extend(REPLACEMENTS['B1-X'])
+        for old, new in corrections:
             if text.count(old) != 1:
                 raise ValueError('Unexpected correction site: ' + name)
             text = text.replace(old, new)
@@ -57,6 +69,8 @@ def generate():
            '-- Fresh empty PostgreSQL 16 only AFTER separate owner approval of this exact hash.\n'
            '-- Not approved, not SQL-compiled, not a migration. B1/AUTH-GATE-05 OPEN; closedBackend.\n'
            'BEGIN;\n\n' + '\n\n'.join(parts) + '\n\nCOMMIT;\n')
+    if revision == '02':
+        validate_revision2(sql)
     manifest = {
         'status': 'PROPOSED_CANONICAL_CONSOLIDATION_REVIEW_ONLY',
         'sourceHead': '994a9363d488ec4cc2fddd403ff368195b215067',
@@ -72,23 +86,31 @@ def generate():
         'sqlCompiled': False, 'installationAuthorized': False, 'installed': False,
         'authGate05': 'OPEN', 'runtime': 'closedBackend',
     }
+    if revision == '02':
+        manifest['revision'] = '02'
+        manifest['sourceHead'] = 'b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99'
+        manifest['supersedes'] = {'gitBlob': '7507a29dc58c27fa4b9ab7f3b6dd628397485c9a', 'failedRun': 39036655470}
+        manifest['candidate']['path'] = 'docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql'
+        manifest['transformations'].append('D1 replacement of totp_material_locked: parenthesize the same CASE operand; both definitions regression-checked. No ACL/signature/predicate changes.')
     return sql, json.dumps(manifest, indent=2) + '\n'
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--revision', choices=['01', '02'], default='01')
     args = parser.parse_args()
-    sql, manifest = generate()
+    sql, manifest = generate(args.revision)
+    destination = TARGET if args.revision == '01' else TARGET / 'revisions' / args.revision
     expected = {'schema.review.sql': sql, 'manifest.json': manifest}
     if args.check:
         for path, content in expected.items():
-            if (TARGET / path).read_bytes() != content.encode():
+            if (destination / path).read_bytes() != content.encode():
                 raise ValueError('Stale consolidated proposal: ' + path)
         print('PASS: deterministic consolidation and four pinned sources; NO SQL executed')
     else:
-        TARGET.mkdir(parents=True, exist_ok=True)
+        destination.mkdir(parents=True, exist_ok=True)
         for path, content in expected.items():
-            (TARGET / path).write_bytes(content.encode())
+            (destination / path).write_bytes(content.encode())
         print('Generated REVIEW ONLY candidate; NO SQL executed')
 
 if __name__ == '__main__':
