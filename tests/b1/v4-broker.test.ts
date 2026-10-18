@@ -59,6 +59,17 @@ test('database error poisons the transaction even if the consumer catches it', a
   assert.deepEqual(f.released, [true])
 })
 
+test('EMAIL verified recipient material is private under serialization and spread', async () => {
+  const address='verified-private@fixture.invalid'
+  const f=fixture(name=>name==='mail_recipient_material'?{recipient:address,recipientVersion:'3'}:null)
+  await createV4IdentityRepository(f.pool).transaction(async broker=>{
+    const material=await broker.call('mailMaterial',['a'.repeat(43),'LOGIN',null,null]) as Record<string,unknown>
+    assert.equal(material.recipient,address)
+    assert.equal(JSON.stringify(material).includes(address),false)
+    assert.equal(Object.hasOwn({...material},'recipient'),false)
+  })
+})
+
 test('escaped broker cannot query a released connection or rebind another tenant', async () => {
   const f = fixture()
   let escaped: V4Broker | undefined

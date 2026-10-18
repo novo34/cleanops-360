@@ -90,7 +90,9 @@ test('EMAIL rate limiting precedes the per-challenge ceiling and blocks a later 
 test('EMAIL login rejects invalid proof and reenables safe retry after real resend', async ({ page }) => {
   phase('SETUP');const server = await startRealBrowserServer('email')
   try {
+    const loginResponse=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login' && r.request().method()==='POST')
     phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    const originalChallenge=(await (await loginResponse).json()).data.challenge_id
     await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
     const first = await server.rpc({ kind: 'deliverEmail' })
     phase('COOLDOWN');await page.getByRole('button', { name: 'Reenviar código', exact: true }).click()
@@ -99,6 +101,11 @@ test('EMAIL login rejects invalid proof and reenables safe retry after real rese
     phase('RESEND');await page.getByRole('button', { name: 'Reenviar código', exact: true }).click()
     await expect(page.getByRole('status')).not.toContainText('Procesando')
     const second = await server.rpc({ kind: 'deliverEmail' })
+    phase('REVOKED_CHALLENGE')
+    const revoked=await page.request.post('/auth/mfa/verify',{headers:{Origin:'https://127.0.0.1:3000','Sec-Fetch-Site':'same-origin',
+      'X-CSRF-Token':(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_csrf')!.value},data:{challenge_id:originalChallenge,method:'EMAIL_OTP',proof:first.proof}})
+    expect(revoked.status()).toBe(422)
+    expect((await server.rpc({kind:'inspectEmail'})).challenges.some((c:{state:string})=>c.state==='REVOKED')).toBe(true)
     phase('OLD_PROOF');await proof(page, first.proof)
     await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
     expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(0)
@@ -204,7 +211,7 @@ test('EMAIL real API rejects CSRF and forged authority and concurrent proof has 
     const result = await page.evaluate(async ({challenge,code}) => {
       const csrf = document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
       async function submit(body: object, includeCsrf = true) {
-        return (await fetch('/auth/mfa/verify', { method:'POST', headers:{'Content-Type':'application/json',...(includeCsrf?{'X-CSRF-Token':csrf}:{})}, body:JSON.stringify(body) })).status
+        return (await fetch('/auth/mfa/verify', { method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':includeCsrf?csrf:'A'.repeat(43)}, body:JSON.stringify(body) })).status
       }
       const body = {challenge_id:challenge,method:'EMAIL_OTP',proof:code}
       const csrfDenied = await submit(body,false)

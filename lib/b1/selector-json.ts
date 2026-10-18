@@ -1,7 +1,7 @@
 import { AuthError } from './service.ts'
 
 /** Native JSON grammar validation, then bounded lexical duplicate-key detection.
- * Used only for the approved selector operation; no changes to other inputs.
+ * Used for the approved selector and additive EMAIL inputs; other V4 inputs remain unchanged.
  * Decoded keys are compared, so Unicode escapes cannot bypass duplicate rejection.
  * Body byte limit is enforced by the existing HTTP reader before this function. */
 export function parseSelectorJson(text: string): unknown {
