@@ -21,8 +21,8 @@ def payload():
 def checks():
  if not runner.module('security09','pg09-security-tests.py').gate(b):
   b.record('reset-UI-API-PG','BLOCKED','Mandatory09 security gate failed');return
- previous.browser.CONFIG='playwright.reset-only-b1.config.ts'
- previous.browser.UI_SCOPE='EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER'
+ previous.browser.CONFIG='playwright.reset-commit-b1.config.ts'
+ previous.browser.UI_SCOPE='EXECUTED_SQL09_RESET_COMMIT_ACK_LOSS_REAL_BROWSER'
  previous.browser.SECURITY_GATE='pg09-browser-gate.py'
  previous.browser.browser()
 runner.payload=payload;runner.sql=previous.sql;runner.checks=checks

@@ -40,6 +40,7 @@ const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
 let lastProofFingerprint: Buffer | undefined
 let failNextEmailCommit = false
+let loseNextCommitAck=false
 let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
 const queryFailures: { operation: string; sqlstate: string }[] = []
@@ -113,6 +114,11 @@ try {
     return { async query(sql: string, values?: unknown[]) {
       try {
         if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas'))) emailConsumption = true
+        if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
+          loseNextCommitAck=false;emailConsumption=false
+          await client.query(sql,values)
+          throw new Error('REDACTED_COMMIT_ACK_LOST')
+        }
         if (sql === 'COMMIT' && failNextEmailCommit && emailConsumption) {
           failNextEmailCommit = false; emailConsumption = false
           const pid = await client.query('SELECT pg_backend_pid() AS pid')
@@ -159,6 +165,7 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
+      if(message.kind==='loseResetCommitAck'){loseNextCommitAck=true;emailConsumption=false;reply({armed:true});continue}
       if (['failEmailCommit','failFactorCommit'].includes(message.kind)) { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
       if(message.kind==='recoveryProof'){reply({code:fixtureRecoveryCode});continue}
       if(message.kind==='resetProof'){

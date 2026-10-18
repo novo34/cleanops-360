@@ -152,3 +152,26 @@ test('real reset revalidates approving operator factor expiry before credential 
   const state=await server.rpc({kind:'inspectReset'});expect(state.version==='1' && state.tickets===0 && state.active===0).toBe(true)
  }finally{await target.close();await server.close()}
 })
+
+
+test('actual reset COMMIT acknowledgement loss never emits success or permits duplicate reset',async({page})=>{
+ phase('SETUP');const server=await startRealBrowserServer('reset')
+ try{
+  const proof=await server.rpc({kind:'resetProof'}),email=(await server.rpc({kind:'fixtureEmail'})).email
+  await form(page);await server.rpc({kind:'loseResetCommitAck'})
+  phase('DURABLE_COMMIT_ACK_LOST');const result=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/password/reset');await submit(page,proof.ticket,proof.code)
+  expect((await result).status()).toBe(503)
+  await expect(page.locator('p[role="status"]')).toContainText('No se pudo confirmar')
+  const committed=await server.rpc({kind:'inspectReset'})
+  expect(committed.version==='2' && committed.tickets===1 && committed.codes===1 && committed.active===0).toBe(true)
+  expect((await page.context().cookies()).some(c=>c.name==='__Host-cleanops_session')).toBe(false)
+  phase('REPLAY_DENIED');const replay=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/password/reset');await submit(page,proof.ticket,proof.code)
+  expect((await replay).status()).toBe(409)
+  phase('FRESH_LOGIN');await page.getByRole('link',{name:'Reiniciar acceso',exact:true}).click()
+  await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Contraseña').fill(replacement);await page.getByRole('button',{name:'Continuar',exact:true}).click()
+  await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+  expect((await server.rpc({kind:'inspectReset'})).active).toBe(0)
+  await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click()
+  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+ }finally{await server.close()}
+})
