@@ -1,3 +1,4 @@
+import { prepareReplacementHash } from './password.ts'
 import { createEmailCeremony, type PrivateMailCustody } from './email-ceremony.ts'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { approvedTotpEnrollmentPolicy } from './enrollment-policy.ts'
@@ -20,6 +21,8 @@ function date(value: unknown): string {
   return d.toISOString()
 }
 export interface ApprovedBackendDependencies {
+  /** Explicit private local admission/corpus policy, no production fallback. */
+  passwordAdmission?: (password:string)=>Promise<boolean>
   mail?: PrivateMailCustody
   factors: PrivateFactorKeys
   cursorKey: Buffer
@@ -80,7 +83,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const requestTag = (hash: string) => createHmac('sha256', deps.factors.auditKey).update(canonical(['B1_OWNED_REQUEST_V1', hash])).digest('hex')
       let stepUpRequest: { grant: string; resource: string | null } | undefined
       function owns(binding: Binding) { if (!actor || binding !== actor) throw invalid(); return actor }
-      function preauth() { if (!actor || actor.kind === 'BOOTSTRAP') throw invalid(); return actor.kind === 'PREAUTH' ? raw : null }
+      function preauth() { if (!actor) throw invalid(); if(actor.kind==='BOOTSTRAP'){if(operationHint==='resetPassword')return raw;throw invalid()} return actor.kind === 'PREAUTH' ? raw : null }
       async function resolveAgain() {
         if (!actor) throw invalid()
         const latest = await broker.call('binding', [raw, csrf, actor.kind])
@@ -194,7 +197,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async resolve(cookies) {
           if (actor) throw unavailable()
           const preferPreauth = ['verifyMfa', 'recoverMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
-          const mode = operationHint === 'login' ? 'BOOTSTRAP' :
+          const mode = ['login','resetPassword'].includes(operationHint) ? 'BOOTSTRAP' :
             preferPreauth && cookies[names.preauth] ? 'PREAUTH' : cookies[names.session] ? 'ACTIVE' : 'PREAUTH'
           raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''
           if (!/^[A-Za-z0-9_-]{43}$/.test(raw) || !/^[A-Za-z0-9_-]{43}$/.test(csrf)) return null
@@ -225,10 +228,10 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['login', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
-          const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
+          const purpose = ['login','resetPassword'].includes(operation) ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
           const subject = createHmac('sha256', deps.factors.auditKey).update(canonical([purpose, binding.tenantId ?? null, binding.userId ?? binding.id])).digest()
           const values = [subject, transport.network, transport.device], dims = ['USER', 'IP', 'DEVICE'] as const
           const limits = purpose === 'LOGIN' ? [numeric('login_user_limit'), numeric('login_ip_limit'), numeric('login_device_limit')] :
@@ -238,15 +241,15 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           return retry > 0 ? retry : null
         },
         async reserve(scope, requestHash) {
-          if (!actor || actor.kind === 'BOOTSTRAP' || !/^[a-f0-9]{64}$/.test(requestHash) || reservations.has(scope)) throw unavailable()
+          if (!actor || (actor.kind === 'BOOTSTRAP' && operationHint!=='resetPassword') || !/^[a-f0-9]{64}$/.test(requestHash) || reservations.has(scope)) throw unavailable()
           let parts: unknown
           try { parts = JSON.parse(scope) } catch { throw unavailable() }
           if (!Array.isArray(parts) || parts.length !== 6 ||
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
-          const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
           if (result.replay && ['startStepUp', 'resendOtp', 'resendEmail', 'selectTotpMethod'].includes(operation)) {
@@ -294,8 +297,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword'].includes(operation) || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()
@@ -384,6 +387,21 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               binding, grant, resource, input.totp_method_id as string)
             if ('state' in data) throw unavailable()
             return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
+          }
+          if(operation==='resetPassword'){
+            if(binding.kind!=='BOOTSTRAP' || !deps.passwordAdmission || typeof input.ticket!=='string' || !/^[A-Za-z0-9_-]{43}$/.test(input.ticket))throw unavailable()
+            const ticket=hex(digest(input.ticket)),trusted=await broker.call('resetMaterial',[ticket])
+            if(!trusted || Date.parse(trusted.expiresAt)<=now()){await factorDenied(binding);return invalid()}
+            const subject=createHmac('sha256',deps.factors.auditKey).update(canonical(['PASSWORD_RESET',trusted.principalId])).digest()
+            try{const retry=await broker.call('rateAttempt',[subject,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return new AuthError(429,'RATE_LIMITED',retry)}finally{subject.fill(0)}
+            if(trusted.requiresRecovery && (typeof input.recovery_code!=='string' || !/^[A-Z2-7]{26}$/.test(input.recovery_code))){await factorDenied(binding);return invalid()}
+            const replacement=await prepareReplacementHash(String(input.new_password),deps.passwordAdmission)
+            if(replacement instanceof AuthError){await factorDenied(binding);return replacement}
+            const proof=trusted.requiresRecovery?createHmac('sha256',deps.factors.recoveryKey).update(canonical(['RECOVERY',trusted.tenantId,trusted.userId,input.recovery_code])).digest():null
+            try{
+              if(!await broker.call('resetPassword',[ticket,trusted.credentialVersion,proof,replacement,correlation]))return factorDenied(binding)
+              return {data:{state:'PASSWORD_RESET'},clearSession:true}
+            }finally{proof?.fill(0);ticket.fill(0)}
           }
           if (operation === 'recoverMfa') {
             if (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA' || !binding.tenantId || !binding.userId ||

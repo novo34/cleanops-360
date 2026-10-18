@@ -1,9 +1,10 @@
 import canonicalSpecification from './openapi.json' with { type: 'json' }
 import emailExtension from './email-http.json' with { type: 'json' }
+import resetExtension from './reset-http.json' with { type: 'json' }
 import recoveryExtension from './recovery-http.json' with { type: 'json' }
 // Additive E1 EMAIL endpoints; canonical V4 bytes and existing operations unchanged.
-const specification = { ...canonicalSpecification, paths: { ...canonicalSpecification.paths, ...emailExtension.paths, ...recoveryExtension.paths },
-  components: { ...canonicalSpecification.components, schemas: { ...canonicalSpecification.components.schemas, ...emailExtension.schemas, ...recoveryExtension.schemas } } }
+const specification = { ...canonicalSpecification, paths: { ...canonicalSpecification.paths, ...emailExtension.paths, ...recoveryExtension.paths, ...resetExtension.paths },
+  components: { ...canonicalSpecification.components, schemas: { ...canonicalSpecification.components.schemas, ...emailExtension.schemas, ...recoveryExtension.schemas, ...resetExtension.schemas } } }
 
 export interface Schema {
   $ref?: string; type?: string; const?: unknown; enum?: unknown[]; properties?: Record<string, Schema>

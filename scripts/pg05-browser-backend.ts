@@ -18,7 +18,7 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const recoveryScenario = input.scenario === 'recovery'
+const recoveryScenario = ['recovery','reset'].includes(input.scenario)
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
@@ -29,6 +29,7 @@ const password = 'PG05 synthetic passphrase!'
 const recoveryKey = randomBytes(32)
 const recoverySecret = new Secret({size:numeric('recovery_entropy')})
 const fixtureRecoveryCode = recoverySecret.base32
+const resetTicket=randomBytes(32).toString('base64url')
 recoverySecret.bytes.fill(0)
 const mailKey = randomBytes(32), otpKey = randomBytes(32)
 const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'pgtest_mail', max: 2 })
@@ -100,7 +101,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas'))) emailConsumption = true
         if (sql === 'COMMIT' && failNextEmailCommit && emailConsumption) {
           failNextEmailCommit = false; emailConsumption = false
           const pid = await client.query('SELECT pg_backend_pid() AS pid')
@@ -116,6 +117,7 @@ try {
     }, release(discard?: boolean) { client.release(discard) } }
   } }
   const backend = createApprovedPrivateBackend(privatePool, {
+    passwordAdmission: async value => [...value].length>=numeric('password_min') && value!=='Compromised fixture password!',
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
@@ -146,6 +148,22 @@ try {
     try {
       if (['failEmailCommit','failFactorCommit'].includes(message.kind)) { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
       if(message.kind==='recoveryProof'){reply({code:fixtureRecoveryCode});continue}
+      if(message.kind==='resetProof'){
+        const verifier=new Pool({host:'/var/run/postgresql',database:'core',user:'pgtest_verifier'})
+        try{await verifier.query("SELECT auth_api.attest_reset($1::uuid,$2::uuid,$3::bytea,'PASSWORD',$4::uuid,$5::timestamptz,$6::uuid)",[input.tenant,input.user,createHash('sha256').update(resetTicket).digest(),randomUUID(),new Date(Date.now()+numeric('preauth_ttl')*1000),randomUUID()])}finally{await verifier.end()}
+        reply({ticket:resetTicket,code:fixtureRecoveryCode});continue
+      }
+      if(message.kind==='expireReset'){
+        await admin.query("UPDATE identity_private.reset_tickets SET created_at=clock_timestamp()-interval '700s',expires_at=clock_timestamp()-interval '1s' WHERE principal_id=$1",[input.principal]);reply({ok:true});continue
+      }
+      if(message.kind==='inspectReset'){
+        const credentials=await admin.query('SELECT credential_version::text AS version FROM identity_private.credentials WHERE principal_id=$1',[input.principal])
+        const tickets=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM identity_private.reset_tickets WHERE principal_id=$1',[input.principal])
+        const codes=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user])
+        const sessions=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.sessions WHERE principal_id=$1",[input.principal])
+        reply({version:credentials.rows[0].version,tickets:tickets.rows[0].consumed,codes:codes.rows[0].consumed,active:sessions.rows[0].active});continue
+      }
+
       if(message.kind==='expireRecovery'){
         await admin.query("UPDATE identity_private.preauth SET created_at=clock_timestamp()-interval '700 seconds',expires_at=clock_timestamp()-interval '1 second' WHERE principal_id=$1",[input.principal]);reply({ok:true});continue
       }

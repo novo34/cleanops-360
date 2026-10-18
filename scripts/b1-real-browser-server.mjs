@@ -20,7 +20,7 @@ export function closeOwnedServer(server) {
 export async function startRealBrowserServer(scenario = 'existing') {
   const input = JSON.parse(process.env.B1_BROWSER_FIXTURE || '{}')
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
-  if (!['existing','enrollment','additional','multiple','email','email-enrollment','email-additional','email-multiple','recovery'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
+  if (!['existing','enrollment','additional','multiple','email','email-enrollment','email-additional','email-multiple','recovery','reset'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
   input.scenario = scenario
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]
@@ -54,7 +54,7 @@ export async function startRealBrowserServer(scenario = 'existing') {
     if (!(await rpc(input)).ready) throw Error('PRIVATE_BACKEND_NOT_READY')
     execFileSync('openssl', ['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(directory,'key.pem'),'-out',join(directory,'cert.pem'),'-days','1','-subj','/CN=localhost'], { stdio: 'ignore' })
     const specification = JSON.parse(readFileSync('lib/b1/openapi.json', 'utf8'))
-    Object.assign(specification.paths,JSON.parse(readFileSync('lib/b1/email-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/recovery-http.json','utf8')).paths)
+    Object.assign(specification.paths,JSON.parse(readFileSync('lib/b1/email-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/recovery-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/reset-http.json','utf8')).paths)
     const operations = Object.entries(specification.paths).flatMap(([path, methods]) => Object.entries(methods).map(([method, op]) => ({ path, method: method.toUpperCase(), operation: op.operationId })))
     server = createServer({ key: readFileSync(join(directory,'key.pem')), cert: readFileSync(join(directory,'cert.pem')) }, async (incoming, outgoing) => {
       try {

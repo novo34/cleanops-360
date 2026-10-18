@@ -155,6 +155,7 @@ test('all effective HTTP operations dispatch validated requests and responses th
       f.binding = binding('BOOTSTRAP')
       f.effect = { data: pending(), transition: { kind: 'PREAUTH', token: token(), csrf: token(), expiresAt: clock()+600000 } }
     }
+    if(operation.operationId==='resetPassword'){f.binding=binding('BOOTSTRAP');f.effect={data:{state:'PASSWORD_RESET'},clearSession:true}}
     if (operation.operationId === 'recoverMfa') {
       f.binding = binding('PREAUTH','PENDING_MFA')
       f.effect = { data: {state:'ENROLLMENT_REQUIRED',allowed_methods:['TOTP'],expires_at:new Date(clock()+600000).toISOString()},

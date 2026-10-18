@@ -26,7 +26,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false); setEmailPending(null); setRecovering(false)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false); setEmailPending(null); setRecovering(false); setResetting(false)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -38,6 +38,8 @@ export function AuthPanel() {
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
+  const [resetting,setResetting]=useState(false)
+  const [resetDone,setResetDone]=useState(false)
   const [recovering, setRecovering] = useState(false)
   const [emailPending, setEmailPending] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [emailEnrollment, setEmailEnrollment] = useState(false)
@@ -203,11 +205,21 @@ export function AuthPanel() {
     <h1>CleanOps 360 · Acceso</h1>
     <p role="status" aria-live="polite">{busy ? 'Procesando…' : message}</p>
     <fieldset disabled={busy} aria-busy={busy} style={{ border: 0, padding: 0 }}>
-      {!view.auth && !challenge && !selection && <form onSubmit={event => { event.preventDefault(); void login(event.currentTarget) }}>
+      {!view.auth && !challenge && !selection && !resetting && !resetDone && <form onSubmit={event => { event.preventDefault(); void login(event.currentTarget) }}>
         <p><label>Email <input name="email" type="email" autoComplete="username" required maxLength={254} /></label></p>
         <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label></p>
         <button type="submit">Continuar</button>
       </form>}
+      {!view.auth && !challenge && !selection && !resetting && !resetDone && <button type="button" onClick={()=>{clearCeremony();setResetting(true);setMessage('Necesitas el ticket obtenido por el procedimiento de identidad autorizado y tu código de recuperación.')}}>Restablecer contraseña</button>}
+      {resetting && <form onSubmit={async event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();const code=String(data.get('recovery_code')??'');const result=await call('resetPassword',{ticket:String(data.get('ticket')),new_password:String(data.get('new_password')),...(code?{recovery_code:code}:{})});if(result){clearCeremony();setView(emptyView);setResetDone(true);setMessage('Contraseña actualizada. Vuelve a iniciar el acceso y completa MFA.')}}}>
+        <h2>Restablecer contraseña</h2>
+        <p><label>Ticket de restablecimiento <input name="ticket" type="password" autoComplete="off" minLength={43} maxLength={43} pattern="[A-Za-z0-9_-]{43}" required /></label></p>
+        <p><label>Código de recuperación <input name="recovery_code" type="password" autoComplete="off" minLength={26} maxLength={26} pattern="[A-Z2-7]{26}" /></label></p>
+        <p><label>Nueva contraseña <input name="new_password" type="password" autoComplete="new-password" maxLength={128} required /></label></p>
+        <button type="submit">Confirmar restablecimiento</button>
+        <button type="button" onClick={()=>{clearCeremony();setMessage('')}}>Cancelar restablecimiento</button>
+      </form>}
+      {resetDone && <p><a href="/login">Volver al acceso</a></p>}
       {view.auth && <p>{view.auth.state === 'ACTIVE' && !selection && !challenge ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
       {selection && !recovering && <form onSubmit={event => { event.preventDefault(); void selectMethod() }}>
         <fieldset>

@@ -16,12 +16,14 @@ def payload():
  generator=runner.module('generator09','consolidate-b1-bootstrap-reset.py')
  for name,content in generator.generate().items():
   if (generator.DEST/name).read_text()!=content:raise RuntimeError('EXACT09_FULL_DIFF_ACL_MISMATCH')
- b.REPORT.update(scope='PG-TEST-01-CONSOLIDATED-09',authorization=a,candidate=a['candidate'],prior08={'run':39111607391,'PASS':134,'realE2E':23,'reexecuted':False})
+ b.REPORT.update(scope='PG-TEST-01-CONSOLIDATED-09',increment='RESET_AND_RECOVERY_REGRESSION',authorization=a,candidate=a['candidate'],prior08={'run':39111607391,'PASS':134,'realE2E':23,'reexecuted':False})
  runner.original_record('exact09-blob-sha256-full-diff-acl','PASS');return [('V4',raw.decode())]
 def checks():
  if not runner.module('security09','pg09-security-tests.py').gate(b):
   b.record('reset-UI-API-PG','BLOCKED','Mandatory09 security gate failed');return
- runner.module('backup09','pg-e1-native-tests.py').backup(b,31)
- b.REPORT['newUIE2E']='NOT_YET_EXECUTED';b.REPORT['b1RequirementsAccepted']=0
+ previous.browser.CONFIG='playwright.reset-b1.config.ts'
+ previous.browser.UI_SCOPE='EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER'
+ previous.browser.SECURITY_GATE='pg09-browser-gate.py'
+ previous.browser.browser()
 runner.payload=payload;runner.sql=previous.sql;runner.checks=checks
 if __name__=='__main__':sys.exit(runner.main())

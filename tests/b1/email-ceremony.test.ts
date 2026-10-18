@@ -10,7 +10,7 @@ import { type Binding, createAuthHandler, closedBackend } from '../../lib/b1/ser
 test('EMAIL adds four operations without changing any approved V4/H1-H3 operation or schema', () => {
   for (const [path, value] of Object.entries(original.paths)) assert.equal(canonical(contract.paths[path]), canonical(value))
   for (const [key, value] of Object.entries(original.components.schemas)) assert.equal(canonical(contract.components.schemas[key]), canonical(value))
-  assert.equal(operations.length, Object.values(original.paths).reduce((n,v) => n+Object.keys(v).length,0)+5)
+  assert.equal(operations.length, Object.values(original.paths).reduce((n,v) => n+Object.keys(v).length,0)+6)
   const resend=operations.find(op=>op.operationId==='resendEmailEnrollment')!
   assert.equal(resend['x-authentication-state'],'ACTIVE_STEP_UP_OR_ENROLLMENT');assert.equal(resend['x-rule'],'B1-SELF-05')
 })
