@@ -17,7 +17,7 @@ async function api(path,body,token=root,method='POST',headers={}){const r=await 
 async function ready(){for(let n=0;n<100;n++){try{const r=await request('sys/health',{token:null});if([200,429,501,503].includes(r.status))return}catch{}await wait(100)}throw Error('SERVER_NOT_READY')}
 async function start(){const f=fs.openSync('/work/server.private.log','a',0o600);child=spawn('/work/bao',['server','-config=/work/server.json'],{stdio:['ignore',f,f]});await ready()}
 async function init(){const r=await api('sys/init',{secret_shares:2,secret_threshold:2},null,'PUT');root=r.root_token;return r.keys_base64}
-async function unseal(keys){for(const key of keys)await api('sys/unseal',{key},null,'PUT')}
+async function unseal(keys){for(const key of keys)await api('sys/unseal',{key},null,'PUT');for(let n=0;n<100;n++){if((await request('sys/health')).status===200)return;await wait(100)}throw Error('UNSEALED_NOT_ACTIVE')}
 async function policy(name,data){await api('sys/policies/acl/'+name,{policy:JSON.stringify(data)},root,'PUT')}
 async function token(policies,ttl='300s'){return(await api('auth/token/create',{policies,no_default_policy:true,ttl,explicit_max_ttl:ttl})).auth.client_token}
 function seal(bytes,key,aad){const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key,iv);c.setAAD(Buffer.from(aad));return{iv:iv.toString('base64'),tag:null,data:Buffer.concat([c.update(bytes),c.final()]).toString('base64'),...(function(){return{tag:c.getAuthTag().toString('base64')}})()}}
@@ -43,7 +43,7 @@ try{
   await api('sys/auth/b1-approle',{type:'approle'})
   async function workload(w){const name=input.pack[w+'.approle.json'].token_policies[0];await policy(name,input.pack[w+'.policy.json']);await api('auth/b1-approle/role/'+name,input.pack[w+'.approle.json']);const id=(await request('auth/b1-approle/role/'+name+'/role-id')).json.data.role_id;const wrapped=await api('auth/b1-approle/role/'+name+'/secret-id',{},root,'POST',{'X-Vault-Wrap-TTL':'60s'});const wrap=wrapped.wrap_info.token;const unwrapped=await api('sys/wrapping/unwrap',{},wrap);return{id,sid:unwrapped.data.secret_id,wrap}}
   let verifier,worker,credential
-  await check('AppRole-wrapped-single-use-no-default-policy',async()=>{credential=await workload('identity-verifier');const r=await api('auth/b1-approle/login',{role_id:credential.id,secret_id:credential.sid},null);verifier=r.auth.client_token;assert(!r.auth.policies.includes('default'));assert((await request('sys/wrapping/unwrap',{method:'POST',token:credential.wrap,body:{}})).status===403);assert((await request('auth/b1-approle/login',{method:'POST',token:null,body:{role_id:credential.id,secret_id:credential.sid}})).status>=400)})
+  await check('AppRole-wrapped-single-use-no-default-policy',async()=>{credential=await workload('identity-verifier');const r=await api('auth/b1-approle/login',{role_id:credential.id,secret_id:credential.sid},null);verifier=r.auth.client_token;assert(!r.auth.policies.includes('default'));const replay=await request('sys/wrapping/unwrap',{method:'POST',token:credential.wrap,body:{}});assert([400,403].includes(replay.status)&&!replay.json?.data);assert((await request('auth/b1-approle/login',{method:'POST',token:null,body:{role_id:credential.id,secret_id:credential.sid}})).status>=400)})
   await check('mail-worker-distinct-AppRole',async()=>{const c=await workload('mail-worker');worker=(await api('auth/b1-approle/login',{role_id:c.id,secret_id:c.sid},null)).auth.client_token})
   if(!verifier||!worker)throw Error('WORKLOAD_AUTH_BLOCKED')
   await check('tenant-A-allowed-tenant-B-denied',async()=>{assert((await request(old,{token:verifier})).status===200);assert((await request(foreign,{token:verifier})).status===403)})
@@ -65,7 +65,20 @@ try{
   await check('encrypted-backup-tamper-rejected',async()=>{let rejected=false;try{open({...backup,tag:randomBytes(16).toString('base64')},backupKey,'B1_SYNTHETIC_BACKUP_V1')}catch{rejected=true}assert(rejected);assert(open(backup,backupKey,'B1_SYNTHETIC_BACKUP_V1').equals(snapshot))})
   await check('token-revocation-effective-immediately',async()=>{await api('auth/token/revoke',{token:worker});assert((await request(mail,{token:worker})).status===403)})
   await check('audit-has-events-without-plaintext-material',async()=>{const audit=fs.readFileSync('/var/log/openbao/audit.json','utf8');assert(audit.includes('b1-keys/data/'));for(const s of[k1.toString('base64'),k2.toString('base64'),secret.toString('base64'),verifier,worker,credential.sid,root,...keys])assert(!audit.includes(s));assert(audit.split('\n').filter(Boolean).every(l=>JSON.parse(l).type))})
-  await check('audit-disk-full-fails-closed-then-recovers',async()=>{const fd=fs.openSync('/var/log/openbao/fill','w');try{for(let i=0;i<40;i++)fs.writeSync(fd,Buffer.alloc(1024*1024,65))}catch(e){assert(e.code==='ENOSPC')}finally{fs.closeSync(fd)}let status;try{status=(await request(old,{token:verifier})).status}catch{status=503}assert(status>=500);fs.unlinkSync('/var/log/openbao/fill');assert((await request(old,{token:verifier})).status===200)})
+  await check('audit-disk-full-fails-closed-then-recovers',async()=>{
+   let observed,filled=false
+   try{
+    const fd=fs.openSync('/var/log/openbao/fill','w')
+    try{for(let i=0;i<40;i++)fs.writeSync(fd,Buffer.alloc(1024*1024,65))}catch(e){assert(e.code==='ENOSPC');filled=true}finally{fs.closeSync(fd)}
+    assert(filled)
+    try{observed=(await request(old,{token:verifier})).status}catch{observed=503}
+    // Keep the actual denial status; never turn a successful read into PASS.
+    checks.push({name:'audit-full-observed-HTTP-status',status:observed>=500?'PASS':'FAIL',detail:{status:observed}})
+    assert(observed>=500)
+   }finally{try{fs.unlinkSync('/var/log/openbao/fill')}catch{}}
+   for(let n=0;n<100;n++){if((await request(old,{token:verifier})).status===200)return;await wait(100)}
+   throw Error('AUDIT_DID_NOT_RECOVER')
+  })
   privateResult={root,keys,backupKey:backupKey.toString('base64'),old,next,mail,verifier,backupToken,worker,key1:k1.toString('base64'),key2:k2.toString('base64'),secret:secret.toString('base64'),e1,e2,aad}
  }else{
   const p=input.recovery

@@ -80,7 +80,8 @@ try:
   return r.get('privateResult',{})
  primary=container('primary');private=run(primary,{'mode':'primary','pack':pack,'racePath':'b1-keys/data/isolated-fixture/11111111-1111-1111-1111-111111111111/totp-aead/race-key'})
  if not private.get('backupKey'):raise RuntimeError('PRIMARY_BACKUP_BLOCKED')
- require(docker('cp',primary+':/work/backup.enc',str(tmp/'backup.enc')))
+ PHASE='READ_ENCRYPTED_BACKUP'
+ (tmp/'backup.enc').write_text(require(docker('exec',primary,'node','-e',"process.stdout.write(require('node:fs').readFileSync('/work/backup.enc'))")))
  REPORT['encryptedBackupSha256']=hashlib.sha256((tmp/'backup.enc').read_bytes()).hexdigest()
  restore=container('restore');transfer(restore,tmp/'backup.enc','/work/backup.enc')
  started=time.monotonic();run(restore,{'mode':'restore','pack':pack,'recovery':private});REPORT['syntheticRestoreSeconds']=round(time.monotonic()-started,3)

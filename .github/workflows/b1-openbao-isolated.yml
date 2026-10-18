@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   synthetic-custody:
-    if: github.event.pull_request.number == 7 && github.event.before == '9e2cb5211f6e399c99ed9c0204f2d3cd39829249' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == '4ca8ff93f0dfedfdf864996dcf5c8b7c3fc0f957' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
