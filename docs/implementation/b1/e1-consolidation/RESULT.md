@@ -1,3 +1,9 @@
+# Current SQL07 result: native PASS; full B1 OPEN
+
+Exact owner-authorized07 installed:253 PASS/0 FAIL; cleanup and existing-resource inventory PASS. Source59855dd719712b80f11d953558cf6ba956af45f4, run39102962461. Full evidence and limitations: [SQL07 result](../consolidated-test-07/RESULT.md). B1 remains0/44 accepted, closedBackend unchanged and AUTH-GATE-05 OPEN. New public UI/API full integration remains pending.
+
+## Historical06 result (superseded native status, retained evidence)
+
 # B1 E1 — installation PASS, native focused suite FAIL, B1 OPEN
 
 Base f209054b5613abb036c4f72391385bc2db339930. All five E1 decisions retained.
