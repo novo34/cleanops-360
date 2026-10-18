@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { hash, verify, argon2id, argon2i } from 'argon2'
-import { verifyPasswordFactor } from '../../lib/b1/password.ts'
+import { verifyPasswordFactor, prepareReplacementHash } from '../../lib/b1/password.ts'
 import { AuthError, closedBackend } from '../../lib/b1/service.ts'
 import { numeric } from '../../lib/b1/config.ts'
 
@@ -62,4 +62,24 @@ test('replacement failure or credential race throws 503; runtime remains closed'
   await assert.rejects(verifyPasswordFactor(password, legacy, async () => { throw new Error('storage offline') }), unavailable)
   await assert.rejects(closedBackend.bootstrap('unused', 'unused', Date.now() + 1000), unavailable)
   await assert.rejects(closedBackend.transaction(async () => ({ verified: true })), unavailable)
+})
+
+
+test('reset hash preparation uses explicit private admission and independent Argon2id salts',async()=>{
+  const seen:string[]=[]
+  const admission=async(value:string)=>{seen.push(value);return true}
+  const first=await prepareReplacementHash(password,admission),second=await prepareReplacementHash(password,admission)
+  assert.equal(typeof first,'string');assert.equal(typeof second,'string')
+  assert.notEqual(first,second)
+  assert.equal(await verify(first as string,password),true)
+  assert.match(first as string,/^\$argon2id\$v=19\$m=65536,t=3,p=1\$/)
+  assert.deepEqual(seen,[password,password])
+})
+test('reset hash preparation cannot bypass unavailable policy or admit malformed passwords',async()=>{
+  const refused=await prepareReplacementHash(password,async()=>false)
+  assert.ok(refused instanceof AuthError && refused.status===422)
+  await assert.rejects(prepareReplacementHash(password,async()=>{throw new Error('private corpus unavailable')}),unavailable)
+  await assert.rejects(prepareReplacementHash(password,undefined as never),unavailable)
+  const invalid=await prepareReplacementHash('\ud800',async()=>{assert.fail('must reject malformed input before policy');return true})
+  assert.ok(invalid instanceof AuthError && invalid.status===422)
 })

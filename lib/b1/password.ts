@@ -14,6 +14,23 @@ const options = Object.freeze({
 })
 const invalid = () => new AuthError(401, 'AUTH_INVALID')
 
+/** Private reset preparation only. The caller must supply the approved local password
+ * admission/corpus checker; missing or unavailable policy never admits a replacement.
+ * No credential write, identity grant, HTTP projection or production default here. */
+export async function prepareReplacementHash(password: string, admit: (value: string) => Promise<boolean>): Promise<string | AuthError> {
+  if (typeof password !== 'string' || !password.isWellFormed() || !password.length ||
+      password.length > numeric('password_max') * 2 || [...password].length > numeric('password_max'))
+    return new AuthError(422, 'INVALID_INPUT')
+  if(typeof admit!=='function')throw new AuthError(503,'AUTH_DEPENDENCY_UNAVAILABLE')
+  try {
+    const accepted=await admit(password)
+    if(accepted===false)return new AuthError(422,'INVALID_INPUT')
+    if(accepted!==true)throw new Error('POLICY_UNAVAILABLE')
+    const argon=await import('argon2')
+    return await argon.hash(password,{...options,type:argon.argon2id,salt:randomBytes(numeric('argon_salt'))})
+  } catch { throw new AuthError(503,'AUTH_DEPENDENCY_UNAVAILABLE') }
+}
+
 function canonicalBytes(value: string, min: number, max: number): boolean {
   const bytes = Buffer.from(value, 'base64')
   return bytes.length >= min && bytes.length <= max && bytes.toString('base64').replace(/=+$/, '') === value

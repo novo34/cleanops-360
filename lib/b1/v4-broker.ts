@@ -5,6 +5,12 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  ownTrusted: {sql:'SELECT auth_api.own_trusted_devices($1::integer,$2::timestamptz,$3::uuid) AS value',arity:3,kind:'json'},
+  registerTrusted: {sql:'SELECT auth_api.register_trusted_device($1::bytea,$2::uuid) AS value',arity:2,kind:'uuid'},
+  validTrusted: {sql:'SELECT auth_api.trusted_device_valid($1::bytea) AS value',arity:1,kind:'boolean'},
+  revokeTrusted: {sql:'SELECT auth_api.revoke_trusted_device($1::uuid,$2::uuid) AS value',arity:2,kind:'boolean'},
+  effectiveAccess: {sql:'SELECT auth_api.effective_access($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'boolean'},
+  accessDetail: {sql:'SELECT auth_api.access_detail($1::uuid) AS value',arity:1,kind:'json'},
   resetMaterial: {sql: 'SELECT auth_api.password_reset_material($1::bytea) AS value', arity:1, kind:'json'},
   resetPassword: {sql: 'SELECT auth_api.reset_password_cas($1::bytea,$2::bigint,$3::bytea,$4::text,$5::uuid) AS value', arity:5, kind:'boolean'},
   recoverEnrollment: {sql: 'SELECT auth_api.recover_to_enrollment($1::text,$2::bytea,$3::bytea,$4::bytea,$5::uuid) AS value', arity:5, kind:'json'},
@@ -188,7 +194,14 @@ export type D1MfaMaterial = Readonly<{
 }>
 export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: '1'; expiresAt: string }>
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
+export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  ownTrusted: [limit:number,beforeTime:string|null,beforeId:string|null]
+  registerTrusted: [tokenDigest:Buffer,correlation:string]
+  validTrusted: [tokenDigest:Buffer]
+  revokeTrusted: [trustedDeviceId:string,correlation:string]
+  effectiveAccess: [action:AccessAction,resourceKind:string,resourceId:string|null]
+  accessDetail: [targetUser:string]
   resetMaterial: [ticketDigest:Buffer]
   resetPassword: [ticketDigest:Buffer,credentialVersion:string,recoveryDigest:Buffer|null,replacementHash:string,correlation:string]
   recoverEnrollment: [preauth: string, recoveryDigest: Buffer, cookieDigest: Buffer, csrfDigest: Buffer, correlation: string]
