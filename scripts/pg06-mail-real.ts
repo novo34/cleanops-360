@@ -18,7 +18,7 @@ const unit=createPgIdentityUnitOfWork(identity as unknown as IdentityPool)
 const key=randomBytes(32),hmac=randomBytes(32),password=randomBytes(32).toString('base64url')
 const d=(s:string)=>createHash('sha256').update(s).digest();const token=()=>randomBytes(32).toString('base64url')
 const checks:{name:string;status:string;detail?:unknown}[]=[]
-async function test(name:string,fn:()=>Promise<void>){try{await fn();checks.push({name,status:'PASS'});return true}catch(e){const code=(e as {code?:string})?.code;checks.push({name,status:'FAIL',detail:{sqlstate:typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?code:'ASSERTION_OR_DEPENDENCY'}});return false}}
+async function test(name:string,fn:()=>Promise<void>){try{await fn();checks.push({name,status:'PASS'});return true}catch(e){const code=(e as {code?:string})?.code;checks.push({name,status:'FAIL',detail:{sqlstate:typeof code==='string'&&/^[0-9A-Z]{5}$/.test(code)?code:'ASSERTION_OR_DEPENDENCY',observedState:['CANCELLED','QUARANTINED','PENDING','DISPATCHING','SENT'].includes(String((e as {actual?:unknown}).actual))?String((e as {actual?:unknown}).actual):undefined,constraint:/^mfa_methods_[a-z_]+$/.test(String((e as {constraint?:unknown}).constraint))?String((e as {constraint?:unknown}).constraint):undefined}});return false}}
 function blocked(name:string){checks.push({name,status:'BLOCKED',detail:'Prerequisite failed; not simulated'})}
 async function value(c:Pick<PoolClient,'query'>,sql:string,params:unknown[]=[]){return (await c.query(sql,params)).rows[0]?.value}
 let encoded='',version='';const stage='setup'
@@ -35,17 +35,20 @@ async function preauth(){
 }
 const method=randomUUID()
 let cookie='',challenge='',outbox='',otp:ReturnType<typeof prepareEmailOtp>|undefined
-let lastOutbox=''
-async function issue(purpose:'ENROLLMENT'|'LOGIN',outcome:MailOutcome='ACCEPTED'){
- challenge=randomUUID();outbox=randomUUID();otp=prepareEmailOtp(cookie,hmac)
+let lastOutbox='',activeToken='',activeSession=''
+async function issue(purpose:'ENROLLMENT'|'LOGIN'|'STEP_UP',outcome:MailOutcome='ACCEPTED',send=true){
+ challenge=randomUUID();outbox=randomUUID();otp=prepareEmailOtp(purpose==='STEP_UP'?activeSession:cookie,hmac)
  const expiresAt=Math.floor(Date.now()+200000),issuedAt=Date.now()
  const context={tenantId:input.tenant,userId:input.user,methodId:method,methodVersion:purpose==='ENROLLMENT'?'1':'2',recipientVersion:'1',outboxId:outbox,challengeId:challenge}
  const sealed=sealMailPayload({recipient:'u1@fixture.invalid',code:otp.code,issuedAt,expiresAt},key,'synthetic-mail-v1',context)
  try{await unit.run(async c=>{
+  if(purpose==='STEP_UP')await c.query('SELECT auth_api.begin_verified_context($1::text)',[activeToken])
   const sql=purpose==='ENROLLMENT'?'SELECT auth_api.issue_email_enrollment($1::text,$2::uuid,$3::bigint,$4::bigint,$5::uuid,$6::uuid,$7::bytea,$8::bytea,$9::text,$10::timestamptz,$11::uuid) AS value':'SELECT auth_api.issue_email_assigned($1::text,$2::uuid,$3::bigint,$4::bigint,$5::uuid,$6::uuid,$7::bytea,$8::bytea,$9::text,$10::timestamptz,NULL,NULL,$11::uuid) AS value'
-  const r=await c.query(sql,[cookie,method,context.methodVersion,'1',challenge,outbox,otp!.proofDigest,sealed,'synthetic-mail-v1',new Date(expiresAt),randomUUID()]) as {rows:{value:string}[]}
+  const statement=purpose==='STEP_UP'?sql.replace('NULL,NULL,$11',"'B1-SELF-06',NULL,$11"):sql
+  const r=await c.query(statement,[purpose==='STEP_UP'?null:cookie,method,context.methodVersion,'1',challenge,outbox,otp!.proofDigest,sealed,'synthetic-mail-v1',new Date(expiresAt),randomUUID()]) as {rows:{value:string}[]}
   assert.equal(r.rows[0].value,challenge)
  })}finally{sealed.fill(0)}
+ if(!send)return
  let sends=0
  const result=await dispatchOneMail({store:createMailDispatchStore(mail as unknown as IdentityPool),now:Date.now,
   withReadKey:async(t,v,work)=>{assert.equal(t,input.tenant);assert.equal(v,'synthetic-mail-v1');return work(key)},
@@ -77,9 +80,45 @@ try{
     assert.equal(await value(identity,'SELECT auth_api.consume_email_v2($1::text,$2::uuid,$3::bytea,1,1,$4::uuid) AS value',[cookie,challenge,otp!.proofDigest,randomUUID()]),false)
    })
    await test('EMAIL-verified-factor-persists-session-after-COMMIT',async()=>{
-    const sessionToken=token(),csrf=token()
-    await unit.run(async c=>{const r=await c.query('SELECT auth_api.issue_active_session($1::text,$2::bytea,$3::bytea,$4::integer,$5::integer,$6::text,$7::text,$8::uuid) AS value',[cookie,d(sessionToken),d(csrf),numeric('absolute_sensitive'),numeric('idle_sensitive'),'Synthetic device','Synthetic browser',randomUUID()]) as {rows:{value:{state:string}}[]};assert.equal(r.rows[0].value.state,'ACTIVE')})
+    const sessionToken=token(),csrf=token();activeToken=sessionToken
+    await unit.run(async c=>{const r=await c.query('SELECT auth_api.issue_active_session($1::text,$2::bytea,$3::bytea,$4::integer,$5::integer,$6::text,$7::text,$8::uuid) AS value',[cookie,d(sessionToken),d(csrf),numeric('absolute_sensitive'),numeric('idle_sensitive'),'Synthetic device','Synthetic browser',randomUUID()]) as {rows:{value:{state:string;session_id:string}}[]};assert.equal(r.rows[0].value.state,'ACTIVE');activeSession=r.rows[0].value.session_id})
     assert.equal((await admin.query('SELECT count(*)::integer AS n FROM app.sessions WHERE principal_id=$1 AND credential_version=$2 AND state=$3',[input.principal,version,'ACTIVE'])).rows[0].n,1)
+   })
+   const cooldown=async()=>{await admin.query("UPDATE app.mfa_challenges SET issued_at=now()-interval '10 minutes' WHERE tenant_id=$1 AND user_id=$2",[input.tenant,input.user])}
+   const deps=(store=createMailDispatchStore(mail as unknown as IdentityPool))=>({store,now:Date.now,
+    withReadKey:async(_t:string,_v:string,work:(k:Buffer)=>unknown)=>work(key),deliver:async()=> 'ACCEPTED' as const})
+   function killedCommitPool(at:number):IdentityPool{
+    let commits=0
+    return {connect:async()=>{const c=await mail.connect();c.on('error',()=>{})
+     const pid=(await c.query('SELECT pg_backend_pid() AS pid,session_user AS actor')).rows[0];assert.equal(pid.actor,input.mailRole)
+     return {query:async(sql:string,values?:unknown[])=>{if(sql==='COMMIT'&&++commits===at)await admin.query('SELECT pg_terminate_backend($1)',[pid.pid]);return c.query(sql,values)},release:discard=>c.release(discard)}
+    }}
+   }
+   await test('EMAIL-native-claim-COMMIT-failure-no-send-no-effect',async()=>{
+    await cooldown();cookie=await preauth();await issue('LOGIN','ACCEPTED',false)
+    let sends=0
+    await assert.rejects(dispatchOneMail({...deps(createMailDispatchStore(killedCommitPool(1))),withReadKey:async(_t,_v,work)=>work(key),deliver:async()=>{sends++;return 'ACCEPTED'}}))
+    assert.equal(sends,0);assert.equal((await admin.query('SELECT state FROM app.auth_outbox WHERE tenant_id=$1 AND id=$2',[input.tenant,outbox])).rows[0].state,'PENDING')
+   })
+   await test('EMAIL-native-concurrent-dispatch-one-send',async()=>{
+    let sends=0
+    const run=()=>dispatchOneMail({...deps(),withReadKey:async(_t,_v,work)=>work(key),deliver:async()=>{sends++;return 'ACCEPTED'}})
+    const results=await Promise.all([run(),run()]);assert.equal(sends,1);assert.equal(results.filter(r=>r.state==='FINISHED').length,1);assert.equal(results.filter(r=>r.state==='EMPTY').length,1)
+    assert.equal(await value(identity,'SELECT auth_api.consume_email_v2($1::text,$2::uuid,$3::bytea,2,1,$4::uuid) AS value',[cookie,challenge,otp!.proofDigest,randomUUID()]),true)
+   })
+   await test('EMAIL-native-finish-COMMIT-loss-does-not-redeliver',async()=>{
+    await cooldown();cookie=await preauth();await issue('LOGIN','ACCEPTED',false);let sends=0
+    const result=await dispatchOneMail({...deps(createMailDispatchStore(killedCommitPool(3))),withReadKey:async(_t,_v,work)=>work(key),deliver:async()=>{sends++;return 'ACCEPTED'}})
+    assert.deepEqual(result,{state:'UNCONFIRMED'});assert.equal(sends,1)
+    assert.equal((await admin.query('SELECT state FROM app.auth_outbox WHERE tenant_id=$1 AND id=$2',[input.tenant,outbox])).rows[0].state,'DISPATCHING')
+    assert.deepEqual(await dispatchOneMail({...deps(),withReadKey:async(_t,_v,work)=>work(key),deliver:async()=>{sends++;return 'ACCEPTED'}}),{state:'EMPTY'});assert.equal(sends,1)
+    await admin.query("UPDATE app.auth_outbox SET lease_until=now()-interval '1s' WHERE tenant_id=$1 AND id=$2",[input.tenant,outbox])
+    assert.equal(await value(mail,'SELECT auth_api.quarantine_expired_mail($1::uuid) AS value',[randomUUID()]),1)
+    assert.equal((await admin.query('SELECT state FROM app.auth_outbox WHERE tenant_id=$1 AND id=$2',[input.tenant,outbox])).rows[0].state,'QUARANTINED')
+   })
+   await test('EMAIL-real-stepup-revalidates-current-session',async()=>{
+    await cooldown();await issue('STEP_UP')
+    await unit.run(async c=>{await c.query('SELECT auth_api.begin_verified_context($1::text)',[activeToken]);const r=await c.query('SELECT auth_api.consume_email_v2(NULL,$1::uuid,$2::bytea,2,1,$3::uuid) AS value',[challenge,otp!.proofDigest,randomUUID()]) as {rows:{value:boolean}[]};assert.equal(r.rows[0].value,true)})
    })
    const uncertain=await test('EMAIL-uncertain-delivery-durable-quarantine',async()=>{
     await admin.query("UPDATE app.mfa_challenges SET issued_at=now()-interval '10 minutes' WHERE tenant_id=$1 AND user_id=$2",[input.tenant,input.user])
