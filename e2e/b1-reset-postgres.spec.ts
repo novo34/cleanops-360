@@ -87,6 +87,11 @@ async function approveReset(page:Page,server:{rpc:(input:object)=>Promise<{proof
  await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!');await page.getByRole('button',{name:'Continuar',exact:true}).click()
  await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click()
  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+ const unverified=await page.evaluate(async receipt=>{
+  const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
+  return (await fetch('/auth/password/reset/authorize',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({target_user_id:receipt.targetUser,ticket:receipt.ticket,reason:'Synthetic pre-stepup denial'})})).status
+ },ticket)
+ expect(unverified).toBe(403);phase('NO_STEPUP_DENIED')
  await page.getByText('Autorizar restablecimiento de credenciales',{exact:true}).click()
  await page.getByLabel('Usuario destinatario',{exact:true}).fill(ticket.targetUser)
  await page.getByLabel('Ticket comprobado',{exact:true}).fill(ticket.ticket)
@@ -102,10 +107,11 @@ test('real operator step-up RBAC receipt authorizes target reset without exposin
   await approveReset(page,server,receipt,email)
   await expect(page.locator('p[role="status"]')).toContainText('Cambio confirmado')
   expect((await server.rpc({kind:'inspectReset'})).version).toBe('1')
-  const denied=await page.evaluate(async ticket=>{
+  const foreign=await server.rpc({kind:'crossTenantResetProof'})
+  const denied=await page.evaluate(async foreign=>{
    const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
-   return (await fetch('/auth/password/reset/authorize',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({target_user_id:'00000000-0000-4000-8000-000000000007',ticket,reason:'Synthetic cross-tenant denial'})})).status
-  },receipt.ticket)
+   return (await fetch('/auth/password/reset/authorize',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({target_user_id:foreign.targetUser,ticket:foreign.ticket,reason:'Synthetic cross-tenant denial'})})).status
+  },foreign)
   expect(denied).toBe(403)
   phase('TARGET_RESET');const person=await target.newPage();await person.goto('https://127.0.0.1:3000/login')
   await person.getByRole('button',{name:'Restablecer contraseña',exact:true}).click();await submit(person,receipt.ticket,'')

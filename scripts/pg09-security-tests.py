@@ -15,6 +15,8 @@ def gate(b):
  for caller in [*b.ROLE.values(),'pgtest_verifier']:
   b.check('09-execute-matrix-'+caller,f"SELECT has_function_privilege(current_user,{oid},'EXECUTE');",'t' if caller==role else 'f',caller)
   b.check('09-no-direct-reservation-table-'+caller,'SELECT * FROM identity_private.ceremony_idempotency;',role=caller,failure='42501')
+  b.check('09-no-direct-reservation-delete-'+caller,"DELETE FROM identity_private.ceremony_idempotency WHERE binding_digest=decode(repeat('09',32),'hex');",role=caller,failure='42501')
+  b.check('09-no-direct-reservation-insert-'+caller,"INSERT INTO identity_private.ceremony_idempotency(binding_digest,operation,key_digest,request_digest,state,response_safe,one_time_result,expires_at,owner_backend,owner_xid) VALUES(decode(repeat('09',32),'hex'),'resetPassword',decode(repeat('10',32),'hex'),decode(repeat('11',32),'hex'),'PENDING',NULL,true,now()+interval '1m',pg_backend_pid(),pg_current_xact_id());",role=caller,failure='42501')
   b.check('09-no-broker-assumption-'+caller,'SET ROLE cleanops_auth_broker;',role=caller,failure='42501')
   if caller!=role:b.check('09-direct-entry-denied-'+caller,f"SELECT auth_api.reserve_reset_owned('{raw}','{csrf}',{key},{request});",role=caller,failure='42501')
  b.check('09-real-bootstrap',f"SELECT auth_api.bootstrap_csrf({dg(raw)},{dg(csrf)});",role=role)
@@ -26,6 +28,8 @@ def gate(b):
  finish=f"SELECT auth_api.complete_owned('{raw}','resetPassword',{key},{request},NULL);"
  b.check('09-owned-rollback',"BEGIN;"+reserve()+finish+'ROLLBACK;',role=role)
  b.check('09-no-marker-after-rollback',f"SELECT count(*) FROM identity_private.ceremony_idempotency WHERE binding_digest={dg(raw)};",'0')
+ forbidden=dg('forbidden-one-time-payload')
+ b.check('09-one-time-response-plaintext-forbidden','BEGIN;'+reserve(k=forbidden)+f"SELECT auth_api.complete_owned('{raw}','resetPassword',{forbidden},{request},'{{\"private\":\"synthetic\"}}'::jsonb);COMMIT;",role=role,failure='P0001')
  b.check('09-owned-completion','BEGIN;'+reserve()+finish+'COMMIT;',role=role)
  b.check('09-one-time-replay-denied',reserve(),role=role,failure='P0001')
  b.check('09-same-key-changed-request-denied',reserve(h=dg('different-request')),role=role,failure='P0001')

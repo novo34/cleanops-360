@@ -163,6 +163,11 @@ try {
         try{await verifier.query("SELECT auth_api.attest_reset($1::uuid,$2::uuid,$3::bytea,'PASSWORD',$4::uuid,$5::timestamptz,$6::uuid)",[input.tenant,resetTarget?.user??input.user,createHash('sha256').update(resetTicket).digest(),randomUUID(),new Date(Date.now()+numeric('preauth_ttl')*1000),randomUUID()])}finally{await verifier.end()}
         reply({ticket:resetTicket,code:fixtureRecoveryCode,targetUser:resetTarget?.user,targetEmail:resetTarget?.email});continue
       }
+      if(message.kind==='crossTenantResetProof'){
+        const foreignTicket=randomBytes(32).toString('base64url'),verifier=new Pool({host:'/var/run/postgresql',database:'core',user:'pgtest_verifier'})
+        try{await verifier.query("SELECT auth_api.attest_reset($1::uuid,$2::uuid,$3::bytea,'PASSWORD',$4::uuid,$5::timestamptz,$6::uuid)",[input.otherTenant,input.otherUser,createHash('sha256').update(foreignTicket).digest(),randomUUID(),new Date(Date.now()+numeric('preauth_ttl')*1000),randomUUID()])}finally{await verifier.end()}
+        reply({ticket:foreignTicket,targetUser:input.otherUser});continue
+      }
       if(message.kind==='expireApproval'){
         await admin.query("UPDATE app.step_up_evidence SET verified_at=clock_timestamp()-interval '1m',expires_at=clock_timestamp()-interval '1s' WHERE user_id=$1",[input.user]);reply({ok:true});continue
       }

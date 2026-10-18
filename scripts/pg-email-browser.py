@@ -17,7 +17,7 @@ def browser():
  if not runner.module('email_gate',SECURITY_GATE).gate(b,TABLE_COUNT):
   b.record('EMAIL-browser','BLOCKED','Native role gate failed');return
  runner.module('email_runtime','pg-http-integration.py').copy_runtime(b,('scripts/pg05-browser-backend.ts',))
- fixture={'container':b.CID,'run':b.RUN,'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}
+ fixture={'container':b.CID,'run':b.RUN,'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity'],'otherTenant':b.B,'otherUser':b.W}
  result=subprocess.run(['npx','--no-install','playwright','test','--config='+CONFIG],cwd=ROOT,env=dict(b.ENV,B1_BROWSER_FIXTURE=json.dumps(fixture)),capture_output=True,text=True,timeout=480)
  path=ROOT/'artifacts/b1-real-browser/playwright.json'
  if path.exists():
