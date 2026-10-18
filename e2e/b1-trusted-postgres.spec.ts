@@ -60,6 +60,9 @@ test('trusted same-key concurrent registration is one-time and foreign device ca
   expect((await post(page,'/me/trusted-devices/revoke',{device_id:foreign.deviceId})).body.data.revoked_count).toBe(0)
   expect((await post(page,'/auth/trusted-devices/revoke-user',{target_user_id:foreign.targetUser})).status).toBe(403)
   const listing=await (await page.request.get('/me/trusted-devices')).json();expect(listing.data.items.some((d:{id:string})=>d.id===foreign.deviceId)).toBe(false)
+  const current=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_trusted')
+  if(current)await page.context().addCookies([{...current,value:foreign.token}])
+  expect((await (await page.request.get('/me/trusted-devices/status')).json()).data.valid).toBe(false)
   const csrf=await page.evaluate(async()=> (await fetch('/me/trusted-devices',{method:'POST',headers:{'X-CSRF-Token':'x'.repeat(43),'Idempotency-Key':crypto.randomUUID()}})).status);expect(csrf).toBe(403)
  }finally{await server.close()}
 })
@@ -81,6 +84,9 @@ test('trusted failed COMMIT releases no cookie and rolls back device and audit b
   expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length)
   expect((await post(page,'/me/trusted-devices')).status).toBe(200)
   expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length+1)
+  const key=crypto.randomUUID();await server.rpc({kind:'loseResetCommitAck'});expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(503)
+  expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length+2)
+  expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(409)
  }finally{await server.close()}
 })
 test('trusted operator UI revokes another user only with current effective edit users and fresh MFA',async({page})=>{
@@ -93,4 +99,25 @@ test('trusted operator UI revokes another user only with current effective edit 
   expect((await post(page,'/auth/trusted-devices/revoke-user',{target_user_id:target.targetUser})).status).toBe(403)
   expect((await server.rpc({kind:'targetTrustedState'})).active).toBe(1);expect((await page.request.get('/auth/me')).status()).toBe(200)
  }finally{await server.close()}
+})
+
+test('actual password reset invalidates registered trust and all old sessions without granting access',async({page,browser})=>{
+ const server=await startRealBrowserServer('trusted'),fresh=await browser.newContext({ignoreHTTPSErrors:true})
+ try{await login(page,server);await remember(page,server);const proof=await server.rpc({kind:'resetProof'}),other=await fresh.newPage()
+  await other.goto('https://127.0.0.1:3000/login');await other.getByRole('button',{name:'Restablecer contraseña',exact:true}).click()
+  await other.getByLabel('Ticket de restablecimiento',{exact:true}).fill(proof.ticket);await other.getByLabel('Código de recuperación',{exact:true}).fill(proof.code);await other.getByLabel('Nueva contraseña',{exact:true}).fill('New trusted reset credential 360!')
+  await other.getByRole('button',{name:'Confirmar restablecimiento',exact:true}).click();await expect(other.getByRole('link',{name:'Volver al acceso',exact:true})).toBeVisible()
+  expect((await server.rpc({kind:'inspectTrusted'})).devices.every((d:{revoked_at:string|null})=>!!d.revoked_at)).toBe(true)
+  expect((await page.request.get('/me/trusted-devices/status')).status()).toBe(401);expect((await server.rpc({kind:'inspectReset'})).version).toBe('2')
+ }finally{await fresh.close();await server.close()}
+})
+test('actual recovery MFA reset invalidates trust before mandatory enrollment and never issues ACTIVE',async({page,browser})=>{
+ const server=await startRealBrowserServer('trusted'),fresh=await browser.newContext({ignoreHTTPSErrors:true})
+ try{await login(page,server);await remember(page,server);const other=await fresh.newPage();await other.goto('https://127.0.0.1:3000/login')
+  await other.getByLabel('Email',{exact:true}).fill((await server.rpc({kind:'fixtureEmail'})).email);await other.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!');await other.getByRole('button',{name:'Continuar',exact:true}).click()
+  await other.getByRole('button',{name:'Usar código de recuperación',exact:true}).click();await other.getByLabel('Código de recuperación',{exact:true}).fill((await server.rpc({kind:'recoveryProof'})).code)
+  await other.getByRole('button',{name:'Recuperar y configurar MFA',exact:true}).click();await expect(other.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
+  expect((await server.rpc({kind:'inspectTrusted'})).devices.every((d:{revoked_at:string|null})=>!!d.revoked_at)).toBe(true)
+  expect((await page.request.get('/me/trusted-devices/status')).status()).toBe(401);expect((await fresh.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(401)
+ }finally{await fresh.close();await server.close()}
 })
