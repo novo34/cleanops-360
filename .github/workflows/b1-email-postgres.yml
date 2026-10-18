@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   email-pg:
-    if: github.event.pull_request.number == 7 && github.event.before == 'b54d7562f1b9326d2acfadd6d8a707b9f0e4a226' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == 'a36c8197d2c3fb7724977b6c17499efe2a15caa8' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 16
     env:

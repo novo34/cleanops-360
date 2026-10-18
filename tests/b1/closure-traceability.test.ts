@@ -12,18 +12,32 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
   assert.deepEqual(matrix.requirements.map((row: { id: string }) => row.id).sort(), required.sort())
   assert.equal(new Set(matrix.requirements.map((row: { id: string }) => row.id)).size, required.length)
   for (const row of matrix.requirements) {
-    assert.equal(row.realIntegration, 'NOT_VERIFIED')
-    assert.equal(row.acceptance, 'OPEN')
-    assert.equal(row.testsExecuted, 'SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE')
-    assert.ok(row.pending.length && row.evidence.length && row.tests.length)
+    assert.ok(row.evidence.length && row.tests.length)
+    if (row.acceptance === 'ACCEPTED') {
+      assert.equal(row.realIntegration, 'VERIFIED')
+      assert.equal(row.testsExecuted, 'REAL_UI_API_PG_PASS')
+      const evidence = JSON.parse(read(row.acceptanceEvidence.report))
+      assert.equal(evidence.result, 'PASS'); assert.equal(evidence.cleanup, 'PASS')
+      assert.equal(evidence.source, row.acceptanceEvidence.source)
+      assert.equal(evidence.run, row.acceptanceEvidence.run)
+      assert.equal(evidence.newUIE2E, 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
+      for (const name of row.acceptanceEvidence.cases) assert.ok(evidence.checks.some((c: {name:string;status:string}) => c.name === name && c.status === 'PASS'))
+      assert.equal(row.acceptanceEvidence.productionAcceptance, false)
+    } else {
+      assert.equal(row.acceptance, 'OPEN'); assert.ok(row.pending.length)
+    }
   }
   assert.equal(matrix.status, 'B1_OPEN')
   assert.equal(matrix.authGate05, 'OPEN')
   assert.equal(matrix.runtime, 'closedBackend')
-  assert.equal(matrix.databaseExecutionAuthorized, false)
+  assert.equal(matrix.databaseExecutionAuthorized, true)
+  assert.equal(matrix.databaseExecutionScope.artifact, '099345e43c03a2ee3759fa0c2d5ef875121621fc')
+  assert.equal(matrix.databaseExecutionScope.modifiedSqlAcl, false)
+  assert.equal(matrix.databaseExecutionScope.production, false)
   assert.equal(matrix.productionActivationAuthorized, false)
   assert.deepEqual(matrix.decisions, ['D1', 'D2', 'D3', 'D4'])
-  assert.deepEqual(matrix.scopeConflicts, ['C-SCOPE', 'C-LOGIN'])
+  assert.deepEqual(matrix.scopeConflicts, [])
+  assert.deepEqual(matrix.resolvedScopeDecisions, ['C-SCOPE', 'C-LOGIN'])
 })
 test('closure inventory preserves all canonical cases and effective HTTP operations', () => {
   const expectedCases = [...read('docs/canonical/auth-review/v4/block-1-test-cases.yaml').matchAll(/^- id: (\S+)/gm)].map(match => match[1])
