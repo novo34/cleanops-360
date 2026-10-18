@@ -1,5 +1,5 @@
 /** Isolated test composition only. Never imported by routes/runtime. */
-import { Pool } from 'pg'
+import { Pool,type PoolClient } from 'pg'
 import { hash, argon2id } from 'argon2'
 import { randomBytes, randomUUID, createHmac, createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
@@ -24,7 +24,10 @@ const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-m
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
 const resetTarget=['reset-admin','trusted-admin','authz','authz-readonly'].includes(input.scenario)?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
-const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
+const sql14=input.sql14ApprovedBlob==='1971a9fdc5c1f3fd1fcb5f6706459678e5399256'
+let policyHold:PoolClient|undefined
+const policyRoles:string[]=[]
+const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: sql14?2:1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
 const password = 'PG05 synthetic passphrase!'
@@ -138,7 +141,7 @@ try {
         }
         if(input.scenario==='abuse' && sql.includes('auth_api.rate_attempt') && values && Buffer.isBuffer(values[0]))fixtureRateKeys.add(values[0].toString('hex'))
         if(input.scenario==='abuse' && sql.includes('auth_api.record_security_event') && typeof values?.[4]==='string')fixtureCorrelations.add(values[4])
-        if ((sql.includes('auth_api.select_tenant_rotated_owned') || sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
+        if ((sql14&&sql.includes('auth_api.issue_active_session')) || (sql.includes('auth_api.select_tenant_rotated_owned') || sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -194,6 +197,34 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14Roles'){
+        if(!['SENSITIVE','OPERATIONAL'].includes(message.baseline)||!Array.isArray(message.roles)||message.roles.length>4||message.roles.some((x:unknown)=>!['SENSITIVE','OPERATIONAL','UNKNOWN'].includes(String(x))))throw Error('INVALID_SYNTHETIC_POLICY')
+        if(policyRoles.length){await admin.query('DELETE FROM identity_private.role_risk_catalogue WHERE role_id=ANY($1::uuid[])',[policyRoles]);await admin.query('DELETE FROM app.access_role_memberships WHERE role_id=ANY($1::uuid[])',[policyRoles]);await admin.query('DELETE FROM app.access_roles WHERE id=ANY($1::uuid[])',[policyRoles]);policyRoles.length=0}
+        await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,message.baseline])
+        for(const risk of message.roles){const role=randomUUID();policyRoles.push(role);await admin.query("INSERT INTO app.access_roles VALUES($1,$2,'Synthetic explicit risk',NULL)",[input.tenant,role]);await admin.query("INSERT INTO app.access_role_memberships VALUES($1,$2,$3,clock_timestamp()-interval '1 minute',NULL,NULL)",[input.tenant,role,input.user]);if(risk!=='UNKNOWN')await admin.query('INSERT INTO identity_private.role_risk_catalogue VALUES($1,$2,$3)',[input.tenant,role,risk])}
+        reply({ok:true});continue
+      }
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14HoldTimedRole'){
+        if(policyHold||!['START','EXPIRE'].includes(message.mode))throw Error('INVALID_SYNTHETIC_HOLD')
+        if(message.mode==='START'){
+          const role=randomUUID();policyRoles.push(role);await admin.query("INSERT INTO app.access_roles VALUES($1,$2,'Synthetic future sensitive',NULL)",[input.tenant,role]);await admin.query("INSERT INTO app.access_role_memberships VALUES($1,$2,$3,clock_timestamp()+interval '3s',NULL,NULL)",[input.tenant,role,input.user]);await admin.query("INSERT INTO identity_private.role_risk_catalogue VALUES($1,$2,'SENSITIVE')",[input.tenant,role])
+        }else await admin.query("UPDATE app.access_role_memberships SET expires_at=clock_timestamp()+interval '3s' WHERE tenant_id=$1 AND user_id=$2 AND role_id=ANY($3::uuid[])",[input.tenant,input.user,policyRoles])
+        policyHold=await admin.connect();await policyHold.query('BEGIN');await policyHold.query('SELECT 1 FROM app.policy_versions WHERE tenant_id=$1 FOR UPDATE',[input.tenant]);reply({ok:true});continue
+      }
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14ReleaseTimed'&&policyHold){await policyHold.query('SELECT pg_sleep(3.1)');await policyHold.query('COMMIT');policyHold.release();policyHold=undefined;reply({ok:true});continue}
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14HoldReactivation'){
+        if(policyHold)throw Error('DUPLICATE_SYNTHETIC_HOLD')
+        const role=randomUUID();policyRoles.push(role);await admin.query("INSERT INTO app.access_roles VALUES($1,$2,'Synthetic revoked sensitive',clock_timestamp())",[input.tenant,role]);await admin.query("INSERT INTO app.access_role_memberships VALUES($1,$2,$3,clock_timestamp()-interval '1m',NULL,NULL)",[input.tenant,role,input.user]);await admin.query("INSERT INTO identity_private.role_risk_catalogue VALUES($1,$2,'SENSITIVE')",[input.tenant,role]);policyHold=await admin.connect();await policyHold.query('BEGIN');await policyHold.query('SELECT 1 FROM app.policy_versions WHERE tenant_id=$1 FOR UPDATE',[input.tenant]);reply({ok:true});continue
+      }
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14WaitBlocked'){
+        let blocked=false;for(let n=0;n<60;n++){const r=await admin.query("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE usename=$1 AND wait_event_type='Lock' AND query LIKE '%binding_authorization%') AS blocked",[input.identityRole]);if(r.rows[0].blocked){blocked=true;break}await new Promise(r=>setTimeout(r,50))}reply({blocked});continue
+      }
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14ReleaseReactivation'&&policyHold){
+        await policyHold.query('UPDATE app.access_roles SET revoked_at=NULL WHERE tenant_id=$1 AND id=$2',[input.tenant,policyRoles.at(-1)]);await policyHold.query('UPDATE app.policy_versions SET version=version+1 WHERE tenant_id=$1',[input.tenant]);await policyHold.query('COMMIT');policyHold.release();policyHold=undefined;reply({ok:true});continue
+      }
+      if(sql14&&input.scenario==='abuse'&&message.kind==='sql14RevokeMethod'){
+        await admin.query("UPDATE app.mfa_methods SET state='REVOKED',method_version=method_version+1 WHERE tenant_id=$1 AND id=$2",[input.tenant,method]);reply({ok:true});continue
+      }
       if(input.scenario==='abuse' && message.kind==='addSwitchMembership'){
         if(secondaryTenant)throw Error('DUPLICATE_SYNTHETIC_MEMBERSHIP')
         secondaryTenant={user:randomUUID(),method:randomUUID(),secret:randomBytes(32)}
@@ -250,8 +281,10 @@ try {
       }
       if(input.scenario==='abuse' && ['expireSessionIdle','expireSessionAbsolute'].includes(message.kind)){
         const r=await admin.query('SELECT risk_class FROM app.users WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user])
-        const idle=numeric(r.rows[0].risk_class==='OPERATIONAL'?'idle_operational':'idle_sensitive'),absolute=numeric(r.rows[0].risk_class==='OPERATIONAL'?'absolute_operational':'absolute_sensitive')
+        let idle=numeric(r.rows[0].risk_class==='OPERATIONAL'?'idle_operational':'idle_sensitive'),absolute=numeric(r.rows[0].risk_class==='OPERATIONAL'?'absolute_operational':'absolute_sensitive')
+        if(sql14){const actual=await admin.query("SELECT idle_seconds,extract(epoch FROM absolute_expires_at-created_at)::int AS absolute FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' ORDER BY created_at DESC LIMIT 1",[input.tenant,input.user]);idle=actual.rows[0].idle_seconds;absolute=actual.rows[0].absolute}
         if(message.kind==='expireSessionIdle')await admin.query("UPDATE app.sessions SET created_at=statement_timestamp()-make_interval(secs=>$3+60),mfa_verified_at=statement_timestamp()-make_interval(secs=>$3+60),last_activity_at=statement_timestamp()-make_interval(secs=>$3+1),idle_expires_at=statement_timestamp()-interval '1s',absolute_expires_at=statement_timestamp()-make_interval(secs=>$3+60)+make_interval(secs=>$4) WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user,idle,absolute])
+        else if(sql14)await admin.query("UPDATE app.sessions SET created_at=statement_timestamp()-make_interval(secs=>$3+1),mfa_verified_at=statement_timestamp()-make_interval(secs=>$3+1),last_activity_at=statement_timestamp(),idle_expires_at=statement_timestamp()+interval '10 minutes',absolute_expires_at=statement_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user,absolute])
         else await admin.query("UPDATE app.sessions SET created_at=statement_timestamp()-make_interval(secs=>$3+1),mfa_verified_at=statement_timestamp()-make_interval(secs=>$3+1),last_activity_at=statement_timestamp()-interval '2s',idle_expires_at=statement_timestamp()-interval '1s',absolute_expires_at=statement_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user,absolute])
         reply({ok:true});continue
       }
@@ -450,6 +483,7 @@ try {
   process.exitCode=1
 } finally {
   key.fill(0); secret.fill(0); secondaryTenant?.secret.fill(0);secondaryKey.fill(0);resetTarget?.secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
+  if(policyHold){await policyHold.query('ROLLBACK');policyHold.release();policyHold=undefined}
   await mailPool.end()
   await identity.end(); await admin.end()
 }

@@ -7,7 +7,7 @@ const input=JSON.parse(Buffer.concat(chunks).toString())
 assert.equal(SQL14_REVIEW_ARTIFACT.gitBlob,'1971a9fdc5c1f3fd1fcb5f6706459678e5399256')
 const admin=new Pool({host:'/var/run/postgresql',database:'core',user:'postgres',max:2,statement_timeout:12000})
 const identity=new Pool({host:'/var/run/postgresql',database:'core',user:input.identityRole,max:4,statement_timeout:10000})
-const checks:{name:string;status:'PASS'|'FAIL';detail?:'REDACTED'}[]=[]
+const checks:{name:string;status:'PASS'|'FAIL';detail?:unknown}[]=[]
 async function check(name:string,work:()=>Promise<void>){try{await work();checks.push({name,status:'PASS'})}catch{checks.push({name,status:'FAIL',detail:'REDACTED'})}}
 try{
  await check('SQL14-UI07-catalogue-owner-forced-RLS-and-broker-read-only',async()=>{
@@ -25,5 +25,5 @@ try{
   }finally{await p.end()}
  })
  for(const c of await runPreparedRoleRiskTests(admin,identity,input))checks.push({name:'SQL14-'+c.id,status:c.status,...(c.detail?{detail:c.detail}:{} )})
-}finally{await identity.end();await admin.end()}
+}catch(e){const x=e as {code?:unknown;constraint?:unknown};checks.push({name:'SQL14-native-unhandled',status:'FAIL',detail:{sqlstate:/^[0-9A-Z]{5}$/.test(String(x.code))?String(x.code):'REDACTED',constraint:/^[a-z_0-9]+$/.test(String(x.constraint))?String(x.constraint):'REDACTED'}})}finally{await identity.end();await admin.end()}
 process.stdout.write(JSON.stringify({checks}));process.exitCode=checks.every(c=>c.status==='PASS')?0:1

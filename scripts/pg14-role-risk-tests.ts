@@ -34,10 +34,10 @@ export async function runPreparedRoleRiskTests(admin:Pool,identity:Pool,input:In
  assert.equal((await admin.query('SHOW server_version_num')).rows[0].server_version_num.slice(0,2),'16')
  // The future runner must verify owner approval, exact artifact bytes and isolation
  // BEFORE importing/calling this module. This module never installs SQL or grants.
- const results:{id:string;status:'PASS'|'FAIL';detail?:'REDACTED'}[]=[]
+ const results:{id:string;status:'PASS'|'FAIL';detail?:unknown}[]=[]
  const roleIds:string[]=[],preauthIds:string[]=[],sessionIds:string[]=[]
  const original=(await admin.query('SELECT risk_class FROM app.users WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user])).rows[0].risk_class
- async function check(id:string,work:()=>Promise<void>){try{await work();results.push({id,status:'PASS'})}catch{results.push({id,status:'FAIL',detail:'REDACTED'})}}
+ async function check(id:string,work:()=>Promise<void>){try{await work();results.push({id,status:'PASS'})}catch(e){const error=e as {code?:unknown;stack?:unknown};results.push({id,status:'FAIL',detail:{sqlstate:/^[0-9A-Z]{5}$/.test(String(error.code))?String(error.code):'REDACTED',line:Number(/pg14-role-risk-tests\.ts:(\d+)/.exec(String(error.stack))?.[1]??0)}})}}
  async function clearRoles(){
   if(!roleIds.length)return
   await admin.query('DELETE FROM identity_private.role_risk_catalogue WHERE role_id=ANY($1::uuid[])',[roleIds])
@@ -135,7 +135,7 @@ export async function runPreparedRoleRiskTests(admin:Pool,identity:Pool,input:In
    }
   })
  }finally{
-  await clearRoles();if(sessionIds.length)await admin.query('DELETE FROM app.sessions WHERE id=ANY($1::uuid[])',[sessionIds]);if(preauthIds.length)await admin.query('DELETE FROM identity_private.preauth WHERE id=ANY($1::uuid[])',[preauthIds]);await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,original])
+  await clearRoles();if(sessionIds.length)await admin.query('DELETE FROM identity_private.tx_context WHERE session_id=ANY($1::uuid[])',[sessionIds]);if(sessionIds.length)await admin.query('DELETE FROM app.sessions WHERE id=ANY($1::uuid[])',[sessionIds]);if(preauthIds.length)await admin.query('DELETE FROM identity_private.preauth WHERE id=ANY($1::uuid[])',[preauthIds]);await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,original])
  }
  return results // redacted IDs/status only; never tokens/material/SQL diagnostics
 }
