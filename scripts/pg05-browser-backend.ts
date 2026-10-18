@@ -19,11 +19,11 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const recoveryScenario = ['recovery','reset','reset-admin'].includes(input.scenario)
+const recoveryScenario = ['recovery','reset','reset-admin','trusted','trusted-admin'].includes(input.scenario)
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
-const resetTarget=input.scenario==='reset-admin'?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
+const resetTarget=['reset-admin','trusted-admin'].includes(input.scenario)?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
@@ -95,6 +95,7 @@ try {
     try {await admin.query('INSERT INTO app.recovery_codes VALUES($1,$2,$3,$4,$5,clock_timestamp(),NULL,NULL)',[input.tenant,randomUUID(),input.user,randomUUID(),proof])}
     finally {proof.fill(0)}
   }
+  if(input.scenario.startsWith('trusted'))await admin.query('INSERT INTO app.auth_preferences VALUES($1,true) ON CONFLICT(tenant_id) DO UPDATE SET trusted_devices_enabled=true',[input.tenant])
   // Synthetic rows exercise the existing approved page_default, not a new UI default.
   await admin.query(`INSERT INTO app.sessions
     SELECT tenant_id,gen_random_uuid(),user_id,principal_id,
@@ -113,7 +114,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -165,6 +166,29 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
+      if(message.kind==='inspectTrusted'){
+        const rows=await admin.query('SELECT id,created_at,expires_at,revoked_at,octet_length(token_digest)=32 AS digest_only FROM app.trusted_devices WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at',[input.tenant,input.user])
+        const audit=await admin.query("SELECT action,count(*)::int AS n FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action LIKE 'auth.device.%' GROUP BY action",[input.tenant,input.user])
+        reply({devices:rows.rows,audit:audit.rows});continue
+      }
+      if(message.kind==='expireTrusted'){
+        await admin.query("UPDATE app.trusted_devices SET created_at=clock_timestamp()-interval '31 days',expires_at=clock_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2",[input.tenant,input.user]);reply({ok:true});continue
+      }
+      if(message.kind==='disableTrusted'){
+        await admin.query('UPDATE app.auth_preferences SET trusted_devices_enabled=false WHERE tenant_id=$1',[input.tenant]);reply({ok:true});continue
+      }
+      if(message.kind==='foreignTrusted'){
+        const id=randomUUID()
+        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,(SELECT principal_id FROM app.users WHERE tenant_id=$1 AND id=$3),$4,1,clock_timestamp(),clock_timestamp()+interval '30 days',NULL)",[input.otherTenant,id,input.otherUser,randomBytes(32)])
+        reply({deviceId:id,targetUser:input.otherUser});continue
+      }
+      if(message.kind==='targetTrusted' && resetTarget){
+        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,$4,$5,1,clock_timestamp(),clock_timestamp()+interval '30 days',NULL)",[input.tenant,randomUUID(),resetTarget.user,resetTarget.principal,randomBytes(32)])
+        reply({targetUser:resetTarget.user});continue
+      }
+      if(message.kind==='targetTrustedState' && resetTarget){
+        const result=await admin.query('SELECT count(*) FILTER(WHERE revoked_at IS NULL)::int AS active FROM app.trusted_devices WHERE tenant_id=$1 AND user_id=$2',[input.tenant,resetTarget.user]);reply(result.rows[0]);continue
+      }
       if(message.kind==='loseResetCommitAck'){loseNextCommitAck=true;emailConsumption=false;reply({armed:true});continue}
       if (['failEmailCommit','failFactorCommit'].includes(message.kind)) { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
       if(message.kind==='recoveryProof'){reply({code:fixtureRecoveryCode});continue}

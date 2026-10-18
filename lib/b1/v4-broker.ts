@@ -7,6 +7,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 const statements = {
   authorizeReset: {sql:'SELECT auth_api.authorize_password_reset($1::uuid,$2::bytea,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   reserveResetOwned: {sql:'SELECT auth_api.reserve_reset_owned($1::text,$2::text,$3::bytea,$4::bytea) AS value',arity:4,kind:'json'},
+  adminRevokeTrusted: {sql:'SELECT auth_api.admin_revoke_trusted_devices($1::uuid,$2::uuid) AS value',arity:2,kind:'count'},
   ownTrusted: {sql:'SELECT auth_api.own_trusted_devices($1::integer,$2::timestamptz,$3::uuid) AS value',arity:3,kind:'json'},
   registerTrusted: {sql:'SELECT auth_api.register_trusted_device($1::bytea,$2::uuid) AS value',arity:2,kind:'uuid'},
   validTrusted: {sql:'SELECT auth_api.trusted_device_valid($1::bytea) AS value',arity:1,kind:'boolean'},
@@ -200,6 +201,7 @@ export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'man
 export type BrokerArgs = {
   authorizeReset: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   reserveResetOwned: [bootstrap:string,csrf:string,keyDigest:Buffer,requestDigest:Buffer]
+  adminRevokeTrusted: [targetUserId:string,correlation:string]
   ownTrusted: [limit:number,beforeTime:string|null,beforeId:string|null]
   registerTrusted: [tokenDigest:Buffer,correlation:string]
   validTrusted: [tokenDigest:Buffer]

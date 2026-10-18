@@ -77,7 +77,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
       const factors = createApprovedFactors(broker, deps.factors, correlation, now)
       const mail = deps.mail ? createEmailCeremony(broker, deps.mail, deps.factors.otpKey!, correlation, now) : undefined
-      let actor: Binding | undefined, raw = '', csrf = ''
+      let actor: Binding | undefined, raw = '', csrf = '', trustedToken = ''
       const reservations = new Map<string, Reservation>()
       // Do not persist an offline-guessable SHA fingerprint of six-digit proofs.
       const requestTag = (hash: string) => createHmac('sha256', deps.factors.auditKey).update(canonical(['B1_OWNED_REQUEST_V1', hash])).digest('hex')
@@ -199,7 +199,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           const preferPreauth = ['verifyMfa', 'recoverMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
           const mode = ['login','resetPassword'].includes(operationHint) ? 'BOOTSTRAP' :
             preferPreauth && cookies[names.preauth] ? 'PREAUTH' : cookies[names.session] ? 'ACTIVE' : 'PREAUTH'
-          raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''
+          raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''; trustedToken=cookies[names.trusted]??''
           if (!/^[A-Za-z0-9_-]{43}$/.test(raw) || !/^[A-Za-z0-9_-]{43}$/.test(csrf)) return null
           const value = await broker.call('binding', [raw, csrf, mode])
           if (!object(value) || value.kind !== mode || typeof value.id !== 'string' || typeof value.csrfDigest !== 'string' ||
@@ -228,7 +228,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
           const purpose = ['login','resetPassword'].includes(operation) ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
@@ -248,7 +248,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -297,8 +297,50 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['listTrustedDevices','registerTrustedDevice','verifyTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices'].includes(operation)) {
+            if(binding.kind!=='ACTIVE')throw invalid()
+            const project=(row:unknown)=>{
+              if(!object(row) || Object.keys(row).sort().join(',')!=='createdAt,expiresAt,id' || !uuid(row.id))throw unavailable()
+              const created=date(row.createdAt),expires=date(row.expiresAt)
+              if(Date.parse(expires)<=Date.parse(created) || Date.parse(expires)>Date.parse(created)+numeric('trusted_device_max')*1000)throw unavailable()
+              return {id:row.id,created_at:created,expires_at:expires}
+            }
+            const list=async(limit:number,time:string|null=null,id:string|null=null)=>{
+              const rows=await broker.call('ownTrusted',[limit,time,id])
+              if(!Array.isArray(rows) || rows.length>limit)throw unavailable()
+              return rows.map(project)
+            }
+            if(operation==='verifyTrustedDevice')return {data:{valid:trustedToken?await broker.call('validTrusted',[hex(digest(trustedToken))]):false}}
+            if(operation==='registerTrustedDevice'){
+              const value=token(),id=await broker.call('registerTrusted',[hex(digest(value)),correlation])
+              const device=(await list(numeric('page_max'))).find(d=>d.id===id)
+              if(!device)throw unavailable()
+              return {data:{device},trustedCookie:{token:value,expiresAt:Date.parse(device.expires_at)}}
+            }
+            if(operation==='listTrustedDevices'){
+              const limit=Number(input.limit??numeric('page_default')),after=readCursor(binding,'TRUSTED',input.cursor)
+              if(!Number.isInteger(limit)||limit<1||limit>numeric('page_max'))throw new AuthError(400,'INVALID_INPUT')
+              if(after!==null && (!object(after)||!uuid(after.id)||typeof after.time!=='string'))throw new AuthError(400,'INVALID_CURSOR')
+              const key=after as {id:string;time:string}|null,items=await list(limit,key?date(key.time):null,key?.id??null),last=items.at(-1)
+              return {data:{items,next_cursor:last&&items.length===limit?cursor(binding,'TRUSTED',{id:last.id,time:last.created_at}):null}}
+            }
+            if(operation==='adminRevokeTrustedDevices'){
+              if(!uuid(input.target_user_id) || !await broker.call('effectiveAccess',['edit','users',input.target_user_id]))return new AuthError(403,'POLICY_DENIED')
+              return {data:{revoked_count:await broker.call('adminRevokeTrusted',[input.target_user_id,correlation])}}
+            }
+            if(operation==='revokeTrustedDevice'){
+              if(!uuid(input.device_id))throw new AuthError(422,'INVALID_INPUT')
+              return {data:{revoked_count:await broker.call('revokeTrusted',[input.device_id,correlation])?1:0},trustedCookie:null}
+            }
+            let count=0
+            // resolve_binding holds the principal lock: registration/revocation cannot add
+            // another page during this transaction. All effects/audit/owned completion commit together.
+            for(;;){const rows=await list(numeric('page_max'));if(!rows.length)break
+              for(const row of rows){if(!await broker.call('revokeTrusted',[row.id,correlation]))throw unavailable();count++}}
+            return {data:{revoked_count:count},trustedCookie:null}
+          }
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()

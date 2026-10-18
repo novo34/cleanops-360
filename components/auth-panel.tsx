@@ -15,13 +15,18 @@ export function AuthPanel() {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
+  const [trustedDevices,setTrustedDevices]=useState<{id:string;created_at:string;expires_at:string}[]>([])
+  const [trustedCursor,setTrustedCursor]=useState<string|null>(null)
+  const [trustedStatus,setTrustedStatus]=useState<boolean|null>(null)
   const [sessionsCursor, setSessionsCursor] = useState<string | null>(null)
+  const lastFailure=useRef<string|null>(null)
   const stepContext = useRef<StepContext | null>(null)
   const activeRequest = useRef<AbortController | null>(null)
   const generation = useRef(0)
   const requestKeys = useRef(new UiRequestKeys())
   const selectionKeys = useRef(new Map<string, string>())
   function clearCeremony() {
+    setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(null)
     generation.current++
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
@@ -65,6 +70,7 @@ export function AuthPanel() {
     const controller = new AbortController()
     activeRequest.current = controller
     const requestGeneration = generation.current
+    lastFailure.current=null
     setBusy(true); setMessage('')
     try {
       const op = operations.find(o => o.operationId === operation)!
@@ -88,7 +94,9 @@ export function AuthPanel() {
       // Authentication loss is authoritative even if the error body is malformed.
       if (response.status === 401) { endCeremony('La sesión ha caducado. Vuelve a iniciar el acceso.', true); return null }
       // Ceremony/authorization failure is not evidence that the ACTIVE session was revoked.
-      if ([403, 409, 410].includes(response.status)) { endCeremony('No se pudo completar la verificación. Inicia una nueva verificación.'); return null }
+      if ([403, 409, 410].includes(response.status)) {
+        if(response.status===403){try{const error=await response.json();if(valid(contract.components.schemas.Error,error)&&error.error.code==='STEP_UP_REQUIRED')lastFailure.current='STEP_UP_REQUIRED'}catch{ /* Safe generic failure; never infer authorization. */ }}
+        endCeremony('No se pudo completar la verificación. Inicia una nueva verificación.'); return null }
       if (!/^application\/json(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) throw new Error('INVALID_CONTENT_TYPE')
       const result = await response.json()
       if (requestGeneration !== generation.current) return null
@@ -170,6 +178,7 @@ export function AuthPanel() {
         const result = await call(action.operation, action.body)
         if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
         else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
+        else if(result && action.operation.includes('Trusted')){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(action.operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.')}
         else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
       }
@@ -196,6 +205,17 @@ export function AuthPanel() {
       ? [...previous.sessions, ...result.items.filter((item: Session) => !(previous.sessions as Session[]).some(existing => existing.id === item.id))]
       : result.items }))
     setSessionsCursor(result.next_cursor)
+  }
+  async function trustedList(cursor?:string){
+    const result=await call('listTrustedDevices',undefined,undefined,undefined,cursor?{cursor}:undefined)
+    if(result){setTrustedDevices(previous=>cursor?[...previous,...result.items.filter((item:{id:string})=>!previous.some(d=>d.id===item.id))]:result.items);setTrustedCursor(result.next_cursor)}
+  }
+  async function trustedAction(operation:string,body?:object){
+    const direct=await call(operation,body)
+    if(direct){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.');return}
+    if(lastFailure.current!=='STEP_UP_REQUIRED')return
+    const result=await call('startStepUp',{grant_id:'B1-SELF-06'})
+    if(result){setPendingAction({operation,body});prepare(result,{grant_id:'B1-SELF-06'})}
   }
   async function enroll() {
     const result = await call('enrollTotp')
@@ -280,6 +300,25 @@ export function AuthPanel() {
         </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else { setView(v => ({ ...v, sessions: [] })); setSessionsCursor(null) } } }}>Revocar</button></li>)}</ul>
         {sessionsCursor && <button onClick={() => void sessions(sessionsCursor)}>Cargar más sesiones</button>}
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
+        <section aria-labelledby="trusted-heading"><h3 id="trusted-heading">Dispositivos de confianza</h3>
+          <p>Confianza válida hasta 30 días. No sustituye MFA ni prolonga tu sesión. No registres dispositivos compartidos.</p>
+          <button type="button" onClick={()=>void trustedAction('registerTrustedDevice')}>Recordar este dispositivo</button>
+          <button type="button" onClick={async()=>{const r=await call('verifyTrustedDevice');if(r)setTrustedStatus(r.valid)}}>Comprobar este dispositivo</button>
+          {trustedStatus!==null && <p role="status">{trustedStatus?'Este dispositivo tiene confianza vigente.':'Este dispositivo no tiene confianza vigente.'}</p>}
+          <button type="button" onClick={()=>void trustedList()}>Ver dispositivos de confianza</button>
+          <ul>{trustedDevices.map((device,index)=><li key={device.id}><span>Dispositivo {index+1}</span><dl>
+            <dt>Registrado</dt><dd><time dateTime={device.created_at}>{new Date(device.created_at).toLocaleString('es-CH')}</time></dd>
+            <dt>Caduca</dt><dd><time dateTime={device.expires_at}>{new Date(device.expires_at).toLocaleString('es-CH')}</time></dd>
+          </dl><button type="button" onClick={()=>void trustedAction('revokeTrustedDevice',{device_id:device.id})}>Revocar dispositivo {index+1}</button></li>)}</ul>
+          {trustedCursor && <button type="button" onClick={()=>void trustedList(trustedCursor)}>Cargar más dispositivos</button>}
+          <button type="button" onClick={()=>void trustedAction('revokeAllTrustedDevices')}>Revocar todos mis dispositivos</button>
+          <details><summary>Revocación administrativa de confianza</summary><p>Requiere autorización del servidor sobre el usuario destinatario.</p>
+            <form onSubmit={event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();void trustedAction('adminRevokeTrustedDevices',{target_user_id:String(data.get('trusted_target'))})}}>
+              <label>Usuario para revocar confianza <input name="trusted_target" minLength={36} maxLength={36} required /></label>
+              <button type="submit">Verificar y revocar confianza del usuario</button>
+            </form>
+          </details>
+        </section>
         <details><summary>Autorizar restablecimiento de credenciales</summary><p>Solo para operadores autorizados, tras la comprobación independiente de identidad. No introduzcas la contraseña de otra persona.</p>
           <form onSubmit={async event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();const body={target_user_id:String(data.get('target_user_id')),ticket:String(data.get('ticket')),reason:String(data.get('reason'))};const r=await call('startStepUp',{grant_id:'B1-SELF-06'});if(r){setPendingAction({operation:'authorizePasswordReset',body});prepare(r,{grant_id:'B1-SELF-06'})}}}>
             <p><label>Usuario destinatario <input name="target_user_id" minLength={36} maxLength={36} required /></label></p>

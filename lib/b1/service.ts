@@ -7,7 +7,7 @@ export class AuthError extends Error {
   status: number; code: string; retryAfter?: number
   constructor(status: number, code: string, retryAfter?: number) { super(code); this.status = status; this.code = code; this.retryAfter = retryAfter }
 }
-export const names = Object.freeze({ session: '__Host-cleanops_session', preauth: '__Host-cleanops_preauth', csrf: '__Host-cleanops_csrf' })
+export const names = Object.freeze({ session: '__Host-cleanops_session', preauth: '__Host-cleanops_preauth', csrf: '__Host-cleanops_csrf', trusted: '__Host-cleanops_trusted' })
 export const digest = (s: string) => createHash('sha256').update(s).digest('hex')
 const cookieNames: readonly string[] = Object.values(names)
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/
@@ -19,7 +19,7 @@ export type Binding = {
   tenantId?: string; userId?: string; sessionId?: string; absoluteExpiresAt?: number
 }
 export type Transition = { kind: 'PREAUTH' | 'ACTIVE'; token: string; csrf: string; expiresAt: number }
-export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean }
+export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean; trustedCookie?: { token: string; expiresAt: number } | null }
 export interface Transaction {
   /** Must revalidate expiry, revocation, credential version, membership and tenant under locks. */
   resolve(cookies: Record<string, string>): Promise<Binding | null>
@@ -158,7 +158,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           let parsed: unknown
           try {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
+            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset','revokeTrustedDevice','adminRevokeTrustedDevices'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
           } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)
@@ -180,7 +180,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
           if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
-          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset'].includes(operationId)
+          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices'].includes(operationId)
           if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
@@ -200,7 +200,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
                     !valid(operation.responses['200'].content['application/json'].schema, { data, meta: { correlation_id: correlation } }))
                   throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
               }
-              return { data: reservation.data } as Effect
+              return { data: reservation.data, ...(['revokeTrustedDevice','revokeAllTrustedDevices'].includes(operationId)?{trustedCookie:null}:{}) } as Effect
             }
           }
           const effect = await tx.execute(operationId, input, binding)
@@ -212,6 +212,11 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'recoverMfa' && ((effect.data as Input).state !== 'ENROLLMENT_REQUIRED' || effect.transition?.kind !== 'PREAUTH')) throw new AuthError(503, 'MFA_REQUIRED')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
+          if (operationId.includes('Trusted') && effect.transition) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+          if (operationId==='registerTrustedDevice') {
+            const t=effect.trustedCookie, device=(effect.data as Input).device as Input
+            if(!t || !tokenPattern.test(t.token) || !Number.isSafeInteger(t.expiresAt) || t.expiresAt<=now() || t.expiresAt>now()+numeric('trusted_device_max')*1000 || t.expiresAt!==Date.parse(String(device.expires_at))) throw new AuthError(503,'INVALID_COOKIE_TRANSITION')
+          } else if(effect.trustedCookie!==undefined && (!['revokeTrustedDevice','revokeAllTrustedDevices'].includes(operationId) || effect.trustedCookie!==null)) throw new AuthError(503,'INVALID_COOKIE_TRANSITION')
           if(operationId==='resetPassword' && (effect.transition || authData.state!=='PASSWORD_RESET' || effect.clearSession!==true))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId === 'selectTotpMethod' &&
               (effect.transition || (binding.kind === 'PREAUTH' ? authData.state !== 'PENDING_MFA' : authData.state !== undefined)))
@@ -236,13 +241,15 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
-          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword'].includes(operationId))
+          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice'].includes(operationId))
           return effect
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome
         if (!valid(operation.responses['200'].content['application/json'].schema, { data: outcome.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
         const headers = new Headers()
         // Cookies are emitted only after the transaction promise confirms commit.
+        if(outcome.trustedCookie===null)headers.append('Set-Cookie',cookie(names.trusted,'',0))
+        else if(outcome.trustedCookie)headers.append('Set-Cookie',cookie(names.trusted,outcome.trustedCookie.token,(outcome.trustedCookie.expiresAt-now())/1000))
         if (outcome.transition) {
           const t = outcome.transition, age = (t.expiresAt - now()) / 1000
           headers.append('Set-Cookie', cookie(t.kind === 'ACTIVE' ? names.session : names.preauth, t.token, age))
