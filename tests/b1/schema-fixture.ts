@@ -17,6 +17,7 @@ export function sample(schema: Schema): unknown {
   if (schema.format === 'uuid') return id
   if (schema.format === 'date-time') return '2026-10-16T12:00:00Z'
   if (schema.format === 'email') return 'synthetic@example.test'
+  if (schema.pattern === '^[A-Za-z][A-Za-z0-9_.-]*$') return 'documents'
   if (schema.pattern?.includes('A-Z2-7')) return 'A'.repeat(26)
   if (schema.pattern?.includes('0-9')) return '1'.repeat(schema.minLength ?? 6)
   return 'a'.repeat(schema.minLength ?? 1)

@@ -2,7 +2,8 @@ import { prepareReplacementHash } from './password.ts'
 import { createEmailCeremony, type PrivateMailCustody } from './email-ceremony.ts'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { approvedTotpEnrollmentPolicy } from './enrollment-policy.ts'
-import { canonical } from './contracts.ts'
+import { canonical, contract, valid } from './contracts.ts'
+import type {AccessAction} from './v4-broker.ts'
 import { numeric, profile } from './config.ts'
 import { AuthError, digest, names, token, type Backend, type Binding, type Effect, type Input, type Transaction } from './service.ts'
 import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleTotpMethods, validateTotpMethodLimit, prepareTotpEnrollment, type CeremonySubject } from './ceremony-preparation.ts'
@@ -248,7 +249,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','changeAccess'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -297,8 +298,43 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','changeAccess'].includes(operation) || r.oneTime))) throw unavailable()
+          if(operation==='getUserAccess'){
+            if(binding.kind!=='ACTIVE' || !uuid(input.target_user_id))throw invalid()
+            const detail=await broker.call('accessDetail',[input.target_user_id])
+            if(!object(detail)||!Array.isArray(detail.roles)||!Array.isArray(detail.rules))throw unavailable()
+            const roles=detail.roles.map(row=>{if(!object(row))throw unavailable();return {id:row.id,label:row.label,start_at:row.startAt,expires_at:row.expiresAt}})
+            const rules=detail.rules.map(row=>{if(!object(row))throw unavailable();return {id:row.id,role_id:row.roleId,action:row.action,resource_kind:row.resourceKind,resource_id:row.resourceId,effect:row.effect,start_at:row.startAt,expires_at:row.expiresAt}})
+            const data={policy_version:detail.policyVersion,roles,rules,
+              can_manage:await broker.call('effectiveAccess',['manage_permissions','access',input.target_user_id]),
+              can_manage_global:await broker.call('effectiveAccess',['manage_permissions','access',null])}
+            if(!valid(contract.components.schemas.AccessDetailResponse,{data,meta:{correlation_id:correlation}}))throw unavailable()
+            return {data}
+          }
+          if(operation==='checkEffectiveAccess'){
+            if(binding.kind!=='ACTIVE')throw invalid()
+            return {data:{allowed:await broker.call('effectiveAccess',[input.action as AccessAction,String(input.resource_kind),input.resource_id===undefined?null:String(input.resource_id)])}}
+          }
+          if(operation==='changeAccess'){
+            if(binding.kind!=='ACTIVE')throw invalid()
+            const version=String(input.expected_policy)
+            if(!/^[1-9][0-9]{0,18}$/.test(version)||BigInt(version)>9223372036854775807n)throw new AuthError(422,'INVALID_INPUT')
+            // Do not acquire authorization SHARE locks before these approved SQL
+            // functions take their exclusive policy CAS lock. Each function performs
+            // effective RBAC, no-overdelegation and fresh step-up before any effect.
+            // The owned reservation is already held on this same connection/xid.
+            let changed=false
+            const start=String(input.start_at),end=input.expires_at===null?null:String(input.expires_at)
+            const rule=[String(input.rule_id),input.action as AccessAction,String(input.resource_kind),input.resource_id===null?null:String(input.resource_id),input.effect as 'ALLOW'|'DENY',start,end,version,correlation] as const
+            if(input.operation==='USER_RULE')changed=await broker.call('setUserAccess',[String(input.target_user_id),...rule])
+            else if(input.operation==='ROLE_RULE')changed=await broker.call('setRoleAccess',[String(input.role_id),...rule])
+            else if(input.operation==='ROLE')changed=await broker.call('setAccessRole',[String(input.role_id),String(input.label),version,correlation])
+            else if(input.operation==='MEMBERSHIP')changed=await broker.call('setRoleMembership',[String(input.role_id),String(input.target_user_id),start,end,version,correlation])
+            else if(input.operation==='REVOKE')changed=await broker.call('revokeAccess',[input.assignment_kind as 'RULE'|'ROLE'|'MEMBERSHIP',String(input.target_id),input.subject_id===null?null:String(input.subject_id),version,correlation])
+            else throw new AuthError(422,'INVALID_INPUT')
+            return changed?{data:{changed:true}}:new AuthError(409,'ACCESS_CHANGE_REJECTED')
+          }
           if (['listTrustedDevices','registerTrustedDevice','verifyTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices'].includes(operation)) {
             if(binding.kind!=='ACTIVE')throw invalid()
             const project=(row:unknown)=>{
@@ -539,46 +575,4 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
                 codes.push(code)
                 digests.push(createHmac('sha256', deps.factors.recoveryKey).update(canonical(['RECOVERY', binding.tenantId, binding.userId, code])).digest())
               }
-              if (codes.length !== numeric('recovery_count')) throw unavailable()
-              const result = await factors.totp(String(input.proof), binding, preauth(), String(input.enrollment_id), 'ENROLLMENT', digests)
-              if (result instanceof AuthError) return result
-              if (binding.kind === 'ACTIVE') return { data: { codes, display_once: true, auth: await activeSummary(binding) } }
-              const issued = await issueSession(binding)
-              return { ...issued, data: { codes, display_once: true, auth: issued.data } }
-            } finally { digests.forEach(value => value.fill(0)) }
-          }
-          if (operation === 'verifyMfa') {
-            if (input.method === 'EMAIL_OTP') {
-              if (!mail) throw unavailable()
-              return ownedInternal(preauth(), 'verifyMfa', input, async () => {
-                if (!await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof))) return factorDenied(binding)
-                return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
-              })
-            }
-            if (input.method !== 'TOTP') throw unavailable()
-            if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA')) throw invalid()
-            return ownedInternal(preauth(), 'verifyMfa', input, async () => {
-              const result = await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN')
-              if (result instanceof AuthError) return result
-              if (binding.kind === 'ACTIVE') return { data: await activeSummary(binding) }
-              return issueSession(binding)
-            })
-          }
-          // Unsupported ceremonies remain closed; no fallback custody or EMAIL delivery.
-          throw unavailable()
-        },
-      }
-      const result = await work(Object.freeze(tx))
-      if ([...reservations.values()].some(r => !r.done)) throw unavailable()
-      return result
-    })
-  }
-  return Object.freeze({
-    transaction,
-    bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number) {
-      if (![bindingDigest, csrfDigest].every(v => /^[a-f0-9]{64}$/.test(v)) || !Number.isSafeInteger(expiresAt) ||
-          expiresAt <= now() || expiresAt > now() + numeric('preauth_ttl') * 1000) return Promise.reject(unavailable())
-      return repository.transaction(async broker => { await broker.call('bootstrap', [hex(bindingDigest), hex(csrfDigest)]) })
-    },
-  })
-}
+              if (codes.length !== numeric('recovery_count')

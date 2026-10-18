@@ -148,7 +148,8 @@ test('all effective HTTP operations dispatch validated requests and responses th
     const bodySchema = operation.requestBody?.content['application/json'].schema
     const body = bodySchema ? sample(bodySchema) : undefined
     if (operation.operationId === 'selectTotpMethod') (body as Input).grant_id = 'B1-SELF-05'
-    const path = operation.path.replace('{session_id}', uuid)
+    const requiredQuery=operation.parameters.filter(p=>p.in==='query'&&p.required).map(p=>[p.name,String(sample(p.schema))])
+    const path = operation.path.replace('{session_id}', uuid)+(requiredQuery.length?'?'+new URLSearchParams(requiredQuery).toString():'')
     const example = sample(operation.responses['200'].content['application/json'].schema) as { data: Input }
     f.effect = { data: example.data }
     if (operation.operationId === 'login') {

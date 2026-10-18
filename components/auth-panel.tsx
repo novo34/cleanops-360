@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import {ManageAccessPanel,type AccessDetail} from './manage-access-panel'
 import { TotpEnrollmentQr } from './totp-enrollment-qr'
 import { contract, operations, valid } from '@/lib/b1/contracts'
 import { UiRequestKeys } from '@/lib/b1/ui-request-keys'
@@ -15,6 +16,8 @@ export function AuthPanel() {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
+  const [accessOpen,setAccessOpen]=useState(false)
+  const [accessView,setAccessView]=useState<{target:string;detail:AccessDetail}|null>(null)
   const [trustedDevices,setTrustedDevices]=useState<{id:string;created_at:string;expires_at:string}[]>([])
   const [trustedCursor,setTrustedCursor]=useState<string|null>(null)
   const [trustedStatus,setTrustedStatus]=useState<boolean|null>(null)
@@ -26,6 +29,7 @@ export function AuthPanel() {
   const requestKeys = useRef(new UiRequestKeys())
   const selectionKeys = useRef(new Map<string, string>())
   function clearCeremony() {
+    setAccessOpen(false);setAccessView(null)
     setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(null)
     generation.current++
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
@@ -49,7 +53,7 @@ export function AuthPanel() {
   const [emailPending, setEmailPending] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [emailEnrollment, setEmailEnrollment] = useState(false)
   const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
-  const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object; accessTarget?:string } | null>(null)
   useEffect(() => {
     const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
     const deadlines = [selection?.expires_at, challenge?.expires_at, enrollment?.expires_at, emailPending?.expires_at, authExpiry].filter((value): value is string => !!value)
@@ -178,6 +182,7 @@ export function AuthPanel() {
         const result = await call(action.operation, action.body)
         if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
         else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
+        else if(result && action.operation==='changeAccess' && action.accessTarget){await loadUserAccess(action.accessTarget);setMessage('Permisos actualizados.')}
         else if(result && action.operation.includes('Trusted')){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(action.operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.')}
         else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
@@ -216,6 +221,17 @@ export function AuthPanel() {
     if(lastFailure.current!=='STEP_UP_REQUIRED')return
     const result=await call('startStepUp',{grant_id:'B1-SELF-06'})
     if(result){setPendingAction({operation,body});prepare(result,{grant_id:'B1-SELF-06'})}
+  }
+  async function loadUserAccess(target:string){
+    const result=await call('getUserAccess',undefined,undefined,undefined,{target_user_id:target})
+    if(result){setAccessOpen(true);setAccessView({target,detail:result})}
+  }
+  async function changeAccess(body:object,target:string){
+    const result=await call('changeAccess',body)
+    if(result){await loadUserAccess(target);setMessage('Permisos actualizados.');return}
+    if(lastFailure.current!=='STEP_UP_REQUIRED')return
+    const step=await call('startStepUp',{grant_id:'B1-SELF-06'})
+    if(step){setPendingAction({operation:'changeAccess',body,accessTarget:target});prepare(step,{grant_id:'B1-SELF-06'})}
   }
   async function enroll() {
     const result = await call('enrollTotp')
@@ -300,6 +316,14 @@ export function AuthPanel() {
         </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else { setView(v => ({ ...v, sessions: [] })); setSessionsCursor(null) } } }}>Revocar</button></li>)}</ul>
         {sessionsCursor && <button onClick={() => void sessions(sessionsCursor)}>Cargar más sesiones</button>}
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
+        <section aria-labelledby="administration-heading"><h3 id="administration-heading">Administración</h3>
+          <button type="button" onClick={()=>{setAccessOpen(v=>!v);setAccessView(null)}}>Usuarios y permisos</button>
+          {accessOpen&&<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void loadUserAccess(String(d.get('access_target')))}}>
+            <label>Usuario para Manage Access <input name="access_target" minLength={36} maxLength={36} required /></label>
+            <button type="submit">Abrir Manage Access</button>
+          </form>}
+          {accessView&&<ManageAccessPanel key={accessView.target+':'+accessView.detail.policy_version} target={accessView.target} detail={accessView.detail} onReload={()=>loadUserAccess(accessView.target)} onChange={body=>changeAccess(body,accessView.target)} onCheck={async query=>{const r=await call('checkEffectiveAccess',undefined,undefined,undefined,query);return r?r.allowed:null}} />}
+        </section>
         <section aria-labelledby="trusted-heading"><h3 id="trusted-heading">Dispositivos de confianza</h3>
           <p>Confianza válida hasta 30 días. No sustituye MFA ni prolonga tu sesión. No registres dispositivos compartidos.</p>
           <button type="button" onClick={()=>void trustedAction('registerTrustedDevice')}>Recordar este dispositivo</button>

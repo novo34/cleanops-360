@@ -19,11 +19,11 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const recoveryScenario = ['recovery','reset','reset-admin','trusted','trusted-admin'].includes(input.scenario)
+const recoveryScenario = ['recovery','reset','reset-admin','trusted','trusted-admin','authz','authz-readonly'].includes(input.scenario)
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
-const resetTarget=['reset-admin','trusted-admin'].includes(input.scenario)?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
+const resetTarget=['reset-admin','trusted-admin','authz','authz-readonly'].includes(input.scenario)?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
@@ -58,7 +58,18 @@ try {
     const targetCipher=sealEnrollmentSecret(resetTarget.secret,key,'pg05-ephemeral',{...enrollmentContext,userId:resetTarget.user,methodId:resetTarget.method})
     await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')",[input.tenant,resetTarget.method,resetTarget.user,targetCipher])
     await admin.query("INSERT INTO app.access_resources VALUES($1,$2,'users',NULL)",[input.tenant,resetTarget.user])
-    for(const [action,kind] of [['edit','users'],['manage_permissions','access']])await admin.query("INSERT INTO app.access_rules VALUES($1,$2,NULL,$3,$4,$5,$6,'ALLOW',now()-interval '1m',NULL,NULL)",[input.tenant,randomUUID(),input.user,action,kind,resetTarget.user])
+    for(const [action,kind] of input.scenario.startsWith('authz')?[]:[['edit','users'],['manage_permissions','access']])await admin.query("INSERT INTO app.access_rules VALUES($1,$2,NULL,$3,$4,$5,$6,'ALLOW',now()-interval '1m',NULL,NULL)",[input.tenant,randomUUID(),input.user,action,kind,resetTarget.user])
+  }
+  const accessRole=randomUUID(),accessRoleRule=randomUUID(),accessTargetRule=randomUUID(),accessResource=randomUUID(),accessForeign=randomUUID()
+  if(input.scenario.startsWith('authz') && resetTarget){
+    await admin.query("INSERT INTO app.access_resources VALUES($1,$2,'documents',NULL),($3,$4,'documents',NULL)",[input.tenant,accessResource,input.otherTenant,accessForeign])
+    await admin.query("INSERT INTO app.access_rules VALUES($1,$2,NULL,$3,'view','access',NULL,'ALLOW',clock_timestamp(),NULL,NULL)",[input.tenant,randomUUID(),input.user])
+    if(input.scenario==='authz'){
+      for(const action of ['view','create','edit','approve','delete','export','manage_permissions'])for(const kind of ['access','users','documents'])await admin.query("INSERT INTO app.access_rules VALUES($1,$2,NULL,$3,$4,$5,NULL,'ALLOW',clock_timestamp(),NULL,NULL)",[input.tenant,randomUUID(),input.user,action,kind])
+    }
+    await admin.query("INSERT INTO app.access_roles VALUES($1,$2,'Synthetic scoped viewer',NULL)",[input.tenant,accessRole])
+    await admin.query("INSERT INTO app.access_rules VALUES($1,$2,$3,NULL,'view','documents',$4,'ALLOW',clock_timestamp(),NULL,NULL)",[input.tenant,accessRoleRule,accessRole,accessResource])
+    await admin.query("INSERT INTO app.access_role_memberships VALUES($1,$2,$3,clock_timestamp(),NULL,NULL)",[input.tenant,accessRole,resetTarget.user])
   }
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
@@ -114,7 +125,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -166,6 +177,16 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
+      if(message.kind==='accessFixture' && resetTarget){reply({targetUser:resetTarget.user,targetEmail:resetTarget.email,roleId:accessRole,roleRuleId:accessRoleRule,ruleId:accessTargetRule,resourceId:accessResource,foreignResource:accessForeign,foreignUser:input.otherUser});continue}
+      if(message.kind==='inspectAccess'){
+        const policy=await admin.query('SELECT version::text AS version FROM app.policy_versions WHERE tenant_id=$1',[input.tenant])
+        const rules=await admin.query('SELECT id,effect,action,resource_kind,revoked_at FROM app.access_rules WHERE tenant_id=$1 AND (id=$2 OR id=$3)',[input.tenant,accessTargetRule,accessRoleRule])
+        const audit=await admin.query("SELECT action,outcome,safe_metadata,actor_user_id IS NOT NULL AS actor_recorded FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action IN('auth.access.change','auth.access.revoke','auth.role.change','auth.role.assign','auth.role.permission','auth.access.denied') ORDER BY occurred_at",[input.tenant,input.user])
+        reply({policy:policy.rows[0].version,rules:rules.rows,audit:audit.rows});continue
+      }
+      if(message.kind==='denyAccessOperator'){
+        await admin.query("UPDATE app.access_rules SET revoked_at=clock_timestamp() WHERE tenant_id=$1 AND user_id=$2 AND action='manage_permissions'",[input.tenant,input.user]);reply({ok:true});continue
+      }
       if(message.kind==='inspectTrusted'){
         const rows=await admin.query('SELECT id,created_at,expires_at,revoked_at,octet_length(token_digest)=32 AS digest_only FROM app.trusted_devices WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at',[input.tenant,input.user])
         const audit=await admin.query("SELECT action,count(*)::int AS n FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action LIKE 'auth.device.%' GROUP BY action",[input.tenant,input.user])
