@@ -15,7 +15,24 @@ for(const roles of [['OPERATIONAL','SENSITIVE'],['SENSITIVE','OPERATIONAL'],['OP
 test('SQL14 UI01 unknown active role fails closed without a session or internal HTTP details',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:['SENSITIVE','UNKNOWN']});await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill((await server.rpc({kind:'fixtureEmail'})).email);await page.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!');const result=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login');await page.getByRole('button',{name:'Continuar',exact:true}).click();const denied=await result;test.info().annotations.push({type:'phase',description:'DENIED_HTTP_'+denied.status()});expect(denied.status()).toBe(401);const safe=await denied.json();expect(safe.error.code).toBe('AUTH_INVALID');expect(safe.error.details).toEqual([]);expect((await server.rpc({kind:'inspectAbuse'})).active).toBe(0);await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
+  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:['SENSITIVE','UNKNOWN']})
+  await page.goto('/login')
+  await page.getByLabel('Email',{exact:true}).fill((await server.rpc({kind:'fixtureEmail'})).email)
+  await page.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!')
+  const result=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
+  await page.getByRole('button',{name:'Continuar',exact:true}).click()
+  const denied=await result
+  test.info().annotations.push({type:'phase',description:'DENIED_HTTP_'+denied.status()})
+  expect(denied.status()).toBe(401)
+  const safe=await denied.json()
+  if(/^[A-Z_]{1,35}$/.test(safe.error?.code))test.info().annotations.push({type:'phase',description:'PUBLIC_'+safe.error.code})
+  expect(safe.error.code).toBe('AUTH_INVALID')
+  expect(safe.error.details).toEqual([])
+  test.info().annotations.push({type:'phase',description:'SAFE_DETAILS'})
+  const state=await server.rpc({kind:'inspectAbuse'})
+  test.info().annotations.push({type:'phase',description:'ACTIVE_COUNT_'+Number(state.active)})
+  expect(state.active).toBe(0)
+  await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
  }finally{await server.close()}
 })
 test('SQL14 UI02 actual authorization row wait revalidates reactivated sensitive role and invalidates24h session',async({page})=>{

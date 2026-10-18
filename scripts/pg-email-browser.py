@@ -26,7 +26,7 @@ def browser():
    for item in s.get('specs',[]):
     results=[r['status'] for t in item['tests'] for r in t['results']]
     phases=[a['description'] for t in item['tests'] for a in t.get('annotations',[]) if a.get('type')=='phase' and re.fullmatch('[A-Z][A-Z0-9_]{0,39}',a.get('description',''))]
-    locations=[int(line) for t in item['tests'] for r in t['results'] for e in [*r.get('errors',[]),r.get('error',{})] for line in re.findall(r'e2e/b1-[a-z-]+\.spec\.ts:(\d+):',e.get('stack','')+'\n'+e.get('message',''))]
+    locations=[int(line) for t in item['tests'] for r in t['results'] for e in [*r.get('errors',[]),r.get('error',{})] for line in re.findall(r'e2e/b1-[a-z0-9-]+\.spec\.ts:(\d+):',e.get('stack','')+'\n'+e.get('message',''))]
     setup_states=sorted(set(code for t in item['tests'] for r in t['results'] for e in [*r.get('errors',[]),r.get('error',{})] for code in re.findall(r'PRIVATE_BACKEND_NOT_READY_([0-9A-Z]{5}|UNKNOWN)',e.get('message',''))))
     b.record('Browser-PG-'+item['title'],'PASS' if results==['passed'] else 'FAIL',{'attemptStatuses':results,'phases':phases,'testLineNumbers':sorted(set(locations)),'setupSqlstates':setup_states})
    for child in s.get('suites',[]):collect(child)
