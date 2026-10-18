@@ -1,0 +1,13 @@
+# Remaining owner/operational decisions
+
+Architecture D2/D3/D4/C-SCOPE/C-LOGIN is approved and is not reopened. These items are not satisfied by synthetic providers or unit tests.
+
+|Item/source|Concrete next decision or resource|Recommendation / acceptance evidence required|
+|---|---|---|
+|REQ-SEC-021, AUTH-GATE-01|Approve an absolute-session lifetime per trusted risk profile, or specify another pair for validation.|Recommend the already tested trial pair SENSITIVE 28800s (8h), OPERATIONAL 86400s (24h), independently of idle1800/28800s and device30d. Limits token exposure even during continued activity; mandatory MFA/step-up and revocation remain enforced. Another pair needs the same independent expiry tests. These are trial values until explicit approval; no production configuration is changed.|
+|REQ-AUTH-004, D3|Designate supported authenticator app/platform/version and an available test device/operator.|Keep approved SHA256/32-byte CSPRNG/CleanOps360, canonical period/digits/window. Scan actual QR and verify observed valid/invalid/expired codes using each designated app. zbar/OTPAuth prove QR/cryptographic interoperability, not a real app test; do not claim app compatibility from them.|
+|D2 / INFRA-AUTH|Name actual Swiss infrastructure and OpenBao custodian; authorize isolated operational provisioning, identities, backup and recovery separately.|Keep approved OpenBao/Swiss residence and AES-GCM envelope v2; demonstrate old-key reads/new-key writes, access isolation, revoked access, rotation and restore. No provider/custodian is invented and no external infrastructure is activated here.|
+|D4 / recovery gate|Name verified-recipient authority, delivery/identity-attestation operators and authorized infrastructure before external integration.|Keep encrypted outbox and uncertain-delivery quarantine. Existing local synthetic transport remains explicitly synthetic; external SMTP is forbidden until authorized. Preserve receipts, expiry, one-time use and independent recovery/reset authority.|
+|REQ-PR-006/007 / AUTH-GATE-05|Authorize a concrete staging/manual acceptance exercise after functional and security defects are closed; Product Owner performs acceptance.|No deployment or formal gate acceptance is inferred from isolated CI. Do not start the next module.|
+
+SQL-dependent defects and exact candidates are separate from these operating decisions: initial PREAUTH company selection and generic authorization-denial journaling are covered by consolidated SQL13 REVIEW ONLY. SQL11 remains installed. No new operational requirement or module is introduced.
