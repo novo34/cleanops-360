@@ -1,5 +1,5 @@
 {
-  "referenceHead": "9f73907fdfe506619444201deac6655a54fe4462",
+  "referenceHead": "5197c46c99a06cf864042057d5d74ac1dcda6232",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -34,7 +34,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "TRUSTED_DEVICE_UI_API_REAL_VERTICAL_THEN_AUTHZ_WITHIN_B1",
+  "nextBlocker": "EXACT_SQL10_APPROVAL_FOR_TRUSTED_DEVICE_REGISTRATION_CLOCK_CONSTRAINT",
   "candidate": {
     "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
     "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
@@ -166,5 +166,26 @@
     "report": "docs/implementation/b1/consolidated-test-09/FINAL_NEGATIVES.json",
     "result": "PASS"
   },
-  "reset": "COMPLETE_ISOLATED_NOT_PRODUCTION"
+  "reset": "COMPLETE_ISOLATED_NOT_PRODUCTION",
+  "trustedDevice": {
+    "status": "INCOMPLETE",
+    "postgres": "FAIL_SQLSTATE23514",
+    "browser": "FAIL_3_PASS_5_FAIL",
+    "accepted": false,
+    "reviewOnlyBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
+    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
+    "additionalSqlAclInstalled": false
+  },
+  "authz": {
+    "status": "INCOMPLETE",
+    "preparation": "Existing5 mutation calls now typed/parameterized; public vertical pending trusted-device completion; no new module."
+  },
+  "latestTrustedDeviceExecution": {
+    "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",
+    "run": 39117274360,
+    "pass": 59,
+    "fail": 1,
+    "blocked": 1,
+    "cleanup": "PASS"
+  }
 }

@@ -2422,8 +2422,11 @@
         "remaining": "C-SCOPE aprobado. Registro/revocación de trusted devices, expiración≤30d, invalidación por credenciales/reset/riesgo y contratos SQL/ACL pendientes."
       },
       "currentProgress": [
-        "PRIVATE_PG_TRUST_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS",
-        "TRUST_HTTP_UI_PENDING",
+        "UI_API_HTTPONLY_OWNED_IMPLEMENTED",
+        "REAL_OPERATOR_RESET_RECOVERY_TRUST_INVALIDATION_CASES_PASS",
+        "REAL_BROWSER_TOTAL_FAIL_5_OF_8",
+        "NATIVE_SQLSTATE23514_1_OF_32",
+        "SQL10_REVIEW_ONLY_APPROVAL_REQUIRED",
         "MANDATORY_MFA_RETAINED"
       ],
       "acceptance": "OPEN",
@@ -2447,7 +2450,18 @@
         "run": 39102962461
       },
       "accepted": false,
-      "remaining": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed."
+      "remaining": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
+      "historicalPendingBeforeTrustedVertical": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
+      "implementation": "UI_API_IMPLEMENTED_SQL_TIMESTAMP_DEFECT_OPEN",
+      "trustedDeviceEvidence": {
+        "native": "docs/implementation/b1/trusted-device/NATIVE_REPRODUCTION.json",
+        "browser": "docs/implementation/b1/trusted-device/ATTEMPT_1.json",
+        "run": 39117274360,
+        "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",
+        "acceptance": "OPEN",
+        "newAccepted": false,
+        "reviewOnlyCandidate": "68c0545f79cf15fa780566ebf4aab14b3ccb892b"
+      }
     },
     {
       "id": "REQ-AUTH-047",

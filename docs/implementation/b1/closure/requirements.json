@@ -1046,8 +1046,8 @@
     {
       "id": "REQ-AUTH-046",
       "requirement": "`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
-      "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
+      "implementation": "UI_API_IMPLEMENTED_SQL_TIMESTAMP_DEFECT_OPEN",
+      "pending": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
       "tests": [
         "SESSION-01",
         "SESSION-02",
@@ -1060,7 +1060,17 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza ≤30 días, política tenant y revocación por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth íntegro."
+      "historicalPendingBeforeSQL07": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza ≤30 días, política tenant y revocación por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth íntegro.",
+      "historicalPendingBeforeTrustedVertical": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
+      "trustedDeviceEvidence": {
+        "native": "docs/implementation/b1/trusted-device/NATIVE_REPRODUCTION.json",
+        "browser": "docs/implementation/b1/trusted-device/ATTEMPT_1.json",
+        "run": 39117274360,
+        "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",
+        "acceptance": "OPEN",
+        "newAccepted": false,
+        "reviewOnlyCandidate": "68c0545f79cf15fa780566ebf4aab14b3ccb892b"
+      }
     },
     {
       "id": "REQ-AUTH-047",

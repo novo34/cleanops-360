@@ -1,3 +1,7 @@
+# Current execution result
+
+INCOMPLETE. See RESULT.md and exact SQL10 REVIEW ONLY approval request; SQL09 clock-constraint defect reproduced. No new requirement accepted.
+
 # Trusted device — real vertical, acceptance pending execution
 
 Scope: REQ-AUTH-046, existing approved SQL09 only. closedBackend remains connected; B1/AUTH-GATE-05 OPEN. No canonical bytes, SQL, ACL, role or policy are modified. Existing `register_trusted_device`, `trusted_device_valid`, `own_trusted_devices`, `revoke_trusted_device`, `admin_revoke_trusted_devices` enforce context and scope. Typed fixed SQL only.
