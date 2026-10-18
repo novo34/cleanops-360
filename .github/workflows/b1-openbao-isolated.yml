@@ -1,0 +1,27 @@
+name: B1 OpenBao synthetic isolated validation
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  synthetic-custody:
+    if: github.event.pull_request.number == 7 && github.event.before == 'f319b3153a3ad99946eb635a6bee062b00ed856f' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python3 -m unittest discover -s tests/static -p test_b1_openbao_preparation.py -v
+      - run: python3 scripts/test-b1-openbao-isolated.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: openbao-isolated-redacted
+          path: artifacts/openbao-isolated/report.json
+          retention-days: 7
