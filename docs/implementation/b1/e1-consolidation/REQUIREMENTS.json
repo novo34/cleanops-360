@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
-  "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
-  "accepted": 15,
+  "assessmentSource": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+  "accepted": 22,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -9,23 +9,12 @@
   "AUTH-GATE-05": "OPEN",
   "runtime": "closedBackend",
   "codeCi": {
-    "run": 39102962409,
+    "run": 39124915859,
     "status": "SUCCESS",
-    "b1": {
-      "pass": 182,
-      "fail": 0
-    },
-    "vitest": {
-      "pass": 13,
-      "skip": 3
-    },
-    "chromium": {
-      "pass": 57,
-      "fail": 0,
-      "scope": "HTTP fixtures, not new real PostgreSQL browser flows"
-    }
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "scope": "Final AUTHZ executable code, not later acceptance-documentation commit."
   },
-  "newSqlInstallation": "EXACT07_AUTHORIZED_INSTALLED_PASS",
+  "newSqlInstallation": "EXACT11_OWNER_AUTHORIZED_INSTALLED_PASS",
   "requirements": [
     {
       "id": "REQ-PR-006",
@@ -111,12 +100,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -146,9 +134,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -156,6 +144,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -176,12 +197,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -211,9 +231,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -221,6 +241,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -241,12 +294,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -276,9 +328,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -286,6 +338,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -306,12 +391,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -341,9 +425,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -351,6 +435,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -371,12 +488,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -406,9 +522,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -416,6 +532,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -436,12 +585,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -471,9 +619,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -481,6 +629,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -501,12 +682,11 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
-        "SQL07_REVIEW_ONLY",
-        "HTTP_UI_PENDING"
+        "SQL11_APPROVED_EXACT_INSTALLED",
+        "REAL_RBAC_MATRIX_AND_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -536,9 +716,9 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
+      "accepted": true,
       "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
-      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "remaining": "None in isolated AUTHZ functional scope; productive configuration/phase acceptance are separate.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
         "readOnlyRun": 39120467924,
@@ -546,6 +726,39 @@
         "nativeRun": 39119733531,
         "acceptance": "OPEN",
         "sql11Installed": false
+      },
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+        "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+        "run": 39124915880,
+        "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+        "cases": [
+          "SQL11-reactivation-no-overdelegation",
+          "SQL11-legitimate-reactivation-allowed",
+          "SQL11-denial-audit-durable-private-server-actor",
+          "SQL11-success-audit-server-derived-before-after",
+          "SQL11-concurrency-real-row-lock-observed",
+          "SQL11-concurrent-CAS-exactly-one-winner",
+          "SQL11-concurrent-success-and-denial-both-durable",
+          "SQL11-old-role-entrypoint-execution-denied",
+          "SQL11-hierarchy-project-grant-applies-to-document",
+          "SQL11-hierarchy-move-removes-prior-authority",
+          "SQL11-hierarchy-cross-tenant-parent-rejected",
+          "SQL11-hierarchy-cycle-fails-closed",
+          "SQL11-other-backend-xid-marker-denied",
+          "SQL11-expired-marker-denied",
+          "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+          "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+          "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+          "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "productionAcceptance": false
       }
     },
     {
@@ -3015,5 +3228,55 @@
     "run": 39115439609,
     "report": "docs/implementation/b1/consolidated-test-09/EXECUTION.json",
     "result": "PASS"
+  },
+  "latestSQL11Evidence": {
+    "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": [
+      "SQL11-reactivation-no-overdelegation",
+      "SQL11-legitimate-reactivation-allowed",
+      "SQL11-denial-audit-durable-private-server-actor",
+      "SQL11-success-audit-server-derived-before-after",
+      "SQL11-concurrency-real-row-lock-observed",
+      "SQL11-concurrent-CAS-exactly-one-winner",
+      "SQL11-concurrent-success-and-denial-both-durable",
+      "SQL11-old-role-entrypoint-execution-denied",
+      "SQL11-hierarchy-project-grant-applies-to-document",
+      "SQL11-hierarchy-move-removes-prior-authority",
+      "SQL11-hierarchy-cross-tenant-parent-rejected",
+      "SQL11-hierarchy-cycle-fails-closed",
+      "SQL11-other-backend-xid-marker-denied",
+      "SQL11-expired-marker-denied",
+      "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+      "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+      "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+      "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+      "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+      "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+      "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+      "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+      "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+    ],
+    "productionAcceptance": false
+  },
+  "historicalNewSqlInstallation": "EXACT07_AUTHORIZED_INSTALLED_PASS",
+  "historicalCodeCi": {
+    "run": 39102962409,
+    "status": "SUCCESS",
+    "b1": {
+      "pass": 182,
+      "fail": 0
+    },
+    "vitest": {
+      "pass": 13,
+      "skip": 3
+    },
+    "chromium": {
+      "pass": 57,
+      "fail": 0,
+      "scope": "HTTP fixtures, not new real PostgreSQL browser flows"
+    }
   }
 }

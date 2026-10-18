@@ -1,3 +1,7 @@
+# Current status
+
+AUTHZ COMPLETE in isolated functional scope. Exact SQL11 owner approval and333-check/9 real Chromium PASS, source `38e385e9cbf33d2030d8b924d747eaf057bb92c2`, Actions 39124915880. B122/44; runtime closedBackend and AUTH-GATE-05 OPEN. [Current evidence and limitations](RESULT.md). The following records the earlier implementation/restriction history; SQL11 approval is no longer pending.
+
 # AUTHZ public vertical — implementation under isolated validation
 
 C-SCOPE includes AUTHZ within B1. No additional module and no SQL/ACL modification. Existing five approved permission mutations, effective_access and access_detail are mapped through lib/b1/access-http.json; canonical V4 bytes are unchanged. ACTIVE/CSRF/Origin/owned one-time reservations remain mandatory. POST selects only one fixed approved function; request role/target/resource UUIDs are locators, not authority. Tenant and actor are always the resolved locked context. Expected policy is a CAS claim, never authorization. PostgreSQL validates RBAC, no-overdelegation, temporal windows and fresh B1-SELF-06 step-up under its exclusive tenant-policy lock before effects/audit. The HTTP layer deliberately avoids an earlier binding_authorization SHARE lock on policy mutations. No direct table access, dynamic SQL or user GUC.

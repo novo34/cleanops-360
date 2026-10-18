@@ -328,7 +328,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const owned=[...reservations.values()].filter(r=>!r.done&&r.operation==='changeAccess'&&r.oneTime)
             if(owned.length!==1)throw unavailable()
             // No fallback to the legacy primitives: missing/unapproved audited SQL
-            // capability must fail closed. The exact SQL11 proposal is not installed.
+            // capability must fail closed. SQL11 is approved only in isolated tests; runtime remains closed.
             const result=await broker.call('changeAccessOwned',[JSON.stringify(input),owned[0].key,hex(requestTag(owned[0].hash)),correlation])
             if(!object(result)||typeof result.changed!=='boolean')throw unavailable()
             if(result.changed===true){if(Object.keys(result).length!==1)throw unavailable();return {data:{changed:true}}}

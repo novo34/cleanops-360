@@ -1,5 +1,5 @@
 {
-  "referenceHead": "89214ad9e67a161cbadc504a5f7e89055e860088",
+  "referenceHead": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -11,10 +11,17 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 15,
+    "numerator": 22,
     "denominator": 44,
-    "percent": 34.09090909090909,
+    "percent": 50,
     "verifiedRequirementIds": [
+      "REQ-AUTHZ-001",
+      "REQ-AUTHZ-002",
+      "REQ-AUTHZ-003",
+      "REQ-AUTHZ-004",
+      "REQ-AUTHZ-005",
+      "REQ-AUTHZ-006",
+      "REQ-AUTHZ-007",
       "REQ-AUTH-001",
       "REQ-AUTH-011",
       "REQ-AUTH-012",
@@ -35,31 +42,30 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "EXACT_SQL11_CONTRACT_ACL_APPROVAL_FOR_AUDITED_AUTHZ_AND_NO_OVERDELEGATION",
+  "nextBlocker": "REMAINING_B1_ACCEPTANCE_EVIDENCE_AND_OPERATIONAL_PARAMETERS",
   "candidate": {
-    "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
-    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
-    "bytes": 196329,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/10/schema.review.sql"
+    "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
+    "bytes": 205225,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql"
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/10/SQL09_TO_SQL10.diff",
-    "sha256": "b7c0572dd26fe310c9a601c4f9486f3dd039f897d63e51c670d2b1b02c98d5cf"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/11/SQL10_TO_SQL11.diff",
+    "sha256": "bacb95c11fae79a8fe2031e942995eb35cf5e5695c8088a08cd744334d9f4d5a"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "SQL10_TRUSTED_PASS_AUTHZ_SECURITY_ACCEPTANCE_FAIL_FULL_B1_OPEN",
+  "pgTest01": "SQL11_TARGETED_AUTHZ_PASS_FULL_B1_OPEN",
   "lastPostgresExecution": {
-    "source": "89214ad9e67a161cbadc504a5f7e89055e860088",
-    "run": 39120467924,
-    "scope": "AUTHZ_READONLY_AND_FAILCLOSED_ONLY",
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "SQL11_AUTHZ_AND_DIRECTED_AUTHENTICATION_REGRESSION",
     "checks": {
-      "PASS": 86,
+      "PASS": 333,
       "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
     },
-    "fullAuthzAcceptance": "BLOCKED_BY_RETAINED_4_NATIVE_FAILURES",
     "cleanup": "PASS"
   },
   "proposedCandidate": {
@@ -71,20 +77,18 @@
     "status": "AUTHORIZED_INSTALLED_NATIVE_PASS",
     "ownerApproved": true
   },
-  "nextAuthorization": "NONE_FOR_ALREADY_AUTHORIZED_RECOVERY_RESET_CODE_AND_EXACT_SQL07_TESTS",
+  "nextAuthorization": {
+    "sql11": "NONE_ALREADY_APPROVED_AND_EXECUTED",
+    "remaining": "Only operational infrastructure/configuration actions outside the current isolated authorization; see consolidated-test-11/REMAINING.md."
+  },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
   "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
   "lastRealBrowserExecution": {
-    "sourceHead": "b4b770beeac800e9825406480ffa1b320d2c2794",
-    "run": 39070380055,
-    "job": 117506569818,
-    "status": "PASS",
-    "scope": "Existing UI -> real private HTTP adapter -> approved PG16; login/TOTP/session/identity/signed pagination of52 sessions/individual revocation/step-up/bulk/logout",
-    "mockedResponses": false,
-    "publicRuntime": "closedBackend",
-    "cleanup": "PASS",
-    "preexistingResources": "UNCHANGED",
-    "requirementsAccepted": 0
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": 9,
+    "result": "PASS"
   },
   "architectureDecisions": {
     "D2": "APPROVED_BY_OWNER_2026_10_17",
@@ -176,17 +180,42 @@
     "ownerAuthorization": "PG-TEST-01-CONSOLIDATED-10"
   },
   "authz": {
-    "status": "INCOMPLETE",
-    "readOnlyRealE2E": "PASS_3_CASES",
-    "readOnlyRun": 39120467924,
-    "nativeAcceptanceRun": 39119733531,
-    "nativePass": 89,
-    "nativeFail": 4,
-    "writer": "FAIL_CLOSED_NO_LEGACY_FALLBACK",
-    "reviewOnlyCandidate": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
-    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
-    "newSql11Installed": false,
-    "broadMutationTimeout": "UNRESOLVED_NOT_CLAIMED_FIXED_PENDING_AUDITED_MUTATION_VALIDATION"
+    "status": "COMPLETE_ISOLATED_FUNCTIONAL_SCOPE",
+    "evidence": {
+      "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+      "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+      "run": 39124915880,
+      "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+      "cases": [
+        "SQL11-reactivation-no-overdelegation",
+        "SQL11-legitimate-reactivation-allowed",
+        "SQL11-denial-audit-durable-private-server-actor",
+        "SQL11-success-audit-server-derived-before-after",
+        "SQL11-concurrency-real-row-lock-observed",
+        "SQL11-concurrent-CAS-exactly-one-winner",
+        "SQL11-concurrent-success-and-denial-both-durable",
+        "SQL11-old-role-entrypoint-execution-denied",
+        "SQL11-hierarchy-project-grant-applies-to-document",
+        "SQL11-hierarchy-move-removes-prior-authority",
+        "SQL11-hierarchy-cross-tenant-parent-rejected",
+        "SQL11-hierarchy-cycle-fails-closed",
+        "SQL11-other-backend-xid-marker-denied",
+        "SQL11-expired-marker-denied",
+        "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+        "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+        "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+        "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+        "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+        "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+        "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+        "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+        "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+      ],
+      "productionAcceptance": false
+    },
+    "productiveRoleGrants": "NOT_CREATED",
+    "productionAcceptance": false,
+    "SQL11": "PASS"
   },
   "latestTrustedDeviceExecution": {
     "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",
@@ -195,5 +224,39 @@
     "fail": 1,
     "blocked": 1,
     "cleanup": "PASS"
+  },
+  "historicalSQL10NextBlocker": "EXACT_SQL11_CONTRACT_ACL_APPROVAL_FOR_AUDITED_AUTHZ_AND_NO_OVERDELEGATION",
+  "candidateStatus": "OWNER_APPROVED_EXACT_INSTALLED_ISOLATED",
+  "latestSQL11Evidence": {
+    "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": [
+      "SQL11-reactivation-no-overdelegation",
+      "SQL11-legitimate-reactivation-allowed",
+      "SQL11-denial-audit-durable-private-server-actor",
+      "SQL11-success-audit-server-derived-before-after",
+      "SQL11-concurrency-real-row-lock-observed",
+      "SQL11-concurrent-CAS-exactly-one-winner",
+      "SQL11-concurrent-success-and-denial-both-durable",
+      "SQL11-old-role-entrypoint-execution-denied",
+      "SQL11-hierarchy-project-grant-applies-to-document",
+      "SQL11-hierarchy-move-removes-prior-authority",
+      "SQL11-hierarchy-cross-tenant-parent-rejected",
+      "SQL11-hierarchy-cycle-fails-closed",
+      "SQL11-other-backend-xid-marker-denied",
+      "SQL11-expired-marker-denied",
+      "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+      "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+      "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+      "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+      "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+      "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+      "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+      "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+      "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+    ],
+    "productionAcceptance": false
   }
 }
