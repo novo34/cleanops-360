@@ -47,7 +47,8 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   const mount = options.mount, environment = options.environment, timeoutMs = options.timeoutMs
   const tls = { ca: Buffer.from(options.ca), cert: Buffer.from(options.cert), key: Buffer.from(options.key), rejectUnauthorized: true }
   const tokenProvider = options.token
-  async function read(r: PrivateKeyReference): Promise<Buffer> {
+  async function read(input: PrivateKeyReference): Promise<Buffer> {
+    const r = Object.freeze({ ...input })
     if (!allowed.has(identity(r))) throw unavailable()
     let tokenTimer: ReturnType<typeof setTimeout> | undefined
     let token: string

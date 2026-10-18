@@ -12,7 +12,7 @@ constitutes approval, designation or proof of human/physical custody.
 |Auto-unseal with independent Swiss-controlled HSM/KMS/TPM mechanism|May reduce routine unseal dependence, but availability now depends on that device/service and its backup/authorization path.|Adds another privileged root of trust; a home TPM tied to one lost machine is not portable recovery.|Optional separate infrastructure/security design; not configured, required or presumed authorized now.|
 
 Recommendation now: do not buy hardware or initialize real custody to complete the
-synthetic trials. First confirm the owner as principal (if accepted), name secondary,
+synthetic trials. The owner is now confirmed as principal; name secondary,
 and decide2-of-2 versus2-of-3 with the actual third-person/absence trade-off. Never
 split shares across accounts controlled by the same person and call that independent
 custody. Maintain each encrypted share backup and its decryption factors separately

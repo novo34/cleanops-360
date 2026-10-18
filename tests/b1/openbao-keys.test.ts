@@ -58,3 +58,15 @@ test('OpenBao scope deadline denies late key borrow and cleans up after callback
   assert.ok(held?.every(v=>v===0))
  }finally{mocked.mock.restore()}
 })
+
+test('OpenBao bounded token acquisition and immutable scope across async authentication',async()=>{
+ const mutable={...ref};let resolveToken:((token:string)=>void)|undefined
+ const pending=new Promise<string>(resolve=>{resolveToken=resolve})
+ const mocked=transport(200,response(),url=>assert.ok(url.pathname.includes(ref.tenantId)))
+ try{
+  const loading=createOpenBaoKeys({...options(),token:()=>pending}).withKeys([mutable],100,async()=>{})
+  mutable.tenantId='22222222-2222-4222-8222-222222222222';resolveToken!('synthetic-token');await loading
+  await assert.rejects(()=>createOpenBaoKeys({...options(),timeoutMs:5,token:()=>new Promise(()=>{})}).withKeys([ref],100,async()=>{}))
+  assert.equal(mocked.mock.callCount(),1)
+ }finally{mocked.mock.restore()}
+})

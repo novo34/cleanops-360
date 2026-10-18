@@ -66,3 +66,17 @@ acceptance are not inferred;42/44 and all formal gates remain OPEN.
 Owner selected an expandable Swiss home server with VPS/dedicated portability;
 final hardware purchase is not a prerequisite for isolated trials. Principal owner
 custody confirmation, secondary designation and operational quorum remain undecided.
+
+## Current authorized integration follow-up (supersedes preparation status above)
+
+Principal custodian designation is now expressly confirmed as the project owner.
+Additional custodians and productive quorum remain undecided. The native private
+B1 HTTP/API + PostgreSQL16/SQL14/OpenBao integration and independent fresh-target
+recovery have an initial143/143 real PASS; see [source and execution evidence](openbao/integration/EXECUTION_INITIAL.json).
+Exact SQL14 was reused with no new SQL/ACL. The complete database checkpoint was
+frozen and matched after restore before test API traffic; this is not proof of
+operational PITR or permission to revive stale state after uncertain data loss.
+The separate final integration record must distinguish subsequent security changes
+and their rerun. PR006 remains OPEN for real residence/custody/recovery targets,
+independent review and actual manual PO observations; PR007 requires formal owner
+acceptance after its prerequisites.42/44; closedBackend; AUTH-GATE-05 OPEN.

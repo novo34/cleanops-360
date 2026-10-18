@@ -7,7 +7,7 @@ const input=JSON.parse(fs.readFileSync(0,'utf8')),checks=[]
 let child,root
 const wait=ms=>new Promise(r=>setTimeout(r,ms))
 function assert(v){if(!v)throw Error('ASSERTION_FAILED')}
-async function check(name,fn){try{await fn();checks.push({name,status:'PASS'})}catch(e){checks.push({name,status:'FAIL',detail:{code:/^[A-Z0-9_]{1,45}$/.test(e.message)?e.message:'REDACTED'}})}}
+async function check(name,fn){try{await fn();checks.push({name,status:'PASS'})}catch(e){checks.push({name,status:'FAIL',detail:{code:/^[A-Z0-9_]{1,45}$/.test(e.message)?e.message:'REDACTED',...(Number.isInteger(e.actual)&&e.actual>=0&&e.actual<=599?{observedStatus:e.actual}:{}),...(/^[0-9A-Z]{5}$/.test(e.code??'')?{sqlstate:e.code}:{})}})}}
 const tls={ca:fs.readFileSync('/work/ca.pem'),cert:fs.readFileSync('/work/client.pem'),key:fs.readFileSync('/work/client-key.pem'),servername:'localhost',rejectUnauthorized:true}
 async function request(path,{method='GET',token=root,body,raw,client=true,ca=tls.ca,headers={}}={}){
  const bytes=raw??(body===undefined?undefined:Buffer.from(JSON.stringify(body)))
@@ -38,11 +38,11 @@ try{
  if(input.mode==='primary'){
   const A=input.pg?.tenant??'11111111-1111-1111-1111-111111111111',B=input.pg?.otherTenant??'22222222-2222-2222-2222-222222222222'
   const prefix='b1-keys/data/isolated-fixture/',old=prefix+A+'/totp-aead/key-v1',next=prefix+A+'/totp-aead/key-v2',mail=prefix+A+'/mail-aead/key-mail',foreign=prefix+B+'/totp-aead/key-v1'
-  const k1=randomBytes(32),k2=randomBytes(32),km=randomBytes(32),secret=randomBytes(32)
+  const k1=randomBytes(32),k2=randomBytes(32),km=randomBytes(32),secret=randomBytes(32),integrationKeyMaterials=[]
   const put=(path,key,cas=0,t=root)=>api(path,{options:{cas},data:{value:key.toString('base64')}},t)
   await check('KVv2-enable-CAS-required',async()=>{await api('sys/mounts/b1-keys',input.pack['kv-mount.json']);await api('b1-keys/config',input.pack['kv-config.json']);assert((await request('b1-keys/config')).json.data.cas_required===true)})
   await put(old,k1);await put(mail,km);await put(foreign,randomBytes(32))
-  if(integration)for(const purpose of ['audit-hmac','otp-hmac','recovery-hmac','cursor-hmac'])await put(prefix+A+'/'+purpose+'/key-v1',randomBytes(32))
+  if(integration)for(const purpose of ['audit-hmac','otp-hmac','recovery-hmac','cursor-hmac']){const material=randomBytes(32);integrationKeyMaterials.push(material);await put(prefix+A+'/'+purpose+'/key-v1',material)}
   await api('sys/auth/b1-approle',{type:'approle'})
   async function workload(w){const name=input.pack[w+'.approle.json'].token_policies[0];await policy(name,input.pack[w+'.policy.json']);await api('auth/b1-approle/role/'+name,input.pack[w+'.approle.json']);const id=(await request('auth/b1-approle/role/'+name+'/role-id')).json.data.role_id;const wrapped=await api('auth/b1-approle/role/'+name+'/secret-id',{},root,'POST',{'X-Vault-Wrap-TTL':'60s'});const wrap=wrapped.wrap_info.token;const unwrapped=await api('sys/wrapping/unwrap',{},wrap);return{id,sid:unwrapped.data.secret_id,wrap}}
   let verifier,worker,credential
@@ -68,7 +68,7 @@ try{
   const backupKey=randomBytes(32),backup=seal(snapshot,backupKey,'B1_SYNTHETIC_BACKUP_V1');fs.writeFileSync('/work/backup.enc',JSON.stringify(backup),{mode:0o600})
   await check('encrypted-backup-tamper-rejected',async()=>{let rejected=false;try{open({...backup,tag:randomBytes(16).toString('base64')},backupKey,'B1_SYNTHETIC_BACKUP_V1')}catch{rejected=true}assert(rejected);assert(open(backup,backupKey,'B1_SYNTHETIC_BACKUP_V1').equals(snapshot))})
   await check('token-revocation-effective-immediately',async()=>{await api('auth/token/revoke',{token:worker});assert((await request(mail,{token:worker})).status===403)})
-  await check('audit-has-events-without-plaintext-material',async()=>{const audit=fs.readFileSync('/var/log/openbao/audit.json','utf8');assert(audit.includes('b1-keys/data/'));for(const s of[k1.toString('base64'),k2.toString('base64'),secret.toString('base64'),verifier,worker,credential.sid,root,...keys])assert(!audit.includes(s));assert(audit.split('\n').filter(Boolean).every(l=>JSON.parse(l).type))})
+  await check('audit-has-events-without-plaintext-material',async()=>{const audit=fs.readFileSync('/var/log/openbao/audit.json','utf8');assert(audit.includes('b1-keys/data/'));for(const s of[...([k1,k2,km,secret,...integrationKeyMaterials].map(b=>b.toString('base64'))),verifier,worker,credential.sid,root,...keys])assert(!audit.includes(s));assert(audit.split('\n').filter(Boolean).every(l=>JSON.parse(l).type))})
   await check('audit-disk-full-fails-closed-then-recovers',async()=>{
    let observed,filled=false
    try{
@@ -110,7 +110,7 @@ try{
   await check('restored-KV-CAS-configuration',async()=>{assert((await request('b1-keys/config')).json.data.cas_required===true)})
  }
  await check('synthetic-initial-root-revoked-after-drill',async()=>{await api('auth/token/revoke-self',{});assert((await request('sys/mounts')).status===403)})
-}catch(e){checks.push({name:'dependent-runtime-tests',status:'FAIL',detail:{code:/^[A-Z0-9_]{1,45}$/.test(e.message)?e.message:'REDACTED'}})}finally{child?.kill('SIGTERM');if(child)await new Promise(r=>{child.once('exit',r);setTimeout(r,3000)})}
+}catch(e){checks.push({name:'dependent-runtime-tests',status:'FAIL',detail:{code:/^[A-Z0-9_]{1,45}$/.test(e.message)?e.message:'REDACTED',...(Number.isInteger(e.actual)&&e.actual>=0&&e.actual<=599?{observedStatus:e.actual}:{}),...(/^[0-9A-Z]{5}$/.test(e.code??'')?{sqlstate:e.code}:{})}})}finally{child?.kill('SIGTERM');if(child)await new Promise(r=>{child.once('exit',r);setTimeout(r,3000)})}
 const nativeMessages=[]
 if(checks.some(c=>c.status==='FAIL'))try{for(const line of fs.readFileSync('/work/server.private.log','utf8').split('\n')){let obj;try{obj=JSON.parse(line)}catch{continue}if(['error','warn'].includes(obj['@level'])){const message=String(obj['@message']??'').replace(/[A-Za-z0-9+/_=-]{16,}/g,'REDACTED').slice(0,160);if(message&&!nativeMessages.includes(message))nativeMessages.push(message)}}}catch{ /* Expected failure is handled through safe status; never log raw material. */ }
 process.stdout.write(JSON.stringify({checks,nativeMessages:nativeMessages.slice(-8),privateResult}));process.exitCode=checks.every(c=>c.status==='PASS')?0:1

@@ -6,9 +6,9 @@ B1 and AUTH-GATE-05 OPEN, closedBackend retained. No production authorization.
 ## Preconditions and actual participants
 
 Product Owner: repository owner; actual tester/date not yet recorded. Engineer/QA
-supplies exact source SHA, SQL13 blob/hash, approved 12h/24h configuration and
-redacted reports. Independent security reviewer and actual Swiss OpenBao/custodian
-are not yet designated. Do not invent identities, infrastructure or evidence.
+supplies exact source SHA, SQL14 blob/hash, approved 12h/24h configuration and
+redacted reports. Independent security reviewer and actual Swiss OpenBao infrastructure/additional custodians
+are not yet designated; the project owner has now confirmed principal custody. Do not invent identities, infrastructure or evidence.
 
 Use a newly owned isolated PG16 Docker with synthetic fixtures and the existing
 private browser test composition only (`scripts/pg-consolidated-14.py`,
@@ -46,9 +46,9 @@ redacted durable-effect inspection. Never copy codes/cookies/keys/recipients.
 ## Acceptance boundaries and exact remaining actions
 
 Technical isolated evidence is accepted individually in closure/requirements.json;
-not all44 are accepted. Finish approved most-restrictive role-risk integration only
-after owner authorization of the separate exact SQL14 candidate and real tests.
-Then record remaining mandatory technical results and the independent review.
+42/44 are accepted. SQL14 and most-restrictive role-risk tests are already PASS;
+do not repeat that acceptance. This checklist still needs actual PO observations
+and signature, plus the independent review required by PR006.
 
 Operational acceptance requires actual designated Swiss OpenBao infrastructure and
 custodian, workload identity/least privilege and tenant/key isolation, old/new key
@@ -63,3 +63,20 @@ Product Owner must record the actual manual results and sign the existing
 PHASE_ACCEPTANCE_TEMPLATE only after its required evidence. PR006/PR007 and
 AUTH-GATE-05 remain OPEN until that decision. Technical isolated acceptance never
 implies authorization to deploy, merge, provision production or activate runtime.
+
+## Current integration supplement — no inferred manual acceptance
+
+The separate OpenBao integration package exercises the actual private B1 HTTP/API
+and PostgreSQL with native OpenBao, independently encrypted database/Raft backups
+and a fresh restore cluster. See operational-acceptance/openbao/integration for its
+actual execution status and exact source; this is not a new browser/manual result.
+For the witnessed demonstration, additionally inspect redacted key-version metadata,
+old/new envelope recovery, withheld-scope denials and a sealed-service failure with
+no success/session effect. Do not expose the key UI, unseal shares or fixture IPC.
+A real disaster with uncertain post-backup security state must stay quarantined;
+this frozen synthetic checkpoint does not authorize replay of stale operational
+sessions, recovery codes, OTP counters or messages.
+
+The principal custodian is now confirmed as the project owner. Additional custodians,
+operational quorum and actual Swiss resource/backup locations remain undesignated.
+Do not mark PR006 or PR007 COMPLETE using a synthetic result or a prepared checklist.

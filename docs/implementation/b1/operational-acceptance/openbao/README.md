@@ -126,3 +126,13 @@ approval; OpenBao self-hosting/Switzerland and the existing B1 policies are not 
 
 Owner home-host/portability decision and later installation procedure: [HOST_PORTABILITY.md](HOST_PORTABILITY.md).
 Custody alternatives remain unapproved: [QUORUM_OPTIONS.md](QUORUM_OPTIONS.md).
+
+## Executed synthetic integration, distinct from this offline preparation
+
+The original47-check native drill remains [historical evidence](isolated/RESULT.md).
+The subsequent actual private B1 API/PostgreSQL16/OpenBao integration and independent
+backup recovery have [initial143-check PASS evidence](integration/EXECUTION_INITIAL.json)
+and [scope/limitations](integration/PLAN.md). Check the final integration result for
+its exact source. No productive installation, residency, human quorum, independent
+review or manual PO acceptance is inferred. Principal designation is now confirmed
+as the project owner; additional custodians/quorum remain pending.

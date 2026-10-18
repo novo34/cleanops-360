@@ -13,14 +13,17 @@
       "id": "REQ-PR-006",
       "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
       "implementation": "ISOLATED_TECHNICAL_EVIDENCE_COMPLETE_OPERATING_ACCEPTANCE_OPEN",
-      "pending": "SQL14 completes most-restrictive session aggregation; all42 isolated functional criteria have real evidence. Still required: designated actual Swiss OpenBao/custodians, real custody adapter/lifecycle/rotation-recovery evidence, independent review, authorized manual demonstration and actual PO observations. See operational-acceptance/PLAN.md; no productive or formal acceptance inferred.",
+      "pending": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (143 checks, initial source9f11305). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
       "tests": [
         "E2E-01",
         "CI-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "lib/b1/openbao-keys.ts",
+        "docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION_INITIAL.json",
+        "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md"
       ],
       "realIntegration": "VERIFIED_IN_ISOLATION_OPERATING_NOT_VERIFIED",
       "testsExecuted": "REAL_ISOLATED_PASS_OPERATING_MANUAL_NOT_EXECUTED",
@@ -32,7 +35,8 @@
         "realIntegration": "NOT_VERIFIED",
         "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
         "pending": "Private initial multi-company UI→API→PG rotation, security journal and directed regression now PASS. Remaining: most-restrictive role-risk integration, actual operational custody/Swiss infrastructure evidence, independent review and manual Product Owner acceptance. No deployment is authorized."
-      }
+      },
+      "historicalBeforeOpenBaoIntegration": "SQL14 completes most-restrictive session aggregation; all42 isolated functional criteria have real evidence. Still required: designated actual Swiss OpenBao/custodians, real custody adapter/lifecycle/rotation-recovery evidence, independent review, authorized manual demonstration and actual PO observations. See operational-acceptance/PLAN.md; no productive or formal acceptance inferred."
     },
     {
       "id": "REQ-PR-007",

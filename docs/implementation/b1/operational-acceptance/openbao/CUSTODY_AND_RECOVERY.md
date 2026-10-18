@@ -2,14 +2,14 @@
 
 Operating procedure NOT EXECUTED. The separate isolated/RESULT.md records a
 completed synthetic trial; its temporary clusters/keys/snapshots were removed.
-No operating cluster, confirmed custodians, productive keys or real custody recovery
-evidence exists. The project owner is the proposed principal
-custodian, awaiting signed confirmation; secondary is unassigned. Neither name nor
-signature is invented. Reference KEY_OPERATIONS.md for existing v2/AAD invariants.
+No operating cluster, productive keys or real custody recovery evidence exists.
+The latest owner instruction confirms the project owner as principal custodian;
+a signed operational custody ceremony is still unexecuted and additional custodians
+are unassigned. No personal identity, share receipt or signature is invented. Reference KEY_OPERATIONS.md for existing v2/AAD invariants.
 
 ## Custody ceremony and responsibilities
 
-1. Owner confirms principal and names a distinct secondary, infrastructure operator,
+1. Principal designation is confirmed. Owner names a distinct secondary, infrastructure operator,
    independent reviewer and PO tester; approves each scope and conflict-of-interest.
    Operator maintains hosts/backups but does not automatically receive raw keys or
    enough shares. Reviewer must not self-sign their own implementation.
@@ -60,9 +60,11 @@ not bytes. Record actual workloads and key consumers before creating ACLs.
 - TOTP data-key rotation: exact old key + immutable AAD authenticate first; reseal
   with fresh96-bit nonce and new version-bound AAD; CAS old ciphertext/key_version/
   method_version under existing locking, preserving UUID/algorithm/global counter.
-  No stale write after revocation or concurrent verification. The persistence writer
-  and actual OpenBao resolver are not supplied by this preparation; if existing SQL
-  lacks the necessary authorized writer, propose ONE consolidated change before use.
+  No stale write after revocation or concurrent verification. The separate integration increment supplies an exact-version private OpenBao reader
+  and tests in-memory rewrap plus retained-version recovery. SQL14 has no authorized
+  persisted method-rewrap CAS writer; never substitute an administrator UPDATE.
+  New-write key rotation can retain old read IDs without modifying those records.
+  A persisted recipher migration needs ONE reviewed contract and specific approval.
 - EMAIL: retained/in-flight outbox must remain decryptable with its recorded version;
   missing key or uncertain delivery goes fail-closed/quarantine, never blind retry.
 - HMAC rotation is NOT AEAD resealing. OTPs, recovery digests, abuse buckets, owned

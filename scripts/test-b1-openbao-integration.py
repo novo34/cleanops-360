@@ -22,7 +22,7 @@ def require(r):
  if r.returncode:raise RuntimeError('INTEGRATION_PRIVATE_PROCESS_FAILED')
  return r.stdout.strip()
 def payload():
- data=original_payload();b.REPORT.update(scope='B1_OPENBAO_PG14_INTEGRATED_SYNTHETIC',accepted=42,PR006='OPEN',PR007='OPEN',productiveCustodyAccepted=False,realSwissResidenceVerified=False,principalCustodian='PROJECT_OWNER_CONFIRMED',additionalCustodians='PENDING',productiveQuorum='NOT_APPROVED')
+ data=original_payload();b.REPORT.update(scope='B1_OPENBAO_PG14_INTEGRATED_SYNTHETIC',increment='REAL_B1_API_OPENBAO_INDEPENDENT_RECOVERY_NO_BROWSER',accepted=42,PR006='OPEN',PR007='OPEN',productiveCustodyAccepted=False,realSwissResidenceVerified=False,principalCustodian='PROJECT_OWNER_CONFIRMED',additionalCustodians='PENDING',productiveQuorum='NOT_APPROVED')
  return data
 
 def config():
@@ -93,7 +93,7 @@ def checks():
   for file in ['backup.enc','pg-backup.enc']:(TEMP/file).write_text(require(b.docker('exec',b.CID,'/opt/b1-pg05/node','-e',"process.stdout.write(require('node:fs').readFileSync(process.argv[1]))",'/work/'+file)))
   b.REPORT['independentEncryptedBackups']={f:hashlib.sha256((TEMP/f).read_bytes()).hexdigest() for f in ['backup.enc','pg-backup.enc']}
   if pg_key==PRIVATE['backupKey']:raise RuntimeError('INDEPENDENT_BACKUP_KEY_COLLISION')
-  image=b.REPORT['image']
+  image=b.REPORT['image'];recovery_started=time.monotonic()
   RESTORE=require(b.docker('run','-d','--pull=never','--name','cleanops-pgbao-restore-'+b.RUN,'--label','cleanops.pgtest01='+b.RUN,'--network=none','--security-opt=no-new-privileges','--tmpfs','/var/lib/postgresql/data:rw,nosuid,nodev,size=1g','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--shm-size=128m','-e','POSTGRES_DB=core','-e','POSTGRES_PASSWORD='+secrets.token_urlsafe(32),image))
   meta=json.loads(require(b.docker('inspect',RESTORE)))[0]
   if meta['HostConfig']['NetworkMode']!='none' or meta['HostConfig']['PortBindings'] or any(m['Type'] in ['bind','volume'] for m in meta['Mounts']):raise RuntimeError('RESTORE_ISOLATION_FAILED')
@@ -108,7 +108,9 @@ def checks():
   require(b.docker('exec',RESTORE,'pg_restore','-U','postgres','--exit-on-error','-d','core','/tmp/restored.dump'))
   b.record('frozen-source-security-checkpoint-unchanged','PASS' if fingerprint(b.CID)==before else 'FAIL')
   b.record('fresh-PG16-all-32-table-values-identical-after-independent-backup','PASS' if fingerprint(RESTORE)==before else 'FAIL')
-  started=time.monotonic();worker(RESTORE,'restore',pack,PRIVATE);b.REPORT['combinedRestoreCheckSeconds']=round(time.monotonic()-started,3)
+  started=time.monotonic();worker(RESTORE,'restore',pack,PRIVATE);b.REPORT['openBaoAndPostRestoreCheckSeconds']=round(time.monotonic()-started,3);b.REPORT['freshCombinedRecoverySeconds']=round(time.monotonic()-recovery_started,3)
+  b.REPORT['backupMode']='Frozen synthetic logical PostgreSQL dump plus independent Raft snapshot; no operational WAL/PITR/RPO acceptance'
+  b.REPORT['newBrowserExecuted']=False
   b.REPORT['technicalScope']='Real private B1 HTTP/API + PostgreSQL16 + native OpenBao; no new Chromium run or productive acceptance'
  except Exception as e:
   b.record('B1-OpenBao-integrated-harness','FAIL',str(e) if isinstance(e,RuntimeError) else type(e).__name__)
