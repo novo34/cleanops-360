@@ -324,16 +324,17 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             // functions take their exclusive policy CAS lock. Each function performs
             // effective RBAC, no-overdelegation and fresh step-up before any effect.
             // The owned reservation is already held on this same connection/xid.
-            let changed=false
-            const start=String(input.start_at),end=input.expires_at===null?null:String(input.expires_at)
-            const rule=[String(input.rule_id),input.action as AccessAction,String(input.resource_kind),input.resource_id===null?null:String(input.resource_id),input.effect as 'ALLOW'|'DENY',start,end,version,correlation] as const
-            if(input.operation==='USER_RULE')changed=await broker.call('setUserAccess',[String(input.target_user_id),...rule])
-            else if(input.operation==='ROLE_RULE')changed=await broker.call('setRoleAccess',[String(input.role_id),...rule])
-            else if(input.operation==='ROLE')changed=await broker.call('setAccessRole',[String(input.role_id),String(input.label),version,correlation])
-            else if(input.operation==='MEMBERSHIP')changed=await broker.call('setRoleMembership',[String(input.role_id),String(input.target_user_id),start,end,version,correlation])
-            else if(input.operation==='REVOKE')changed=await broker.call('revokeAccess',[input.assignment_kind as 'RULE'|'ROLE'|'MEMBERSHIP',String(input.target_id),input.subject_id===null?null:String(input.subject_id),version,correlation])
-            else throw new AuthError(422,'INVALID_INPUT')
-            return changed?{data:{changed:true}}:new AuthError(409,'ACCESS_CHANGE_REJECTED')
+            const owned=[...reservations.values()].filter(r=>!r.done&&r.operation==='changeAccess'&&r.oneTime)
+            if(owned.length!==1)throw unavailable()
+            // No fallback to the legacy primitives: missing/unapproved audited SQL
+            // capability must fail closed. The exact SQL11 proposal is not installed.
+            const result=await broker.call('changeAccessOwned',[JSON.stringify(input),owned[0].key,hex(requestTag(owned[0].hash)),correlation])
+            if(!object(result)||typeof result.changed!=='boolean')throw unavailable()
+            if(result.changed===true){if(Object.keys(result).length!==1)throw unavailable();return {data:{changed:true}}}
+            if(Object.keys(result).sort().join(',')!=='changed,error')throw unavailable()
+            const errors:Record<string,number>={STEP_UP_REQUIRED:403,POLICY_DENIED:403,ACCESS_CHANGE_REJECTED:409,INVALID_INPUT:422}
+            if(typeof result.error!=='string'||!errors[result.error])throw unavailable()
+            return new AuthError(errors[result.error],result.error)
           }
           if (['listTrustedDevices','registerTrustedDevice','verifyTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices'].includes(operation)) {
             if(binding.kind!=='ACTIVE')throw invalid()

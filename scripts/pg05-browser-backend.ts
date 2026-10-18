@@ -43,6 +43,7 @@ let failNextEmailCommit = false
 let loseNextCommitAck=false
 let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
+let setupComplete=false
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
@@ -170,7 +171,7 @@ try {
   let controlId = input.rpcId
   const reply = (value: object, rpcId = controlId) => process.stdout.write(JSON.stringify({ ...value, rpcId }) + '\n')
   const pendingRequests = new Set<Promise<unknown>>()
-  reply({ ready: true })
+  setupComplete=true;reply({ ready: true })
   for (;;) {
     const line = await iterator.next()
     if (line.done) break
@@ -320,6 +321,9 @@ try {
     } catch { reply({ status: 503, transportFailure: true }) }
   }
   await Promise.allSettled([...pendingRequests])
+} catch(error) {
+  if(!setupComplete){const code=typeof error==='object'&&error!==null&&'code' in error?String(error.code):'UNKNOWN';process.stdout.write(JSON.stringify({rpcId:input.rpcId,ready:false,sqlstate:/^[0-9A-Z]{5}$/.test(code)?code:'UNKNOWN'})+'\n')}
+  process.exitCode=1
 } finally {
   key.fill(0); secret.fill(0); resetTarget?.secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
   await mailPool.end()

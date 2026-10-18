@@ -7,6 +7,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 const statements = {
   authorizeReset: {sql:'SELECT auth_api.authorize_password_reset($1::uuid,$2::bytea,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   reserveResetOwned: {sql:'SELECT auth_api.reserve_reset_owned($1::text,$2::text,$3::bytea,$4::bytea) AS value',arity:4,kind:'json'},
+  changeAccessOwned: {sql:'SELECT auth_api.change_access_owned($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'json'},
   setUserAccess: {sql:'SELECT auth_api.set_user_access_rule($1::uuid,$2::uuid,$3::text,$4::text,$5::uuid,$6::text,$7::timestamptz,$8::timestamptz,$9::bigint,$10::uuid) AS value',arity:10,kind:'boolean'},
   setAccessRole: {sql:'SELECT auth_api.set_access_role($1::uuid,$2::text,$3::bigint,$4::uuid) AS value',arity:4,kind:'boolean'},
   setRoleMembership: {sql:'SELECT auth_api.set_role_membership($1::uuid,$2::uuid,$3::timestamptz,$4::timestamptz,$5::bigint,$6::uuid) AS value',arity:6,kind:'boolean'},
@@ -206,6 +207,7 @@ export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'man
 export type BrokerArgs = {
   authorizeReset: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   reserveResetOwned: [bootstrap:string,csrf:string,keyDigest:Buffer,requestDigest:Buffer]
+  changeAccessOwned: [payload:string,keyHash:Buffer,requestHash:Buffer,correlation:string]
   setUserAccess: [targetUserId:string,ruleId:string,action:AccessAction,resourceKind:string,resourceId:string|null,effect:'ALLOW'|'DENY',startsAt:string,endsAt:string|null,expectedPolicy:string,correlation:string]
   setAccessRole: [roleId:string,label:string,expectedPolicy:string,correlation:string]
   setRoleMembership: [roleId:string,targetUserId:string,startsAt:string,endsAt:string|null,expectedPolicy:string,correlation:string]

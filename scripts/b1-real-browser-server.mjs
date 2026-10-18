@@ -51,7 +51,8 @@ export async function startRealBrowserServer(scenario = 'existing') {
   const directory = mkdtempSync(join(tmpdir(), 'cleanops-real-browser-'))
   let server
   try {
-    if (!(await rpc(input)).ready) throw Error('PRIVATE_BACKEND_NOT_READY')
+    const readiness=await rpc(input)
+    if (!readiness.ready) throw Error('PRIVATE_BACKEND_NOT_READY_'+(/^[0-9A-Z]{5}$/.test(readiness.sqlstate||'')?readiness.sqlstate:'UNKNOWN'))
     execFileSync('openssl', ['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(directory,'key.pem'),'-out',join(directory,'cert.pem'),'-days','1','-subj','/CN=localhost'], { stdio: 'ignore' })
     const specification = JSON.parse(readFileSync('lib/b1/openapi.json', 'utf8'))
     Object.assign(specification.paths,JSON.parse(readFileSync('lib/b1/email-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/recovery-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/reset-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/trusted-http.json','utf8')).paths,JSON.parse(readFileSync('lib/b1/access-http.json','utf8')).paths)

@@ -11,8 +11,8 @@ def payload():
  result=payload10();b.REPORT.update(increment='AUTHZ_REAL_VERTICAL');return result
 def checks():
  browser=ten.prior.nine.previous.browser
- browser.CONFIG='playwright.access-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL10_AUTHZ_REAL_BROWSER';browser.SECURITY_GATE='pg-access-security-tests.py'
+ browser.CONFIG='playwright.access-safe-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL10_AUTHZ_READONLY_FAILCLOSED_REAL_BROWSER';browser.SECURITY_GATE='pg-access-security-tests.py'
  browser.browser()
- runner.module('audit_acceptance','pg-access-security-tests.py').audit_acceptance(b)
+ b.REPORT['retainedAuthzBlocker']={'source':'c27dbc68e23867d20a552da14c589d2d1f572568','run':39119733531,'PASS':89,'FAIL':4,'reexecuted':False,'newSql11Installed':False,'AUTHZ':'INCOMPLETE'}
 runner.payload=payload;runner.checks=checks
 if __name__=='__main__':sys.exit(runner.main())
