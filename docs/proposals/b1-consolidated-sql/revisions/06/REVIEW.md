@@ -2,7 +2,7 @@
 
 Prepared from exact approved05; originals/history untouched. Generated fresh-install
 candidate, not an incremental patch or migration. `manifest.json` records full Git
-blob/SHA256/bytes, source pin and exact28 function signatures/ACL. Complete delta:
+blob/SHA256/bytes, source pin and exact29 function signatures/ACL. Complete delta:
 APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
 
 ## Security changes requiring exact approval BEFORE installation
@@ -34,8 +34,11 @@ APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
   production lifetime; exact policy composition requires this SQL approval.
 - Recovery code consumption produces only expiring ENROLLMENT_REQUIRED with new
   cookie/CSRF, invalidates prior factors/sessions/devices/challenges/codes. No session
-  before fresh enrollment/first factor. Password-reset receipt AND recovery code
-  required, credential CAS, existing principal sessions/PREAUTH/trust revoked.
+  before fresh enrollment/first factor. Password-reset receipt plus recovery code OR separately authorized administrative
+  recovery (current edit/manage_permissions, fresh step-up, independent proof receipt;
+  no self-approval) required. User submits the password privately; administrator never
+  chooses it. Consumption revalidates approving session/factor and policy version;
+  credential CAS and principal sessions/PREAUTH/trust revoked.
 - Admin reset requires independent users.edit + access.manage_permissions for target,
   fresh B1-SELF-06 factor AND separate expiring identity-proof receipt; no self-reset
   or cross-tenant. B1-SELF grants alone never authorize administration. Receipt,

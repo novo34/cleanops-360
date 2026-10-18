@@ -1,0 +1,1913 @@
+{
+  "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
+  "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
+  "accepted": 0,
+  "total": 44,
+  "priorNewPartialEvidenceRows": 18,
+  "newAcceptanceFromUnitStaticTests": 0,
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "codeCi": {
+    "run": 39100543390,
+    "status": "SUCCESS",
+    "b1": {
+      "pass": 182,
+      "fail": 0
+    },
+    "vitest": {
+      "pass": 13,
+      "skip": 3
+    },
+    "chromium": {
+      "pass": 57,
+      "fail": 0
+    }
+  },
+  "newSqlInstallation": "NOT_AUTHORIZED_NOT_EXECUTED",
+  "requirements": [
+    {
+      "id": "REQ-PR-006",
+      "priorEvidence": {
+        "id": "REQ-PR-006",
+        "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-PR-006",
+        "remaining": "Completar E0–E9, UI/API/PG real de todo B1 y aceptación PO; el runtime operativo sigue closedBackend."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-PR-007",
+      "priorEvidence": {
+        "id": "REQ-PR-007",
+        "requirement": "No se iniciará una fase dependiente hasta que la fase anterior esté `ACCEPTED`, salvo autorización explícita del Product Owner.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-PR-007",
+        "remaining": "Mantener bloqueado el siguiente módulo hasta la aceptación formal completa de B1 y AUTH-GATE-05."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTHZ-001",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-001",
+        "requirement": "Permisos por acción: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-001",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-002",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-002",
+        "requirement": "Ámbitos: tenant, módulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-002",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-003",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-003",
+        "requirement": "El sistema deberá permitir overrides individuales por usuario.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-003",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-004",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-004",
+        "requirement": "Deberá permitir accesos temporales con `start_at` y `expires_at`.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-004",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-005",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-005",
+        "requirement": "La UI incluirá `Administration → Users → User Detail → Manage Access`.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-005",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-006",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-006",
+        "requirement": "La autorización deberá aplicarse también en API, no solo UI.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-006",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTHZ-007",
+      "priorEvidence": {
+        "id": "REQ-AUTHZ-007",
+        "requirement": "`explicit deny` prevalecerá sobre cualquier concesión; las políticas de aislamiento tenant y las restricciones de plataforma no podrán sobrepasarse mediante overrides. Ante falta de autorización, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las políticas superiores. Denegaciones y concesiones se aplicarán en API, con caducidad y auditoría.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTHZ-007",
+        "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
+      },
+      "currentProgress": [
+        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
+        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-001",
+      "priorEvidence": {
+        "id": "REQ-AUTH-001",
+        "requirement": "Login mediante email + password.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-001",
+        "remaining": "Validar la UI de login contra el backend real y completar aceptación; HTTP/Argon2id/PG se evidencian separadamente."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-002",
+      "priorEvidence": {
+        "id": "REQ-AUTH-002",
+        "requirement": "Tras validar credenciales, se exigirá segundo factor según la política de riesgo del rol: obligatorio para administradores, comerciales, planificación, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigirán step-up MFA aunque el login operativo se haya permitido sin MFA.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real authorized multi-method selection commits a session for a separate synthetic account",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_MULTIPLE_ACCOUNT",
+                  "SELECT_AUTHORIZED_METHOD",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-002",
+        "remaining": "C-LOGIN aprobado: MFA obligatorio. Completar evidencia operacional de perfiles/roles y aceptación; no se propone excepción sin MFA."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-003",
+      "priorEvidence": {
+        "id": "REQ-AUTH-003",
+        "requirement": "Métodos MFA: código OTP por email o TOTP Authenticator.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-003",
+        "remaining": "TOTP privado integrado y ensayado. Completar EMAIL con destinatario verificado y nuevos contratos SQL/ACL autorizados."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-004",
+      "priorEvidence": {
+        "id": "REQ-AUTH-004",
+        "requirement": "TOTP deberá ser compatible con aplicaciones estándar.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-004",
+        "remaining": "Compatibilidad de apps/plataformas/versiones obligatorias todavía por demostrar; SHA256/32bytes/issuer ya aprobados."
+      },
+      "currentProgress": [
+        "SIX_SHA256_RFC6238_VECTORS_PASS",
+        "PROVISIONING_ROUNDTRIP_PASS",
+        "EXTERNAL_AUTHENTICATOR_APPS_NOT_EXECUTED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-010",
+      "priorEvidence": {
+        "id": "REQ-AUTH-010",
+        "requirement": "OTP de un solo uso.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-010",
+        "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-011",
+      "priorEvidence": {
+        "id": "REQ-AUTH-011",
+        "requirement": "Código OTP por email válido durante 5 minutos, de un solo uso y con invalidación por consumo o reenvío.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-011",
+        "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-012",
+      "priorEvidence": {
+        "id": "REQ-AUTH-012",
+        "requirement": "OTP almacenado como hash.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-012",
+        "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-013",
+      "priorEvidence": {
+        "id": "REQ-AUTH-013",
+        "requirement": "Reenvío invalida códigos anteriores.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-013",
+        "remaining": "Completar el reenvío EMAIL público con invalidación atómica de retos/outbox anteriores y versiones de destinatario."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-014",
+      "priorEvidence": {
+        "id": "REQ-AUTH-014",
+        "requirement": "Cooldown de reenvío.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-014",
+        "remaining": "Completar cooldown EMAIL en la UI/API/worker real; el cooldown TOTP nativo ya se ejecutó con espera real."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-015",
+      "priorEvidence": {
+        "id": "REQ-AUTH-015",
+        "requirement": "Rate limit por usuario, IP y dispositivo.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-015",
+        "remaining": "Validar límites de las tres dimensiones con ingreso confiable, carga y flujos reales completos; perfil actual de ensayo."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-016",
+      "priorEvidence": {
+        "id": "REQ-AUTH-016",
+        "requirement": "Límite de intentos.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-016",
+        "remaining": "Cubrir presupuestos de intentos y bloqueo por todos los canales públicos, incluidos EMAIL y recuperación."
+      },
+      "currentProgress": [
+        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
+        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-017",
+      "priorEvidence": {
+        "id": "REQ-AUTH-017",
+        "requirement": "Mensajes que no permitan enumeración de cuentas.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-017",
+        "remaining": "Validar presentación UI y todos los errores reales seguros; pruebas HTTP de contraseña conocida/ausente se vinculan como evidencia parcial."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-020",
+      "priorEvidence": {
+        "id": "REQ-AUTH-020",
+        "requirement": "Activación mediante QR.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-020",
+        "remaining": "PREAUTH y ACTIVE con QR local implementados y probados. Pendientes custodia OpenBao operativa y compatibilidad externa/aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-021",
+      "priorEvidence": {
+        "id": "REQ-AUTH-021",
+        "requirement": "No se activa hasta validar el primer código.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-021",
+        "remaining": "Primer código/CAS y no activación previa, grants05/06 separados y COMMIT verificados. Pendientes integración de custodia real y aceptación integral."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-022",
+      "priorEvidence": {
+        "id": "REQ-AUTH-022",
+        "requirement": "Secreto TOTP cifrado.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-022",
+        "remaining": "Envelopev2/AAD inicial inmutable y verificación después de method_version2 ejecutados. Pendientes custodia/rotación/recuperación con OpenBao real e identidades designadas."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-030",
+      "priorEvidence": {
+        "id": "REQ-AUTH-030",
+        "requirement": "Generación al activar TOTP.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-030",
+        "remaining": "Generación y regeneración de10 códigos reales en flujo privado probado. Completar custodia operacional y aceptación de la vertical de recuperación completa."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-031",
+      "priorEvidence": {
+        "id": "REQ-AUTH-031",
+        "requirement": "Mostrar una única vez.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-031",
+        "remaining": "Entrega única y desaparición de códigos/URI/QR tras confirmación/logout/nuevo login probadas. Pendientes aceptación integral y pérdida total de MFA dentro de B1."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-032",
+      "priorEvidence": {
+        "id": "REQ-AUTH-032",
+        "requirement": "Guardar como hash.",
+        "implementation": "IMPLEMENTED_PRIVATE_TOTP_PORTION",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ENROLLMENT",
+                  "LOGIN_NO_METHOD",
+                  "ENROLL_PENDING",
+                  "INVALID_FIRST_CODE",
+                  "CONFIRM_FIRST_CODE",
+                  "ONE_TIME_REPLAY_DENIED",
+                  "LOGIN_AFTER_LOGOUT",
+                  "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            },
+            {
+              "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_ADDITIONAL_ENROLLMENT",
+                  "STEPUP_ENROLL_05",
+                  "DENY_WITHOUT_CONFIRM_GRANT",
+                  "STEPUP_CONFIRM_06",
+                  "WAIT_COUNTER_WINDOW",
+                  "CONFIRM_ADDITIONAL_METHOD",
+                  "EXPLICIT_MULTI_METHOD_LOGIN",
+                  "SELECT_STATUS_200",
+                  "VERIFY_STATUS_429",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-032",
+        "remaining": "HMAC32 persistido sin plaintext e invalidación del lote anterior verificadas. Pendientes custodia operacional y revisión de todos los sinks del flujo completo."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-033",
+      "priorEvidence": {
+        "id": "REQ-AUTH-033",
+        "requirement": "Un solo uso.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-033",
+        "remaining": "El consumidor interno sin caller grant no es un protocolo público de recuperación. Implementar contrato SQL/HTTP/CAS de re-enrolado restringido tras autorización exacta."
+      },
+      "currentProgress": [
+        "RECOVERY_RESET_CAS_REVIEW_SQL_NOT_INSTALLED",
+        "OPERATIONAL_IDENTITY_PROOF_NOT_CONFIGURED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-034",
+      "priorEvidence": {
+        "id": "REQ-AUTH-034",
+        "requirement": "MFA reset por admin deberá quedar auditado.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-034",
+        "remaining": "C-SCOPE aprobado. Implementar reset administrativo con permiso explícito, step-up, motivo, comprobación de identidad real y auditoría; SQL/ACL nuevos aún no instalados."
+      },
+      "currentProgress": [
+        "RECOVERY_RESET_CAS_REVIEW_SQL_NOT_INSTALLED",
+        "OPERATIONAL_IDENTITY_PROOF_NOT_CONFIGURED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-040",
+      "priorEvidence": {
+        "id": "REQ-AUTH-040",
+        "requirement": "Pantalla `Account → Security → Active Sessions`.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-040",
+        "remaining": "Lista/paginación de52 sesiones y revocaciones UI/API/PG ejecutadas; completar aceptación del producto/PO y fuente operacional de contexto."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-041",
+      "priorEvidence": {
+        "id": "REQ-AUTH-041",
+        "requirement": "Mostrar dispositivo, navegador, creación y última actividad.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-041",
+        "remaining": "Campos dispositivo/navegador/creación/actividad y caducidad, con páginas reales probados. Completar evidencia operacional de actividad/absoluta y aceptación PO."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-042",
+      "priorEvidence": {
+        "id": "REQ-AUTH-042",
+        "requirement": "Revocar sesión individual.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-042",
+        "remaining": "Revocación individual UI/API/PG ejecutada. Vincular aceptación integral con negativas/fallos aprobados; runtime operativo cerrado."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-043",
+      "priorEvidence": {
+        "id": "REQ-AUTH-043",
+        "requirement": "Revocar todas las demás sesiones.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-043",
+        "remaining": "Bulk con step-up preserva actual; evidencia previa protege tenant ajeno. Pendiente aceptación integral/operacional."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-044",
+      "priorEvidence": {
+        "id": "REQ-AUTH-044",
+        "requirement": "Timeout por inactividad: 30 minutos para administración/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la política restrictiva correspondiente. La clasificación de roles en los tests será explícita.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-044",
+        "remaining": "Validar caducidad por inactividad por riesgo en todos los recorridos UI/API y aceptar el perfil operativo."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-045",
+      "priorEvidence": {
+        "id": "REQ-AUTH-045",
+        "requirement": "Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duración numérica permanece como parámetro técnico sujeto a validación de seguridad antes de habilitar autenticación en producción.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-045",
+        "remaining": "Validar caducidad absoluta independiente del idle en todos los recorridos y aceptar el perfil operativo."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUTH-046",
+      "priorEvidence": {
+        "id": "REQ-AUTH-046",
+        "requirement": "`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-046",
+        "remaining": "C-SCOPE aprobado. Registro/revocación de trusted devices, expiración≤30d, invalidación por credenciales/reset/riesgo y contratos SQL/ACL pendientes."
+      },
+      "currentProgress": [
+        "TRUSTED_DEVICE_REVIEW_SQL_NOT_INSTALLED",
+        "MANDATORY_MFA_UNCHANGED"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+    },
+    {
+      "id": "REQ-AUTH-047",
+      "priorEvidence": {
+        "id": "REQ-AUTH-047",
+        "requirement": "Step-up MFA para acciones sensibles.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUTH-047",
+        "remaining": "Step-up04/05/06 reales integrados; completar restantes acciones sensibles, política operacional y aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-TEN-001",
+      "priorEvidence": {
+        "id": "REQ-TEN-001",
+        "requirement": "Todo dato deberá pertenecer a un tenant.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-TEN-001",
+        "remaining": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-TEN-002",
+      "priorEvidence": {
+        "id": "REQ-TEN-002",
+        "requirement": "Tenant A nunca podrá acceder a datos de Tenant B.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-TEN-002",
+        "remaining": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-TEN-003",
+      "priorEvidence": {
+        "id": "REQ-TEN-003",
+        "requirement": "El aislamiento se aplicará en backend/API.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-TEN-003",
+        "remaining": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-TEN-004",
+      "priorEvidence": {
+        "id": "REQ-TEN-004",
+        "requirement": "Deberán existir tests automáticos de tenant isolation.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-TEN-004",
+        "remaining": "Completar los casos V4 de aislamiento mediante UI/API/PG para el alcance aprobado; revisar evidencia parcial nativa, roles y pool real antes de aceptación."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-SEC-020",
+      "priorEvidence": {
+        "id": "REQ-SEC-020",
+        "requirement": "El MVP empleará librerías maduras para hash, autenticación y TOTP, sin implementar criptografía propia. El registro, sesión y credenciales se verificarán con pruebas de seguridad.",
+        "implementation": "PARTIAL",
+        "realIntegration": "PARTIAL_PASS",
+        "tests": {
+          "status": "PASS",
+          "cases": [
+            {
+              "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+              "status": "PASS",
+              "detail": {
+                "attemptStatuses": [
+                  "passed"
+                ],
+                "phases": [
+                  "INIT_BACKEND",
+                  "LOGIN",
+                  "TOTP",
+                  "IDENTITY",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "REVOKE_INDIVIDUAL",
+                  "SESSIONS_FIRST",
+                  "SESSIONS_NEXT",
+                  "STEPUP",
+                  "BULK_RESULT",
+                  "LOGOUT",
+                  "CLEANUP",
+                  "CLEANUP_DONE"
+                ],
+                "testLineNumbers": []
+              }
+            }
+          ],
+          "provenance": {
+            "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+            "run": 39073390845,
+            "job": 117515471663,
+            "ciRun": 39073390840,
+            "url": "https://github.com/novo34/cleanops-360/actions/runs/39073390845"
+          }
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-SEC-020",
+        "remaining": "Completar proveedor de claves, provisión, exposición en sinks y aceptación de seguridad de todo el flujo; las bibliotecas maduras ya se ejercitan."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-SEC-021",
+      "priorEvidence": {
+        "id": "REQ-SEC-021",
+        "requirement": "La caducidad absoluta de sesión tendrá un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 días de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-SEC-021",
+        "remaining": "Aceptar perfil operativo de expiración absoluta y probarlo integralmente, sin promover valores de ensayo a producción."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    },
+    {
+      "id": "REQ-AUD-001",
+      "priorEvidence": {
+        "id": "REQ-AUD-001",
+        "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar actor, fecha, entidad, acción y resultado, sin exponer secretos o datos de otros tenants (capítulos de auditoría).",
+        "implementation": "PARTIAL",
+        "realIntegration": "NO_NEW_E1_CASE",
+        "tests": {
+          "status": "UNCHANGED_PREVIOUS_EVIDENCE",
+          "cases": [],
+          "provenance": null
+        },
+        "acceptance": "OPEN",
+        "accepted": false,
+        "priorIndividualEvidence": "../real-browser/REQUIREMENTS.json#REQ-AUD-001",
+        "remaining": "Completar auditoría Auth en todos los flujos pendientes, fallos, recuperación y sinks reales; no inferir cobertura total de unos casos atómicos."
+      },
+      "currentProgress": [
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+      ],
+      "acceptance": "OPEN",
+      "newRealIntegration": "NOT_EXECUTED",
+      "sqlCandidate": null
+    }
+  ]
+}

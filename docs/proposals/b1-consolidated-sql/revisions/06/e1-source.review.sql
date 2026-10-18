@@ -352,6 +352,8 @@ CREATE TABLE identity_private.reset_tickets (
  id uuid PRIMARY KEY,tenant_id uuid NOT NULL,user_id uuid NOT NULL,principal_id uuid NOT NULL,
  token_digest bytea NOT NULL UNIQUE CHECK(octet_length(token_digest)=32),purpose text NOT NULL CHECK(purpose IN('PASSWORD','MFA_RESET')),
  credential_version bigint NOT NULL,evidence_id uuid NOT NULL,created_at timestamptz NOT NULL,expires_at timestamptz NOT NULL,consumed_at timestamptz,
+ admin_user_id uuid,admin_session_id uuid,admin_policy_version bigint,
+ FOREIGN KEY(tenant_id,admin_session_id,admin_user_id) REFERENCES app.sessions(tenant_id,id,user_id),CHECK((admin_user_id IS NULL)=(admin_session_id IS NULL)),CHECK((admin_user_id IS NULL)=(admin_policy_version IS NULL)),
  FOREIGN KEY(tenant_id,user_id,principal_id) REFERENCES app.users(tenant_id,id,principal_id),CHECK(expires_at>created_at)
 );
 ALTER TABLE identity_private.reset_tickets OWNER TO cleanops_ddl_owner;
@@ -367,25 +369,33 @@ BEGIN
  PERFORM identity_private.lock_principal(p);PERFORM identity_private.lock_memberships(p,ARRAY[t]);
  IF token_hash IS NULL OR octet_length(token_hash)<>32 OR evidence IS NULL OR corr IS NULL OR purpose_name IS NULL OR purpose_name NOT IN('PASSWORD','MFA_RESET') OR until_at IS NULL OR until_at<=clock_timestamp() OR until_at>clock_timestamp()+make_interval(secs=>identity_private.cfg('preauth_ttl')) THEN RAISE EXCEPTION 'AUTH_INVALID';END IF;
  SELECT credential_version INTO v FROM identity_private.credentials WHERE principal_id=p;
- INSERT INTO identity_private.reset_tickets VALUES(k,t,u,p,token_hash,purpose_name,v,evidence,clock_timestamp(),until_at,NULL);
+ INSERT INTO identity_private.reset_tickets(id,tenant_id,user_id,principal_id,token_digest,purpose,credential_version,evidence_id,created_at,expires_at) VALUES(k,t,u,p,token_hash,purpose_name,v,evidence,clock_timestamp(),until_at);
  PERFORM identity_private.append_audit(t,u,'auth.reset.attest',k,1,corr);RETURN k;
 END $fn$;
 CREATE FUNCTION auth_api.reset_password_cas(token_hash bytea,expected_version bigint,recovery_hash bytea,replacement_hash text,corr uuid) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
-DECLARE r identity_private.reset_tickets;ts uuid[];
+DECLARE r identity_private.reset_tickets;initial identity_private.reset_tickets;ts uuid[];admin_principal uuid;p uuid;
 BEGIN
  PERFORM identity_private.require_enabled();
  SELECT * INTO r FROM identity_private.reset_tickets WHERE token_digest=token_hash AND purpose='PASSWORD';
- IF NOT FOUND THEN RETURN false;END IF;
- PERFORM identity_private.lock_principal(r.principal_id);
+ IF NOT FOUND THEN RETURN false;END IF;initial:=r;
+ SELECT principal_id INTO admin_principal FROM app.users WHERE tenant_id=r.tenant_id AND id=r.admin_user_id;
+ FOR p IN SELECT DISTINCT v FROM unnest(ARRAY[r.principal_id,admin_principal]) v WHERE v IS NOT NULL ORDER BY v LOOP PERFORM identity_private.lock_principal(p);END LOOP;
  SELECT array_agg(tenant_id ORDER BY tenant_id) INTO ts FROM app.users WHERE principal_id=r.principal_id;
  PERFORM identity_private.lock_memberships(r.principal_id,ts);
  SELECT * INTO r FROM identity_private.reset_tickets WHERE id=r.id FOR UPDATE;
- IF r.consumed_at IS NOT NULL OR clock_timestamp()>=r.expires_at OR r.credential_version IS DISTINCT FROM expected_version
+ IF ROW(r.admin_user_id,r.admin_session_id,r.admin_policy_version) IS DISTINCT FROM ROW(initial.admin_user_id,initial.admin_session_id,initial.admin_policy_version) OR r.consumed_at IS NOT NULL OR clock_timestamp()>=r.expires_at OR r.credential_version IS DISTINCT FROM expected_version
  OR expected_version IS DISTINCT FROM (SELECT credential_version FROM identity_private.credentials WHERE principal_id=r.principal_id)
- OR recovery_hash IS NULL OR octet_length(recovery_hash)<>32 OR replacement_hash IS NULL OR left(replacement_hash,10)<>'$argon2id$' OR corr IS NULL THEN RETURN false;END IF;
- UPDATE app.recovery_codes SET consumed_at=clock_timestamp() WHERE tenant_id=r.tenant_id AND user_id=r.user_id AND digest=recovery_hash AND consumed_at IS NULL AND revoked_at IS NULL;
- IF NOT FOUND THEN RETURN false;END IF;
+ OR replacement_hash IS NULL OR left(replacement_hash,10)<>'$argon2id$' OR corr IS NULL THEN RETURN false;END IF;
+ IF r.admin_user_id IS NULL THEN
+  IF recovery_hash IS NULL OR octet_length(recovery_hash)<>32 THEN RETURN false;END IF;
+  UPDATE app.recovery_codes SET consumed_at=clock_timestamp() WHERE tenant_id=r.tenant_id AND user_id=r.user_id AND digest=recovery_hash AND consumed_at IS NULL AND revoked_at IS NULL;
+  IF NOT FOUND THEN RETURN false;END IF;
+ ELSE
+  PERFORM 1 FROM app.policy_versions WHERE tenant_id=r.tenant_id AND version=r.admin_policy_version FOR SHARE;
+  IF NOT FOUND OR r.admin_user_id=r.user_id OR NOT identity_private.valid_session(r.tenant_id,r.admin_session_id,r.admin_user_id)
+  OR NOT EXISTS(SELECT 1 FROM app.step_up_evidence e WHERE e.tenant_id=r.tenant_id AND e.user_id=r.admin_user_id AND e.session_id=r.admin_session_id AND e.grant_key='B1-SELF-06' AND e.resource_id IS NULL AND e.policy_version=r.admin_policy_version AND e.expires_at>clock_timestamp()) THEN RETURN false;END IF;
+ END IF;
  UPDATE identity_private.credentials SET argon2id_hash=replacement_hash,credential_version=credential_version+1,changed_at=clock_timestamp() WHERE principal_id=r.principal_id AND credential_version=expected_version;
  IF NOT FOUND THEN RAISE EXCEPTION 'CREDENTIAL_CAS_FAILED';END IF;
  UPDATE identity_private.reset_tickets SET consumed_at=clock_timestamp() WHERE principal_id=r.principal_id AND consumed_at IS NULL;
@@ -548,4 +558,26 @@ BEGIN
  SELECT coalesce(jsonb_agg(jsonb_build_object('id',d.id,'createdAt',d.created_at,'expiresAt',d.expires_at) ORDER BY d.created_at DESC,d.id DESC),'[]'::jsonb) INTO j FROM
  (SELECT id,created_at,expires_at FROM app.trusted_devices WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND revoked_at IS NULL AND expires_at>clock_timestamp() AND (before_time IS NULL OR (created_at,id)<(before_time,before_id)) ORDER BY created_at DESC,id DESC LIMIT page_size) d;
  RETURN j;
+END $fn$;
+
+CREATE FUNCTION auth_api.authorize_password_reset(target uuid,ticket_hash bytea,reason text,corr uuid) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+DECLARE c identity_private.tx_context;r identity_private.reset_tickets;actor uuid;p uuid;
+BEGIN
+ SELECT s.principal_id INTO actor FROM identity_private.tx_context x JOIN app.sessions s ON(s.tenant_id,s.id)=(x.tenant_id,x.session_id) WHERE x.backend_pid=pg_backend_pid() AND x.transaction_id=pg_current_xact_id();
+ SELECT * INTO r FROM identity_private.reset_tickets WHERE token_digest=ticket_hash AND user_id=target AND purpose='PASSWORD';
+ IF actor IS NULL OR r.principal_id IS NULL OR actor=r.principal_id THEN RETURN false;END IF;
+ FOR p IN SELECT v FROM unnest(ARRAY[actor,r.principal_id]) v ORDER BY v LOOP PERFORM identity_private.lock_principal(p);END LOOP;
+ c:=identity_private.context();
+ IF r.tenant_id IS DISTINCT FROM c.tenant_id OR target=c.user_id OR corr IS NULL OR reason IS NULL OR length(reason) NOT BETWEEN 1 AND 500 THEN RETURN false;END IF;
+ PERFORM identity_private.lock_memberships(r.principal_id,ARRAY[c.tenant_id]);
+ IF NOT auth_api.effective_access('edit','users',target) OR NOT auth_api.effective_access('manage_permissions','access',target) THEN RETURN false;END IF;
+ PERFORM identity_private.guard('B1-SELF-06',true);
+ SELECT * INTO r FROM identity_private.reset_tickets WHERE id=r.id FOR UPDATE;
+ IF r.admin_user_id IS NOT NULL OR r.consumed_at IS NOT NULL OR clock_timestamp()>=r.expires_at OR r.credential_version IS DISTINCT FROM (SELECT credential_version FROM identity_private.credentials WHERE principal_id=r.principal_id) THEN RETURN false;END IF;
+ UPDATE identity_private.reset_tickets SET admin_user_id=c.user_id,admin_session_id=c.session_id,admin_policy_version=(SELECT version FROM app.policy_versions WHERE tenant_id=c.tenant_id) WHERE id=r.id;
+ INSERT INTO app.identity_reset_evidence VALUES(c.tenant_id,gen_random_uuid(),target,c.user_id,reason,r.evidence_id,clock_timestamp());
+ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.password.reset_authorize',target,1,corr);RETURN true;
+ -- Operator approves only the proof receipt. Never receives or chooses the password.
+ -- Consumer requires unchanged policy, live approving session and fresh factor again.
 END $fn$;

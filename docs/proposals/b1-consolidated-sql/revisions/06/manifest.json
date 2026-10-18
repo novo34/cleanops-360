@@ -6,14 +6,14 @@
     "bytes": 119875
   },
   "candidate": {
-    "gitBlob": "f0301543509ffc8c9c3fda6241dfd0a6951c3d0c",
-    "sha256": "25a36922d208b812de3a5d1bce6bd5c5e9d204cfb3001e79fa3c045066b8a2bd",
-    "bytes": 181087
+    "gitBlob": "939a521911e34296e055eb05c57264cbeee6d785",
+    "sha256": "aade4ed7aeb065899c086f0ee02e11aef024d2cb84f2d9e4a13155a273ab0962",
+    "bytes": 185199
   },
   "source": {
-    "gitBlob": "1c5d76e21f8561dd56a87ecb6716d8c65be1cfb0",
-    "sha256": "49245ef2bd84a531643894a0943f104b7e67615835ff81a0aecd05845964a6e9",
-    "bytes": 51931
+    "gitBlob": "71f5b88afe9f00f3d11538e360bac399c618ab1d",
+    "sha256": "94fdc930b7a1ed3b941da5d03e70d9e41d117fe9f65c9f0f465807cceac0e20e",
+    "bytes": 55737
   },
   "functions": [
     {
@@ -180,6 +180,12 @@
     },
     {
       "signature": "auth_api.own_trusted_devices(integer,timestamptz,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.authorize_password_reset(uuid,bytea,text,uuid)",
       "execute": "cleanops_identity_service",
       "owner": "cleanops_auth_broker",
       "searchPath": "pg_catalog"

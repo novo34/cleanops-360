@@ -82,5 +82,8 @@ GRANT EXECUTE ON FUNCTION auth_api.admin_revoke_trusted_devices(uuid,uuid) TO cl
 ALTER FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) TO cleanops_identity_service;
+ALTER FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) OWNER TO cleanops_auth_broker;
+REVOKE ALL ON FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) TO cleanops_identity_service;
 REVOKE EXECUTE ON FUNCTION auth_api.claim_mail(bytea),auth_api.finish_mail(uuid,uuid,bytea,boolean) FROM cleanops_mail_worker;
 REVOKE EXECUTE ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid),auth_api.email_otp_material(text,uuid) FROM cleanops_identity_service;

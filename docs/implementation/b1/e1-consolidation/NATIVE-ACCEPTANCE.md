@@ -7,7 +7,7 @@ ports/binds/shared volumes, synthetic fixtures, inventory before/after, owned cl
 Existing05 results remain separate, never attributed to06.
 
 Run once exact installation is approved:
-1. One complete BEGIN/COMMIT candidate; catalog inventory/all28new definitions,
+1. One complete BEGIN/COMMIT candidate; catalog inventory/all29new definitions,
    all final old definitions/triggers/policies/dependencies, native dynamic planning.
 2. Non-superuser functional callers. Full role attributes/owner/membership matrix;
    default-PUBLIC denial INCLUDING claim_mail_v2/consume_email_v2, private lock helper
@@ -26,7 +26,8 @@ Run once exact installation is approved:
 6. Recovery CAS race consumes one code; new binding has SAME credential proof deadline,
    ENROLLMENT_REQUIRED only, no ACTIVE until fresh first factor; old code/method/session/
    trust rejected. Reset receipt expires, wrong generation/purpose/tenant denied;
-   password-reset needs mailbox/identity receipt AND recovery code; no session emitted.
+   password-reset needs mailbox/identity receipt AND recovery code, or separately
+   authorized admin recovery with live session/factor/unchanged policy; no session emitted.
 7. Admin reset: no self-reset, no cross-tenant, B1-SELF alone denied, effective edit and
    manage_permissions and fresh factor and independent proof required; consumed receipt
    replay denied, reason/actor audited. Lost-everything operational proof remains separate
