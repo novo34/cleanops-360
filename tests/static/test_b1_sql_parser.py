@@ -17,8 +17,9 @@ class PostgreSQL16GrammarTests(unittest.TestCase):
         report = self.parser().inspect(ROOT/'docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql')
         self.assertEqual(report['functionDeclarations'], 73)
         self.assertEqual(report['errors'], [])
-        self.assertEqual(len(report['parserAdaptations']), 1)
-        self.assertEqual(report['parserAdaptations'][0]['scope'], 'auth_api.binding_authorization')
+        # Pinned pglast6.16 parses the original RETURNS TABLE/RETURN NEXT directly.
+        # Require zero parser-only rewrites; retain all malformed-body negative tests.
+        self.assertEqual(report['parserAdaptations'], [])
 
     def test_previously_native_failed_candidates_are_rejected(self):
         report = self.parser().inspect(ROOT/'docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql')
