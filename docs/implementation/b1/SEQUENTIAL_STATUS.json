@@ -1,5 +1,5 @@
 {
-  "referenceHead": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+  "referenceHead": "ca685cb873057409f0f5846109e2c1d88cc256a0",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -11,9 +11,9 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 27,
+    "numerator": 39,
     "denominator": 44,
-    "percent": 61.36363636363637,
+    "percent": 88.63636363636364,
     "verifiedRequirementIds": [
       "REQ-AUTHZ-001",
       "REQ-AUTHZ-002",
@@ -23,6 +23,8 @@
       "REQ-AUTHZ-006",
       "REQ-AUTHZ-007",
       "REQ-AUTH-001",
+      "REQ-AUTH-002",
+      "REQ-AUTH-003",
       "REQ-AUTH-010",
       "REQ-AUTH-011",
       "REQ-AUTH-012",
@@ -31,7 +33,9 @@
       "REQ-AUTH-015",
       "REQ-AUTH-016",
       "REQ-AUTH-017",
+      "REQ-AUTH-020",
       "REQ-AUTH-021",
+      "REQ-AUTH-022",
       "REQ-AUTH-030",
       "REQ-AUTH-031",
       "REQ-AUTH-032",
@@ -41,7 +45,15 @@
       "REQ-AUTH-041",
       "REQ-AUTH-042",
       "REQ-AUTH-043",
-      "REQ-AUTH-046"
+      "REQ-AUTH-044",
+      "REQ-AUTH-045",
+      "REQ-AUTH-046",
+      "REQ-AUTH-047",
+      "REQ-TEN-001",
+      "REQ-TEN-002",
+      "REQ-TEN-003",
+      "REQ-TEN-004",
+      "REQ-SEC-020"
     ],
     "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
   },
@@ -74,20 +86,17 @@
     "cleanup": "PASS"
   },
   "proposedCandidate": {
-    "revision": "07",
-    "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
-    "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
-    "bytes": 187018,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql",
-    "status": "AUTHORIZED_INSTALLED_NATIVE_PASS",
-    "ownerApproved": true
+    "gitBlob": "9246692e8306100a25c402857f1273e5ee10c7ae",
+    "sha256": "78c222c842c63da80eb7f967cbae6a93dad7306f366787f3a9f5c7016b4d05da",
+    "bytes": 209135,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/12/schema.review.sql"
   },
   "nextAuthorization": {
-    "sql11": "NONE_ALREADY_APPROVED_AND_EXECUTED",
-    "remaining": "Only operational infrastructure/configuration actions outside the current isolated authorization; see consolidated-test-11/REMAINING.md."
+    "SQL12": "Exact proposed blob9246692e8306100a25c402857f1273e5ee10c7ae pending owner approval; not installed.",
+    "operational": "No productive configuration/custody/SMTP/staging approval inferred."
   },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
-  "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
+  "pgTest01Scope": "Exact approved SQL11 only; no SQL12 installation.",
   "lastRealBrowserExecution": {
     "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
     "run": 39124915880,
@@ -370,5 +379,6 @@
       "productionAcceptance": false
     },
     "externalIdentityAuthority": "SYNTHETIC_ONLY_NOT_PRODUCTIVE"
-  }
+  },
+  "latestRemainingAssessment": "docs/implementation/b1/remaining/STATUS.json"
 }

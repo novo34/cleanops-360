@@ -22,7 +22,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
-      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER'].includes(evidence.newUIE2E))
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER','EXECUTED_SQL11_REMAINING_COMPOSITE_REAL_BROWSER'].includes(evidence.newUIE2E))
       if(evidence.kind==='COMPOSITE_REAL_CASE_EVIDENCE'){
         for(const check of evidence.checks){const raw=JSON.parse(read(check.sourceReport));assert.equal(raw.source,check.source);assert.equal(raw.run,check.run);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===check.name&&c.status==='PASS'))}
       }

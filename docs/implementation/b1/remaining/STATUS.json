@@ -1,0 +1,42 @@
+{
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "accepted": 39,
+  "total": 44,
+  "remaining": [
+    {
+      "id": "REQ-PR-006",
+      "classification": "FORMAL_ACCEPTANCE_PENDING",
+      "blocker": "End-to-end formal acceptance still requires the missing initial PREAUTH company selection, full security evidence, authorized staging/independent review and manual Product Owner validation; deployment not authorized."
+    },
+    {
+      "id": "REQ-PR-007",
+      "classification": "FORMAL_ACCEPTANCE_PENDING",
+      "blocker": "B1 and AUTH-GATE-05 remain OPEN; no next module may start before documented phase acceptance."
+    },
+    {
+      "id": "REQ-AUTH-004",
+      "classification": "REAL_OPERATIONAL_DEPENDENCY",
+      "blocker": "D3 algorithm/entropy/issuer approved; zbar and OTPAuth are not real authenticator apps. Need designated supported app versions/devices and observed QR/code acceptance; no external service connection or fabricated app evidence."
+    },
+    {
+      "id": "REQ-SEC-021",
+      "classification": "REAL_OPERATIONAL_DEPENDENCY",
+      "blocker": "Owner/security validation of numeric absolute lifetime by risk remains required. 8h/24h are tested trial values, independent of 30-day trusted device; no production policy approval inferred."
+    },
+    {
+      "id": "REQ-AUD-001",
+      "classification": "FUNCTIONALITY_INCOMPLETE",
+      "blocker": "Successful changes and AUTHZ denials are durable; LOGIN/MFA/RATE/CSRF failure events now pass. Generic service POLICY_DENIED/STEP_UP_REQUIRED guards still throw before committing any failure journal; existing record_security_event allowlist has no POLICY_DENIED. Do not claim complete audit coverage or silently change SQL/security event semantics."
+    }
+  ],
+  "functionalContractDependency": {
+    "flow": "password-verified multi-company PREAUTH selection",
+    "status": "FAIL_CLOSED_503",
+    "proposal": "docs/proposals/b1-consolidated-sql/revisions/12/APPROVAL.md",
+    "installed": false
+  },
+  "operationalControls": "Architecture D2/D3/D4/C-SCOPE/C-LOGIN remain approved. Named Swiss OpenBao infrastructure/custodian, approved operating numeric policy and real recovery/delivery/staging evidence remain distinct; no productive integrations are claimed.",
+  "regression": "Shared CSRF guard changed: targeted final real EMAIL/recovery/reset/trusted/AUTHZ regression running; earlier unaffected native matrices reused."
+}
