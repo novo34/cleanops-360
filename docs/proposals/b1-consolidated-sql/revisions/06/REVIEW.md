@@ -2,7 +2,7 @@
 
 Prepared from exact approved05; originals/history untouched. Generated fresh-install
 candidate, not an incremental patch or migration. `manifest.json` records full Git
-blob/SHA256/bytes, source pin and exact21 function signatures/ACL. Complete delta:
+blob/SHA256/bytes, source pin and exact28 function signatures/ACL. Complete delta:
 APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
 
 ## Security changes requiring exact approval BEFORE installation
@@ -28,7 +28,10 @@ APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
   membership and per-user/resource/time grants, explicit DENY wins, no role
   name grants authority. Permission mutation requires independent effective
   manage_permissions, fresh step-up and exclusive policy version CAS; delegation
-  cannot exceed actor's effective rights. No initial roles, grants or memberships.
+  cannot exceed actor's effective rights. No initial roles, grants or memberships. Manage Access uses the server users
+  resource node with the access permission namespace; no client ancestry authority.
+  Reset attestations are capped by existing trial preauth_ttl, not an invented
+  production lifetime; exact policy composition requires this SQL approval.
 - Recovery code consumption produces only expiring ENROLLMENT_REQUIRED with new
   cookie/CSRF, invalidates prior factors/sessions/devices/challenges/codes. No session
   before fresh enrollment/first factor. Password-reset receipt AND recovery code
@@ -67,7 +70,7 @@ remain NOT EXECUTED pending exact authorization. Existing05 native PASS unaffect
 new06 must never inherit it. SQL06 is not represented as an approved canonical source.
 
 Implementation still required after native validation: new HTTP schemas and private
-orchestration for EMAIL/recovery/admin/trust/access; UI consumers, real resource-catalog registration and authorized role administration; actual provider proof
+orchestration for EMAIL/recovery/admin/trust/access; UI consumers, real resource-catalog registration and role-administration HTTP/UI; actual provider proof
 attestations and bounded reset-proof expiry policy; key-provider integration and
 external-app verification. Existing self-service TOTP/session flows retained.
 

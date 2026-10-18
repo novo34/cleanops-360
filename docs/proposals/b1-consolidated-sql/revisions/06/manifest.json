@@ -6,14 +6,14 @@
     "bytes": 119875
   },
   "candidate": {
-    "gitBlob": "ab4d5af78e6c64e35c04c2108d4ee20f90ad121c",
-    "sha256": "26268d0c99eefc59c9c3db5d8936e5e452b5d8c8aba005f6ebc4fa2b7e89a71d",
-    "bytes": 169302
+    "gitBlob": "f0301543509ffc8c9c3fda6241dfd0a6951c3d0c",
+    "sha256": "25a36922d208b812de3a5d1bce6bd5c5e9d204cfb3001e79fa3c045066b8a2bd",
+    "bytes": 181087
   },
   "source": {
-    "gitBlob": "81e03c6bccd8d819f2fa038eb1d9679bca466aaf",
-    "sha256": "3ce843a76e93d1ec156132d2f102c1bcb833a5284959a233e595b048d7f56a60",
-    "bytes": 42360
+    "gitBlob": "1c5d76e21f8561dd56a87ecb6716d8c65be1cfb0",
+    "sha256": "49245ef2bd84a531643894a0943f104b7e67615835ff81a0aecd05845964a6e9",
+    "bytes": 51931
   },
   "functions": [
     {
@@ -138,6 +138,48 @@
     },
     {
       "signature": "auth_api.set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.set_access_role(uuid,text,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.revoke_access_assignment(text,uuid,uuid,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.access_detail(uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.admin_revoke_trusted_devices(uuid,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.own_trusted_devices(integer,timestamptz,uuid)",
       "execute": "cleanops_identity_service",
       "owner": "cleanops_auth_broker",
       "searchPath": "pg_catalog"

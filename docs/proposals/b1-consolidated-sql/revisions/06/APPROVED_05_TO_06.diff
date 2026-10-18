@@ -26,7 +26,7 @@
   material:=auth_api.trusted_mfa_material(raw_preauth,CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END,grant_key,resource);
   IF method IS NULL OR expected_version IS NULL OR expected_version<=0 OR method_kind IS NULL
   OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(material->'enabledMethods') m
-@@ -1529,4 +1532,527 @@
+@@ -1529,4 +1532,643 @@
   cleanops_runtime,cleanops_identity_service,cleanops_mail_worker,cleanops_auth_maintenance;
  GRANT EXECUTE ON FUNCTION identity_private.purge_expired_security_log() TO cleanops_auth_broker;
  
@@ -74,6 +74,7 @@
 + effect text NOT NULL CHECK(effect IN('ALLOW','DENY')), start_at timestamptz NOT NULL,
 + expires_at timestamptz, revoked_at timestamptz, PRIMARY KEY(tenant_id,id),
 + FOREIGN KEY(tenant_id,role_id) REFERENCES app.access_roles(tenant_id,id),
++ FOREIGN KEY(tenant_id,resource_id) REFERENCES app.access_resources(tenant_id,id),
 + FOREIGN KEY(tenant_id,user_id) REFERENCES app.users(tenant_id,id),
 + CHECK((role_id IS NULL)<>(user_id IS NULL)), CHECK(expires_at IS NULL OR expires_at>start_at)
 +);
@@ -232,12 +233,12 @@
 + IF NOT FOUND THEN RETURN false;END IF;
 + IF resource IS NOT NULL THEN
 +  -- Resource identity/ancestry is server-owned, never a caller-provided tenant claim.
-+  IF NOT EXISTS(SELECT 1 FROM app.access_resources WHERE tenant_id=c.tenant_id AND id=resource AND app.access_resources.kind=effective_access.kind) THEN RETURN false;END IF;
++  IF NOT EXISTS(SELECT 1 FROM app.access_resources WHERE tenant_id=c.tenant_id AND id=resource AND (app.access_resources.kind=effective_access.kind OR (effective_access.kind='access' AND app.access_resources.kind='users'))) THEN RETURN false;END IF;
 +  WITH RECURSIVE lineage AS (
 +   SELECT n.id,n.kind,n.parent_id,ARRAY[n.id] AS path,false AS cycle FROM app.access_resources n WHERE n.tenant_id=c.tenant_id AND n.id=resource
 +   UNION ALL
 +   SELECT n.id,n.kind,n.parent_id,l.path||n.id,n.id=ANY(l.path) FROM lineage l JOIN app.access_resources n ON n.tenant_id=c.tenant_id AND n.id=l.parent_id WHERE NOT l.cycle
-+  ) SELECT array_agg(id),array_agg(lineage.kind),bool_or(cycle) INTO scope_ids,scope_kinds,cyclic FROM lineage;
++  ) SELECT array_agg(id),array_agg(CASE WHEN id=resource THEN effective_access.kind ELSE lineage.kind END),bool_or(cycle) INTO scope_ids,scope_kinds,cyclic FROM lineage;
 +  IF cyclic IS DISTINCT FROM false THEN RETURN false;END IF;
 + ELSE scope_ids:=ARRAY[]::uuid[];scope_kinds:=ARRAY[kind];END IF;
 + SELECT coalesce(bool_or(r.effect='ALLOW'),false) AND NOT coalesce(bool_or(r.effect='DENY'),false) INTO result
@@ -398,7 +399,7 @@
 +BEGIN
 + SELECT principal_id INTO p FROM app.users WHERE tenant_id=t AND id=u;
 + PERFORM identity_private.lock_principal(p);PERFORM identity_private.lock_memberships(p,ARRAY[t]);
-+ IF token_hash IS NULL OR octet_length(token_hash)<>32 OR evidence IS NULL OR corr IS NULL OR purpose_name IS NULL OR purpose_name NOT IN('PASSWORD','MFA_RESET') OR until_at IS NULL OR until_at<=clock_timestamp() THEN RAISE EXCEPTION 'AUTH_INVALID';END IF;
++ IF token_hash IS NULL OR octet_length(token_hash)<>32 OR evidence IS NULL OR corr IS NULL OR purpose_name IS NULL OR purpose_name NOT IN('PASSWORD','MFA_RESET') OR until_at IS NULL OR until_at<=clock_timestamp() OR until_at>clock_timestamp()+make_interval(secs=>identity_private.cfg('preauth_ttl')) THEN RAISE EXCEPTION 'AUTH_INVALID';END IF;
 + SELECT credential_version INTO v FROM identity_private.credentials WHERE principal_id=p;
 + INSERT INTO identity_private.reset_tickets VALUES(k,t,u,p,token_hash,purpose_name,v,evidence,clock_timestamp(),until_at,NULL);
 + PERFORM identity_private.append_audit(t,u,'auth.reset.attest',k,1,corr);RETURN k;
@@ -489,6 +490,100 @@
 + PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.access.change',target,1,corr);RETURN true;
 +END $fn$;
 +
++CREATE FUNCTION auth_api.set_access_role(role uuid,label text,expected_policy bigint,corr uuid) RETURNS boolean
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;
++BEGIN
++ c:=identity_private.context();PERFORM 1 FROM app.policy_versions WHERE tenant_id=c.tenant_id AND version=expected_policy FOR UPDATE;
++ IF NOT FOUND OR NOT auth_api.effective_access('manage_permissions','access',NULL) THEN RETURN false;END IF;
++ PERFORM identity_private.guard('B1-SELF-06',true);
++ IF role IS NULL OR label IS NULL OR length(label) NOT BETWEEN 1 AND 120 OR corr IS NULL THEN RETURN false;END IF;
++ INSERT INTO app.access_roles VALUES(c.tenant_id,role,label,NULL) ON CONFLICT(tenant_id,id) DO UPDATE SET label=EXCLUDED.label,revoked_at=NULL;
++ UPDATE app.policy_versions SET version=version+1 WHERE tenant_id=c.tenant_id;
++ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.role.change',role,1,corr);RETURN true;
++END $fn$;
++CREATE FUNCTION auth_api.set_role_membership(role uuid,target uuid,starts timestamptz,ends timestamptz,expected_policy bigint,corr uuid) RETURNS boolean
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;r app.access_rules;
++BEGIN
++ c:=identity_private.context();PERFORM 1 FROM app.policy_versions WHERE tenant_id=c.tenant_id AND version=expected_policy FOR UPDATE;
++ IF NOT FOUND OR NOT auth_api.effective_access('manage_permissions','access',target) THEN RETURN false;END IF;
++ PERFORM identity_private.guard('B1-SELF-06',true);
++ IF starts IS NULL OR (ends IS NOT NULL AND ends<=starts) OR corr IS NULL OR NOT EXISTS(SELECT 1 FROM app.users WHERE tenant_id=c.tenant_id AND id=target AND state='ACTIVE') OR NOT EXISTS(SELECT 1 FROM app.access_roles WHERE tenant_id=c.tenant_id AND id=role AND revoked_at IS NULL) THEN RETURN false;END IF;
++ FOR r IN SELECT * FROM app.access_rules WHERE tenant_id=c.tenant_id AND role_id=role AND revoked_at IS NULL AND effect='ALLOW' LOOP
++  IF NOT auth_api.effective_access(r.action,r.resource_kind,r.resource_id) THEN RETURN false;END IF;
++ END LOOP;
++ INSERT INTO app.access_role_memberships VALUES(c.tenant_id,role,target,starts,ends,NULL)
++ ON CONFLICT(tenant_id,role_id,user_id) DO UPDATE SET start_at=EXCLUDED.start_at,expires_at=EXCLUDED.expires_at,revoked_at=NULL;
++ UPDATE app.policy_versions SET version=version+1 WHERE tenant_id=c.tenant_id;
++ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.role.assign',target,1,corr);RETURN true;
++END $fn$;
++CREATE FUNCTION auth_api.set_role_access_rule(role uuid,rule_id uuid,action_name text,kind text,resource uuid,effect_name text,starts timestamptz,ends timestamptz,expected_policy bigint,corr uuid) RETURNS boolean
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;
++BEGIN
++ c:=identity_private.context();PERFORM 1 FROM app.policy_versions WHERE tenant_id=c.tenant_id AND version=expected_policy FOR UPDATE;
++ IF NOT FOUND OR NOT auth_api.effective_access('manage_permissions','access',NULL) THEN RETURN false;END IF;
++ PERFORM identity_private.guard('B1-SELF-06',true);
++ IF NOT EXISTS(SELECT 1 FROM app.access_roles WHERE tenant_id=c.tenant_id AND id=role AND revoked_at IS NULL)
++ OR action_name IS NULL OR action_name NOT IN('view','create','edit','approve','delete','export','manage_permissions') OR kind IS NULL OR kind='*' OR length(kind) NOT BETWEEN 1 AND 80 OR effect_name IS NULL OR effect_name NOT IN('ALLOW','DENY') OR starts IS NULL OR (ends IS NOT NULL AND ends<=starts) OR rule_id IS NULL OR corr IS NULL THEN RETURN false;END IF;
++ IF effect_name='ALLOW' AND NOT auth_api.effective_access(action_name,kind,resource) THEN RETURN false;END IF;
++ IF EXISTS(SELECT 1 FROM app.access_rules WHERE tenant_id=c.tenant_id AND id=rule_id AND role_id IS DISTINCT FROM role) THEN RETURN false;END IF;
++ INSERT INTO app.access_rules VALUES(c.tenant_id,rule_id,role,NULL,action_name,kind,resource,effect_name,starts,ends,NULL)
++ ON CONFLICT(tenant_id,id) DO UPDATE SET action=EXCLUDED.action,resource_kind=EXCLUDED.resource_kind,resource_id=EXCLUDED.resource_id,effect=EXCLUDED.effect,start_at=EXCLUDED.start_at,expires_at=EXCLUDED.expires_at,revoked_at=NULL;
++ UPDATE app.policy_versions SET version=version+1 WHERE tenant_id=c.tenant_id;
++ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.role.permission',role,1,corr);RETURN true;
++END $fn$;
++CREATE FUNCTION auth_api.revoke_access_assignment(kind text,target uuid,subject uuid,expected_policy bigint,corr uuid) RETURNS boolean
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;n integer;
++BEGIN
++ c:=identity_private.context();PERFORM 1 FROM app.policy_versions WHERE tenant_id=c.tenant_id AND version=expected_policy FOR UPDATE;
++ IF NOT FOUND OR NOT auth_api.effective_access('manage_permissions','access',subject) THEN RETURN false;END IF;
++ PERFORM identity_private.guard('B1-SELF-06',true);
++ IF corr IS NULL OR target IS NULL OR kind IS NULL OR kind NOT IN('RULE','ROLE','MEMBERSHIP') THEN RETURN false;END IF;
++ IF kind='RULE' THEN UPDATE app.access_rules SET revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND id=target AND revoked_at IS NULL AND (user_id=subject OR (role_id IS NOT NULL AND subject IS NULL));
++ ELSIF kind='ROLE' THEN
++  IF subject IS NOT NULL OR NOT auth_api.effective_access('manage_permissions','access',NULL) THEN RETURN false;END IF;
++  UPDATE app.access_roles SET revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND id=target AND revoked_at IS NULL;
++ ELSE UPDATE app.access_role_memberships SET revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND role_id=target AND user_id=subject AND revoked_at IS NULL;END IF;
++ GET DIAGNOSTICS n=ROW_COUNT;IF n=0 THEN RETURN false;END IF;
++ UPDATE app.policy_versions SET version=version+1 WHERE tenant_id=c.tenant_id;
++ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.access.revoke',target,n,corr);RETURN true;
++END $fn$;
++CREATE FUNCTION auth_api.access_detail(target uuid) RETURNS jsonb
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;j jsonb;
++BEGIN
++ c:=identity_private.context();
++ IF NOT auth_api.effective_access('view','access',target) THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501';END IF;
++ IF NOT EXISTS(SELECT 1 FROM app.users WHERE tenant_id=c.tenant_id AND id=target) THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501';END IF;
++ j:=jsonb_build_object('policyVersion',(SELECT version::text FROM app.policy_versions WHERE tenant_id=c.tenant_id),
++ 'roles',coalesce((SELECT jsonb_agg(jsonb_build_object('id',r.id,'label',r.label,'startAt',a.start_at,'expiresAt',a.expires_at)) FROM app.access_roles r JOIN app.access_role_memberships a ON(a.tenant_id,a.role_id)=(r.tenant_id,r.id) WHERE r.tenant_id=c.tenant_id AND a.user_id=target AND r.revoked_at IS NULL AND a.revoked_at IS NULL),'[]'::jsonb),
++ 'rules',coalesce((SELECT jsonb_agg(jsonb_build_object('id',r.id,'roleId',r.role_id,'action',r.action,'resourceKind',r.resource_kind,'resourceId',r.resource_id,'effect',r.effect,'startAt',r.start_at,'expiresAt',r.expires_at)) FROM app.access_rules r WHERE r.tenant_id=c.tenant_id AND r.revoked_at IS NULL AND (r.user_id=target OR EXISTS(SELECT 1 FROM app.access_role_memberships a WHERE a.tenant_id=c.tenant_id AND a.user_id=target AND a.role_id=r.role_id AND a.revoked_at IS NULL))),'[]'::jsonb));
++ IF octet_length(j::text)>identity_private.cfg('json_body_max') THEN RAISE EXCEPTION 'RESPONSE_LIMIT';END IF;RETURN j;
++END $fn$;
++CREATE FUNCTION auth_api.admin_revoke_trusted_devices(target uuid,corr uuid) RETURNS integer
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;n integer;
++BEGIN
++ c:=identity_private.context();IF corr IS NULL OR NOT auth_api.effective_access('edit','users',target) THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501';END IF;
++ PERFORM identity_private.guard('B1-SELF-06',true);
++ UPDATE app.trusted_devices SET revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND user_id=target AND revoked_at IS NULL;GET DIAGNOSTICS n=ROW_COUNT;
++ PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.device.admin_revoke',target,n,corr);RETURN n;
++END $fn$;
++
++CREATE FUNCTION auth_api.own_trusted_devices(page_size integer,before_time timestamptz,before_id uuid) RETURNS jsonb
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE c identity_private.tx_context;j jsonb;
++BEGIN
++ c:=identity_private.guard('B1-SELF-02');
++ IF page_size IS NULL OR page_size<1 OR page_size>identity_private.cfg('page_max') OR (before_time IS NULL)<>(before_id IS NULL) THEN RAISE EXCEPTION 'INVALID_PAGE';END IF;
++ SELECT coalesce(jsonb_agg(jsonb_build_object('id',d.id,'createdAt',d.created_at,'expiresAt',d.expires_at) ORDER BY d.created_at DESC,d.id DESC),'[]'::jsonb) INTO j FROM
++ (SELECT id,created_at,expires_at FROM app.trusted_devices WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND revoked_at IS NULL AND expires_at>clock_timestamp() AND (before_time IS NULL OR (created_at,id)<(before_time,before_id)) ORDER BY created_at DESC,id DESC LIMIT page_size) d;
++ RETURN j;
++END $fn$;
++
 +ALTER FUNCTION auth_api.record_verified_recipient(uuid,uuid,bigint,bytea,uuid,timestamptz,uuid) OWNER TO cleanops_auth_broker;
 +REVOKE ALL ON FUNCTION auth_api.record_verified_recipient(uuid,uuid,bigint,bytea,uuid,timestamptz,uuid) FROM PUBLIC;
 +GRANT EXECUTE ON FUNCTION auth_api.record_verified_recipient(uuid,uuid,bigint,bytea,uuid,timestamptz,uuid) TO cleanops_recipient_verifier;
@@ -551,6 +646,27 @@
 +ALTER FUNCTION auth_api.set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) OWNER TO cleanops_auth_broker;
 +REVOKE ALL ON FUNCTION auth_api.set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) FROM PUBLIC;
 +GRANT EXECUTE ON FUNCTION auth_api.set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.set_access_role(uuid,text,bigint,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.set_access_role(uuid,text,bigint,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.set_access_role(uuid,text,bigint,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.revoke_access_assignment(text,uuid,uuid,bigint,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.revoke_access_assignment(text,uuid,uuid,bigint,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.revoke_access_assignment(text,uuid,uuid,bigint,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.access_detail(uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.access_detail(uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.access_detail(uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.admin_revoke_trusted_devices(uuid,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.admin_revoke_trusted_devices(uuid,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.admin_revoke_trusted_devices(uuid,uuid) TO cleanops_identity_service;
++ALTER FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.own_trusted_devices(integer,timestamptz,uuid) TO cleanops_identity_service;
 +REVOKE EXECUTE ON FUNCTION auth_api.claim_mail(bytea),auth_api.finish_mail(uuid,uuid,bytea,boolean) FROM cleanops_mail_worker;
 +REVOKE EXECUTE ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid),auth_api.email_otp_material(text,uuid) FROM cleanops_identity_service;
  COMMIT;
