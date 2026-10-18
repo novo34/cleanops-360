@@ -1,4 +1,5 @@
 import {spawnSync} from 'node:child_process'
+import {openAuthenticatorApps} from './helpers/authenticator-apps'
 import { test, expect } from '@playwright/test'
 import { numeric } from '../lib/b1/config'
 // @ts-expect-error CI-only JS bridge intentionally has no application import/declaration.
@@ -76,6 +77,7 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
   const phase = (description: string) => test.info().annotations.push({ type: 'phase', description })
   phase('INIT_ENROLLMENT')
   const server = await startRealBrowserServer('enrollment')
+  let apps:ReturnType<typeof openAuthenticatorApps>|undefined,usedCounter=-1
   try {
     phase('LOGIN_NO_METHOD')
     await page.goto('/login')
@@ -130,8 +132,25 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
     const stillPending = await server.rpc({kind:'inspectEnrollment'})
     expect(stillPending.methods[0].state==='PENDING' && stillPending.methods[0].last_totp_counter===null).toBe(true)
     expect(stillPending.recoveryCount).toBe(0)
+    if(process.env.B1_TOTP_APP==='INSTALLED_APPLICATIONS'){
+      phase('REAL_AUTHENTICATOR_APPLICATIONS')
+      apps=openAuthenticatorApps(qrUri)
+      // An actual OATH Toolkit application produces the expired code; SQL clocks/window are unchanged.
+      let expired=''
+      for(let n=3;n<8;n++){const candidate=apps.oathtool(Date.now()-(numeric('totp_window')+n)*numeric('totp_period')*1000);if(!nearby.has(candidate)){expired=candidate;break}}
+      expect(expired.length).toBe(numeric('totp_digits'))
+      const denied=await page.request.post('/mfa/totp/confirm',{headers:{Origin:'https://127.0.0.1:3000','Sec-Fetch-Site':'same-origin','X-CSRF-Token':(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_csrf')!.value,'Idempotency-Key':crypto.randomUUID()},data:{enrollment_id:material.enrollment_id,proof:expired}})
+      expect(denied.status()).toBe(401)
+      const state=await server.rpc({kind:'inspectEnrollment'});expect(state.methods[0].state).toBe('PENDING');expect(state.methods[0].last_totp_counter).toBe(null)
+    }
     phase('CONFIRM_FIRST_CODE')
-    await page.getByLabel('Primer código', { exact: true }).fill(authenticator.generate())
+    const appStart=Date.now(),firstProof=apps?apps.keepassxc():authenticator.generate(),appEnd=Date.now()
+    if(apps){
+      const counters=[Math.floor(appStart/(numeric('totp_period')*1000)),Math.floor(appEnd/(numeric('totp_period')*1000))]
+      usedCounter=counters.find(counter=>authenticator.generate({timestamp:counter*numeric('totp_period')*1000})===firstProof)??-1
+      expect(usedCounter).toBeGreaterThan(0)
+    }
+    await page.getByLabel('Primer código', { exact: true }).fill(firstProof)
     const confirmed = page.waitForResponse(r => new URL(r.url()).pathname === '/mfa/totp/confirm')
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
     const result = await confirmed
@@ -163,14 +182,21 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
     expect((await loginAgain).status()).toBe(200)
     await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
     phase('VERIFY_ENROLLED_METHOD_AFTER_LOGIN')
-    await page.getByLabel('Código', { exact: true }).fill(authenticator.generate({timestamp:Date.now()+numeric('totp_period')*1000}))
+    if(apps){
+      // A real next counter, not a future timestamp supplied to a library or weakened CAS.
+      const wait=(usedCounter+1)*numeric('totp_period')*1000-Date.now()+200
+      if(wait>0)await page.waitForTimeout(wait)
+    }
+    const loginStart=Date.now(),loginProof=apps?apps.oathtool():authenticator.generate({timestamp:Date.now()+numeric('totp_period')*1000}),loginEnd=Date.now()
+    if(apps){expect([authenticator.generate({timestamp:loginStart}),authenticator.generate({timestamp:loginEnd})]).toContain(loginProof);phase('REAL_OATHTOOL_LOGIN')}
+    await page.getByLabel('Código', { exact: true }).fill(loginProof)
     const reusedMethod=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/mfa/verify')
     await page.getByRole('button',{name:'Verificar',exact:true}).click()
     expect((await reusedMethod).status()).toBe(200)
     await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
     await expect(page.locator('output')).toHaveCount(0)
     await expect(page.locator('code')).toHaveCount(0)
-  } finally { phase('CLEANUP'); await server.close(); phase('CLEANUP_DONE') }
+  } finally { phase('CLEANUP'); apps?.close(); await server.close(); phase('CLEANUP_DONE') }
 })
 
 test('real ACTIVE additional enrollment requires both grants and preserves rate limiting',async({page})=>{
