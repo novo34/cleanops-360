@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
   "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
-  "accepted": 14,
+  "accepted": 15,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -2422,15 +2422,13 @@
         "remaining": "C-SCOPE aprobado. Registro/revocación de trusted devices, expiración≤30d, invalidación por credenciales/reset/riesgo y contratos SQL/ACL pendientes."
       },
       "currentProgress": [
-        "UI_API_HTTPONLY_OWNED_IMPLEMENTED",
-        "REAL_OPERATOR_RESET_RECOVERY_TRUST_INVALIDATION_CASES_PASS",
-        "REAL_BROWSER_TOTAL_FAIL_5_OF_8",
-        "NATIVE_SQLSTATE23514_1_OF_32",
-        "SQL10_REVIEW_ONLY_APPROVAL_REQUIRED",
-        "MANDATORY_MFA_RETAINED"
+        "SQL10_NATIVE_BOUNDARIES32_32_AND_CONCURRENT8_8_PASS",
+        "ALL9_REAL_BROWSER_CASES_PASS_WITH_PINNED_PER_CASE_PROVENANCE",
+        "NO_MFA_BYPASS_OR_SESSION_EXTENSION",
+        "ISOLATED_REQUIREMENT_ACCEPTED_NOT_PHASE_OR_PRODUCTION"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "REAL_UI_API_PG_PASS",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2449,10 +2447,10 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
-      "remaining": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
+      "accepted": true,
+      "remaining": "None for this requirement in isolated functional scope. SQL10 root fix,9 distinct real browser cases across pinned runs and native boundaries/concurrency/negative ACL evidence verified. Production/phase activation is separate and not approved.",
       "historicalPendingBeforeTrustedVertical": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
-      "implementation": "UI_API_IMPLEMENTED_SQL_TIMESTAMP_DEFECT_OPEN",
+      "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "trustedDeviceEvidence": {
         "native": "docs/implementation/b1/trusted-device/NATIVE_REPRODUCTION.json",
         "browser": "docs/implementation/b1/trusted-device/ATTEMPT_1.json",
@@ -2461,6 +2459,27 @@
         "acceptance": "OPEN",
         "newAccepted": false,
         "reviewOnlyCandidate": "68c0545f79cf15fa780566ebf4aab14b3ccb892b"
+      },
+      "historicalPendingBeforeSQL10": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-10/TRUSTED_ACCEPTANCE.json",
+        "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+        "run": 39118251896,
+        "cases": [
+          "Browser-PG-trusted failed COMMIT releases no cookie and rolls back device and audit before safe retry",
+          "Browser-PG-trusted durable COMMIT acknowledgement loss does not issue a cookie and replay never re-registers",
+          "Browser-PG-trusted UI registers digest-only 30-day metadata with post-COMMIT HttpOnly cookie and cannot bypass MFA",
+          "Browser-PG-trusted expiration and enterprise disable deny metadata without destroying ACTIVE or extending session",
+          "Browser-PG-trusted same-key concurrent registration is one-time and foreign device cannot be revoked or listed",
+          "Browser-PG-trusted UI revokes individual and every remaining device atomically with audit",
+          "Browser-PG-trusted operator UI revokes another user only with current effective edit users and fresh MFA",
+          "Browser-PG-actual password reset invalidates registered trust and all old sessions without granting access",
+          "Browser-PG-actual recovery MFA reset invalidates trust before mandatory enrollment and never issues ACTIVE"
+        ],
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES"
       }
     },
     {

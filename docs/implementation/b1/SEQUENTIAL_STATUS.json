@@ -11,9 +11,9 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 14,
+    "numerator": 15,
     "denominator": 44,
-    "percent": 31.818181818181817,
+    "percent": 34.09090909090909,
     "verifiedRequirementIds": [
       "REQ-AUTH-001",
       "REQ-AUTH-011",
@@ -28,26 +28,27 @@
       "REQ-AUTH-040",
       "REQ-AUTH-041",
       "REQ-AUTH-042",
-      "REQ-AUTH-043"
+      "REQ-AUTH-043",
+      "REQ-AUTH-046"
     ],
     "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "EXACT_SQL10_APPROVAL_FOR_TRUSTED_DEVICE_REGISTRATION_CLOCK_CONSTRAINT",
+  "nextBlocker": "AUTHZ_REAL_UI_API_PG_ACCEPTANCE_IN_PROGRESS",
   "candidate": {
-    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
-    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
-    "bytes": 196276,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql"
+    "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
+    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
+    "bytes": 196329,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/10/schema.review.sql"
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/09/APPROVED_08_TO_09.diff",
-    "sha256": "20a7d7bc4f0390576596c26013329e058cbf310a8293dab27b8edd4d63567c59"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/10/SQL09_TO_SQL10.diff",
+    "sha256": "b7c0572dd26fe310c9a601c4f9486f3dd039f897d63e51c670d2b1b02c98d5cf"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "SQL09_REAL_RESET_AND_RECOVERY_PASS_FULL_B1_OPEN",
+  "pgTest01": "SQL10_TRUSTED_DEVICE_PASS_FULL_B1_OPEN",
   "lastPostgresExecution": {
     "source": "9f73907fdfe506619444201deac6655a54fe4462",
     "run": 39115439609,
@@ -168,17 +169,15 @@
   },
   "reset": "COMPLETE_ISOLATED_NOT_PRODUCTION",
   "trustedDevice": {
-    "status": "INCOMPLETE",
-    "postgres": "FAIL_SQLSTATE23514",
-    "browser": "FAIL_3_PASS_5_FAIL",
-    "accepted": false,
-    "reviewOnlyBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
-    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
-    "additionalSqlAclInstalled": false
+    "status": "COMPLETE_ISOLATED_NOT_PRODUCTION",
+    "acceptedRequirement": "REQ-AUTH-046",
+    "evidence": "docs/implementation/b1/consolidated-test-10/TRUSTED_ACCEPTANCE.json",
+    "distinctRealBrowserCases": 9,
+    "ownerAuthorization": "PG-TEST-01-CONSOLIDATED-10"
   },
   "authz": {
     "status": "INCOMPLETE",
-    "preparation": "Existing5 mutation calls now typed/parameterized; public vertical pending trusted-device completion; no new module."
+    "progress": "Private approved calls, Manage Access UI/API implemented; real permission and audit acceptance running."
   },
   "latestTrustedDeviceExecution": {
     "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",

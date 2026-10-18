@@ -1,3 +1,9 @@
+# Current owner decision
+
+The owner approved exactly this blob/SHA256 for isolated synthetic PostgreSQL16 installation, boundaries/concurrency and affected E2E. Auditable execution approval is docs/implementation/b1/consolidated-test-10/AUTHORIZATION.json. SQL10 has been executed; result and requirement provenance are in trusted-device/RESULT.md. The original REVIEW ONLY proposal/history below is preserved. This approval does not authorize other SQL/ACL or production/runtime activation.
+
+---
+
 # SQL10 — approval request; REVIEW ONLY, not installed
 
 Exact candidate: `PG-TEST-01-CONSOLIDATED-10`.

@@ -1046,8 +1046,8 @@
     {
       "id": "REQ-AUTH-046",
       "requirement": "`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
-      "implementation": "UI_API_IMPLEMENTED_SQL_TIMESTAMP_DEFECT_OPEN",
-      "pending": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
+      "implementation": "IMPLEMENTED_REAL_UI_API_PG",
+      "pending": "None for this requirement in isolated functional scope. SQL10 root fix,9 distinct real browser cases across pinned runs and native boundaries/concurrency/negative ACL evidence verified. Production/phase activation is separate and not approved.",
       "tests": [
         "SESSION-01",
         "SESSION-02",
@@ -1057,9 +1057,9 @@
         "lib/b1/service.ts",
         "lib/b1/approved-backend.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
       "historicalPendingBeforeSQL07": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza ≤30 días, política tenant y revocación por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth íntegro.",
       "historicalPendingBeforeTrustedVertical": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
       "trustedDeviceEvidence": {
@@ -1070,7 +1070,34 @@
         "acceptance": "OPEN",
         "newAccepted": false,
         "reviewOnlyCandidate": "68c0545f79cf15fa780566ebf4aab14b3ccb892b"
-      }
+      },
+      "historicalPendingBeforeSQL10": "INCOMPLETE: UI/API implemented; real SQL09 registration intermittently fails SQLSTATE23514 due to two clocks violating the exact30-day CHECK. Native32-call reproduction and partial Chromium evidence in trusted-device/. Requires exact SQL10 isolated installation approval, then full affected browser regression. No acceptance from mocks/units or partial PASS.",
+      "accepted": true,
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-10/TRUSTED_ACCEPTANCE.json",
+        "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+        "run": 39118251896,
+        "cases": [
+          "Browser-PG-trusted failed COMMIT releases no cookie and rolls back device and audit before safe retry",
+          "Browser-PG-trusted durable COMMIT acknowledgement loss does not issue a cookie and replay never re-registers",
+          "Browser-PG-trusted UI registers digest-only 30-day metadata with post-COMMIT HttpOnly cookie and cannot bypass MFA",
+          "Browser-PG-trusted expiration and enterprise disable deny metadata without destroying ACTIVE or extending session",
+          "Browser-PG-trusted same-key concurrent registration is one-time and foreign device cannot be revoked or listed",
+          "Browser-PG-trusted UI revokes individual and every remaining device atomically with audit",
+          "Browser-PG-trusted operator UI revokes another user only with current effective edit users and fresh MFA",
+          "Browser-PG-actual password reset invalidates registered trust and all old sessions without granting access",
+          "Browser-PG-actual recovery MFA reset invalidates trust before mandatory enrollment and never issues ACTIVE"
+        ],
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES"
+      },
+      "newRealIntegration": "REAL_UI_API_PG_PASS",
+      "currentProgress": [
+        "SQL10_NATIVE_BOUNDARIES32_32_AND_CONCURRENT8_8_PASS",
+        "ALL9_REAL_BROWSER_CASES_PASS_WITH_PINNED_PER_CASE_PROVENANCE",
+        "NO_MFA_BYPASS_OR_SESSION_EXTENSION",
+        "ISOLATED_REQUIREMENT_ACCEPTED_NOT_PHASE_OR_PRODUCTION"
+      ]
     },
     {
       "id": "REQ-AUTH-047",
@@ -1544,7 +1571,7 @@
     }
   ],
   "assessmentHead": "9f73907fdfe506619444201deac6655a54fe4462",
-  "accepted": 14,
+  "accepted": 15,
   "individualAcceptanceAuthority": "Owner instruction2026-10-18: accept each requirement with complete evidence without waiting for all44.",
   "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
   "phaseOwnerAcceptance": "PENDING",
@@ -1558,7 +1585,7 @@
   ],
   "historicalDatabaseExecutionAuthorized": false,
   "databaseExecutionScope": {
-    "artifact": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "artifact": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
     "environment": "NEW_ISOLATED_PG16_DOCKER_SYNTHETIC",
     "modifiedSqlAcl": false,
     "production": false,

@@ -1,0 +1,720 @@
+{
+  "kind": "COMPOSITE_REAL_CASE_EVIDENCE",
+  "result": "PASS",
+  "cleanup": "PASS",
+  "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+  "run": 39118251896,
+  "newUIE2E": "EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES",
+  "basis": "Retain7 unaffected PASS browser cases from the first actual run and2 corrected/isolate COMMIT cases from the second actual run. This is a requirement assessment, not a claim that9 Chromium tests ran in one workflow. Production trusted-device code unchanged between these sources. Failed historical raw report retained.",
+  "acceptedRequirement": "REQ-AUTH-046",
+  "productionAcceptance": false,
+  "evidenceSources": [
+    "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+    "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json"
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "exact10-blob-sha256-full-diff-no-ACL-RLS-change",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "install-consolidated10",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-forced-RLS",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-fixed-definer-register_trusted_device(bytea,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-unbound-call-register_trusted_device(bytea,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-fixed-definer-trusted_device_valid(bytea)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-unbound-call-trusted_device_valid(bytea)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-fixed-definer-revoke_trusted_device(uuid,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-unbound-call-revoke_trusted_device(uuid,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-fixed-definer-admin_revoke_trusted_devices(uuid,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-no-unbound-call-admin_revoke_trusted_devices(uuid,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-synthetic-policy",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-synthetic-fresh-MFA",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-registration-exact-30day-constraint",
+      "status": "PASS",
+      "detail": {
+        "attempts": 32,
+        "successRolledBack": 32,
+        "failed": 0,
+        "sqlstates": [],
+        "expectedFailures": 0,
+        "additionalSqlAclInstalled": false
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-CHECK-exact30days",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-CHECK-over30days-by-microsecond",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "23514"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-CHECK-zero-duration",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "23514"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-real-registration-persisted",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-real-registration-exact30days",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "trusted-concurrent-registration-no-clock-constraint-failure",
+      "status": "PASS",
+      "detail": {
+        "attempts": 8,
+        "sqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "Browser-PG-trusted failed COMMIT releases no cookie and rolls back device and audit before safe retry",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "Browser-PG-trusted durable COMMIT acknowledgement loss does not issue a cookie and replay never re-registers",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "PASS",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output.",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/COMMIT_CASES.json",
+      "source": "bcad01e52465d35f9fe8f002205a318d9be52aec",
+      "run": 39118251896
+    },
+    {
+      "name": "Browser-PG-trusted UI registers digest-only 30-day metadata with post-COMMIT HttpOnly cookie and cannot bypass MFA",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "LOGIN",
+          "STOLEN_TOKEN_NO_AUTHORITY"
+        ],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-trusted expiration and enterprise disable deny metadata without destroying ACTIVE or extending session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-trusted same-key concurrent registration is one-time and foreign device cannot be revoked or listed",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-trusted UI revokes individual and every remaining device atomically with audit",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-trusted operator UI revokes another user only with current effective edit users and fresh MFA",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-actual password reset invalidates registered trust and all old sessions without granting access",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    },
+    {
+      "name": "Browser-PG-actual recovery MFA reset invalidates trust before mandatory enrollment and never issues ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-10/ATTEMPT_1.json",
+      "source": "d39220ce8474601cfa1a72d1f3d907c5c865b0c9",
+      "run": 39117995423
+    }
+  ]
+}

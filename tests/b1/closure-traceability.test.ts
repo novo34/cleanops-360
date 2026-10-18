@@ -22,7 +22,10 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
-      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER'].includes(evidence.newUIE2E))
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES'].includes(evidence.newUIE2E))
+      if(evidence.kind==='COMPOSITE_REAL_CASE_EVIDENCE'){
+        for(const check of evidence.checks){const raw=JSON.parse(read(check.sourceReport));assert.equal(raw.source,check.source);assert.equal(raw.run,check.run);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===check.name&&c.status==='PASS'))}
+      }
       for (const name of row.acceptanceEvidence.cases) assert.ok(evidence.checks.some((c: {name:string;status:string}) => c.name === name && c.status === 'PASS'))
       assert.equal(row.acceptanceEvidence.productionAcceptance, false)
     } else {
@@ -33,7 +36,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
   assert.equal(matrix.authGate05, 'OPEN')
   assert.equal(matrix.runtime, 'closedBackend')
   assert.equal(matrix.databaseExecutionAuthorized, true)
-  assert.equal(matrix.databaseExecutionScope.artifact, '641886171bc24557ff5f49ae6bc7564036efc6b0')
+  assert.equal(matrix.databaseExecutionScope.artifact, '68c0545f79cf15fa780566ebf4aab14b3ccb892b')
   assert.equal(matrix.databaseExecutionScope.modifiedSqlAcl, false)
   assert.equal(matrix.databaseExecutionScope.production, false)
   assert.equal(matrix.productionActivationAuthorized, false)

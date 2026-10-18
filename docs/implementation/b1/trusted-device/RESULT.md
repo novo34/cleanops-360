@@ -1,3 +1,19 @@
+# Current result — COMPLETE in isolated functional scope
+
+REQ-AUTH-046 accepted; B1 **15/44**, AUTH-GATE-05 OPEN and closedBackend. Owner authorized exact SQL10 blob68c0545f79cf15fa780566ebf4aab14b3ccb892b / SHA256d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b. Full diff/hash checked; no ACL/RLS/signature changes; exact complete SQL10 installed in fresh isolated PG16 Docker only.
+
+Source d39220ce/run39117995423:32/32 actual service registrations without23514,8/8 simultaneous registrations, unchanged CHECK accepts exactly30days and rejects +1microsecond/zero duration.7 of8 real UI cases PASS; remaining test incorrectly expected409 after an approved rate budget legitimately returned429. Limits were not changed. Raw failed report retained.
+
+Source bcad01e5/run39118251896:71PASS/0FAIL/0BLOCKED/0SKIP; two independent COMMIT fault cases PASS within ordinary budgets. Genuine termination-before-COMMIT rolls back; durable COMMIT/acknowledgement loss persists exactly one effect, returns503 with no new cookie, then replay409. Separate fixtures keep each fault case independent. Session token and expiry unchanged; client date manipulation rejected.
+
+All9 distinct real Chromium cases are now individually PASS across the two pinned sources: registration/HttpOnly/digest/30days and stolen metadata without MFA bypass; expiry/company disable; one-time concurrency and foreign methods; precise keyset pagination and individual/global revocation; operator revocation with effective RBAC; password-reset and recovery invalidation; rollback/retry; durable COMMIT uncertainty/replay. JSON assessment ../consolidated-test-10/TRUSTED_ACCEPTANCE.json links every selected PASS to its actual raw source/run/case. It does not pretend that one9-test all-green workflow ran. Unaffected passed cases were retained as requested. No HTTP fixtures or injected auth cookies; only a stolen synthetic trust cookie is deliberately copied for its negative security test. Native role/table denial and actor-scoped data checks passed. All31-table dump/restore fingerprints and owned-resource cleanup/preexisting inventories PASS.
+
+Runtime/production remains closed. This is individual isolated requirement acceptance, not B1/phase/production acceptance. Continue AUTHZ within B1.
+
+---
+
+# Historical state before owner SQL10 authorization
+
 # Trusted Device — INCOMPLETE; real SQL09 defect requires SQL10 approval
 
 B1 remains14/44, AUTH-GATE-05 OPEN, closedBackend. No requirement is newly accepted from code, units or a partial browser run. No new SQL/ACL was installed.
