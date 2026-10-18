@@ -1,3 +1,7 @@
+# Current acceptance
+
+COMPLETE in isolated functional scope. REQ-AUTH-046 accepted, B1 15/44; SQL10 exact owner-authorized root fix and9 individually pinned real browser PASS cases. See RESULT.md. Historical preapproval state below is retained.
+
 # Current execution result
 
 INCOMPLETE. See RESULT.md and exact SQL10 REVIEW ONLY approval request; SQL09 clock-constraint defect reproduced. No new requirement accepted.

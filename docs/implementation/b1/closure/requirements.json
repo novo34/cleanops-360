@@ -49,7 +49,7 @@
       "id": "REQ-AUTHZ-001",
       "requirement": "Permisos por acción: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
       "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -63,13 +63,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios."
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-002",
       "requirement": "Ámbitos: tenant, módulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
       "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -83,13 +92,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios."
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-003",
       "requirement": "El sistema deberá permitir overrides individuales por usuario.",
       "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -103,13 +121,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios."
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-004",
       "requirement": "Deberá permitir accesos temporales con `start_at` y `expires_at`.",
       "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -123,13 +150,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios."
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-005",
       "requirement": "La UI incluirá `Administration → Users → User Detail → Manage Access`.",
       "implementation": "SCOPE_CONTRACT_CONFLICT",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -143,13 +179,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios."
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-006",
       "requirement": "La autorización deberá aplicarse también en API, no solo UI.",
       "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -163,13 +208,22 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides."
+      "historicalPendingBeforeSQL07": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-007",
       "requirement": "`explicit deny` prevalecerá sobre cualquier concesión; las políticas de aislamiento tenant y las restricciones de plataforma no podrán sobrepasarse mediante overrides. Ante falta de autorización, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las políticas superiores. Denegaciones y concesiones se aplicarán en API, con caducidad y auditoría.",
       "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUTHZ-MATRIX-01",
         "SCOPE-01",
@@ -183,7 +237,16 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides."
+      "historicalPendingBeforeSQL07": "Probar las ocho reglas B1-SELF aprobadas, DENY prioritario y versiones bajo locks. El evaluador privado actual no implementa CRUD general de permisos/overrides.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTH-001",
@@ -1250,7 +1313,7 @@
       "id": "REQ-AUD-001",
       "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar actor, fecha, entidad, acción y resultado, sin exponer secretos o datos de otros tenants (capítulos de auditoría).",
       "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "pending": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
       "tests": [
         "AUDIT-01",
         "RETAIN-01"
@@ -1262,7 +1325,16 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Éxito+evento+idempotencia en un commit; intentos fallidos persistidos, fallos de infraestructura rollback, auditoría append-only, canal restringido de fallos y retención/restore con tenant/actor intactos."
+      "historicalPendingBeforeSQL07": "Éxito+evento+idempotencia en un commit; intentos fallidos persistidos, fallos de infraestructura rollback, auditoría append-only, canal restringido de fallos y retención/restore con tenant/actor intactos.",
+      "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     }
   ],
   "canonicalCases": [

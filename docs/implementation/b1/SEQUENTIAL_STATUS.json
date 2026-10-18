@@ -1,5 +1,5 @@
 {
-  "referenceHead": "5197c46c99a06cf864042057d5d74ac1dcda6232",
+  "referenceHead": "89214ad9e67a161cbadc504a5f7e89055e860088",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -35,7 +35,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "AUTHZ_REAL_UI_API_PG_ACCEPTANCE_IN_PROGRESS",
+  "nextBlocker": "EXACT_SQL11_CONTRACT_ACL_APPROVAL_FOR_AUDITED_AUTHZ_AND_NO_OVERDELEGATION",
   "candidate": {
     "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
     "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
@@ -48,19 +48,19 @@
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "SQL10_TRUSTED_DEVICE_PASS_FULL_B1_OPEN",
+  "pgTest01": "SQL10_TRUSTED_PASS_AUTHZ_SECURITY_ACCEPTANCE_FAIL_FULL_B1_OPEN",
   "lastPostgresExecution": {
-    "source": "9f73907fdfe506619444201deac6655a54fe4462",
-    "run": 39115439609,
-    "installation": "PASS",
+    "source": "89214ad9e67a161cbadc504a5f7e89055e860088",
+    "run": 39120467924,
+    "scope": "AUTHZ_READONLY_AND_FAILCLOSED_ONLY",
     "checks": {
-      "PASS": 67,
+      "PASS": 86,
       "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
     },
-    "cleanup": "PASS",
-    "report": "docs/implementation/b1/consolidated-test-09/EXECUTION.json"
+    "fullAuthzAcceptance": "BLOCKED_BY_RETAINED_4_NATIVE_FAILURES",
+    "cleanup": "PASS"
   },
   "proposedCandidate": {
     "revision": "07",
@@ -177,7 +177,16 @@
   },
   "authz": {
     "status": "INCOMPLETE",
-    "progress": "Private approved calls, Manage Access UI/API implemented; real permission and audit acceptance running."
+    "readOnlyRealE2E": "PASS_3_CASES",
+    "readOnlyRun": 39120467924,
+    "nativeAcceptanceRun": 39119733531,
+    "nativePass": 89,
+    "nativeFail": 4,
+    "writer": "FAIL_CLOSED_NO_LEGACY_FALLBACK",
+    "reviewOnlyCandidate": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
+    "newSql11Installed": false,
+    "broadMutationTimeout": "UNRESOLVED_NOT_CLAIMED_FIXED_PENDING_AUDITED_MUTATION_VALIDATION"
   },
   "latestTrustedDeviceExecution": {
     "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",

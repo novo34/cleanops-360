@@ -146,7 +146,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-002",
@@ -201,7 +211,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-003",
@@ -256,7 +276,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-004",
@@ -311,7 +341,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-005",
@@ -366,7 +406,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-006",
@@ -421,7 +471,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTHZ-007",
@@ -476,7 +536,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     },
     {
       "id": "REQ-AUTH-001",
@@ -2875,7 +2945,17 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "historicalPendingBeforeAuthzPublicVertical": "Previous evidence retained; no prior complete AUTHZ acceptance.",
+      "remaining": "AUTHZ INCOMPLETE: read/check UI/API/PG scope PASS; all permission writes fail closed pending exact SQL11 contract/ACL approval. Actual native tests reproduce count-only/missing DENY audit and overdelegation via revoked-role reactivation (89PASS/4FAIL). Full audited five mutation flows, required action/scope/role/temporal matrix and the broad Chromium timeout remain acceptance work inside B1. See access/RESULT.md; no production role grants inferred.",
+      "currentAuthzEvidence": {
+        "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
+        "readOnlyRun": 39120467924,
+        "native": "docs/implementation/b1/access/NATIVE_ACCEPTANCE.json",
+        "nativeRun": 39119733531,
+        "acceptance": "OPEN",
+        "sql11Installed": false
+      }
     }
   ],
   "native06": {
