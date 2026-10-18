@@ -76,6 +76,7 @@ try:
   try:r=json.loads(result.stdout)
   except Exception:raise RuntimeError('REDACTED_WORKER_PROTOCOL_FAILURE')
   for check in r['checks']:REPORT['checks'].append(dict(check,phase=payload['mode']))
+  if r.get('nativeMessages'):REPORT.setdefault('nativeDiagnostics',[]).append({'phase':payload['mode'],'messages':r['nativeMessages']})
   return r.get('privateResult',{})
  primary=container('primary');private=run(primary,{'mode':'primary','pack':pack,'racePath':'b1-keys/data/isolated-fixture/11111111-1111-1111-1111-111111111111/totp-aead/race-key'})
  if not private.get('backupKey'):raise RuntimeError('PRIMARY_BACKUP_BLOCKED')
