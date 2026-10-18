@@ -43,3 +43,15 @@ resources, and independent/manual PO evidence is absent. These are real PR006
 delivery obligations, not paperwork to bypass or work transferred to another phase.
 The isolated functional core may be reported validated; integral technical/formal
 closure remains unavailable until those obligations and PR007 are fulfilled.
+
+## Owner-authorized preparation follow-up (baseline425503d)
+
+Self-hosted OpenBao, Swiss data/secret residence, production separation and encrypted
+verifiable recovery are recorded as decisions. Principal custodian is proposed to
+be the project owner, not yet formally confirmed; secondary remains unassigned.
+Prepared package: [OpenBao configuration/resources](openbao/README.md),
+[custody/rotation/backup/recovery](openbao/CUSTODY_AND_RECOVERY.md),
+[PR006/PR007 checklist and exact authorizations](openbao/ACCEPTANCE.md).
+The renderer only produces offline review files, not infrastructure or secrets.
+Actual service/config/ACL validation, custody integration and REC01–12 execution
+remain NOT EXECUTED.42/44, closedBackend, B1/AUTH-GATE-05 OPEN remain unchanged.
