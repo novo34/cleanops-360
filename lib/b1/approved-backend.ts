@@ -575,4 +575,46 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
                 codes.push(code)
                 digests.push(createHmac('sha256', deps.factors.recoveryKey).update(canonical(['RECOVERY', binding.tenantId, binding.userId, code])).digest())
               }
-              if (codes.length !== numeric('recovery_count')
+              if (codes.length !== numeric('recovery_count')) throw unavailable()
+              const result = await factors.totp(String(input.proof), binding, preauth(), String(input.enrollment_id), 'ENROLLMENT', digests)
+              if (result instanceof AuthError) return result
+              if (binding.kind === 'ACTIVE') return { data: { codes, display_once: true, auth: await activeSummary(binding) } }
+              const issued = await issueSession(binding)
+              return { ...issued, data: { codes, display_once: true, auth: issued.data } }
+            } finally { digests.forEach(value => value.fill(0)) }
+          }
+          if (operation === 'verifyMfa') {
+            if (input.method === 'EMAIL_OTP') {
+              if (!mail) throw unavailable()
+              return ownedInternal(preauth(), 'verifyMfa', input, async () => {
+                if (!await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof))) return factorDenied(binding)
+                return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
+              })
+            }
+            if (input.method !== 'TOTP') throw unavailable()
+            if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA')) throw invalid()
+            return ownedInternal(preauth(), 'verifyMfa', input, async () => {
+              const result = await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN')
+              if (result instanceof AuthError) return result
+              if (binding.kind === 'ACTIVE') return { data: await activeSummary(binding) }
+              return issueSession(binding)
+            })
+          }
+          // Unsupported ceremonies remain closed; no fallback custody or EMAIL delivery.
+          throw unavailable()
+        },
+      }
+      const result = await work(Object.freeze(tx))
+      if ([...reservations.values()].some(r => !r.done)) throw unavailable()
+      return result
+    })
+  }
+  return Object.freeze({
+    transaction,
+    bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number) {
+      if (![bindingDigest, csrfDigest].every(v => /^[a-f0-9]{64}$/.test(v)) || !Number.isSafeInteger(expiresAt) ||
+          expiresAt <= now() || expiresAt > now() + numeric('preauth_ttl') * 1000) return Promise.reject(unavailable())
+      return repository.transaction(async broker => { await broker.call('bootstrap', [hex(bindingDigest), hex(csrfDigest)]) })
+    },
+  })
+}
