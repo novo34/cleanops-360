@@ -182,11 +182,11 @@ try {
       }
       if(message.kind==='foreignTrusted'){
         const id=randomUUID(),value=randomBytes(32).toString('base64url')
-        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,(SELECT principal_id FROM app.users WHERE tenant_id=$1 AND id=$3),$4,1,clock_timestamp(),clock_timestamp()+interval '30 days',NULL)",[input.otherTenant,id,input.otherUser,createHash('sha256').update(value).digest()])
+        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,(SELECT principal_id FROM app.users WHERE tenant_id=$1 AND id=$3),$4,1,statement_timestamp(),statement_timestamp()+interval '30 days',NULL)",[input.otherTenant,id,input.otherUser,createHash('sha256').update(value).digest()])
         reply({deviceId:id,targetUser:input.otherUser,token:value});continue
       }
       if(message.kind==='targetTrusted' && resetTarget){
-        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,$4,$5,1,clock_timestamp(),clock_timestamp()+interval '30 days',NULL)",[input.tenant,randomUUID(),resetTarget.user,resetTarget.principal,randomBytes(32)])
+        await admin.query("INSERT INTO app.trusted_devices VALUES($1,$2,$3,$4,$5,1,statement_timestamp(),statement_timestamp()+interval '30 days',NULL)",[input.tenant,randomUUID(),resetTarget.user,resetTarget.principal,randomBytes(32)])
         reply({targetUser:resetTarget.user});continue
       }
       if(message.kind==='targetTrustedState' && resetTarget){

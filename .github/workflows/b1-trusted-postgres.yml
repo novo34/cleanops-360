@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   recovery-pg:
-    if: github.event.pull_request.number == 7 && github.event.before == '0a5dd920fcde33b851181eda2e7d4ee85d0d0700' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == '4448cec0933295a526bc318b6f829f8d2ad8a2bd' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 16
     env:
@@ -27,10 +27,10 @@ jobs:
       - run: npm run test:b1
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: python3 scripts/pg-trusted-browser.py
+      - run: python3 scripts/pg-consolidated-10.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: b1-trusted-pg-redacted
-          path: artifacts/pg-consolidated-09/report.json
+          path: artifacts/pg-consolidated-10/report.json
           retention-days: 7
