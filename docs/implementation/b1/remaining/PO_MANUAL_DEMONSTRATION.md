@@ -33,9 +33,9 @@ redacted durable-effect inspection. Never copy codes/cookies/keys/recipients.
 |Step|Actual action and expected result|Existing evidence / criterion|
 |---|---|---|
 |1|Wrong credentials and abuse limits show safe errors, no enumeration/session; correct credentials still require MFA.|remaining abuse evidence; AUTH001/002, SEC020|
-|2|Two eligible companies after password: choose destination, rotate both PREAUTH/CSRF, old pair rejected; no ACTIVE until destination MFA commits.|SQL13 browser ROT01/14; AUTH041/042, TEN001–004|
+|2|Two eligible companies after password: choose destination, rotate both PREAUTH/CSRF, old pair rejected; no ACTIVE until destination MFA commits.|SQL13 browser ROT01/14; V4 HTTP_CONTRACT and TEN001–004|
 |3|TOTP first enrollment displays QR once; actual tested KeePassXC2.7.6/OATH Toolkit2.6.11 Linux code completes MFA; invalid/expired/reused code fails.|AUTHENTICATOR_EXECUTION.json; AUTH003/004. No mobile/GUI compatibility claim.|
-|4|EMAIL enrollment and verification use a verified synthetic recipient, encrypted persisted outbox, worker delivery simulator; expiry/retry/uncertain quarantine safe.|EMAIL_EXECUTION and recovery evidence retained; actual SMTP not claimed.|
+|4|EMAIL enrollment and verification use a verified synthetic recipient, encrypted persisted outbox, worker delivery simulator; expiry/retry/uncertain quarantine safe.|Existing EMAIL/recovery reports linked per criterion in closure/requirements.json; actual SMTP not claimed.|
 |5|Account recovery/reset: single-use recovery and independently authorized synthetic reset; password-only second browser cannot steal enrollment; revoked sessions/trust fail.|SQL08/09 published real Chromium evidence.|
 |6|Register/list/revoke trusted device through current session and step-up; 30-day trust never bypasses MFA or extends absolute session.|SQL10 and SQL13 policy evidence.|
 |7|Inspect/revoke own sessions and logout; reset/revocation invalidation persists. Compare sensitive12h/30min and operational24h/8h; exact expiry denied.|SQL13 policy evidence; mixed-role aggregation explicitly pending SQL14, not demonstrated as complete.|
