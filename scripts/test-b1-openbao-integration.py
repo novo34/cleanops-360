@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exact SQL14 + real OpenBao/B1, synthetic independent-backup recovery only."""
-import hashlib,importlib.util,json,os,secrets,shutil,sys,tempfile,time,urllib.request
+import base64,hashlib,importlib.util,json,os,secrets,shutil,sys,tempfile,time,urllib.request
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def module(name,path):
@@ -34,7 +34,10 @@ def config():
   if name.endswith('.approle.json'):value['secret_id_bound_cidrs']=['127.0.0.1/32'];value['token_bound_cidrs']=['127.0.0.1/32']
  return pack,server
 
-def copy(cid,source,target):require(b.docker('cp',str(source),cid+':'+target))
+def copy(cid,source,target):
+ # Docker archive-copy can target the underlying layer rather than a live tmpfs.
+ # Stream via the container process, exactly as the validated standalone drill.
+ require(b.docker('exec','-i',cid,'/opt/b1-pg05/node','-e',"const fs=require('node:fs'),b=[];process.stdin.on('data',x=>b.push(x));process.stdin.on('end',()=>{fs.writeFileSync(process.argv[1],Buffer.from(Buffer.concat(b).toString('utf8'),'base64'),{mode:process.argv[1].endsWith('/bao')?0o700:0o600});});",target,data=base64.b64encode(source.read_bytes()).decode('ascii')))
 def runtime(cid):
  previous=b.CID;b.CID=cid
  try:module('bao_runtime','pg-http-integration.py').copy_runtime(b,('scripts/openbao-isolated-worker.mjs','scripts/openbao-b1-integration.ts'))
@@ -87,7 +90,7 @@ def checks():
   # execFileSync options must be an object on supported Node releases.
   encrypt=encrypt.replace("'--no-role-passwords'],'utf8'","'--no-role-passwords'],{encoding:'utf8'}")
   pg_key=require(b.docker('exec',b.CID,'/opt/b1-pg05/node','-e',encrypt))
-  for file in ['backup.enc','pg-backup.enc']:copyout=b.docker('cp',b.CID+':/work/'+file,str(TEMP/file));require(copyout)
+  for file in ['backup.enc','pg-backup.enc']:(TEMP/file).write_text(require(b.docker('exec',b.CID,'/opt/b1-pg05/node','-e',"process.stdout.write(require('node:fs').readFileSync(process.argv[1]))",'/work/'+file)))
   b.REPORT['independentEncryptedBackups']={f:hashlib.sha256((TEMP/f).read_bytes()).hexdigest() for f in ['backup.enc','pg-backup.enc']}
   if pg_key==PRIVATE['backupKey']:raise RuntimeError('INDEPENDENT_BACKUP_KEY_COLLISION')
   image=b.REPORT['image']
