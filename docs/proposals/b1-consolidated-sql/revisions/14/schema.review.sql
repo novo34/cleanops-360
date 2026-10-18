@@ -262,19 +262,20 @@ CREATE POLICY broker_read ON identity_private.role_risk_catalogue FOR SELECT TO 
 GRANT SELECT ON identity_private.role_risk_catalogue TO cleanops_auth_broker;
 REVOKE ALL ON identity_private.role_risk_catalogue FROM PUBLIC,cleanops_runtime,cleanops_identity_service,cleanops_mail_worker;
 CREATE FUNCTION identity_private.effective_risk(t uuid,u uuid) RETURNS text
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+ WITH moment AS MATERIALIZED(SELECT clock_timestamp() AS checked_at),
+ classifications AS MATERIALIZED(
+  SELECT k.risk_class FROM app.access_role_memberships m
+  JOIN app.access_roles r ON (r.tenant_id,r.id)=(m.tenant_id,m.role_id)
+  LEFT JOIN identity_private.role_risk_catalogue k ON (k.tenant_id,k.role_id)=(m.tenant_id,m.role_id)
+  CROSS JOIN moment
+  WHERE m.tenant_id=t AND m.user_id=u AND r.revoked_at IS NULL AND m.revoked_at IS NULL
+  AND m.start_at<=moment.checked_at AND (m.expires_at IS NULL OR moment.checked_at<m.expires_at)
+ )
  SELECT CASE WHEN x.risk_class='SENSITIVE' THEN 'SENSITIVE'
- WHEN EXISTS(SELECT 1 FROM app.access_role_memberships m JOIN app.access_roles r ON (r.tenant_id,r.id)=(m.tenant_id,m.role_id)
- LEFT JOIN identity_private.role_risk_catalogue k ON (k.tenant_id,k.role_id)=(m.tenant_id,m.role_id)
- WHERE m.tenant_id=t AND m.user_id=u AND r.revoked_at IS NULL AND m.revoked_at IS NULL
- AND m.start_at<=statement_timestamp() AND (m.expires_at IS NULL OR statement_timestamp()<m.expires_at)
- AND k.risk_class IS NULL) THEN NULL
- WHEN EXISTS(SELECT 1 FROM app.access_role_memberships m JOIN app.access_roles r ON (r.tenant_id,r.id)=(m.tenant_id,m.role_id)
- JOIN identity_private.role_risk_catalogue k ON (k.tenant_id,k.role_id)=(m.tenant_id,m.role_id)
- WHERE m.tenant_id=t AND m.user_id=u AND r.revoked_at IS NULL AND m.revoked_at IS NULL
- AND m.start_at<=statement_timestamp() AND (m.expires_at IS NULL OR statement_timestamp()<m.expires_at)
- AND k.risk_class='SENSITIVE') THEN 'SENSITIVE' ELSE x.risk_class END
- FROM app.users x WHERE x.tenant_id=t AND x.id=u AND x.state='ACTIVE'
+ WHEN EXISTS(SELECT 1 FROM classifications WHERE risk_class IS NULL) THEN NULL
+ WHEN EXISTS(SELECT 1 FROM classifications WHERE risk_class='SENSITIVE') THEN 'SENSITIVE'
+ ELSE x.risk_class END FROM app.users x WHERE x.tenant_id=t AND x.id=u AND x.state='ACTIVE'
 $fn$;
 CREATE FUNCTION identity_private.valid_session(t uuid,s uuid,u uuid) RETURNS boolean
 LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $fn$

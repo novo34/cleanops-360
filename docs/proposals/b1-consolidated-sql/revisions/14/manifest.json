@@ -3,11 +3,11 @@
   "status": "REVIEW ONLY",
   "installationAuthorized": false,
   "candidateArtifact": {
-    "gitBlob": "b946f009631df1377c9bd4ac4fae5917a2ec740f",
-    "sha256": "e2e19da0df3444d52700846b04887885f5a2ade61f56110ed716cf6f55557727",
-    "bytes": 212192
+    "gitBlob": "e99b1ba7b39e36ce77deb8e0e27c4e57d9256501",
+    "sha256": "460cf258be1b4f724843af38b608f6ad0d0ec232f89897b0711f1b5094ef18a1",
+    "bytes": 211988
   },
-  "diffSha256": "8eb05dfead679923721fc5885a77ed8a5604341b85af4cc0c7e0772b9aa93ce2",
+  "diffSha256": "ef5f0cb935e741a86d32de2e9910b8824697e7c137b4bc592e7087b2f93ce05c",
   "changes": [
     "Read-only private tenant/role UUID risk catalogue, FORCE RLS; SELECT only for private broker, no public/service writers",
     "One private effective_risk(uuid,uuid), owned/revoked by the existing fixed function-owner pass; no public signature or role changes",

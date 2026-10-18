@@ -20,10 +20,11 @@ multi-role policy. Role names/permissions and a client riskClass are not authori
   OPERATIONAL. DDL owner owns it, ENABLE/FORCE RLS. Only the existing nonlogin broker
   gets SELECT via its SELECT-only policy. PUBLIC, runtime, identity and mail have
   no direct privileges. No service/broker INSERT/UPDATE/DELETE or new role/grantee.
-- New private identity_private.effective_risk(uuid,uuid) RETURNS text, SQL STABLE,
+- New private identity_private.effective_risk(uuid,uuid) RETURNS text, SQL VOLATILE,
   SECURITY DEFINER, search_path=pg_catalog. Existing ownership pass sets broker owner
   and revokes PUBLIC. No application role receives EXECUTE. All reads filter tenant
-  AND user; membership start/expiry/revocation and role revocation are checked.
+  AND user; membership start/expiry/revocation and role revocation are checked at one materialized clock_timestamp instant taken
+  on invocation after any caller policy wait; no stale statement-start time is reused.
 - Existing reviewed SENSITIVE user classification is always the restrictive floor.
   An OPERATIONAL user plus any active SENSITIVE role becomes SENSITIVE. An active
   unclassified role on an OPERATIONAL user returns NULL and denies, never defaults.
