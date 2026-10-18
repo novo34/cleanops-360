@@ -656,7 +656,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           const transport=deps.transport()
           subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,operationHint,actor.kind,actor.tenantId??null,actor.userId??actor.id])).digest()
           if(![transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
-          await repository.transaction(broker=>broker.call('securityEvent',[code,subject,transport.network,transport.device,correlation]))
+          const journalSubject=subject
+          await repository.transaction(broker=>broker.call('securityEvent',[code,journalSubject,transport.network,transport.device,correlation]))
         }catch{/* Original operation still fails closed; never claim an unconfirmed failure event. */}
         finally{subject?.fill(0)}
       }

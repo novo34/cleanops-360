@@ -5,7 +5,7 @@ import {startRealBrowserServer} from '../scripts/b1-real-browser-server.mjs'
 const preauth='__Host-cleanops_preauth',csrf='__Host-cleanops_csrf'
 async function cookies(page:Page){const all=await page.context().cookies();return{token:all.find(c=>c.name===preauth)?.value,csrf:all.find(c=>c.name===csrf)?.value}}
 async function login(page:Page,email:string){await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!');await page.getByRole('button',{name:'Continuar',exact:true}).click()}
-async function choose(page:Page,tenant:string,key=randomUUID(),extra:Record<string,string>={}){const c=await cookies(page);return page.request.post('/auth/tenant-switch',{headers:{Origin:'https://127.0.0.1:3000','X-CSRF-Token':c.csrf!,'Idempotency-Key':key,...extra},data:{target_tenant_id:tenant,reason:'Synthetic company selection'}})}
+async function choose(page:Page,tenant:string,key=randomUUID(),extra:Record<string,string>={}){const c=await cookies(page);return page.request.post('/auth/tenant-switch',{headers:{Origin:'https://127.0.0.1:3000','Sec-Fetch-Site':'same-origin','X-CSRF-Token':c.csrf!,'Idempotency-Key':key,...extra},data:{target_tenant_id:tenant,reason:'Synthetic company selection'}})}
 async function active(page:Page,rpc:(x:object)=>Promise<{email:string;proof:string}>){await login(page,(await rpc({kind:'fixtureEmail'})).email);await expect(page.getByLabel('Código',{exact:true})).toBeVisible();await page.getByLabel('Código',{exact:true}).fill((await rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()}
 
 test('SQL13 ROT01 ROT14 real multi-company login rotates PREAUTH and CSRF then requires destination MFA',async({page})=>{
@@ -45,7 +45,7 @@ for(const loss of [false,true])test('SQL13 ROT12 ROT13 real rotation '+(loss?'co
 test('SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await active(page,server.rpc);const c=await cookies(page),headers={Origin:'https://127.0.0.1:3000','X-CSRF-Token':c.csrf!,'Idempotency-Key':randomUUID()}
+  await active(page,server.rpc);const c=await cookies(page),headers={Origin:'https://127.0.0.1:3000','Sec-Fetch-Site':'same-origin','X-CSRF-Token':c.csrf!,'Idempotency-Key':randomUUID()}
   await server.rpc({kind:'setSelfRule',rule:'B1-SELF-01',effect:'DENY'});const denied=await page.request.get('/auth/me');expect(denied.status()).toBe(403)
   await server.rpc({kind:'setSelfRule',rule:'B1-SELF-01',effect:'ALLOW'});expect((await page.request.get('/auth/me')).status()).toBe(200)
   const step=await page.request.post('/me/sessions/revoke-other-own',{headers,data:{reason:'Synthetic no-step denial'}});expect(step.status()).toBe(403);expect((await step.json()).error.code).toBe('STEP_UP_REQUIRED')
