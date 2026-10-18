@@ -24,7 +24,7 @@ jobs:
           python3 scripts/consolidate-b1-sql.py --revision 05 --check
           python3 scripts/review-b1-restricted-purge.py --check
       - name: PostgreSQL 16 offline parser dependency
-        run: python3 -m pip install pglast==6.2
+        run: python3 -m pip install pglast==6.4
       - name: All function declarations offline grammar diagnostics
         continue-on-error: true
         run: |

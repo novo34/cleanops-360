@@ -14,7 +14,7 @@ jobs:
           persist-credentials: false
       - run: python3 scripts/consolidate-b1-e1.py --check
       - run: python3 -m unittest discover -s tests/static -p 'test_b1_e1*.py' -v
-      - run: python3 -m pip install pglast==6.2
+      - run: python3 -m pip install pglast==6.4
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/06/schema.review.sql
       - run: python3 scripts/consolidate-b1-e1.py --revision 07 --check
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql
