@@ -22,8 +22,9 @@ def gate(b,table_count=31):
 
 def run(b):
  import json
+ import hashlib
  def q(value):return "'"+str(value).replace("'","''")+"'"
- def digest(value):return "crypto.digest(convert_to("+q(value)+",'UTF8'),'sha256')"
+ def digest(value):return "decode('"+hashlib.sha256(value.encode()).hexdigest()+"','hex')"
  def policy():return b.sql(f"SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}';").stdout.strip()
  def body(role,label='Synthetic audited role'):
   return {'operation':'ROLE','role_id':role,'label':label,'expected_policy':policy(),'reason':'Synthetic isolated AUTHZ validation'}
@@ -50,3 +51,13 @@ def run(b):
  b.check('SQL11-rollback-no-effect-or-audit',f"SELECT NOT EXISTS(SELECT 1 FROM app.access_roles WHERE id='{rollback}') AND NOT EXISTS(SELECT 1 FROM app.audit_logs WHERE correlation_id='{rc}');",'t')
  # Actual legacy calls, not just has_function_privilege introspection.
  b.check('SQL11-old-role-entrypoint-execution-denied',f"BEGIN;SELECT auth_api.begin_verified_context(repeat('a',43));SELECT auth_api.set_access_role('{new}','Forbidden legacy',{policy()},'{uuid.uuid4()}');COMMIT;",role=b.ROLE['identity'],failure='42501')
+ # A committed reservation belongs to its original backend/xid and cannot be adopted.
+ held=body(str(uuid.uuid4()));key='prior-transaction';kh=digest(key);rh=digest(json.dumps(held,sort_keys=True))
+ b.check('SQL11-synthetic-owned-marker-in-original-transaction',f"BEGIN;SELECT auth_api.begin_verified_context(repeat('a',43));SELECT auth_api.reserve_owned(NULL,'changeAccess',{kh},{rh},true)->>'replay';COMMIT;",'false',b.ROLE['identity'])
+ b.check('SQL11-other-backend-xid-marker-denied',statement(held,key,str(uuid.uuid4()),False),role=b.ROLE['identity'],failure='P0001')
+ b.check('SQL11-synthetic-marker-expiry',f"UPDATE app.idempotency_records SET created_at=clock_timestamp()-interval '2m',expires_at=clock_timestamp()-interval '1m' WHERE tenant_id='{b.A}' AND key_digest={kh};")
+ b.check('SQL11-expired-marker-denied',statement(held,key,str(uuid.uuid4()),False),role=b.ROLE['identity'],failure='P0001')
+ # A legitimate actor with the restored power is a necessary positive control.
+ b.check('SQL11-synthetic-explicit-operator-power',f"INSERT INTO app.access_rules VALUES('{b.A}','{uuid.uuid4()}',NULL,'{b.U}','export','finance','{resource}','ALLOW',clock_timestamp(),NULL,NULL);INSERT INTO app.step_up_evidence(tenant_id,id,user_id,session_id,grant_key,verified_at,expires_at,policy_version) VALUES('{b.A}','{uuid.uuid4()}','{b.U}','{b.S}','B1-SELF-06',clock_timestamp(),clock_timestamp()+interval '5m',(SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}'));")
+ b.check('SQL11-legitimate-reactivation-allowed',statement(body(role),'legitimate-reactivation',str(uuid.uuid4())),'false\nt\nt',b.ROLE['identity'])
+ b.check('SQL11-legitimate-reactivation-is-effective',f"BEGIN;SELECT auth_api.begin_verified_context(repeat('c',43));SELECT auth_api.effective_access('export','finance','{resource}');COMMIT;",'t',b.ROLE['identity'])

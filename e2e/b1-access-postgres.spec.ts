@@ -4,12 +4,12 @@ import {randomUUID} from 'node:crypto'
 import {startRealBrowserServer} from '../scripts/b1-real-browser-server.mjs'
 const phase=(description:string)=>test.info().annotations.push({type:'phase',description})
 async function login(page:Page,server:{rpc:(body:object)=>Promise<{email:string;proof:string}>},target?:{targetEmail:string}){
- page.on('response',response=>{const path=new URL(response.url()).pathname;if(['/auth/login','/auth/mfa/verify','/auth/access/user'].includes(path))phase('HTTP_'+path.split('/').at(-1)!.toUpperCase()+'_'+response.status())});
+ page.on('response',response=>{const path=new URL(response.url()).pathname;if(['/auth/login','/auth/mfa/verify','/auth/access/user','/auth/access','/auth/step-up'].includes(path))phase('HTTP_'+path.split('/').at(-1)!.toUpperCase()+'_'+response.status())});
  phase(target?'TARGET_LOGIN':'ACTOR_LOGIN');await page.goto('https://127.0.0.1:3000/login');await page.getByLabel('Email',{exact:true}).fill(target?.targetEmail??(await server.rpc({kind:'fixtureEmail'})).email)
  await page.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!');await page.getByRole('button',{name:'Continuar',exact:true}).click()
  await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:target?'targetProof':'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
 }
-async function open(page:Page,user:string){await page.getByRole('button',{name:'Usuarios y permisos',exact:true}).click();await page.getByLabel('Usuario para Manage Access',{exact:true}).fill(user);await page.getByRole('button',{name:'Abrir Manage Access',exact:true}).click();await expect(page.getByRole('heading',{name:'Manage Access',exact:true})).toBeVisible()}
+async function open(page:Page,user:string){await page.getByRole('button',{name:'Usuarios y permisos',exact:true}).click();await page.getByLabel('Usuario para Manage Access',{exact:true}).fill(user);await page.getByRole('button',{name:'Abrir Manage Access',exact:true}).click();await expect(page.getByRole('heading',{name:'Manage Access',exact:true})).toBeVisible();phase('ACCESS_FORM_VISIBLE')}
 async function send(page:Page,body:object,key=randomUUID()){return page.evaluate(async input=>{
  const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
  const r=await fetch('/auth/access',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':input.key},body:JSON.stringify(input.body)})
@@ -18,7 +18,7 @@ async function send(page:Page,body:object,key=randomUUID()){return page.evaluate
 async function check(page:Page,resource:string,action='view'){return (await (await page.request.get('https://127.0.0.1:3000/auth/access/effective?'+new URLSearchParams({action,resource_kind:'documents',resource_id:resource}))).json()).data.allowed}
 async function finish(page:Page,server:{rpc:(body:object)=>Promise<{proof:string}>}){
  await page.getByLabel('Motivo del cambio',{exact:true}).fill('Synthetic isolated approved permission change')
- await page.getByRole('button',{name:'Guardar cambio de acceso',exact:true}).click();await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof',next:true})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click()
+ phase('ACCESS_FORM_FILLED');await page.getByRole('button',{name:'Guardar cambio de acceso',exact:true}).click();phase('ACCESS_SUBMITTED');await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof',next:true})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click()
  await expect(page.locator('p[role="status"]').first()).toContainText('Permisos actualizados')
 }
 const local=(ms:number)=>new Date(ms).toISOString().slice(0,19)

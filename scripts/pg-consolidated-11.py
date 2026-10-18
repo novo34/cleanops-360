@@ -17,6 +17,16 @@ def payload():
   if(g.DEST/name).read_text()!=content:raise RuntimeError('EXACT11_DIFF_ACL_RLS_MISMATCH')
  b.REPORT.update(scope='PG-TEST-01-CONSOLIDATED-11',increment='AUTHZ_REAL_VERTICAL',authorization=a,candidate=a['candidate'])
  runner.original_record('exact11-blob-sha256-full-reviewed-diff-and-ACL','PASS');return [('V4',raw.decode())]
+def diagnostic_sql(text,role='postgres',database='core'):
+ result=runner.sql(text,role,database)
+ if result.returncode:
+  import re
+  # Only static PostgreSQL error categories/identifiers; never SQL, values or contexts.
+  detail={'sqlstate':b.state(result)}
+  match=re.search(r'(permission denied for (?:table|schema|function) [a-z_]+|column reference "[a-z_]+" is ambiguous|function [a-z_.]+\([^\n]*?\) does not exist)',result.stderr)
+  if match:detail['category']=match.group(0)[:160]
+  b.REPORT.setdefault('sqlDiagnostics',[]).append(detail)
+ return result
 def checks():
  tests=runner.module('sql11_security','pg11-access-security-tests.py')
  if not tests.gate(b):
@@ -26,4 +36,10 @@ def checks():
  browser.CONFIG='playwright.access11-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL11_AUTHZ_REAL_BROWSER';browser.SECURITY_GATE='pg11-access-security-tests.py'
  browser.browser()
 runner.payload=payload;runner.checks=checks
+# main() sets the transport; checks wrap it only after exact installation.
+original_checks=checks
+def with_diagnostics():
+ b.sql=diagnostic_sql
+ original_checks()
+runner.checks=with_diagnostics
 if __name__=='__main__':sys.exit(runner.main())
