@@ -1,0 +1,45 @@
+name: Staging packaging preflight
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'deploy/staging/**'
+      - '.dockerignore'
+      - '.github/workflows/staging-preflight.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compose-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLEANOPS_AUTH_ORIGIN: https://staging.invalid
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Generate synthetic Compose-only secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="$(mktemp)"
+          chmod 600 "$file"
+          printf 'synthetic-ci-only-not-a-deployment\n' > "$file"
+          echo "CLEANOPS_PG_PASSWORD_FILE=$file" >> "$GITHUB_ENV"
+          echo "$file" > "$RUNNER_TEMP/cleanops-secret-path"
+      - name: Validate syntax and isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/staging/compose.yaml config -q
+          python3 scripts/staging-compose-check.py
+      - name: Build Next.js application image without publishing
+        run: docker compose -f deploy/staging/compose.yaml build web
+      - name: Clean owned synthetic secret
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/cleanops-secret-path" ]; then
+            rm -f -- "$(cat "$RUNNER_TEMP/cleanops-secret-path")" "$RUNNER_TEMP/cleanops-secret-path"
+          fi
