@@ -21,7 +21,7 @@ class Review(unittest.TestCase):
  def test_private_read_only_and_dependency_order(self):
   new=(g.DEST/'schema.review.sql').read_text();catalogue=g.CATALOGUE
   self.assertIn('FORCE ROW LEVEL SECURITY',catalogue)
-  self.assertIn('FOR SELECT USING(true)',catalogue)
+  self.assertIn('FOR SELECT TO cleanops_auth_broker USING(true)',catalogue)
   self.assertIn('GRANT SELECT ON identity_private.role_risk_catalogue TO cleanops_auth_broker;',catalogue)
   self.assertNotRegex(catalogue,r'GRANT (?:INSERT|UPDATE|DELETE|EXECUTE)')
   self.assertLess(new.index('CREATE TABLE app.access_roles ('),new.index('CREATE TABLE identity_private.role_risk_catalogue'))

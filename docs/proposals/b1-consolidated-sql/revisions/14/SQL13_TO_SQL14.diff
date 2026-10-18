@@ -22,7 +22,7 @@
 +ALTER TABLE identity_private.role_risk_catalogue OWNER TO cleanops_ddl_owner;
 +ALTER TABLE identity_private.role_risk_catalogue ENABLE ROW LEVEL SECURITY;
 +ALTER TABLE identity_private.role_risk_catalogue FORCE ROW LEVEL SECURITY;
-+CREATE POLICY broker_read ON identity_private.role_risk_catalogue TO cleanops_auth_broker FOR SELECT USING(true);
++CREATE POLICY broker_read ON identity_private.role_risk_catalogue FOR SELECT TO cleanops_auth_broker USING(true);
 +GRANT SELECT ON identity_private.role_risk_catalogue TO cleanops_auth_broker;
 +REVOKE ALL ON identity_private.role_risk_catalogue FROM PUBLIC,cleanops_runtime,cleanops_identity_service,cleanops_mail_worker;
 +CREATE FUNCTION identity_private.effective_risk(t uuid,u uuid) RETURNS text
