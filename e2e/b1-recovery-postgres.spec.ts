@@ -93,3 +93,39 @@ test('real concurrent recovery requests have one winner and never create ACTIVE'
     expect(state.active===0 && state.codes.consumed===1 && state.preauth.filter((p:{state:string})=>p.state==='ENROLLMENT_REQUIRED').length===1).toBe(true)
   }finally{await server.close()}
 })
+
+test('a separate password-only session must not take over an in-progress recovery enrollment',async({page,browser})=>{
+  phase('SETUP');const server=await startRealBrowserServer('recovery')
+  const outsider=await browser.newContext({ignoreHTTPSErrors:true})
+  try{
+    const email=(await server.rpc({kind:'fixtureEmail'})).email
+    await login(page,email)
+    await recover(page,(await server.rpc({kind:'recoveryProof'})).code)
+    await expect(page.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
+    phase('INDEPENDENT_PASSWORD_LOGIN')
+    const second=await outsider.newPage();await second.goto('https://127.0.0.1:3000/login')
+    await second.getByLabel('Email',{exact:true}).fill(email)
+    await second.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+    const result=second.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
+    await second.getByRole('button',{name:'Continuar',exact:true}).click()
+    const response=await result
+    if(response.status()!==200){phase('INDEPENDENT_LOGIN_DENIED');expect((await server.rpc({kind:'inspectRecovery'})).active).toBe(0);return}
+    const auth=(await response.json()).data
+    if(auth.state!=='ENROLLMENT_REQUIRED'){phase('NO_UNBOUND_ENROLLMENT');expect(auth.state).not.toBe('ACTIVE');return}
+    phase('UNBOUND_ENROLLMENT_OFFERED')
+    const enrolled=second.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/enroll')
+    await second.getByRole('button',{name:'Configurar autenticador',exact:true}).click()
+    const enrollment=await enrolled
+    if(enrollment.status()!==200){phase('UNBOUND_ENROLLMENT_DENIED');return}
+    const material=(await enrollment.json()).data
+    const {URI,TOTP}=await import('otpauth'),authenticator=URI.parse(material.provisioning_uri)
+    if(!(authenticator instanceof TOTP))throw Error('INVALID_AUTHENTICATOR_TYPE')
+    await second.getByLabel('Primer código',{exact:true}).fill(authenticator.generate())
+    const confirmed=second.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/confirm')
+    await second.getByRole('button',{name:'Confirmar',exact:true}).click()
+    const status=(await confirmed).status();phase('UNBOUND_CONFIRM_'+status)
+    const state=await server.rpc({kind:'inspectRecovery'})
+    phase('UNBOUND_ACTIVE_'+state.active)
+    expect(status===200 && state.active>0).toBe(false)
+  }finally{await outsider.close();await server.close()}
+})
