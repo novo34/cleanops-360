@@ -2,23 +2,18 @@
   "B1": "OPEN",
   "AUTH-GATE-05": "OPEN",
   "runtime": "closedBackend",
-  "accepted": 41,
+  "accepted": 42,
   "total": 44,
   "remaining": [
     {
       "id": "REQ-PR-006",
-      "classification": "FORMAL_ACCEPTANCE_PENDING",
-      "blocker": "Private initial multi-company UI\u2192API\u2192PG rotation, security journal and directed regression now PASS. Remaining: most-restrictive role-risk integration, actual operational custody/Swiss infrastructure evidence, independent review and manual Product Owner acceptance. No deployment is authorized."
+      "classification": "REAL_OPERATIONAL_DEPENDENCY",
+      "blocker": "SQL14 completes most-restrictive session aggregation; all42 isolated functional criteria have real evidence. Still required: designated actual Swiss OpenBao/custodians, real custody adapter/lifecycle/rotation-recovery evidence, independent review, authorized manual demonstration and actual PO observations. See operational-acceptance/PLAN.md; no productive or formal acceptance inferred."
     },
     {
       "id": "REQ-PR-007",
       "classification": "FORMAL_ACCEPTANCE_PENDING",
-      "blocker": "B1 and AUTH-GATE-05 remain OPEN; no next module may start before documented phase acceptance."
-    },
-    {
-      "id": "REQ-SEC-021",
-      "classification": "FUNCTIONALITY_INCOMPLETE",
-      "blocker": "Owner approved12h/24h and idle30min/8h; real numeric, independent idle/absolute, exact boundary and no activity/step-up/trust extension tests PASS. Most-restrictive multi-role classification is absent from SQL13; exact consolidated SQL14 remains REVIEW ONLY and requires approval before installation/testing."
+      "blocker": "Product Owner must sign formal phase acceptance after PR006 operating/independent/manual evidence. B1/AUTH-GATE-05 OPEN; no next module, merge, deployment or production activation is authorized."
     }
   ],
   "functionalContractDependency": {
@@ -28,7 +23,7 @@
     "installed": true,
     "evidence": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json"
   },
-  "operationalControls": "Session numeric values approved and tested. Most-restrictive role aggregation requires SQL14 exact approval/tests; actual Swiss OpenBao custodian/infrastructure, operating recovery/delivery and independent/manual PO acceptance remain unfulfilled.",
+  "operationalControls": "All42 isolated functional criteria including complete role aggregation PASS. Actual Swiss custody/infrastructure, real key lifecycle, independent review and manual/formal PO acceptance remain PR006/PR007; no deployment or production inferred.",
   "regression": {
     "result": "PASS",
     "report": "docs/implementation/b1/remaining/REGRESSION.json",
@@ -37,12 +32,12 @@
     "distinctCases": 48
   },
   "consolidatedApprovalCandidate": {
-    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
-    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
-    "bytes": 209170,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+    "bytes": 211988,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"
   },
-  "consolidatedApprovalScope": "SQL13 owner-authorized, installed exactly and24 prepared cases PASS; SQL14 separate REVIEW ONLY, not installed.",
+  "consolidatedApprovalScope": "SQL14 owner-authorized exact artifact installed;20 native+8 additional scenarios and directed Chromium regression passed. No other SQL/ACL installed.",
   "authenticatorEvidence": {
     "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
     "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
@@ -57,14 +52,15 @@
   "absoluteProposal": {
     "sensitive": 43200,
     "operational": 86400,
-    "status": "REVIEW_ONLY_NOT_APPLIED",
-    "comparison": "SRS compatible with complete sensitive-role coverage; changes sensitive trial28800 to43200, requires explicit approval and directed validation.",
+    "status": "APPROVED_IMPLEMENTED_REAL_TESTS_PASS",
+    "comparison": "Owner approved12h/24h, canonical idle retained; exact expiry and mixed-role tests PASS.",
     "review": "docs/implementation/b1/remaining/ABSOLUTE_12_24_REVIEW.md"
   },
   "sql13Evidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
   "sessionPolicy": {
     "numericValues": "APPROVED_IMPLEMENTED_REAL_TESTS_PASS",
-    "mostRestrictiveMultipleRoles": "OPEN_SQL14_REVIEW_ONLY",
+    "mostRestrictiveMultipleRoles": "APPROVED_IMPLEMENTED_REAL_TESTS_PASS",
     "productionActivation": false
-  }
+  },
+  "sql14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json"
 }

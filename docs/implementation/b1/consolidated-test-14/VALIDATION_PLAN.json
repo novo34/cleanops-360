@@ -1,0 +1,1060 @@
+{
+  "artifact": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+    "bytes": 211988
+  },
+  "state": "EXECUTED_PASS",
+  "installationAuthorized": true,
+  "runnerPreconditions": [
+    "Explicit owner authorization of exact current blob/sha256 and ACL",
+    "New owned isolated PostgreSQL16 Docker, synthetic data, no public ports/shared mounts; verify full SQL13 diff before installation",
+    "Real installer validates complete SQL14 catalogue/dependencies and approved numeric profile; all functional calls ordinary identity, admin only setup/inspection",
+    "No raw tokens, codes, material, diagnostics or recipients in reports; cleanup and preexisting inventory assertion"
+  ],
+  "nativeCases": [
+    {
+      "id": "MR01",
+      "name": "Operational user without active roles remains24h/8h",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR01",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR02",
+      "name": "Two classified operational roles remain24h/8h",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR02",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR03",
+      "name": "Operational+sensitive role yields12h/30min",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR03",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR04",
+      "name": "Reversed assignment order has the same restrictive result",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR04",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR05",
+      "name": "Sensitive user floor cannot be relaxed by an operational role",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR05",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR06",
+      "name": "Operational user with unclassified active role fails closed",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR06",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR07",
+      "name": "Revoked sensitive role is ignored",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR07",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR08",
+      "name": "Revoked sensitive membership is ignored",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR08",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR09",
+      "name": "Future sensitive membership is ignored",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR09",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR10",
+      "name": "Expired sensitive membership is ignored",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR10",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR11",
+      "name": "Foreign tenant membership cannot change effective risk",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR11",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR12",
+      "name": "Sensitive baseline stays restrictive even with an unclassified role",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR12",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR13",
+      "name": "Existing24h session denied when a sensitive role becomes effective",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR13",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR14",
+      "name": "Actual policy row wait followed by escalation rejects24h issuance and permits12h retry",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR14",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR15",
+      "name": "Rollback restores verified PREAUTH and removes session insertion",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR15",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR16",
+      "name": "Terminated backend before COMMIT cannot persist a session",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR16",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR17",
+      "name": "Ordinary identity cannot read/write catalogue, execute private helper or SET ROLE broker",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR17",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR18",
+      "name": "Risk downgrade does not lengthen existing12h session or idle allowance",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR18",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR19",
+      "name": "Operational baseline with mixed sensitive and unclassified roles fails closed",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR19",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "MR20",
+      "name": "Risk classification never replaces mandatory MFA proof",
+      "implementation": "scripts/pg14-role-risk-tests.ts",
+      "entrypoint": "runPreparedRoleRiskTests",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR20",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    }
+  ],
+  "additionalRequiredScenarios": [
+    {
+      "id": "UI01",
+      "name": "Real mixed-role UI login→password→MFA→session and HTTP/client-authority negative cases",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session OPERATIONAL-SENSITIVE",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session SENSITIVE-OPERATIONAL",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session OPERATIONAL-OPERATIONAL",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-SQL14 UI01 unknown active role fails closed without a session or internal HTTP details",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "DENIED_HTTP_401",
+              "PUBLIC_AUTH_INVALID",
+              "SAFE_DETAILS",
+              "ACTIVE_COUNT_0"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+          "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+          "run": 39142700719,
+          "job": 117720202829
+        }
+      ]
+    },
+    {
+      "id": "UI02",
+      "name": "Real ACTIVE request waiting on policy lock must revalidate after concurrent role escalation/reactivation",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI02 actual authorization row wait revalidates reactivated sensitive role and invalidates24h session",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        }
+      ]
+    },
+    {
+      "id": "UI03",
+      "name": "Actual factor/method/policy version CAS and role reactivation deny regression under current risk",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI03 real concurrent MFA counter CAS has one session winner with mixed roles",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-SQL14 UI03 revoked current method generation cannot consume a valid old proof or create session",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "ACCESS_FORM_FILLED",
+              "ACCESS_SUBMITTED",
+              "HTTP_ACCESS_403",
+              "HTTP_VERIFY_200",
+              "HTTP_ACCESS_200",
+              "HTTP_USER_200",
+              "HTTP_ACCESS_409"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "HTTP_ACCESS_403",
+              "HTTP_VERIFY_200",
+              "HTTP_ACCESS_503",
+              "HTTP_ACCESS_200",
+              "HTTP_ACCESS_409"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "HTTP_ACCESS_403",
+              "HTTP_ACCESS_422"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        }
+      ]
+    },
+    {
+      "id": "UI04",
+      "name": "Role membership start/expiry exact boundaries during waits, both role assignment orders",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI04 actual membership START boundary while authorization waits",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "Browser-PG-SQL14 UI04 actual membership EXPIRE boundary while authorization waits",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "SQL14-MR03",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-MR04",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        }
+      ]
+    },
+    {
+      "id": "UI05",
+      "name": "Sensitive ceiling exact expiry, non-extension by activity, trust and step-up under actual mixed roles",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary -1",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary 0",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary 1",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role real database Idle expiration",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role real database Absolute expiration",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-SQL14 UI05 mixed-role activity step-up and trust cannot extend absolute ceiling",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        }
+      ]
+    },
+    {
+      "id": "UI06",
+      "name": "Commit succeeded but acknowledgement lost: no assumed rollback, cookie or stale24h success",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL14 UI06 actual successful COMMIT with lost acknowledgement emits no cookie or false rollback",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        }
+      ]
+    },
+    {
+      "id": "UI07",
+      "name": "PUBLIC/runtime/mail/maintenance/verifier and private-broker privilege/RLS/owner negative matrix; cross-user/tenant contexts",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-UI07-catalogue-owner-forced-RLS-and-broker-read-only",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-helper-owner-definer-path-public-ACL",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-ordinary-role-denied-pgtest_runtime",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-ordinary-role-denied-pgtest_identity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-ordinary-role-denied-pgtest_mail",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-ordinary-role-denied-pgtest_maintenance",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-UI07-ordinary-role-denied-pgtest_verifier",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "SQL14-MR11",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "TARGET_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "ACCESS_FORM_FILLED",
+              "ACCESS_SUBMITTED",
+              "HTTP_ACCESS_403",
+              "HTTP_VERIFY_200",
+              "HTTP_ACCESS_200",
+              "HTTP_USER_200"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        }
+      ]
+    },
+    {
+      "id": "UI08",
+      "name": "Catalogue/role-change concurrency, durable server audit, backup/restore and complete owned-resource cleanup",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL14-MR14",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "backup-restore-all32-tables-integrity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "preexisting-containers-networks-volumes-unchanged",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+          "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+          "run": 39141604860,
+          "job": 117717012022
+        },
+        {
+          "name": "backup-restore-all32-tables-integrity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "preexisting-containers-networks-volumes-unchanged",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119183
+        },
+        {
+          "name": "backup-restore-all32-tables-integrity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "preexisting-containers-networks-volumes-unchanged",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119010
+        },
+        {
+          "name": "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "ACCESS_FORM_FILLED",
+              "ACCESS_SUBMITTED",
+              "HTTP_ACCESS_403",
+              "HTTP_VERIFY_200",
+              "HTTP_ACCESS_200",
+              "HTTP_USER_200",
+              "HTTP_ACCESS_409"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "HTTP_ACCESS_403",
+              "HTTP_VERIFY_200",
+              "HTTP_ACCESS_503",
+              "HTTP_ACCESS_200",
+              "HTTP_ACCESS_409"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+          "status": "PASS",
+          "detail": {
+            "attemptStatuses": [
+              "passed"
+            ],
+            "phases": [
+              "ACTOR_LOGIN",
+              "HTTP_LOGIN_200",
+              "HTTP_VERIFY_200",
+              "HTTP_USER_200",
+              "ACCESS_FORM_VISIBLE",
+              "HTTP_ACCESS_403",
+              "HTTP_ACCESS_422"
+            ],
+            "testLineNumbers": [],
+            "setupSqlstates": []
+          },
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "backup-restore-all32-tables-integrity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "preexisting-containers-networks-volumes-unchanged",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+          "source": "0967447ceec557a50ef746aec36b345198f06876",
+          "run": 39141990295,
+          "job": 117718119164
+        },
+        {
+          "name": "backup-restore-all32-tables-integrity",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+          "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+          "run": 39142700719,
+          "job": 117720202829
+        },
+        {
+          "name": "preexisting-containers-networks-volumes-unchanged",
+          "status": "PASS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+          "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+          "run": 39142700719,
+          "job": 117720202829
+        }
+      ]
+    }
+  ],
+  "notAcceptance": "Native VERIFIED PREAUTH is session-policy setup only. The separate real UI proofs are required. This does not establish production, Swiss custody or manual PO acceptance.",
+  "closure": "SEC021 accepted for complete isolated evidence. Actual PR006 operating/independent/manual review and PR007 phase acceptance remain OPEN; no production authorization.",
+  "authorization": "docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json",
+  "resolvedInitialHarnessFailure": {
+    "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+    "failedCase": "unknown role expected503 instead of existing SQL AUTH_INVALID401 mapping",
+    "correction": "Expected HTTP status corrected to canonical401; UI intentionally aborts its fetch on401 so safe body inspected through separate real browser API request. SQL/ACL/backend unchanged",
+    "resolvedBy": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json"
+  }
+}

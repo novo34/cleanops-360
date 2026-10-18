@@ -22,7 +22,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
-      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER','EXECUTED_SQL11_REMAINING_COMPOSITE_REAL_BROWSER','EXECUTED_SQL11_COMPAT_REAL_BROWSER','EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER'].includes(evidence.newUIE2E))
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER','EXECUTED_SQL11_REMAINING_COMPOSITE_REAL_BROWSER','EXECUTED_SQL11_COMPAT_REAL_BROWSER','EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER','EXECUTED_SQL14_DIRECTED_COMPOSITE_REAL_BROWSER'].includes(evidence.newUIE2E))
       if(evidence.kind==='COMPOSITE_REAL_CASE_EVIDENCE'){
         for(const check of evidence.checks){const raw=JSON.parse(read(check.sourceReport));assert.equal(raw.source,check.source);assert.equal(raw.run,check.run);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===check.name&&c.status==='PASS'))}
       }
@@ -40,7 +40,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
   assert.equal(matrix.authGate05, 'OPEN')
   assert.equal(matrix.runtime, 'closedBackend')
   assert.equal(matrix.databaseExecutionAuthorized, true)
-  assert.equal(matrix.databaseExecutionScope.artifact,'7a2df8463e6c1a45b2a2c9005187c0269d2cf423')
+  assert.equal(matrix.databaseExecutionScope.artifact,'1971a9fdc5c1f3fd1fcb5f6706459678e5399256')
   assert.equal(matrix.databaseExecutionScope.modifiedSqlAcl, false)
   assert.equal(matrix.databaseExecutionScope.production, false)
   assert.equal(matrix.productionActivationAuthorized, false)
@@ -111,14 +111,31 @@ test('standard-app compatibility acceptance requires actual installed applicatio
  assert.equal(matrix.requirements.find((r:{id:string})=>r.id==='REQ-AUTH-004').acceptanceEvidence.report,'docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json')
 })
 
-test('SQL13 approval and 24 prepared cases have actual exact-artifact provenance; mixed-role policy is not falsely accepted',()=>{
+test('SQL13 approval and24 cases retain historical exact-artifact provenance',()=>{
  const auth=JSON.parse(read('docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json'))
  const plan=JSON.parse(read('docs/implementation/b1/remaining/SQL13_VALIDATION_PLAN.json'))
  assert.equal(auth.ownerApproved,true);assert.equal(plan.cases.length,24);assert.equal(plan.status,'EXECUTED_PASS')
  const bytes=Buffer.from(read(auth.candidatePath));assert.equal(createHash('sha256').update(bytes).digest('hex'),auth.candidate.sha256)
  assert.equal(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex'),auth.candidate.gitBlob)
  for(const scenario of plan.cases){assert.equal(scenario.status,'PASS');assert.ok(scenario.evidence.length);for(const proof of scenario.evidence){const raw=JSON.parse(read(proof.sourceReport));assert.equal(raw.result,'PASS');assert.equal(raw.cleanup,'PASS');assert.equal(raw.source,proof.source);assert.equal(raw.run,proof.run);assert.equal(raw.job,proof.job);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===proof.name&&c.status==='PASS'))}}
- assert.equal(matrix.requirements.filter((r:{acceptance:string})=>r.acceptance==='ACCEPTED').length,41)
- assert.equal(matrix.requirements.find((r:{id:string})=>r.id==='REQ-SEC-021').acceptance,'OPEN')
+ assert.equal(JSON.parse(read('docs/implementation/b1/remaining/ACCEPTED_41_INDEX.json')).accepted,41)
+ assert.ok(matrix.accepted>=41)
  const review=JSON.parse(read('docs/proposals/b1-consolidated-sql/revisions/14/manifest.json'));assert.equal(review.installationAuthorized,false);assert.equal(review.status,'REVIEW ONLY')
+})
+
+test('SQL14 acceptance requires exact approved bytes and all20 native plus8 real scenario groups',()=>{
+ const auth=JSON.parse(read('docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json'))
+ const plan=JSON.parse(read('docs/implementation/b1/consolidated-test-14/VALIDATION_PLAN.json'))
+ assert.equal(auth.ownerApproved,true)
+ const bytes=Buffer.from(read(auth.candidatePath));assert.equal(createHash('sha256').update(bytes).digest('hex'),auth.candidate.sha256)
+ assert.equal(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex'),auth.candidate.gitBlob)
+ assert.equal(plan.nativeCases.length,20);assert.equal(plan.additionalRequiredScenarios.length,8);assert.equal(plan.state,'EXECUTED_PASS')
+ for(const c of [...plan.nativeCases,...plan.additionalRequiredScenarios]){assert.equal(c.status,'PASS');assert.ok(c.evidence.length);for(const e of c.evidence){const raw=JSON.parse(read(e.sourceReport));assert.equal(raw.source,e.source);assert.equal(raw.run,e.run);assert.equal(raw.job,e.job);assert.equal(raw.cleanup,'PASS');assert.equal(raw.candidate.gitBlob,auth.candidate.gitBlob);assert.ok(raw.checks.some((x:{name:string;status:string})=>x.name===e.name&&x.status==='PASS'))}}
+ const initial=JSON.parse(read('docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json'))
+ const retry=JSON.parse(read('docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json'))
+ assert.equal(initial.result,'FAIL');assert.equal(retry.result,'PASS')
+ assert.ok(retry.checks.some((x:{name:string;status:string;detail?:{phases?:string[]}})=>x.name.includes('unknown active role')&&x.status==='PASS'&&x.detail?.phases?.includes('DENIED_HTTP_401')))
+ assert.equal(matrix.accepted,42);assert.equal(matrix.requirements.find((r:{id:string})=>r.id==='REQ-SEC-021').acceptance,'ACCEPTED')
+ assert.deepEqual(matrix.requirements.filter((r:{acceptance:string})=>r.acceptance==='OPEN').map((r:{id:string})=>r.id).sort(),['REQ-PR-006','REQ-PR-007'])
+ const sequential=JSON.parse(read('docs/implementation/b1/SEQUENTIAL_STATUS.json'));assert.equal(sequential.verifiedEndToEnd.numerator,matrix.accepted);assert.equal(sequential.verifiedEndToEnd.verifiedRequirementIds.length,matrix.accepted)
 })

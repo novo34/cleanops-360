@@ -11,7 +11,7 @@ redacted reports. Independent security reviewer and actual Swiss OpenBao/custodi
 are not yet designated. Do not invent identities, infrastructure or evidence.
 
 Use a newly owned isolated PG16 Docker with synthetic fixtures and the existing
-private browser test composition only (`scripts/pg-consolidated-13.py`,
+private browser test composition only (`scripts/pg-consolidated-14.py`,
 `scripts/b1-real-browser-server.mjs`, `scripts/pg05-browser-backend.ts`). This
 composition proxies loopback TLS to the existing UI and real ordinary-role handler;
 it never changes runtime.ts or exposes fixture RPC/key/proof endpoints over HTTP.
@@ -20,7 +20,7 @@ credentials in tickets, artifacts or logs. Controlled external mail/custody rema
 explicitly synthetic; do not present them as productive delivery/OpenBao integration.
 
 CI directed repeat command, when a new authorized isolated run is needed:
-`B1_SQL13_GROUP=browser python3 scripts/pg-consolidated-13.py`.
+`B1_SQL14_GROUP=browser python3 scripts/pg-consolidated-14.py`.
 This executes automated Chromium evidence, not manual PO acceptance. An actual
 manual browser session must be on an explicitly owned isolated workstation/runner;
 no shared staging/deployment or public forwarding is permitted by this task.
@@ -38,7 +38,7 @@ redacted durable-effect inspection. Never copy codes/cookies/keys/recipients.
 |4|EMAIL enrollment and verification use a verified synthetic recipient, encrypted persisted outbox, worker delivery simulator; expiry/retry/uncertain quarantine safe.|Existing EMAIL/recovery reports linked per criterion in closure/requirements.json; actual SMTP not claimed.|
 |5|Account recovery/reset: single-use recovery and independently authorized synthetic reset; password-only second browser cannot steal enrollment; revoked sessions/trust fail.|SQL08/09 published real Chromium evidence.|
 |6|Register/list/revoke trusted device through current session and step-up; 30-day trust never bypasses MFA or extends absolute session.|SQL10 and SQL13 policy evidence.|
-|7|Inspect/revoke own sessions and logout; reset/revocation invalidation persists. Compare sensitive12h/30min and operational24h/8h; exact expiry denied.|SQL13 policy evidence; mixed-role aggregation explicitly pending SQL14, not demonstrated as complete.|
+|7|Inspect/revoke own sessions and logout; reset/revocation invalidation persists. Compare sensitive12h/30min and operational24h/8h; exact expiry denied.|SQL13 policy evidence; SQL14 automated mixed-role native/Chromium evidence PASS; actual manual observations must still be recorded by the PO.|
 |8|Allowed/denied AUTHZ changes, role reactivation and existing-session effects; cross-user/company and stale policy/CAS rejected.|SQL11 existing333 checks/Chromium and SQL13 directed regression.|
 |9|Generic POLICY_DENIED / STEP_UP_REQUIRED preserve ACTIVE and produce private durable keyed journal; terminated primary transaction never returns a business success/cookie.|SQL13 AUD01/02/04/05 and COMMIT tests.|
 |10|Malformed inputs, stale browser and network retry recover safely; no secrets/URI/ciphertext/private recipients/internal authorization details in HTTP logs/storage.|Existing frontend and directed regression evidence.|

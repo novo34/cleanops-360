@@ -26,10 +26,20 @@ for those existing controls, not additional product requirements or another modu
 ## Ready inputs, not invented execution
 
 -44-row source of truth: closure/requirements.json and MATRIX.md.
--41 already accepted isolated criteria: remaining/ACCEPTED_41_INDEX.json, retaining
+-42 accepted isolated criteria: remaining/ACCEPTED_42_INDEX.json (historical41 index preserved), retaining
  original real report/source/run/case references. This index is not a new test run.
 -Current SQL14 approval: consolidated-test-14/AUTHORIZATION.json; no other SQL/ACL approved.
 -Manual dossier and blank record are prepared; no tester/date/decision is fabricated.
 -Actual Swiss infrastructure/custodian, independent review and manual observations
  have not been supplied. They block operating/formal acceptance, not the current
  synthetic SQL14 experiment. Do not reprovision or alter any existing resource.
+
+## Meaning of technical completion
+
+A successful SQL14 experiment can complete the42 isolated functional criteria; it
+cannot close B1 as a44-row module. The production-like OpenBao workload binding and
+real key lifecycle have not been implemented/observed against designated Swiss
+resources, and independent/manual PO evidence is absent. These are real PR006
+delivery obligations, not paperwork to bypass or work transferred to another phase.
+The isolated functional core may be reported validated; integral technical/formal
+closure remains unavailable until those obligations and PR007 are fulfilled.
