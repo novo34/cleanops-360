@@ -22,7 +22,11 @@ class RemainingAcceptance(unittest.TestCase):
   allowed={'FUNCTIONALITY_INCOMPLETE','EVIDENCE_OR_TEST_PENDING','REAL_OPERATIONAL_DEPENDENCY','FORMAL_ACCEPTANCE_PENDING'}
   for row in status['remaining']:self.assertIn(row['classification'],allowed);self.assertTrue(row['blocker'])
   self.assertEqual(status['B1'],'OPEN');self.assertEqual(status['AUTH-GATE-05'],'OPEN');self.assertEqual(status['runtime'],'closedBackend')
-  self.assertFalse(status['functionalContractDependency']['installed'])
+  self.assertTrue(status['functionalContractDependency']['installed'])
+  installed=read(status['functionalContractDependency']['evidence']);self.assertEqual(installed['result'],'PASS');self.assertEqual(installed['cleanup'],'PASS')
+  authorization=read('docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json');self.assertTrue(authorization['ownerApproved'])
+  self.assertEqual(installed['candidate']['gitBlob'],authorization['candidate']['gitBlob']);self.assertEqual(installed['candidate']['sha256'],authorization['candidate']['sha256'])
+  review=read('docs/proposals/b1-consolidated-sql/revisions/14/manifest.json');self.assertFalse(review['installationAuthorized'])
  def test_final_directed_regression_is_raw_real_pass_with_complete_cleanup(self):
   report=read('docs/implementation/b1/remaining/REGRESSION.json');self.assertEqual(report['result'],'PASS')
   distinct=set();count=0;executions=0

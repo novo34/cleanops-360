@@ -2997,8 +2997,8 @@
       "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retenci\u00f3n y restore de datos/claves/configuraci\u00f3n de Auth; RPO\u226415 min/RTO\u22644 h medidos."
     }
   ],
-  "assessmentHead": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
-  "accepted": 40,
+  "assessmentHead": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+  "accepted": 41,
   "individualAcceptanceAuthority": "Owner instruction2026-10-18: accept each requirement with complete evidence without waiting for all44.",
   "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
   "phaseOwnerAcceptance": "PENDING",
@@ -3165,6 +3165,20 @@
         "Browser-PG-ADMIN MFA actual failed COMMIT restores factors receipt and audit before a safe retry"
       ],
       "productionAcceptance": false
+    },
+    "REQ-AUD-001": {
+      "report": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+      "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+      "run": 39137308745,
+      "uiScope": "EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+        "Browser-PG-SQL13 AUD04 real terminated denial journal transaction rolls back then persists trusted denial separately",
+        "Browser-PG-SQL13 AUD05 real concurrent protected challenge mutation and policy denial have independent durable outcomes",
+        "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor"
+      ],
+      "productionAcceptance": false
     }
-  }
+  },
+  "latestSQL13Evidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json"
 }
