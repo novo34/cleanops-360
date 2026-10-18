@@ -1,5 +1,5 @@
 {
-  "referenceHead": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+  "referenceHead": "59855dd719712b80f11d953558cf6ba956af45f4",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -19,7 +19,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "FIVE_NATIVE06_ROOT_DEFECTS_AND_FULL_NEW_HTTP_UI_INTEGRATION",
+  "nextBlocker": "NEW_PUBLIC_HTTP_UI_INTEGRATION_AND_FULL_44_ACCEPTANCE",
   "candidate": {
     "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
     "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
@@ -32,21 +32,20 @@
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "FAIL_CONSOLIDATED06_PRIOR05_PASS_RETAINED",
+  "pgTest01": "SQL07_NATIVE_PASS_FULL_B1_OPEN",
   "lastPostgresExecution": {
-    "authorization": "PG-TEST-01-CONSOLIDATED-05",
-    "status": "PASS",
+    "source": "59855dd719712b80f11d953558cf6ba956af45f4",
+    "run": 39102962461,
     "installation": "PASS",
-    "run": 39068144839,
     "checks": {
-      "PASS": 294,
+      "PASS": 253,
       "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
     },
-    "privateHTTPRealPostgres": "PASS",
-    "fullProductUIE2E": "BLOCKED",
     "cleanup": "PASS",
+    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED",
+    "authorization": "PG-TEST-01-CONSOLIDATED-07",
     "requirementsAccepted": 0
   },
   "proposedCandidate": {
@@ -55,11 +54,11 @@
     "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
     "bytes": 187018,
     "path": "docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql",
-    "status": "REVIEW_ONLY_NOT_INSTALLED",
-    "ownerApproved": false
+    "status": "AUTHORIZED_INSTALLED_NATIVE_PASS",
+    "ownerApproved": true
   },
-  "nextAuthorization": "EXACT07_SQL_ACL_ISOLATED_INSTALL_AFTER_REVIEW",
-  "latestPrecheck": "docs/implementation/b1/consolidated-test-05/SUMMARY.json",
+  "nextAuthorization": "NONE_FOR_ALREADY_AUTHORIZED_INDEPENDENT_UI_API_WORK",
+  "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
   "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
   "lastRealBrowserExecution": {
     "sourceHead": "b4b770beeac800e9825406480ffa1b320d2c2794",
@@ -95,14 +94,16 @@
   },
   "latestE1ConsolidationAssessment": "docs/implementation/b1/e1-consolidation/REQUIREMENTS.json",
   "lastE1NativeExecution": {
-    "source": "496ad213fbc72173edc076ca2dbdcd74355fda09",
-    "run": 39101669219,
+    "source": "59855dd719712b80f11d953558cf6ba956af45f4",
+    "run": 39102962461,
     "installation": "PASS",
-    "result": "FAIL",
-    "pass": 210,
-    "fail": 19,
+    "checks": {
+      "PASS": 253,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
     "cleanup": "PASS",
-    "accepted": 0,
-    "total": 44
+    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
   }
 }

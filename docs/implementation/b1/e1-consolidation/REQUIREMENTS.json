@@ -9,7 +9,7 @@
   "AUTH-GATE-05": "OPEN",
   "runtime": "closedBackend",
   "codeCi": {
-    "run": 39100543390,
+    "run": 39102962409,
     "status": "SUCCESS",
     "b1": {
       "pass": 182,
@@ -21,10 +21,11 @@
     },
     "chromium": {
       "pass": 57,
-      "fail": 0
+      "fail": 0,
+      "scope": "HTTP fixtures, not new real PostgreSQL browser flows"
     }
   },
-  "newSqlInstallation": "EXACT06_AUTHORIZED_INSTALLED;07_NOT_AUTHORIZED_NOT_INSTALLED",
+  "newSqlInstallation": "EXACT07_AUTHORIZED_INSTALLED_PASS",
   "requirements": [
     {
       "id": "REQ-PR-006",
@@ -50,7 +51,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-PR-007",
@@ -76,7 +84,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-001",
@@ -104,7 +119,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-002",
@@ -132,7 +174,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-003",
@@ -160,7 +229,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-004",
@@ -188,7 +284,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-005",
@@ -216,7 +339,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-006",
@@ -244,7 +394,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTHZ-007",
@@ -272,7 +449,34 @@
       "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-default-deny-view",
+          "AUTHZ-default-deny-create",
+          "AUTHZ-default-deny-edit",
+          "AUTHZ-default-deny-approve",
+          "AUTHZ-default-deny-delete",
+          "AUTHZ-default-deny-export",
+          "AUTHZ-default-deny-manage_permissions",
+          "AUTHZ-authorized-resource",
+          "AUTHZ-cross-tenant-resource-denied",
+          "AUTHZ-deny-over-allow",
+          "RBAC-role-create",
+          "RBAC-role-positive-permission",
+          "RBAC-role-membership",
+          "RBAC-authorized-access-detail",
+          "RBAC-user-override",
+          "RBAC-revoke-user-rule",
+          "RBAC-revoke-membership",
+          "RBAC-revoke-role",
+          "RBAC-policy-CAS-one-winner"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-001",
@@ -331,7 +535,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-002",
@@ -451,7 +662,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-003",
@@ -531,7 +749,27 @@
       "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "EMAIL-real-Argon-and-verified-recipient-setup",
+          "EMAIL-real-AEAD-committed-worker-enrollment-delivery",
+          "EMAIL-wrong-code-retains-pending",
+          "EMAIL-first-code-activates-CAS-and-replay-denied",
+          "EMAIL-verified-factor-persists-session-after-COMMIT",
+          "EMAIL-native-claim-COMMIT-failure-no-send-no-effect",
+          "EMAIL-native-concurrent-dispatch-one-send",
+          "EMAIL-native-finish-COMMIT-loss-does-not-redeliver",
+          "EMAIL-real-stepup-revalidates-current-session",
+          "EMAIL-uncertain-delivery-durable-quarantine",
+          "EMAIL-quarantine-retained-after-expiry-and-GC",
+          "EMAIL-pending-expiry-GC-preserves-kind-invariant"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-004",
@@ -611,7 +849,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-010",
@@ -639,7 +884,17 @@
       "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "recovery-CAS-one-winner",
+          "EMAIL-first-code-activates-CAS-and-replay-denied"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-011",
@@ -666,7 +921,27 @@
       "newRealIntegration": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "EMAIL-real-Argon-and-verified-recipient-setup",
+          "EMAIL-real-AEAD-committed-worker-enrollment-delivery",
+          "EMAIL-wrong-code-retains-pending",
+          "EMAIL-first-code-activates-CAS-and-replay-denied",
+          "EMAIL-verified-factor-persists-session-after-COMMIT",
+          "EMAIL-native-claim-COMMIT-failure-no-send-no-effect",
+          "EMAIL-native-concurrent-dispatch-one-send",
+          "EMAIL-native-finish-COMMIT-loss-does-not-redeliver",
+          "EMAIL-real-stepup-revalidates-current-session",
+          "EMAIL-uncertain-delivery-durable-quarantine",
+          "EMAIL-quarantine-retained-after-expiry-and-GC",
+          "EMAIL-pending-expiry-GC-preserves-kind-invariant"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-012",
@@ -694,7 +969,16 @@
       "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "EMAIL-real-AEAD-committed-worker-enrollment-delivery"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-013",
@@ -721,7 +1005,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-014",
@@ -748,7 +1039,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-015",
@@ -775,7 +1073,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-016",
@@ -802,7 +1107,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-017",
@@ -861,7 +1173,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-020",
@@ -939,7 +1258,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-021",
@@ -1017,7 +1343,16 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "EMAIL-first-code-activates-CAS-and-replay-denied"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-022",
@@ -1095,7 +1430,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-030",
@@ -1173,7 +1515,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-031",
@@ -1251,7 +1600,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-032",
@@ -1329,7 +1685,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-033",
@@ -1359,7 +1722,21 @@
       "newRealIntegration": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "recovery-password-verified-preauth",
+          "recovery-wrong-code-denied",
+          "recovery-CAS-one-winner",
+          "recovery-state-restricted-no-session",
+          "recovery-does-not-issue-ACTIVE",
+          "recovery-old-factor-and-code-revoked"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-034",
@@ -1389,7 +1766,17 @@
       "newRealIntegration": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "admin-MFA-reset-with-independent-proof",
+          "admin-reset-receipt-replay-denied"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-040",
@@ -1448,7 +1835,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-041",
@@ -1507,7 +1901,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-042",
@@ -1566,7 +1967,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-043",
@@ -1625,7 +2033,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-044",
@@ -1651,7 +2066,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-045",
@@ -1677,7 +2099,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-046",
@@ -1705,7 +2134,23 @@
       "newRealIntegration": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "trust-not-a-login-proof",
+          "trust-register-without-stepup-denied",
+          "trust-register-real",
+          "trust-valid-active-only",
+          "trust-expire-synthetic-clock-row",
+          "trust-expired-denied",
+          "trust-admin-revoke-authorized",
+          "trust-own-list"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUTH-047",
@@ -1764,7 +2209,16 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "EMAIL-real-stepup-revalidates-current-session"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-TEN-001",
@@ -1790,7 +2244,21 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-cross-tenant-resource-denied",
+          "tenant-rotation-original-verified-preauth",
+          "tenant-rotation-owned-membership",
+          "tenant-rotation-old-binding-denied",
+          "tenant-rotation-never-inherits-factor",
+          "tenant-rotation-preserves-password-proof-deadline"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-TEN-002",
@@ -1816,7 +2284,21 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-cross-tenant-resource-denied",
+          "tenant-rotation-original-verified-preauth",
+          "tenant-rotation-owned-membership",
+          "tenant-rotation-old-binding-denied",
+          "tenant-rotation-never-inherits-factor",
+          "tenant-rotation-preserves-password-proof-deadline"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-TEN-003",
@@ -1875,7 +2357,21 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-cross-tenant-resource-denied",
+          "tenant-rotation-original-verified-preauth",
+          "tenant-rotation-owned-membership",
+          "tenant-rotation-old-binding-denied",
+          "tenant-rotation-never-inherits-factor",
+          "tenant-rotation-preserves-password-proof-deadline"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-TEN-004",
@@ -1901,7 +2397,21 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "AUTHZ-cross-tenant-resource-denied",
+          "tenant-rotation-original-verified-preauth",
+          "tenant-rotation-owned-membership",
+          "tenant-rotation-old-binding-denied",
+          "tenant-rotation-never-inherits-factor",
+          "tenant-rotation-preserves-password-proof-deadline"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-SEC-020",
@@ -1960,7 +2470,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-SEC-021",
@@ -1986,7 +2503,14 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+        "cases": [],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     },
     {
       "id": "REQ-AUD-001",
@@ -2012,7 +2536,16 @@
       "newRealIntegration": "NOT_EXECUTED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
-      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "native07": {
+        "status": "PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE",
+        "cases": [
+          "admin-MFA-reset-with-independent-proof"
+        ],
+        "evidence": "../consolidated-test-07/EXECUTION.json",
+        "run": 39102962461
+      },
+      "accepted": false
     }
   ],
   "native06": {
@@ -2025,5 +2558,18 @@
     "cleanup": "PASS",
     "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
   },
-  "sql07": "REVIEW_ONLY_NOT_INSTALLED"
+  "sql07": "PASS_ISOLATED_NATIVE_NOT_FULL_B1",
+  "native07": {
+    "source": "59855dd719712b80f11d953558cf6ba956af45f4",
+    "run": 39102962461,
+    "installation": "PASS",
+    "checks": {
+      "PASS": 253,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "cleanup": "PASS",
+    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
+  }
 }
