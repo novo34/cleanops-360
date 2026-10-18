@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   isolated-integration:
-    if: github.event.pull_request.number == 7 && github.event.before == '9f11305e84e896506dba3f1cbd22c6d2ddeecccf' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == 'cd6c4f6c0a10b5d57b885dde7b7f7b64e3d8a906' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:

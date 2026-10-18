@@ -75,6 +75,16 @@ try{
     const fd=fs.openSync('/var/log/openbao/fill','w')
     try{for(let i=0;i<40;i++)fs.writeSync(fd,Buffer.alloc(1024*1024,65))}catch(e){assert(e.code==='ENOSPC');filled=true}finally{fs.closeSync(fd)}
     assert(filled)
+    // ENOSPC on a 1MiB filler does not prove zero free blocks or exhaust
+    // already allocated tail bytes in the audit inode. Close both gaps with
+    // blank-line padding only, never fabricated audit events or disabled audit.
+    const fillfd=fs.openSync('/var/log/openbao/fill','a')
+    try{for(let n=0;n<1024;n++)fs.writeSync(fillfd,Buffer.alloc(4096,65))}catch(e){assert(e.code==='ENOSPC')}finally{fs.closeSync(fillfd)}
+    const auditfd=fs.openSync('/var/log/openbao/audit.json','a')
+    let auditAppendDenied=false
+    try{for(let n=0;n<8192;n++)fs.writeSync(auditfd,Buffer.from('\n'))}catch(e){assert(e.code==='ENOSPC');auditAppendDenied=true}finally{fs.closeSync(auditfd)}
+    assert(fs.statfsSync('/var/log/openbao').bavail===0&&auditAppendDenied)
+    checks.push({name:'audit-full-injection-no-free-blocks-and-append-denied',status:'PASS'})
     try{observed=(await request(old,{token:verifier})).status}catch{observed=503}
     // Keep the actual denial status; never turn a successful read into PASS.
     checks.push({name:'audit-full-observed-HTTP-status',status:observed>=500?'PASS':'FAIL',detail:{status:observed}})
