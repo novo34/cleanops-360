@@ -227,7 +227,7 @@ export function AuthPanel() {
         <button type="submit">Verificar</button>
         {challenge.allowed_methods.includes('EMAIL_OTP') && <button type="button" onClick={async () => { const r = await call(emailEnrollment ? 'resendEmailEnrollment' : 'resendEmail', { challenge_id: challenge.challenge_id }); if (r) setChallenge({ challenge_id: r.challenge_id, allowed_methods: r.allowed_methods ?? [r.method], expires_at: r.expires_at }) }}>Reenviar código</button>}
       </form>}
-      {!recovering && !stepContext.current && (view.auth?.state === 'PENDING_MFA' || selection) && <button type="button" onClick={() => setRecovering(true)}>Usar código de recuperación</button>}
+      {!recovering && (view.auth?.state === 'PENDING_MFA' || (selection && view.auth?.state !== 'ACTIVE')) && <button type="button" onClick={() => setRecovering(true)}>Usar código de recuperación</button>}
       {recovering && <form onSubmit={async event => {
         event.preventDefault(); const form=event.currentTarget; const data=new FormData(form);form.reset()
         const result=await call('recoverMfa',{recovery_code:String(data.get('recovery_code'))})
