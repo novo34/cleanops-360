@@ -88,15 +88,15 @@
     "cleanup": "PASS"
   },
   "proposedCandidate": {
-    "gitBlob": "e99b1ba7b39e36ce77deb8e0e27c4e57d9256501",
-    "sha256": "460cf258be1b4f724843af38b608f6ad0d0ec232f89897b0711f1b5094ef18a1",
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
     "bytes": 211988,
     "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
     "status": "REVIEW ONLY",
     "installed": false
   },
   "nextAuthorization": {
-    "SQL14": "Exact blobe99b1ba7b39e36ce77deb8e0e27c4e57d9256501 SHA256460cf258be1b4f724843af38b608f6ad0d0ec232f89897b0711f1b5094ef18a1; no installation until exact owner approval.",
+    "SQL14": "Exact blob1971a9fdc5c1f3fd1fcb5f6706459678e5399256 SHA256965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa; REVIEW ONLY, no installation until exact owner approval.",
     "operational": "Designated actual Swiss OpenBao/custodian and operating/independent/manual PO evidence; no production/deployment/SMTP authorization inferred."
   },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",

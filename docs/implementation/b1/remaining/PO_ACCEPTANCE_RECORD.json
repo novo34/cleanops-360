@@ -1,0 +1,89 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "scope": "ISOLATED_MANUAL_ACCEPTANCE_NOT_PRODUCTION_AUTHORIZATION",
+  "tester": null,
+  "executedAt": null,
+  "sourceHead": null,
+  "sqlArtifact": null,
+  "environment": null,
+  "independentSecurityReview": null,
+  "manualDossier": "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md",
+  "cases": [
+    {
+      "step": 1,
+      "action": "Credentials, mandatory MFA, safe abuse errors",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 2,
+      "action": "Password-verified company choice and PREAUTH/CSRF rotation",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 3,
+      "action": "TOTP enrollment, actual compatible application and one-use code",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 4,
+      "action": "Verified EMAIL enrollment, encrypted outbox and controlled delivery",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 5,
+      "action": "Recovery/reset and password-only second-browser denial",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 6,
+      "action": "Trusted-device lifecycle without MFA/session bypass",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 7,
+      "action": "Sessions,12h/24h boundaries and most-restrictive roles after SQL14 approval",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 8,
+      "action": "RBAC/RLS grants, denials, reactivation and isolation",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 9,
+      "action": "Durable denial audit and failed/uncertain COMMIT",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    },
+    {
+      "step": 10,
+      "action": "Malformed responses, expiration, retries and no sensitive browser storage",
+      "result": "NOT_EXECUTED",
+      "redactedEvidence": null,
+      "testerObservation": null
+    }
+  ],
+  "operationalCustodyAndSwissInfrastructureEvidence": null,
+  "productOwnerDecision": null,
+  "authGate05": "OPEN",
+  "B1": "OPEN",
+  "runtime": "closedBackend",
+  "noSensitiveEvidence": "Never record OTP, QR/URI, secret/ciphertext, cookies, private recipients or credentials."
+}

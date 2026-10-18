@@ -1,6 +1,13 @@
 # SQL14 — most-restrictive server role risk — REVIEW ONLY
 
 Not authorized or installed. SQL13 remains the only new executable authorization.
+
+Review update: previous uninstalled blob e99b1ba7b39e36ce77deb8e0e27c4e57d9256501
+is superseded. Its generator used a generic SELECT anchor and inserted the policy-wait
+revalidation into consume_email_v2 instead of binding_authorization. The generator
+now targets the exact authorization function body. Regression checks enforce the
+complete four-function change set and byte-identical EMAIL body. See REVIEW.md and
+the current manifest; the old blob is not the current approval candidate.
 Exact bytes, Git blob, SHA-256 and complete SQL13 diff are in manifest.json and
 SQL13_TO_SQL14.diff. Regenerate with `python3 scripts/consolidate-b1-role-risk.py --check`.
 No original, approved SQL or frozen historical manifest is overwritten.

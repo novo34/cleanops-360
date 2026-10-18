@@ -18,6 +18,29 @@ class Review(unittest.TestCase):
   oldpolicies=re.findall(r'CREATE POLICY [^;]+;',old);newpolicies=re.findall(r'CREATE POLICY [^;]+;',new)
   self.assertEqual([p for p in newpolicies if 'role_risk_catalogue' not in p],oldpolicies)
   self.assertEqual(new.count('CREATE FUNCTION identity_private.effective_risk('),1)
+ def test_only_intended_existing_function_bodies_change(self):
+  def bodies(text):
+   return {m.group(1):m.group(0) for m in re.finditer(r'CREATE (?:OR REPLACE )?FUNCTION ([a-z_]+\.[a-z_][a-z_0-9]*)\([^$]+\$fn\$[\s\S]*?\$fn\$;',text)}
+  old=bodies(g.BASE.read_text());new=bodies((g.DEST/'schema.review.sql').read_text())
+  changed={name for name in old if old[name]!=new[name]}
+  self.assertEqual(changed,{'identity_private.valid_session','auth_api.issue_active_session','auth_api.trusted_mfa_material','auth_api.binding_authorization'})
+  self.assertEqual(old['auth_api.consume_email_v2'],new['auth_api.consume_email_v2'])
+  authorization=new['auth_api.binding_authorization']
+  self.assertLess(authorization.index('ORDER BY tenant_id FOR SHARE;'),authorization.index('NOT identity_private.valid_session('))
+  self.assertLess(authorization.index('NOT identity_private.valid_session('),authorization.index('allowed:='))
+ def test_prepared_test_artifact_pin_and_no_auto_entrypoint(self):
+  meta=json.loads((g.DEST/'manifest.json').read_text())
+  prepared=(ROOT/'scripts/pg14-role-risk-tests.ts').read_text()
+  self.assertIn(meta['candidateArtifact']['gitBlob'],prepared)
+  self.assertIn(meta['candidateArtifact']['sha256'],prepared)
+  self.assertIn('export async function runPreparedRoleRiskTests(',prepared)
+  self.assertNotIn('new Pool(',prepared)
+  self.assertNotIn('await runPreparedRoleRiskTests(',prepared)
+  plan=json.loads((g.DEST/'TEST_PLAN.json').read_text())
+  self.assertEqual(plan['artifact'],meta['candidateArtifact'])
+  self.assertFalse(plan['installationAuthorized'])
+  self.assertEqual({c['id'] for c in plan['nativeCases']},set(re.findall(r"'(MR[0-9]{2})'",prepared)))
+  self.assertTrue(all(c['status']=='NOT_EXECUTED' for c in plan['nativeCases']))
  def test_private_read_only_and_dependency_order(self):
   new=(g.DEST/'schema.review.sql').read_text();catalogue=g.CATALOGUE
   self.assertIn('FORCE ROW LEVEL SECURITY',catalogue)

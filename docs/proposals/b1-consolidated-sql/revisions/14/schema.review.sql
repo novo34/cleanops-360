@@ -995,6 +995,7 @@ BEGIN
   PERFORM identity_private.lock_memberships((SELECT principal_id FROM app.sessions WHERE tenant_id=t AND id=c.session_id),ARRAY[resource]);
  END IF;
  PERFORM 1 FROM app.policy_versions WHERE tenant_id=ANY(ARRAY[t,CASE WHEN rule_key='B1-SELF-08' THEN resource ELSE NULL END]) ORDER BY tenant_id FOR SHARE;
+ IF raw_preauth IS NULL AND NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
  SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t;
  allowed:=FOUND AND identity_private.rule_allowed(t,rule_key);
  step_up:=raw_preauth IS NULL AND allowed AND EXISTS(SELECT 1 FROM app.step_up_evidence e
@@ -1919,8 +1920,7 @@ DECLARE q identity_private.preauth;c identity_private.tx_context;t uuid;u uuid;x
 BEGIN
  IF raw_preauth IS NULL THEN c:=identity_private.context();t:=c.tenant_id;u:=c.user_id;ELSE q:=identity_private.checked_preauth(raw_preauth);t:=q.tenant_id;u:=q.user_id;END IF;
  IF corr IS NULL OR expected_version IS NULL OR expected_version<1 OR recipient_version IS NULL OR recipient_version<1 OR submitted_digest IS NULL OR octet_length(submitted_digest)<>32 THEN RETURN false;END IF;
- SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t FOR SHARE;
- IF raw_preauth IS NULL AND NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;IF NOT FOUND THEN RETURN false;END IF;
+ SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t FOR SHARE;IF NOT FOUND THEN RETURN false;END IF;
  SELECT * INTO x FROM app.mfa_challenges WHERE tenant_id=t AND id=challenge AND user_id=u;
  IF NOT FOUND THEN RETURN false;END IF;
  SELECT * INTO m FROM app.mfa_methods WHERE tenant_id=t AND id=x.method_id AND user_id=u FOR UPDATE;

@@ -61,13 +61,16 @@ def generate():
  old=" INSERT INTO app.sessions(tenant_id,id,user_id,principal_id,token_digest,csrf_digest,state,created_at,last_activity_at,absolute_expires_at,idle_expires_at,idle_seconds,credential_version,mfa_verified_at,device_label,browser_label)\n VALUES(q.tenant_id,k,q.user_id,q.principal_id,new_token_hash,new_csrf_hash,'ACTIVE',clock_timestamp(),clock_timestamp(),clock_timestamp()+make_interval(secs=>absolute_seconds),clock_timestamp()+make_interval(secs=>idle_seconds),idle_seconds,cv,q.factor_verified_at,device,browser);"
  new=old.replace(" INSERT INTO app.sessions", " issued_at:=clock_timestamp();\n INSERT INTO app.sessions").replace("'ACTIVE',clock_timestamp(),clock_timestamp(),clock_timestamp()+make_interval(secs=>absolute_seconds),clock_timestamp()+make_interval(secs=>idle_seconds)","'ACTIVE',issued_at,issued_at,issued_at+make_interval(secs=>absolute_seconds),issued_at+make_interval(secs=>idle_seconds)")
  assert text.count(old)==1;text=text.replace(old,new)
- # Existing binding authorization takes SHARE only after the AUTHZ writer's
- # special pre-exclusive-lock path. Revalidate current session after its wait.
- old=" SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t FOR SHARE;"
- if old not in text:
-  old=" SELECT p.version INTO pv FROM app.policy_versions p WHERE p.tenant_id=t FOR SHARE;"
- assert text.count(old)==1
- text=text.replace(old,old+"\n IF raw_preauth IS NULL AND NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;")
+ # Scope the insertion by the exact function declaration and body boundary.
+ # A matching generic SELECT exists in consume_email_v2 and is NOT authorization.
+ start=text.index('CREATE FUNCTION auth_api.binding_authorization(')
+ end=text.index('END $fn$;',start)+len('END $fn$;')
+ body=text[start:end]
+ anchor=" SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t;"
+ assert body.count(anchor)==1
+ check=" IF raw_preauth IS NULL AND NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;\n"
+ body=body.replace(anchor,check+anchor)
+ text=text[:start]+body+text[end:]
  data=text.encode();diff=''.join(difflib.unified_diff(raw.decode().splitlines(keepends=True),text.splitlines(keepends=True),fromfile='SQL13-authorized.sql',tofile='SQL14-REVIEW-ONLY.sql'))
  meta={'candidate':'PG-TEST-01-CONSOLIDATED-14','status':'REVIEW ONLY','installationAuthorized':False,'candidateArtifact':{'gitBlob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)},'diffSha256':hashlib.sha256(diff.encode()).hexdigest(),'changes':['Read-only private tenant/role UUID risk catalogue, FORCE RLS; SELECT only for private broker, no public/service writers','One private effective_risk(uuid,uuid), owned/revoked by the existing fixed function-owner pass; no public signature or role changes','Revalidate existing session ceilings against current effective risk without extending expiry','Use same effective risk for locked D1 material and session issuance; issuance holds policy SHARE; authorization rechecks after SHARE wait','Use one issuance timestamp for created/idle/absolute so strict ceiling cannot reject microsecond clock skew or gain an expiry tolerance','Relocate access_roles and access_role_memberships definitions byte-identically before their new SQL dependency'],'notClaimed':['Not installed, compiled in PostgreSQL or security-accepted','No productive UUID classification, custodian or classification writer invented','Real role-change/concurrency/expiry regression remains mandatory after exact owner authorization'],'runtime':'closedBackend','B1':'OPEN','AUTH-GATE-05':'OPEN'}
  return {'schema.review.sql':text,'SQL13_TO_SQL14.diff':diff,'manifest.json':json.dumps(meta,indent=2)+'\n'}
