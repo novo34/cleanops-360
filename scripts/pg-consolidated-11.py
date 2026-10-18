@@ -32,6 +32,7 @@ def checks():
  if not tests.gate(b):
   b.record('AUTHZ-dependent-tests','BLOCKED','SQL11 ACL prerequisites failed');return
  tests.run(b)
+ runner.module('sql11_matrix','pg11-rbac-matrix.py').run(b)
  browser=prior.nine.previous.browser
  browser.CONFIG='playwright.access11-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL11_AUTHZ_REAL_BROWSER';browser.SECURITY_GATE='pg11-access-security-tests.py'
  browser.browser()

@@ -126,7 +126,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -182,7 +182,7 @@ try {
       if(message.kind==='inspectAccess'){
         const policy=await admin.query('SELECT version::text AS version FROM app.policy_versions WHERE tenant_id=$1',[input.tenant])
         const rules=await admin.query('SELECT id,effect,action,resource_kind,revoked_at FROM app.access_rules WHERE tenant_id=$1 AND (id=$2 OR id=$3)',[input.tenant,accessTargetRule,accessRoleRule])
-        const audit=await admin.query("SELECT action,outcome,safe_metadata,actor_user_id IS NOT NULL AS actor_recorded FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action IN('auth.access.change','auth.access.revoke','auth.role.change','auth.role.assign','auth.role.permission','auth.access.denied') ORDER BY occurred_at",[input.tenant,input.user])
+        const audit=await admin.query("SELECT action,outcome,safe_metadata,actor_user_id IS NOT NULL AS actor_recorded FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action IN('auth.access.change','auth.access.revoke','auth.role.change','auth.role.assign','auth.role.permission','auth.access.denied','auth.access.change.detail') ORDER BY occurred_at",[input.tenant,input.user])
         reply({policy:policy.rows[0].version,rules:rules.rows,audit:audit.rows});continue
       }
       if(message.kind==='denyAccessOperator'){
