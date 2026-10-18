@@ -62,3 +62,30 @@ def run(b):
  b.check('SQL11-synthetic-explicit-operator-power',f"INSERT INTO app.access_rules VALUES('{b.A}','{uuid.uuid4()}',NULL,'{b.U}','export','finance','{resource}','ALLOW',clock_timestamp(),NULL,NULL);INSERT INTO app.step_up_evidence(tenant_id,id,user_id,session_id,grant_key,verified_at,expires_at,policy_version) VALUES('{b.A}','{uuid.uuid4()}','{b.U}','{b.S}','B1-SELF-06',clock_timestamp(),clock_timestamp()+interval '5m',(SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}'));")
  b.check('SQL11-legitimate-reactivation-allowed',statement(body(role),'legitimate-reactivation',str(uuid.uuid4())),'false\nt\nt',b.ROLE['identity'])
  b.check('SQL11-legitimate-reactivation-is-effective',f"BEGIN;SELECT auth_api.begin_verified_context(repeat('c',43));SELECT auth_api.effective_access('export','finance','{resource}');COMMIT;",'t',b.ROLE['identity'])
+ # Two actual PostgreSQL connections, not merely concurrent HTTP serialized by IPC.
+ from concurrent.futures import ThreadPoolExecutor
+ import threading
+ import time
+ version=policy();left,right=[str(uuid.uuid4()) for _ in range(2)];correlations=[str(uuid.uuid4()) for _ in range(2)]
+ b.check('SQL11-concurrent-synthetic-fresh-session-evidence',f"INSERT INTO app.step_up_evidence(tenant_id,id,user_id,session_id,grant_key,verified_at,expires_at,policy_version) SELECT '{b.A}',gen_random_uuid(),'{b.U}',sid,'B1-SELF-06',clock_timestamp(),clock_timestamp()+interval '5m',{version} FROM unnest(ARRAY['{b.S}'::uuid,'{b.T}'::uuid]) sid;")
+ barrier=threading.Barrier(2)
+ def compete(index,role,token):
+  p={'operation':'ROLE','role_id':role,'label':'Synthetic concurrent CAS','expected_policy':version,'reason':'Synthetic real PostgreSQL concurrency'}
+  sql=statement(p,'concurrent-'+str(index),correlations[index],token=token,ending='SELECT pg_sleep(0.5);COMMIT;')
+  sql=sql.replace('BEGIN;','BEGIN;SET LOCAL application_name='+q('SQL11_CONCURRENT_'+str(index))+';',1)
+  barrier.wait(timeout=5)
+  return b.sql(sql,b.ROLE['identity'])
+ observed=False
+ with ThreadPoolExecutor(max_workers=2) as pool:
+  futures=[pool.submit(compete,0,left,'a'),pool.submit(compete,1,right,'b')]
+  deadline=time.monotonic()+5
+  while time.monotonic()<deadline and not all(f.done() for f in futures):
+   lock=b.sql("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name LIKE 'SQL11_CONCURRENT_%' AND wait_event_type='Lock');")
+   if lock.returncode==0 and lock.stdout.strip()=='t':observed=True;break
+   time.sleep(0.02)
+  results=[f.result(timeout=10) for f in futures]
+ b.record('SQL11-concurrency-real-row-lock-observed','PASS' if observed else 'FAIL')
+ b.record('SQL11-concurrent-CAS-exactly-one-winner','PASS' if all(r.returncode==0 for r in results) and sorted(r.stdout.strip() for r in results)==['false\nf\nt','false\nt\nt'] else 'FAIL')
+ ids=','.join(q(x) for x in [left,right]);corrs=','.join(q(x) for x in correlations)
+ b.check('SQL11-concurrent-only-one-durable-role',f"SELECT count(*)=1 FROM app.access_roles WHERE tenant_id='{b.A}' AND id IN({ids});",'t')
+ b.check('SQL11-concurrent-success-and-denial-both-durable',f"SELECT count(*) FILTER(WHERE action='auth.access.change.detail' AND outcome='SUCCESS')=1 AND count(*) FILTER(WHERE action='auth.access.denied' AND outcome='DENY')=1 FROM app.audit_logs WHERE tenant_id='{b.A}' AND correlation_id IN({corrs});",'t')

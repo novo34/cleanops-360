@@ -25,6 +25,7 @@ const local=(ms:number)=>new Date(ms).toISOString().slice(0,19)
 test('AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session',async({page,browser})=>{
  const server=await startRealBrowserServer('authz'),person=await browser.newContext({ignoreHTTPSErrors:true})
  try{const f=await server.rpc({kind:'accessFixture'}),target=await person.newPage();await login(page,server);await login(target,server,f);expect(await check(target,f.resourceId)).toBe(true)
+  for(const action of ['view','create','edit','approve','delete','export','manage_permissions'])expect(await check(page,f.resourceId,action)).toBe(true)
   await open(page,f.targetUser);await page.getByLabel('Identificador de regla existente',{exact:true}).fill(f.ruleId);await page.getByLabel('Tipo de recurso',{exact:true}).fill('documents');await page.getByLabel('Recurso concreto',{exact:true}).fill(f.resourceId);await page.getByLabel('Efecto',{exact:true}).selectOption('DENY');await page.getByLabel('Inicio de vigencia',{exact:true}).fill(local(Date.now()-60000));await finish(page,server)
   expect(await check(target,f.resourceId)).toBe(false);expect((await target.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(200)
   const state=await server.rpc({kind:'inspectAccess'});expect(state.rules.some((r:{id:string;effect:string})=>r.id===f.ruleId&&r.effect==='DENY')).toBe(true);expect(state.audit.some((a:{actor_recorded:boolean;outcome:string;action:string;safe_metadata:Record<string,unknown>})=>a.actor_recorded&&a.outcome==='SUCCESS'&&a.action==='auth.access.change.detail'&&a.safe_metadata.reason==='Synthetic isolated approved permission change'&&'before' in a.safe_metadata&&'after' in a.safe_metadata)).toBe(true)
@@ -97,5 +98,21 @@ test('AUTHZ password PREAUTH with operator roles never exposes access details or
  const server=await startRealBrowserServer('authz')
  try{const f=await server.rpc({kind:'accessFixture'});await page.goto('https://127.0.0.1:3000/login');await page.getByLabel('Email',{exact:true}).fill((await server.rpc({kind:'fixtureEmail'})).email);await page.getByLabel('Contraseña',{exact:true}).fill('PG05 synthetic passphrase!');await page.getByRole('button',{name:'Continuar',exact:true}).click();await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
   expect((await page.request.get('/auth/access/user?target_user_id='+f.targetUser)).status()).toBe(401);expect((await send(page,{operation:'ROLE',role_id:randomUUID(),label:'No authority',expected_policy:(await server.rpc({kind:'inspectAccess'})).policy,reason:'Synthetic no-MFA proof'})).status).toBe(401)
+ }finally{await server.close()}
+})
+
+test('AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors',async({page})=>{
+ const server=await startRealBrowserServer('authz-readonly')
+ try{
+  const f=await server.rpc({kind:'accessFixture'});await login(page,server);await open(page,f.targetUser)
+  await expect(page.getByRole('button',{name:'Guardar cambio de acceso',exact:true})).toBeDisabled()
+  for(const action of ['view','create','edit','approve','delete','export','manage_permissions'])expect(await check(page,f.resourceId,action)).toBe(false)
+  const before=await server.rpc({kind:'inspectAccess'}),body={operation:'ROLE',role_id:randomUUID(),label:'Synthetic denied role',expected_policy:before.policy,reason:'Synthetic denied direct HTTP attempt'}
+  const denied=await send(page,body);expect(denied.status).toBe(403);expect(denied.data.error.code).toBe('POLICY_DENIED');expect(denied.data.error.details).toEqual([]);expect(Object.keys(denied.data).sort()).toEqual(['correlation_id','error'])
+  const state=await server.rpc({kind:'inspectAccess'});expect(state.policy).toBe(before.policy)
+  expect(state.audit.some((a:{action:string;outcome:string;actor_recorded:boolean;safe_metadata:{reason:string;before:unknown;after:unknown}})=>a.action==='auth.access.denied'&&a.outcome==='DENY'&&a.actor_recorded&&a.safe_metadata.reason===body.reason&&a.safe_metadata.before===null&&a.safe_metadata.after===null)).toBe(true)
+  expect((await send(page,{...body,tenant_id:randomUUID()})).status).toBe(422)
+  expect((await page.request.get('/auth/access/user?target_user_id='+f.foreignUser)).status()).toBe(403)
+  expect((await page.request.get('/auth/me')).status()).toBe(200)
  }finally{await server.close()}
 })
