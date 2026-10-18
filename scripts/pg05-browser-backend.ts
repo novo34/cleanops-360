@@ -5,6 +5,7 @@ import { randomBytes, randomUUID, createHmac, createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { TOTP, Secret } from 'otpauth'
 import type { IdentityPool } from '../lib/b1/pg-identity-driver.ts'
+import {createPasswordAdmission} from '../lib/b1/password-admission.ts'
 import { createApprovedPrivateBackend } from '../lib/b1/approved-backend.ts'
 import { createAuthHandler } from '../lib/b1/service.ts'
 import { canonical } from '../lib/b1/contracts.ts'
@@ -126,8 +127,10 @@ try {
       }
     }, release(discard?: boolean) { client.release(discard) } }
   } }
+  const corpus=Buffer.from(createHash('sha256').update('Compromised fixture password!').digest('hex')+'\n')
+  const passwordAdmission=createPasswordAdmission({version:'synthetic-browser-fixture-v1',content:corpus,sha256:createHash('sha256').update(corpus).digest('hex')},{minimumCodePoints:numeric('password_min'),maximumCodePoints:numeric('password_max'),maximumCorpusBytes:1024})
   const backend = createApprovedPrivateBackend(privatePool, {
-    passwordAdmission: async value => [...value].length>=numeric('password_min') && value!=='Compromised fixture password!',
+    passwordAdmission,
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
