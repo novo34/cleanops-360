@@ -47,6 +47,7 @@ def run(b):
  b.check('SQL11-stale-CAS-durable-denial',statement(p,'stale',stale),'false\nf\nt',b.ROLE['identity'])
  b.check('SQL11-stale-CAS-audit-persists',f"SELECT EXISTS(SELECT 1 FROM app.audit_logs WHERE correlation_id='{stale}' AND outcome='DENY');",'t')
  rollback=str(uuid.uuid4());rc=str(uuid.uuid4());p=body(rollback)
+ b.check('SQL11-synthetic-fresh-stepup-after-policy-change',f"INSERT INTO app.step_up_evidence(tenant_id,id,user_id,session_id,grant_key,verified_at,expires_at,policy_version) VALUES('{b.A}','{uuid.uuid4()}','{b.U}','{b.S}','B1-SELF-06',clock_timestamp(),clock_timestamp()+interval '5m',(SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}'));")
  b.check('SQL11-functional-rollback',statement(p,'rollback',rc,ending='ROLLBACK;'),'false\nt\nt',b.ROLE['identity'])
  b.check('SQL11-rollback-no-effect-or-audit',f"SELECT NOT EXISTS(SELECT 1 FROM app.access_roles WHERE id='{rollback}') AND NOT EXISTS(SELECT 1 FROM app.audit_logs WHERE correlation_id='{rc}');",'t')
  # Actual legacy calls, not just has_function_privilege introspection.

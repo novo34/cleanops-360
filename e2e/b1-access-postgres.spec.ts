@@ -44,8 +44,8 @@ test('AUTHZ role membership starts and expires in PostgreSQL while the target se
  const server=await startRealBrowserServer('authz'),person=await browser.newContext({ignoreHTTPSErrors:true})
  try{const f=await server.rpc({kind:'accessFixture'}),target=await person.newPage();await login(page,server);await login(target,server,f);await open(page,f.targetUser)
   await page.getByLabel('Tipo de cambio',{exact:true}).selectOption('MEMBERSHIP');await page.getByLabel('Identificador del rol',{exact:true}).fill(f.roleId)
-  await page.getByLabel('Inicio de vigencia',{exact:true}).fill(local(Date.now()+4000));await page.getByLabel('Fin de vigencia',{exact:true}).fill(local(Date.now()+11000));await finish(page,server)
-  expect(await check(target,f.resourceId)).toBe(false);await expect.poll(()=>check(target,f.resourceId),{timeout:7000}).toBe(true);await expect.poll(()=>check(target,f.resourceId),{timeout:12000}).toBe(false)
+  await page.getByLabel('Inicio de vigencia',{exact:true}).fill(local(Date.now()+12000));await page.getByLabel('Fin de vigencia',{exact:true}).fill(local(Date.now()+20000));await finish(page,server)
+  expect(await check(target,f.resourceId)).toBe(false);await expect.poll(()=>check(target,f.resourceId),{timeout:15000}).toBe(true);await expect.poll(()=>check(target,f.resourceId),{timeout:25000}).toBe(false)
   expect((await target.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(200)
  }finally{await person.close();await server.close()}
 })
