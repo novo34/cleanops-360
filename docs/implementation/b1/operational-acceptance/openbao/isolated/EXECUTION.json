@@ -1,0 +1,268 @@
+{
+  "scope": "B1_OPENBAO_SYNTHETIC_ISOLATED",
+  "B1": "OPEN",
+  "accepted": 42,
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "checks": [
+    {
+      "name": "exact-pinned-OpenBao-binary-SHA256",
+      "status": "PASS"
+    },
+    {
+      "name": "primary-owned-network-none-no-ports-no-shared-mounts",
+      "status": "PASS"
+    },
+    {
+      "name": "native-server-config-TLS-Raft-audit-startup",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "TLS-reject-missing-client-certificate",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "TLS-reject-foreign-server-CA",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "synthetic-Shamir-two-of-two-initialize",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "one-share-cannot-unseal",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "two-shares-unseal",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "KVv2-enable-CAS-required",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "AppRole-wrapped-single-use-no-default-policy",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "mail-worker-distinct-AppRole",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "tenant-A-allowed-tenant-B-denied",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "mail-worker-purpose-isolation",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "service-denied-metadata-ba7b3b",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "service-denied-sys/raw/anything",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "service-denied-sys/policies/acl/root",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "service-denied-metadata-e71e77",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "service-cannot-mutate-key-or-policies",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "creator-missing-CAS-denied",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "creator-only-new-ID-CAS-zero",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "concurrent-CAS-create-exactly-one-winner",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "old-new-exact-key-rotation-AEAD-and-tamper-denial",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "short-lived-token-expires",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "least-privilege-snapshot-read-no-restore",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "encrypted-backup-tamper-rejected",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "token-revocation-effective-immediately",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "audit-has-events-without-plaintext-material",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "audit-full-observed-HTTP-status",
+      "status": "PASS",
+      "detail": {
+        "status": 500
+      },
+      "phase": "primary"
+    },
+    {
+      "name": "audit-disk-full-fails-closed-then-recovers",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "synthetic-initial-root-revoked-after-drill",
+      "status": "PASS",
+      "phase": "primary"
+    },
+    {
+      "name": "restore-owned-network-none-no-ports-no-shared-mounts",
+      "status": "PASS"
+    },
+    {
+      "name": "native-server-config-TLS-Raft-audit-startup",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "TLS-reject-missing-client-certificate",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "TLS-reject-foreign-server-CA",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "synthetic-Shamir-two-of-two-initialize",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "one-share-cannot-unseal",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "two-shares-unseal",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "new-target-normal-restore-rejects-different-seal",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "normal-restore-identity-cannot-force",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "separately-scoped-fresh-target-force-restore",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "restored-original-custody-quorum-required",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "restored-old-new-key-values-and-AEAD-integrity",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "restore-quarantine-revokes-snapshot-era-identities-before-use",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "restored-ordinary-AppRole-keeps-tenant-and-purpose-isolation",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "restored-KV-CAS-configuration",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "synthetic-initial-root-revoked-after-drill",
+      "status": "PASS",
+      "phase": "restore"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "productiveCustodyAccepted": false,
+  "realSwissResidenceVerified": false,
+  "signatureTrustVerified": false,
+  "postgresExecuted": false,
+  "release": {
+    "version": "v2.7.1",
+    "assetSha256": "0e2f1ce10d124e03112b50dd2fbec6b78003783253bc3a91587938f39d1e2243",
+    "digestSource": "committed GitHub release metadata; independent signer trust not claimed"
+  },
+  "sandboxImage": "node@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+  "fixtureOnlyDifferences": [
+    "Private RFC1918 binding/DNS replaced by loopback inside network-none sandbox",
+    "TLS paths point to synthetic24h test certificates",
+    "Workload CIDRs narrowed to127.0.0.1/32; TTL120/300/60 trial only",
+    "Two-of-two synthetic Shamir initialization is not productive quorum approval"
+  ],
+  "serverConfigSha256": "02fdb3037de1810f537c0fa5ca4c76a3c6cd066bfe21511d94db1e715a657877",
+  "encryptedBackupSha256": "cd22ba006c366b8ca426e403c0b5944a38592e284108215b78706c7eb9b836a2",
+  "syntheticRestoreSeconds": 15.507,
+  "recoveryTargets": "Synthetic OpenBao snapshot only; not full B1/PG PITR RPO/RTO or real custody/residence acceptance",
+  "cleanup": "PASS",
+  "result": "PASS",
+  "source": "80f441fd4c488f7856271e0487b206afcd667a4b",
+  "run": 39147433440,
+  "job": 117734026652
+}

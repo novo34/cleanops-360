@@ -1,7 +1,9 @@
 # Custody, rotation and recovery — prepared procedure
 
-NOT EXECUTED. No initialized cluster, custodians confirmed, keys, snapshots or real
-recovery evidence exist in this package. The project owner is the proposed principal
+Operating procedure NOT EXECUTED. The separate isolated/RESULT.md records a
+completed synthetic trial; its temporary clusters/keys/snapshots were removed.
+No operating cluster, confirmed custodians, productive keys or real custody recovery
+evidence exists. The project owner is the proposed principal
 custodian, awaiting signed confirmation; secondary is unassigned. Neither name nor
 signature is invented. Reference KEY_OPERATIONS.md for existing v2/AAD invariants.
 

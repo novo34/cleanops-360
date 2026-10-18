@@ -1,10 +1,10 @@
 {
   "kind": "OFFLINE_REVIEW_PACKAGE_HASHES_NOT_INSTALL_AUTHORIZATION",
   "sha256": {
-    "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": "13c03d9028b50c761f23fd1f5b89e79177ae3013c9509eb40a39b7792d54b9aa",
-    "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": "48e23862b01688da801c0415cb2864bfb72605fa7b77629c28bfa9e8f9b7d1a2",
+    "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": "ca1058beae3576daf851e50ced7926a4c9ac2e9990573d1f236bfb8bd14c8ceb",
+    "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": "0d9b0be39e346f456e14c7cab2c7ba1ab3635309394dc26e7af185d9a457dd34",
     "docs/implementation/b1/operational-acceptance/openbao/PREPARATION_EVIDENCE.json": "39ca27f5c8b70a87a5c762870b267ff667e1c86ef49ff0046c88038bfe292e7f",
-    "docs/implementation/b1/operational-acceptance/openbao/README.md": "39dcaf39a7b7bdd4bde596d5c23377a39a08c74aa5459a7945ce44727e8433d2",
+    "docs/implementation/b1/operational-acceptance/openbao/README.md": "2476931e013004700eb835597bc84dd27d1d6456852ce876ff7fbf8b4308e591",
     "docs/implementation/b1/operational-acceptance/openbao/inputs.example.json": "c830278197e7ef6dd16bd567051c75868c37398d9752249b66f433d419e5e4d4",
     "docs/implementation/b1/operational-acceptance/openbao/release-pin.json": "e7ae9e4bef373ffa8fd20e54fd11bee7382107b9fd42e76db75697a8184c5ddb",
     "docs/implementation/b1/operational-acceptance/openbao/server.template.json": "7699bffdb14feab991aa38f52096794b31a002999a8c733036f6b02cb0024666",

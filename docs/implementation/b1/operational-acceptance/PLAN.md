@@ -55,3 +55,14 @@ Prepared package: [OpenBao configuration/resources](openbao/README.md),
 The renderer only produces offline review files, not infrastructure or secrets.
 Actual service/config/ACL validation, custody integration and REC01–12 execution
 remain NOT EXECUTED.42/44, closedBackend, B1/AUTH-GATE-05 OPEN remain unchanged.
+
+## Authorized isolated native follow-up
+
+OpenBao synthetic native/TLS/ACL/rotation and encrypted fresh-target backup/restore:
+47 check executions PASS; [redacted actual evidence](openbao/isolated/RESULT.md).
+All temporary resources removed and preexisting inventories unchanged. Real Swiss
+residence, custody, B1/OpenBao key lifecycle integration and independent/manual PO
+acceptance are not inferred;42/44 and all formal gates remain OPEN.
+Owner selected an expandable Swiss home server with VPS/dedicated portability;
+final hardware purchase is not a prerequisite for isolated trials. Principal owner
+custody confirmation, secondary designation and operational quorum remain undecided.

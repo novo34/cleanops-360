@@ -1,8 +1,11 @@
-# PR006 — OpenBao preparation, not an installed service
+# PR006 — OpenBao preparation and isolated synthetic evidence
 
 Baseline425503d; B1 42/44, SEC021 verified, closedBackend and AUTH-GATE-05 OPEN.
-Owner authorized preparation only. No install, initialization, real credential, SQL,
-ACL installation, deployment, SMTP or new product functionality is performed here.
+Original owner authorization covered preparation only. A later authorization
+permitted actual synthetic native trials in new isolated containers:47 checks and
+encrypted fresh-target restore PASS, [actual report](isolated/RESULT.md). No real
+infrastructure, productive credential, SQL/operational ACL change, deployment or SMTP
+is authorized or performed. No operating service remains installed.
 This package does not satisfy PR006/PR007 by documentation alone.
 
 ## Resources and proposed topology
@@ -24,8 +27,9 @@ Swiss boundary. RFC1918 addresses alone prove neither country nor tenancy.
 ## Prepared configuration and reproducibility
 
 `release-pin.json` records the observed official2.7.1 release and GitHub asset digests
-for Linux amd64/arm64. No binary was downloaded, signature verified or server parser
-executed. Choose the actual architecture, independently verify the maintainer signing
+for Linux amd64/arm64. The original preparation did not download a binary or execute a native server.
+The later synthetic drill verified that pinned binary SHA256 and ran the native
+server; independent release signature trust remains unverified. Choose the actual architecture, independently verify the maintainer signing
 fingerprint/channel, signature/checksum and security advisories before any future
 installation; a same-release public-key download is not an independent trust anchor.
 A replacement release/digest changes the execution authorization request.
@@ -119,3 +123,6 @@ Authoritative sources: SRS PR006/PR007/INF003, previous PLAN.md and KEY_OPERATIO
 upstream pinned reference paths in release-pin.json. Proposed choices (AppRole, KV
 scope mapping, seal/quorum, TTLs, budgets/retention) still need named owner/Security
 approval; OpenBao self-hosting/Switzerland and the existing B1 policies are not reopened.
+
+Owner home-host/portability decision and later installation procedure: [HOST_PORTABILITY.md](HOST_PORTABILITY.md).
+Custody alternatives remain unapproved: [QUORUM_OPTIONS.md](QUORUM_OPTIONS.md).

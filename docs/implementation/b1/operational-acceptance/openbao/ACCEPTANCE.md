@@ -19,7 +19,7 @@ history is re-audited or relabeled. Source: SRS PR006/007, INF003 and existing g
 |OPS11|Actual complete manual authentication/MFA demonstration with PO observations and safe persisted-effect evidence|Named Product Owner tester|PREPARED, NOT EXECUTED|
 |OPS12|All44 individual criteria plus AUTH gates satisfied, actual PR006 delivery acceptance and PR007 formal phase decision|Security/owner and Product Owner respectively|OPEN; no phase advance|
 
-## Failure/recovery test specification (not results)
+## Failure/recovery operating test specification (not full operating results)
 
 |Case|Actual future stimulus|PASS assertion|
 |---|---|---|
@@ -36,7 +36,9 @@ history is re-audited or relabeled. Source: SRS PR006/007, INF003 and existing g
 |REC11|Restore a stale snapshot containing previously consumed OTP/recovery/trust/session state|Fail closed until independently reconciled or approved revocation; stale credentials never regain validity|
 |REC12|Uncertain delivery during failure/restore|Encrypted outbox stays quarantined; no delivery replay or expired OTP acceptance; SMTP simulator clearly labeled|
 
-No REC case has run here. Record actual timestamps/identity/target/version, PASS/FAIL/
+The later synthetic47-check drill is documented in isolated/RESULT.md with exact
+subcase scope. It does NOT execute all REC01–12 operating obligations. Record actual
+timestamps/identity/target/version, PASS/FAIL/
 BLOCKED/SKIP, redacted receipts and cleanup per case. Mandatory SKIP/BLOCKED means no
 acceptance. Failure investigation may prepare corrections but not install unapproved
 SQL/ACL. Application SQL14 is frozen; changing OpenBao policies also requires the
@@ -91,3 +93,11 @@ PR007 is not signed automatically by this checklist or by passing CI.
 
 The next concrete owner input is OPER-01's real resource/custodian record. Nothing
 here asks to reapprove SQL14, session policy or the already accepted42 criteria.
+
+## Later synthetic execution (not operating acceptance)
+
+[isolated/RESULT.md](isolated/RESULT.md) records47 real native/TLS/ACL/rotation/backup/
+restore assertions with original run/job/source, complete cleanup and original
+failures retained. OPS operating states above stay pending. The home server in
+Switzerland is now the owner-selected eventual host model; final hardware is not
+required for synthetic trials. See HOST_PORTABILITY.md and QUORUM_OPTIONS.md.
