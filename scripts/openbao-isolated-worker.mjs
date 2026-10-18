@@ -23,6 +23,8 @@ async function token(policies,ttl='300s'){return(await api('auth/token/create',{
 function seal(bytes,key,aad){const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key,iv);c.setAAD(Buffer.from(aad));return{iv:iv.toString('base64'),tag:null,data:Buffer.concat([c.update(bytes),c.final()]).toString('base64'),...(function(){return{tag:c.getAuthTag().toString('base64')}})()}}
 function open(e,key,aad){const c=createDecipheriv('aes-256-gcm',key,Buffer.from(e.iv,'base64'));c.setAAD(Buffer.from(aad));c.setAuthTag(Buffer.from(e.tag,'base64'));return Buffer.concat([c.update(Buffer.from(e.data,'base64')),c.final()])}
 let privateResult={}
+const integration=input.integrationModule?await import(input.integrationModule):null
+let integrationState
 try{
  await check('native-server-config-TLS-Raft-audit-startup',start)
  if(!child||checks.at(-1).status!=='PASS')throw Error('STARTUP_BLOCKED')
@@ -34,12 +36,13 @@ try{
  await check('one-share-cannot-unseal',async()=>{assert((await api('sys/unseal',{key:keys[0]},null,'PUT')).sealed===true)})
  await check('two-shares-unseal',async()=>{await unseal(keys);assert((await request('sys/health')).status===200)})
  if(input.mode==='primary'){
-  const A='11111111-1111-1111-1111-111111111111',B='22222222-2222-2222-2222-222222222222'
+  const A=input.pg?.tenant??'11111111-1111-1111-1111-111111111111',B=input.pg?.otherTenant??'22222222-2222-2222-2222-222222222222'
   const prefix='b1-keys/data/isolated-fixture/',old=prefix+A+'/totp-aead/key-v1',next=prefix+A+'/totp-aead/key-v2',mail=prefix+A+'/mail-aead/key-mail',foreign=prefix+B+'/totp-aead/key-v1'
   const k1=randomBytes(32),k2=randomBytes(32),km=randomBytes(32),secret=randomBytes(32)
   const put=(path,key,cas=0,t=root)=>api(path,{options:{cas},data:{value:key.toString('base64')}},t)
   await check('KVv2-enable-CAS-required',async()=>{await api('sys/mounts/b1-keys',input.pack['kv-mount.json']);await api('b1-keys/config',input.pack['kv-config.json']);assert((await request('b1-keys/config')).json.data.cas_required===true)})
   await put(old,k1);await put(mail,km);await put(foreign,randomBytes(32))
+  if(integration)for(const purpose of ['audit-hmac','otp-hmac','recovery-hmac','cursor-hmac'])await put(prefix+A+'/'+purpose+'/key-v1',randomBytes(32))
   await api('sys/auth/b1-approle',{type:'approle'})
   async function workload(w){const name=input.pack[w+'.approle.json'].token_policies[0];await policy(name,input.pack[w+'.policy.json']);await api('auth/b1-approle/role/'+name,input.pack[w+'.approle.json']);const id=(await request('auth/b1-approle/role/'+name+'/role-id')).json.data.role_id;const wrapped=await api('auth/b1-approle/role/'+name+'/secret-id',{},root,'POST',{'X-Vault-Wrap-TTL':'60s'});const wrap=wrapped.wrap_info.token;const unwrapped=await api('sys/wrapping/unwrap',{},wrap);return{id,sid:unwrapped.data.secret_id,wrap}}
   let verifier,worker,credential
@@ -60,6 +63,7 @@ try{
   await check('short-lived-token-expires',async()=>{const t=await token([input.pack['identity-verifier.approle.json'].token_policies[0]],'1s');assert((await request(old,{token:t})).status===200);await wait(1300);assert((await request(old,{token:t})).status===403)})
   await policy('fixture-snapshot-reader',input.pack['snapshot-reader.policy.json']);const backupToken=await token(['fixture-snapshot-reader'])
   let snapshot
+  if(integration)integrationState=await integration.beforeSnapshot({input:{...input,recoveryKeys:keys},request,api,check,verifier,worker,root,k1,k2,km,secret})
   await check('least-privilege-snapshot-read-no-restore',async()=>{const r=await request('sys/storage/raft/snapshot',{token:backupToken});assert(r.status===200&&r.raw.length>100);snapshot=r.raw;assert((await request('sys/storage/raft/snapshot-force',{method:'POST',raw:Buffer.from('invalid'),token:backupToken})).status===403)})
   const backupKey=randomBytes(32),backup=seal(snapshot,backupKey,'B1_SYNTHETIC_BACKUP_V1');fs.writeFileSync('/work/backup.enc',JSON.stringify(backup),{mode:0o600})
   await check('encrypted-backup-tamper-rejected',async()=>{let rejected=false;try{open({...backup,tag:randomBytes(16).toString('base64')},backupKey,'B1_SYNTHETIC_BACKUP_V1')}catch{rejected=true}assert(rejected);assert(open(backup,backupKey,'B1_SYNTHETIC_BACKUP_V1').equals(snapshot))})
@@ -79,7 +83,7 @@ try{
    for(let n=0;n<100;n++){if((await request(old,{token:verifier})).status===200)return;await wait(100)}
    throw Error('AUDIT_DID_NOT_RECOVER')
   })
-  privateResult={root,keys,backupKey:backupKey.toString('base64'),old,next,mail,verifier,backupToken,worker,key1:k1.toString('base64'),key2:k2.toString('base64'),secret:secret.toString('base64'),e1,e2,aad}
+  privateResult={root,keys,backupKey:backupKey.toString('base64'),old,next,mail,verifier,backupToken,worker,key1:k1.toString('base64'),key2:k2.toString('base64'),secret:secret.toString('base64'),e1,e2,aad,integrationState}
  }else{
   const p=input.recovery
   const enc=JSON.parse(fs.readFileSync('/work/backup.enc','utf8')),snapshot=open(enc,Buffer.from(p.backupKey,'base64'),'B1_SYNTHETIC_BACKUP_V1')
@@ -100,8 +104,9 @@ try{
    assert((await request(p.old,{token:t})).json.data.data.value===p.key1)
    assert((await request(p.next,{token:t})).json.data.data.value===p.key2)
    assert((await request(p.mail,{token:t})).status===403)
-   assert((await request(p.old.replace('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222'),{token:t})).status===403)
+   assert((await request(p.old.replace(input.pg?.tenant??'11111111-1111-1111-1111-111111111111',input.pg?.otherTenant??'22222222-2222-2222-2222-222222222222'),{token:t})).status===403)
   })
+  if(integration)await integration.afterRestore({input,request,api,check,root,state:p.integrationState})
   await check('restored-KV-CAS-configuration',async()=>{assert((await request('b1-keys/config')).json.data.cas_required===true)})
  }
  await check('synthetic-initial-root-revoked-after-drill',async()=>{await api('auth/token/revoke-self',{});assert((await request('sys/mounts')).status===403)})

@@ -43,65 +43,69 @@ def configuration():
  REPORT['fixtureOnlyDifferences']=['Private RFC1918 binding/DNS replaced by loopback inside network-none sandbox','TLS paths point to synthetic24h test certificates','Workload CIDRs narrowed to127.0.0.1/32; TTL120/300/60 trial only','Two-of-two synthetic Shamir initialization is not productive quorum approval']
  REPORT['serverConfigSha256']=hashlib.sha256(json.dumps(server,sort_keys=True).encode()).hexdigest()
  return pack,server
-before=None
-try:
- before=inventory();tmp=Path(tempfile.mkdtemp(prefix=RUN+'-'));os.chmod(tmp,0o700)
- pin=json.loads((BASE/'release-pin.json').read_text());asset=next(a for a in pin['assets'] if a['name']=='openbao_2.7.1_linux_amd64.tar.gz')
- archive=tmp/'bao.tar.gz'
- with urllib.request.urlopen(asset['url'],timeout=90) as r,archive.open('wb') as f:shutil.copyfileobj(r,f)
- digest=hashlib.sha256(archive.read_bytes()).hexdigest()
- if 'sha256:'+digest!=asset['githubApiDigest']:raise RuntimeError('PINNED_BINARY_DIGEST_MISMATCH')
- with tarfile.open(archive) as a:
-  member=next(m for m in a.getmembers() if m.name in {'bao','./bao'} and m.isfile())
-  with a.extractfile(member) as src,(tmp/'bao').open('wb') as dst:shutil.copyfileobj(src,dst)
- os.chmod(tmp/'bao',0o755);REPORT['release']={'version':pin['tag'],'assetSha256':digest,'digestSource':'committed GitHub release metadata; independent signer trust not claimed'};record('exact-pinned-OpenBao-binary-SHA256')
- manifest=json.loads(require(docker('manifest','inspect','node:24-bookworm-slim')))
- dg=next(x['digest'] for x in manifest['manifests'] if x['platform'].get('os')=='linux' and x['platform'].get('architecture')=='amd64')
- image='node@'+dg;require(docker('pull',image,timeout=180));REPORT['sandboxImage']=image
- certificates(tmp);pack,server=configuration();(tmp/'server.json').write_text(json.dumps(server));shutil.copy(ROOT/'scripts/openbao-isolated-worker.mjs',tmp/'worker.mjs')
- def transfer(cid,source,target):
-  require(docker('exec','-i',cid,'node','-e',"const fs=require('node:fs');const f=fs.createWriteStream(process.argv[1],{mode:0o600});process.stdin.pipe(f);f.on('finish',()=>fs.chmodSync(process.argv[1],process.argv[1].endsWith('/bao')?0o700:0o600));",target,data=source.read_bytes()))
- def container(mode):
-  global PHASE
-  PHASE='CREATE_'+mode.upper()
-  cid=require(docker('create','--name',RUN+'-'+mode,'--label','cleanops.b1.openbao='+RUN,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--tmpfs','/work:rw,exec,size=256m','--tmpfs','/tmp:rw,noexec,size=32m','--tmpfs','/var/lib/openbao:rw,noexec,size=64m','--tmpfs','/var/log/openbao:rw,noexec,size=4m',image,'sleep','600'))
-  containers.append(cid);require(docker('start',cid))
-  ins=json.loads(require(docker('inspect',cid)))[0]
-  if ins['HostConfig']['NetworkMode']!='none' or ins['HostConfig']['PortBindings'] or any(m['Type'] in ['bind','volume'] for m in ins['Mounts']):raise RuntimeError('ISOLATION_FAILED')
-  for f in ['bao','worker.mjs','server.json','ca.pem','foreign-ca.pem','server.pem','server-key.pem','client.pem','client-key.pem']:
-   PHASE='TRANSFER_'+f.upper().replace('.','_').replace('-','_');transfer(cid,tmp/f,'/work/'+f)
-  record(mode+'-owned-network-none-no-ports-no-shared-mounts');return cid
- def run(cid,payload):
-  result=docker('exec','-i',cid,'node','/work/worker.mjs',data=json.dumps(payload),timeout=240)
-  try:r=json.loads(result.stdout)
-  except Exception:raise RuntimeError('REDACTED_WORKER_PROTOCOL_FAILURE')
-  for check in r['checks']:REPORT['checks'].append(dict(check,phase=payload['mode']))
-  if r.get('nativeMessages'):REPORT.setdefault('nativeDiagnostics',[]).append({'phase':payload['mode'],'messages':r['nativeMessages']})
-  return r.get('privateResult',{})
- primary=container('primary');private=run(primary,{'mode':'primary','pack':pack,'racePath':'b1-keys/data/isolated-fixture/11111111-1111-1111-1111-111111111111/totp-aead/race-key'})
- if not private.get('backupKey'):raise RuntimeError('PRIMARY_BACKUP_BLOCKED')
- PHASE='READ_ENCRYPTED_BACKUP'
- (tmp/'backup.enc').write_text(require(docker('exec',primary,'node','-e',"process.stdout.write(require('node:fs').readFileSync('/work/backup.enc'))")))
- REPORT['encryptedBackupSha256']=hashlib.sha256((tmp/'backup.enc').read_bytes()).hexdigest()
- restore=container('restore');transfer(restore,tmp/'backup.enc','/work/backup.enc')
- started=time.monotonic();run(restore,{'mode':'restore','pack':pack,'recovery':private});REPORT['syntheticRestoreSeconds']=round(time.monotonic()-started,3)
- REPORT['recoveryTargets']='Synthetic OpenBao snapshot only; not full B1/PG PITR RPO/RTO or real custody/residence acceptance'
-except Exception as e:record('isolated-harness','FAIL',{'exception':type(e).__name__,'phase':PHASE,'code':str(e) if str(e).isupper() and len(str(e))<70 else 'REDACTED'})
-finally:
- cleanup=True
- for cid in containers:
-  try:
-   inspect=json.loads(require(docker('inspect',cid)))[0]
-   if inspect['Config']['Labels'].get('cleanops.b1.openbao')!=RUN:raise RuntimeError('OWNER_MISMATCH')
-   require(docker('rm','-f',cid));cleanup=cleanup and docker('inspect',cid).returncode!=0
-  except Exception:cleanup=False
- private.clear()
- if tmp:shutil.rmtree(tmp,ignore_errors=False)
- if before is not None:
-  try:record('preexisting-containers-networks-volumes-unchanged','PASS' if inventory()==before else 'FAIL')
-  except Exception:record('preexisting-resource-verification','FAIL')
- REPORT['cleanup']='PASS' if cleanup and (tmp is None or not tmp.exists()) else 'FAIL'
- REPORT['result']='PASS' if REPORT['cleanup']=='PASS' and REPORT['checks'] and all(c['status']=='PASS' for c in REPORT['checks']) else 'FAIL'
- out=ROOT/'artifacts/openbao-isolated';out.mkdir(parents=True,exist_ok=True);(out/'report.json').write_text(json.dumps(REPORT,indent=2)+'\n')
- print(json.dumps(REPORT,indent=2))
-raise SystemExit(0 if REPORT['result']=='PASS' else 1)
+def main():
+ global tmp,private,PHASE
+ before=None
+ try:
+  before=inventory();tmp=Path(tempfile.mkdtemp(prefix=RUN+'-'));os.chmod(tmp,0o700)
+  pin=json.loads((BASE/'release-pin.json').read_text());asset=next(a for a in pin['assets'] if a['name']=='openbao_2.7.1_linux_amd64.tar.gz')
+  archive=tmp/'bao.tar.gz'
+  with urllib.request.urlopen(asset['url'],timeout=90) as r,archive.open('wb') as f:shutil.copyfileobj(r,f)
+  digest=hashlib.sha256(archive.read_bytes()).hexdigest()
+  if 'sha256:'+digest!=asset['githubApiDigest']:raise RuntimeError('PINNED_BINARY_DIGEST_MISMATCH')
+  with tarfile.open(archive) as a:
+   member=next(m for m in a.getmembers() if m.name in {'bao','./bao'} and m.isfile())
+   with a.extractfile(member) as src,(tmp/'bao').open('wb') as dst:shutil.copyfileobj(src,dst)
+  os.chmod(tmp/'bao',0o755);REPORT['release']={'version':pin['tag'],'assetSha256':digest,'digestSource':'committed GitHub release metadata; independent signer trust not claimed'};record('exact-pinned-OpenBao-binary-SHA256')
+  manifest=json.loads(require(docker('manifest','inspect','node:24-bookworm-slim')))
+  dg=next(x['digest'] for x in manifest['manifests'] if x['platform'].get('os')=='linux' and x['platform'].get('architecture')=='amd64')
+  image='node@'+dg;require(docker('pull',image,timeout=180));REPORT['sandboxImage']=image
+  certificates(tmp);pack,server=configuration();(tmp/'server.json').write_text(json.dumps(server));shutil.copy(ROOT/'scripts/openbao-isolated-worker.mjs',tmp/'worker.mjs')
+  def transfer(cid,source,target):
+   require(docker('exec','-i',cid,'node','-e',"const fs=require('node:fs');const f=fs.createWriteStream(process.argv[1],{mode:0o600});process.stdin.pipe(f);f.on('finish',()=>fs.chmodSync(process.argv[1],process.argv[1].endsWith('/bao')?0o700:0o600));",target,data=source.read_bytes()))
+  def container(mode):
+   global PHASE
+   PHASE='CREATE_'+mode.upper()
+   cid=require(docker('create','--name',RUN+'-'+mode,'--label','cleanops.b1.openbao='+RUN,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--tmpfs','/work:rw,exec,size=256m','--tmpfs','/tmp:rw,noexec,size=32m','--tmpfs','/var/lib/openbao:rw,noexec,size=64m','--tmpfs','/var/log/openbao:rw,noexec,size=4m',image,'sleep','600'))
+   containers.append(cid);require(docker('start',cid))
+   ins=json.loads(require(docker('inspect',cid)))[0]
+   if ins['HostConfig']['NetworkMode']!='none' or ins['HostConfig']['PortBindings'] or any(m['Type'] in ['bind','volume'] for m in ins['Mounts']):raise RuntimeError('ISOLATION_FAILED')
+   for f in ['bao','worker.mjs','server.json','ca.pem','foreign-ca.pem','server.pem','server-key.pem','client.pem','client-key.pem']:
+    PHASE='TRANSFER_'+f.upper().replace('.','_').replace('-','_');transfer(cid,tmp/f,'/work/'+f)
+   record(mode+'-owned-network-none-no-ports-no-shared-mounts');return cid
+  def run(cid,payload):
+   result=docker('exec','-i',cid,'node','/work/worker.mjs',data=json.dumps(payload),timeout=240)
+   try:r=json.loads(result.stdout)
+   except Exception:raise RuntimeError('REDACTED_WORKER_PROTOCOL_FAILURE')
+   for check in r['checks']:REPORT['checks'].append(dict(check,phase=payload['mode']))
+   if r.get('nativeMessages'):REPORT.setdefault('nativeDiagnostics',[]).append({'phase':payload['mode'],'messages':r['nativeMessages']})
+   return r.get('privateResult',{})
+  primary=container('primary');private=run(primary,{'mode':'primary','pack':pack,'racePath':'b1-keys/data/isolated-fixture/11111111-1111-1111-1111-111111111111/totp-aead/race-key'})
+  if not private.get('backupKey'):raise RuntimeError('PRIMARY_BACKUP_BLOCKED')
+  PHASE='READ_ENCRYPTED_BACKUP'
+  (tmp/'backup.enc').write_text(require(docker('exec',primary,'node','-e',"process.stdout.write(require('node:fs').readFileSync('/work/backup.enc'))")))
+  REPORT['encryptedBackupSha256']=hashlib.sha256((tmp/'backup.enc').read_bytes()).hexdigest()
+  restore=container('restore');transfer(restore,tmp/'backup.enc','/work/backup.enc')
+  started=time.monotonic();run(restore,{'mode':'restore','pack':pack,'recovery':private});REPORT['syntheticRestoreSeconds']=round(time.monotonic()-started,3)
+  REPORT['recoveryTargets']='Synthetic OpenBao snapshot only; not full B1/PG PITR RPO/RTO or real custody/residence acceptance'
+ except Exception as e:record('isolated-harness','FAIL',{'exception':type(e).__name__,'phase':PHASE,'code':str(e) if str(e).isupper() and len(str(e))<70 else 'REDACTED'})
+ finally:
+  cleanup=True
+  for cid in containers:
+   try:
+    inspect=json.loads(require(docker('inspect',cid)))[0]
+    if inspect['Config']['Labels'].get('cleanops.b1.openbao')!=RUN:raise RuntimeError('OWNER_MISMATCH')
+    require(docker('rm','-f',cid));cleanup=cleanup and docker('inspect',cid).returncode!=0
+   except Exception:cleanup=False
+  private.clear()
+  if tmp:shutil.rmtree(tmp,ignore_errors=False)
+  if before is not None:
+   try:record('preexisting-containers-networks-volumes-unchanged','PASS' if inventory()==before else 'FAIL')
+   except Exception:record('preexisting-resource-verification','FAIL')
+  REPORT['cleanup']='PASS' if cleanup and (tmp is None or not tmp.exists()) else 'FAIL'
+  REPORT['result']='PASS' if REPORT['cleanup']=='PASS' and REPORT['checks'] and all(c['status']=='PASS' for c in REPORT['checks']) else 'FAIL'
+  out=ROOT/'artifacts/openbao-isolated';out.mkdir(parents=True,exist_ok=True);(out/'report.json').write_text(json.dumps(REPORT,indent=2)+'\n')
+  print(json.dumps(REPORT,indent=2))
+ return 0 if REPORT['result']=='PASS' else 1
+
+if __name__=='__main__':raise SystemExit(main())
