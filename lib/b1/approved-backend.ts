@@ -247,7 +247,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
-          if (result.replay && ['startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation)) {
+          if (result.replay && ['startStepUp', 'resendOtp', 'resendEmail', 'selectTotpMethod'].includes(operation)) {
             if (operation === 'startStepUp' && object(result.data) && result.data.state === 'TOTP_SELECTION_REQUIRED') {
               if (!stepUpRequest) throw unavailable()
               const current = await material(rawPreauth, 'STEP_UP', actor, stepUpRequest.grant, stepUpRequest.resource)

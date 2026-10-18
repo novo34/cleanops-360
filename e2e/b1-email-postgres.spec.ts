@@ -91,3 +91,46 @@ test('EMAIL uncertain synthetic transport quarantines and cannot redeliver', asy
     await expect(page.getByLabel('Contraseña')).toBeVisible()
   } finally { await server.close() }
 })
+
+test('EMAIL lost COMMIT rolls back session and proof and permits retry through real UI', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const sent = await server.rpc({ kind: 'deliverEmail' })
+    await server.rpc({ kind: 'failEmailCommit' })
+    phase('FAILED_COMMIT');await proof(page, sent.proof)
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(0)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toHaveCount(0)
+    phase('RETRY');await proof(page, sent.proof)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(1)
+  } finally { await server.close() }
+})
+
+test('EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/auth/login' && r.request().method() === 'POST')
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    const challenge = (await (await response).json()).data.challenge_id
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const sent = await server.rpc({kind:'deliverEmail'})
+    phase('NEGATIVES')
+    const result = await page.evaluate(async ({challenge,code}) => {
+      const csrf = document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
+      async function submit(body: object, includeCsrf = true) {
+        return (await fetch('/auth/mfa/verify', { method:'POST', headers:{'Content-Type':'application/json',...(includeCsrf?{'X-CSRF-Token':csrf}:{})}, body:JSON.stringify(body) })).status
+      }
+      const body = {challenge_id:challenge,method:'EMAIL_OTP',proof:code}
+      const csrfDenied = await submit(body,false)
+      const authorityDenied = await submit({...body,tenantId:crypto.randomUUID(),methodVersion:'999'})
+      const winners = await Promise.all([submit(body),submit(body)])
+      return {csrfDenied,authorityDenied,winners}
+    },{challenge,code:sent.proof})
+    expect(result.csrfDenied).toBe(403);expect(result.authorityDenied).toBe(422)
+    expect(result.winners.filter(s=>s===200).length).toBe(1)
+    expect((await server.rpc({kind:'inspectEmail'})).active).toBe(1)
+  } finally { await server.close() }
+})

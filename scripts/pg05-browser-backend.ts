@@ -31,6 +31,8 @@ const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user:
 const key = randomBytes(32), secret = randomBytes(32), method = randomUUID()
 const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId: method, initialMethodVersion: '1' as const, algorithm: 'SHA256' as const }
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
+let failNextEmailCommit = false
+let emailConsumption = false
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
@@ -84,7 +86,15 @@ try {
   const privatePool = { async connect() {
     const client = await identity.connect()
     return { async query(sql: string, values?: unknown[]) {
-      try { return await client.query(sql, values) }
+      try {
+        if (sql.includes('auth_api.consume_email_v2')) emailConsumption = true
+        if (sql === 'COMMIT' && failNextEmailCommit && emailConsumption) {
+          failNextEmailCommit = false; emailConsumption = false
+          const pid = await client.query('SELECT pg_backend_pid() AS pid')
+          await admin.query('SELECT pg_terminate_backend($1::int)',[pid.rows[0].pid])
+        }
+        return await client.query(sql, values)
+      }
       catch (error) {
         const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : 'UNKNOWN'
         queryFailures.push({ operation: /(?:auth_api|identity_private)\.[a-z_]+/.exec(sql)?.[0] ?? 'transaction', sqlstate: /^[0-9A-Z]{5}$/.test(code) ? code : 'TRANSPORT' })
@@ -117,6 +127,7 @@ try {
     if (line.done) break
     const message = JSON.parse(line.value)
     try {
+      if (message.kind === 'failEmailCommit') { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
       if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }
       if (message.kind === 'deliverEmail') {
         let proof = ''

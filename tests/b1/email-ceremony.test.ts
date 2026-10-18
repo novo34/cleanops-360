@@ -29,7 +29,7 @@ function setup() {
     if(name==='completeOwned'){reference.set((args[2] as Buffer).toString('hex'),JSON.parse(String(args[4])));return true}
     if(name==='consumeEmail')return validProof
     throw Error('UNEXPECTED_TEST_OPERATION')
-  } as unknown as V4Broker
+  } } as unknown as V4Broker
   const mail=createEmailCeremony(broker,{async withWriteKey(_tenant,work){return work(randomBytes(32),'test-key')}},randomBytes(32),randomUUID(),()=>now)
   return {mail,binding,calls,reference,fail(){validProof=false}}
 }
