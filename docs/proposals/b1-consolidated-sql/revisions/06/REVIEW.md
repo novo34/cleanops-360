@@ -2,7 +2,7 @@
 
 Prepared from exact approved05; originals/history untouched. Generated fresh-install
 candidate, not an incremental patch or migration. `manifest.json` records full Git
-blob/SHA256/bytes, source pin and exact19 function signatures/ACL. Complete delta:
+blob/SHA256/bytes, source pin and exact21 function signatures/ACL. Complete delta:
 APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
 
 ## Security changes requiring exact approval BEFORE installation
@@ -24,7 +24,8 @@ APPROVED_05_TO_06.diff. No install workflow, flags or runtime activation.
 - Trusted tokens hashed, tenant/user/principal/credential-bound, maximum30 days,
   explicit per-tenant enablement (missing policy denies). Valid only as metadata
   of an already ACTIVE session: NEVER skips mandatory MFA or extends sessions.
-- Role membership and per-user/resource/time grants, explicit DENY wins, no role
+- Server-owned resource ancestry (unknown/foreign/cyclic resources deny), role
+  membership and per-user/resource/time grants, explicit DENY wins, no role
   name grants authority. Permission mutation requires independent effective
   manage_permissions, fresh step-up and exclusive policy version CAS; delegation
   cannot exceed actor's effective rights. No initial roles, grants or memberships.
@@ -66,8 +67,7 @@ remain NOT EXECUTED pending exact authorization. Existing05 native PASS unaffect
 new06 must never inherit it. SQL06 is not represented as an approved canonical source.
 
 Implementation still required after native validation: new HTTP schemas and private
-orchestration for EMAIL/recovery/admin/trust/access; UI consumers and complete scope
-ancestry authorization (module/project/resource relationships); actual provider proof
+orchestration for EMAIL/recovery/admin/trust/access; UI consumers, real resource-catalog registration and authorized role administration; actual provider proof
 attestations and bounded reset-proof expiry policy; key-provider integration and
 external-app verification. Existing self-service TOTP/session flows retained.
 

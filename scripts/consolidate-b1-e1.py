@@ -29,7 +29,7 @@ def generate():
     functions=[];acl=[]
     worker={'claim_mail_v2','authorize_mail_dispatch','finish_mail_outcome_cas','quarantine_expired_mail'}
     verifier={'record_verified_recipient','attest_reset'}
-    for name,args in re.findall(r'CREATE FUNCTION ([a-z_]+\.[a-z_]+)\(([^)]*)\)',source):
+    for name,args in re.findall(r'CREATE FUNCTION ([a-z_][a-z_0-9]*\.[a-z_][a-z_0-9]*)\(([^)]*)\)',source):
         signature=name+'('+','.join(a.strip().split()[1] for a in args.split(','))+')'
         role=None if name.startswith('identity_private.') else ('cleanops_mail_worker' if name.split('.')[1] in worker else 'cleanops_recipient_verifier' if name.split('.')[1] in verifier else 'cleanops_identity_service')
         acl+=['ALTER FUNCTION '+signature+' OWNER TO cleanops_auth_broker;','REVOKE ALL ON FUNCTION '+signature+' FROM PUBLIC;']

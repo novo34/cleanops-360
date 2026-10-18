@@ -6,14 +6,14 @@
     "bytes": 119875
   },
   "candidate": {
-    "gitBlob": "524419e4f6d37abf7fda43a3fcae2bec72bb9fe9",
-    "sha256": "d024aefb8443477c925773c0493b64feb629b20a3883034413234cb763b45cb1",
-    "bytes": 167388
+    "gitBlob": "ab4d5af78e6c64e35c04c2108d4ee20f90ad121c",
+    "sha256": "26268d0c99eefc59c9c3db5d8936e5e452b5d8c8aba005f6ebc4fa2b7e89a71d",
+    "bytes": 169302
   },
   "source": {
-    "gitBlob": "281da953e76387735dea29dc2ff4358dd9b24a79",
-    "sha256": "942004dcc38e54cbe846e6f51fd4b3d2a73624b0dce9a6ea376e191ac042ac8f",
-    "bytes": 41008
+    "gitBlob": "81e03c6bccd8d819f2fa038eb1d9679bca466aaf",
+    "sha256": "3ce843a76e93d1ec156132d2f102c1bcb833a5284959a233e595b048d7f56a60",
+    "bytes": 42360
   },
   "functions": [
     {
@@ -37,6 +37,12 @@
     {
       "signature": "identity_private.lock_mail(uuid,uuid)",
       "execute": null,
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.claim_mail_v2(bytea,uuid)",
+      "execute": "cleanops_mail_worker",
       "owner": "cleanops_auth_broker",
       "searchPath": "pg_catalog"
     },
@@ -96,6 +102,12 @@
     },
     {
       "signature": "auth_api.issue_email_enrollment(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.consume_email_v2(text,uuid,bytea,bigint,bigint,uuid)",
       "execute": "cleanops_identity_service",
       "owner": "cleanops_auth_broker",
       "searchPath": "pg_catalog"

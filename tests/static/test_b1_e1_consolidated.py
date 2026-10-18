@@ -24,6 +24,9 @@ class E1Consolidated(unittest.TestCase):
    self.assertIn('REVOKE ALL ON FUNCTION '+f['signature']+' FROM PUBLIC;',acl)
   source=(e1.DEST/'e1-source.review.sql').read_text()
   self.assertEqual(source.count('CREATE FUNCTION '),source.count('SECURITY DEFINER SET search_path=pg_catalog'))
+  self.assertEqual(source.count('CREATE FUNCTION '),len(m['functions']))
+  for name in ['auth_api.claim_mail_v2(bytea,uuid)','auth_api.consume_email_v2(text,uuid,bytea,bigint,bigint,uuid)']:
+   self.assertIn('REVOKE ALL ON FUNCTION '+name+' FROM PUBLIC;',acl)
  def test_uncertain_delivery_no_reclaim_and_expiry_guard(self):
   source=(e1.DEST/'e1-source.review.sql').read_text()
   self.assertIn("outcome='UNKNOWN' THEN 'QUARANTINED'",source)

@@ -10,6 +10,9 @@ REVOKE ALL ON FUNCTION auth_api.issue_email_assigned(text,uuid,bigint,bigint,uui
 GRANT EXECUTE ON FUNCTION auth_api.issue_email_assigned(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,text,uuid,uuid) TO cleanops_identity_service;
 ALTER FUNCTION identity_private.lock_mail(uuid,uuid) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION identity_private.lock_mail(uuid,uuid) FROM PUBLIC;
+ALTER FUNCTION auth_api.claim_mail_v2(bytea,uuid) OWNER TO cleanops_auth_broker;
+REVOKE ALL ON FUNCTION auth_api.claim_mail_v2(bytea,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_api.claim_mail_v2(bytea,uuid) TO cleanops_mail_worker;
 ALTER FUNCTION auth_api.authorize_mail_dispatch(uuid,uuid,bytea,uuid) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION auth_api.authorize_mail_dispatch(uuid,uuid,bytea,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_api.authorize_mail_dispatch(uuid,uuid,bytea,uuid) TO cleanops_mail_worker;
@@ -40,6 +43,9 @@ GRANT EXECUTE ON FUNCTION auth_api.begin_email_enrollment(text,uuid,bigint,uuid)
 ALTER FUNCTION auth_api.issue_email_enrollment(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,uuid) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION auth_api.issue_email_enrollment(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_api.issue_email_enrollment(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,uuid) TO cleanops_identity_service;
+ALTER FUNCTION auth_api.consume_email_v2(text,uuid,bytea,bigint,bigint,uuid) OWNER TO cleanops_auth_broker;
+REVOKE ALL ON FUNCTION auth_api.consume_email_v2(text,uuid,bytea,bigint,bigint,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_api.consume_email_v2(text,uuid,bytea,bigint,bigint,uuid) TO cleanops_identity_service;
 ALTER FUNCTION auth_api.attest_reset(uuid,uuid,bytea,text,uuid,timestamptz,uuid) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION auth_api.attest_reset(uuid,uuid,bytea,text,uuid,timestamptz,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_api.attest_reset(uuid,uuid,bytea,text,uuid,timestamptz,uuid) TO cleanops_recipient_verifier;

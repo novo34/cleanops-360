@@ -19,6 +19,10 @@ CREATE TABLE app.trusted_devices (
  PRIMARY KEY(tenant_id,id), FOREIGN KEY(tenant_id,user_id,principal_id) REFERENCES app.users(tenant_id,id,principal_id),
  CHECK(expires_at>created_at AND expires_at<=created_at+interval '30 days')
 );
+CREATE TABLE app.access_resources (
+ tenant_id uuid NOT NULL REFERENCES app.organizations(id),id uuid NOT NULL,kind text NOT NULL CHECK(length(kind) BETWEEN 1 AND 80),parent_id uuid,
+ PRIMARY KEY(tenant_id,id),FOREIGN KEY(tenant_id,parent_id) REFERENCES app.access_resources(tenant_id,id),CHECK(parent_id IS NULL OR parent_id<>id)
+);
 CREATE TABLE app.access_roles (
  tenant_id uuid NOT NULL, id uuid NOT NULL, label text NOT NULL CHECK(length(label) BETWEEN 1 AND 120),
  revoked_at timestamptz, PRIMARY KEY(tenant_id,id), FOREIGN KEY(tenant_id) REFERENCES app.organizations(id)
@@ -50,7 +54,7 @@ CREATE TABLE app.identity_reset_evidence (
 DO $rls$
 DECLARE t text;
 BEGIN
- FOREACH t IN ARRAY ARRAY['verified_recipients','auth_preferences','trusted_devices','access_roles','access_role_memberships','access_rules','identity_reset_evidence'] LOOP
+ FOREACH t IN ARRAY ARRAY['verified_recipients','auth_preferences','trusted_devices','access_resources','access_roles','access_role_memberships','access_rules','identity_reset_evidence'] LOOP
   EXECUTE format('ALTER TABLE app.%I OWNER TO cleanops_ddl_owner',t);
   EXECUTE format('ALTER TABLE app.%I ENABLE ROW LEVEL SECURITY',t);
   EXECUTE format('ALTER TABLE app.%I FORCE ROW LEVEL SECURITY',t);
@@ -59,7 +63,7 @@ BEGIN
 END $rls$;
 GRANT SELECT,INSERT,UPDATE ON app.verified_recipients,app.trusted_devices,app.access_roles,app.access_role_memberships,app.access_rules TO cleanops_auth_broker;
 GRANT SELECT,INSERT ON app.identity_reset_evidence TO cleanops_auth_broker;
-GRANT SELECT ON app.auth_preferences TO cleanops_auth_broker;
+GRANT SELECT ON app.auth_preferences,app.access_resources TO cleanops_auth_broker;
 -- No direct service/worker/verifier table privileges, role memberships or BYPASSRLS.
 
 CREATE FUNCTION auth_api.record_verified_recipient(t uuid,u uuid,expected_version bigint,address_hash bytea,evidence uuid,until_at timestamptz,corr uuid) RETURNS bigint
@@ -186,15 +190,26 @@ END $fn$;
 
 CREATE FUNCTION auth_api.effective_access(action_name text,kind text,resource uuid) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
-DECLARE c identity_private.tx_context;result boolean;
+DECLARE c identity_private.tx_context;result boolean;scope_ids uuid[];scope_kinds text[];cyclic boolean;
 BEGIN
  c:=identity_private.context();
  IF action_name IS NULL OR action_name NOT IN('view','create','edit','approve','delete','export','manage_permissions') OR kind IS NULL THEN RETURN false;END IF;
  PERFORM 1 FROM app.policy_versions WHERE tenant_id=c.tenant_id FOR SHARE;
  IF NOT FOUND THEN RETURN false;END IF;
+ IF resource IS NOT NULL THEN
+  -- Resource identity/ancestry is server-owned, never a caller-provided tenant claim.
+  IF NOT EXISTS(SELECT 1 FROM app.access_resources WHERE tenant_id=c.tenant_id AND id=resource AND app.access_resources.kind=effective_access.kind) THEN RETURN false;END IF;
+  WITH RECURSIVE lineage AS (
+   SELECT n.id,n.kind,n.parent_id,ARRAY[n.id] AS path,false AS cycle FROM app.access_resources n WHERE n.tenant_id=c.tenant_id AND n.id=resource
+   UNION ALL
+   SELECT n.id,n.kind,n.parent_id,l.path||n.id,n.id=ANY(l.path) FROM lineage l JOIN app.access_resources n ON n.tenant_id=c.tenant_id AND n.id=l.parent_id WHERE NOT l.cycle
+  ) SELECT array_agg(id),array_agg(lineage.kind),bool_or(cycle) INTO scope_ids,scope_kinds,cyclic FROM lineage;
+  IF cyclic IS DISTINCT FROM false THEN RETURN false;END IF;
+ ELSE scope_ids:=ARRAY[]::uuid[];scope_kinds:=ARRAY[kind];END IF;
  SELECT coalesce(bool_or(r.effect='ALLOW'),false) AND NOT coalesce(bool_or(r.effect='DENY'),false) INTO result
- FROM app.access_rules r WHERE r.tenant_id=c.tenant_id AND r.action=action_name AND r.resource_kind IN('*',kind)
- AND (r.resource_id IS NULL OR r.resource_id=resource) AND r.revoked_at IS NULL AND r.start_at<=clock_timestamp() AND (r.expires_at IS NULL OR clock_timestamp()<r.expires_at)
+ FROM app.access_rules r WHERE r.tenant_id=c.tenant_id AND r.action=action_name
+ AND (r.resource_kind='*' OR r.resource_kind=ANY(scope_kinds)) AND (r.resource_id IS NULL OR r.resource_id=ANY(scope_ids))
+ AND r.revoked_at IS NULL AND r.start_at<=clock_timestamp() AND (r.expires_at IS NULL OR clock_timestamp()<r.expires_at)
  AND (r.user_id=c.user_id OR EXISTS(SELECT 1 FROM app.access_role_memberships a JOIN app.access_roles v ON (v.tenant_id,v.id)=(a.tenant_id,a.role_id)
  WHERE a.tenant_id=c.tenant_id AND a.user_id=c.user_id AND a.role_id=r.role_id AND v.revoked_at IS NULL AND a.revoked_at IS NULL AND a.start_at<=clock_timestamp() AND (a.expires_at IS NULL OR clock_timestamp()<a.expires_at)));
  RETURN coalesce(result,false);
