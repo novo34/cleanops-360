@@ -34,7 +34,7 @@ test('EMAIL enrollment first proof and committed login through real UI API PG', 
     phase('CONFIRM');await proof(page, sent.proof)
     await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
     const committed = await server.rpc({ kind: 'inspectEmail' })
-    expect(committed.active === 1 && committed.methods[0].state === 'ACTIVE' && committed.outbox[0].bytes === 0).toBe(true)
+    expect(committed.active === 1 && committed.methods[0].state === 'ACTIVE' && committed.outbox[0].bytes === 0 && committed.proofFingerprintProtected === true).toBe(true)
     expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0)
   } finally { await server.close() }
 })

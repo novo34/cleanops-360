@@ -76,6 +76,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const mail = deps.mail ? createEmailCeremony(broker, deps.mail, deps.factors.otpKey!, correlation, now) : undefined
       let actor: Binding | undefined, raw = '', csrf = ''
       const reservations = new Map<string, Reservation>()
+      // Do not persist an offline-guessable SHA fingerprint of six-digit proofs.
+      const requestTag = (hash: string) => createHmac('sha256', deps.factors.auditKey).update(canonical(['B1_OWNED_REQUEST_V1', hash])).digest('hex')
       let stepUpRequest: { grant: string; resource: string | null } | undefined
       function owns(binding: Binding) { if (!actor || binding !== actor) throw invalid(); return actor }
       function preauth() { if (!actor || actor.kind === 'BOOTSTRAP') throw invalid(); return actor.kind === 'PREAUTH' ? raw : null }
@@ -94,15 +96,15 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       }
       async function ownedInternal<T>(cookie: string | null, operation: string, input: Input, work: () => Promise<T>): Promise<T> {
         const scope = 'internal:' + randomUUID(), key = hex(digest(token())), hash = digest(canonical(input))
-        const result = await broker.call('reserveOwned', [cookie, operation, key, hex(hash), true])
-        if (!object(result) || result.replay !== false || result.requestHash !== hash || result.oneTime !== true ||
+        const result = await broker.call('reserveOwned', [cookie, operation, key, hex(requestTag(hash)), true])
+        if (!object(result) || result.replay !== false || result.requestHash !== requestTag(hash) || result.oneTime !== true ||
             typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
         const r: Reservation = { operation, key, hash, oneTime: true, raw: cookie, done: false }
         reservations.set(scope, r)
         const outcome = await work()
         const ok = outcome instanceof AuthError ?
-          await broker.call('discardOwned', [cookie, operation, key, hex(hash)]) :
-          await broker.call('completeOwned', [cookie, operation, key, hex(hash), null])
+          await broker.call('discardOwned', [cookie, operation, key, hex(requestTag(hash))]) :
+          await broker.call('completeOwned', [cookie, operation, key, hex(requestTag(hash)), null])
         if (!ok) throw unavailable()
         r.done = true
         return outcome
@@ -244,8 +246,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
           const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
-          const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
-          if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
+          const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
+          if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
           if (result.replay && ['startStepUp', 'resendOtp', 'resendEmail', 'selectTotpMethod'].includes(operation)) {
             if (operation === 'startStepUp' && object(result.data) && result.data.state === 'TOTP_SELECTION_REQUIRED') {
@@ -281,13 +283,13 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async discard(scope) {
           const r = reservation(scope)
-          if (!await broker.call('discardOwned', [r.raw, r.operation, r.key, hex(r.hash)])) throw unavailable()
+          if (!await broker.call('discardOwned', [r.raw, r.operation, r.key, hex(requestTag(r.hash))])) throw unavailable()
           r.done = true
         },
         async complete(scope, hash, data, oneTime) {
           const r = reservation(scope)
           if (hash !== r.hash || oneTime !== r.oneTime || (oneTime && data !== null)) throw unavailable()
-          if (!await broker.call('completeOwned', [r.raw, r.operation, r.key, hex(hash), oneTime ? null : JSON.stringify(data)])) throw unavailable()
+          if (!await broker.call('completeOwned', [r.raw, r.operation, r.key, hex(requestTag(hash)), oneTime ? null : JSON.stringify(data)])) throw unavailable()
           r.done = true
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {

@@ -1,4 +1,5 @@
 import test from 'node:test'
+import { createHmac } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { hash, argon2id } from 'argon2'
 import { TOTP, Secret } from 'otpauth'
@@ -131,6 +132,10 @@ test('real step-up TOTP keeps current session and absolute lifetime distinct fro
   assert.equal(body.data.absolute_expires_at, new Date(absolute).toISOString())
   assert.equal(response.headers.get('set-cookie'), null)
   assert.equal(f.calls.some(c => c.name === 'issue_active_session'), false)
+  const plain = digest(canonical({ challenge_id: C, method: 'TOTP', proof: code() }))
+  const keyed = createHmac('sha256', Buffer.alloc(32, 1)).update(canonical(['B1_OWNED_REQUEST_V1', plain])).digest('hex')
+  const stored = f.calls.find(c => c.name === 'reserve_owned')!.values[3] as Buffer
+  assert.equal(stored.toString('hex'), keyed); assert.notEqual(stored.toString('hex'), plain)
 })
 
 test('real active TOTP confirmation returns ten recovery codes once, stores only HMACs/marker', async () => {

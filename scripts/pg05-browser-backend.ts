@@ -1,7 +1,7 @@
 /** Isolated test composition only. Never imported by routes/runtime. */
 import { Pool } from 'pg'
 import { hash, argon2id } from 'argon2'
-import { randomBytes, randomUUID, createHmac } from 'node:crypto'
+import { randomBytes, randomUUID, createHmac, createHash } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { TOTP, Secret } from 'otpauth'
 import type { IdentityPool } from '../lib/b1/pg-identity-driver.ts'
@@ -31,6 +31,7 @@ const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user:
 const key = randomBytes(32), secret = randomBytes(32), method = randomUUID()
 const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId: method, initialMethodVersion: '1' as const, algorithm: 'SHA256' as const }
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
+let lastProofFingerprint: Buffer | undefined
 let failNextEmailCommit = false
 let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
@@ -159,7 +160,8 @@ try {
         const sessions=await admin.query("SELECT count(*)::int AS n FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
         const outbox=await admin.query('SELECT state,octet_length(payload_ciphertext)::int AS bytes FROM app.auth_outbox WHERE tenant_id=$1 AND user_id=$2 ORDER BY available_at',[input.tenant,input.user])
         const challenges=await admin.query("SELECT state,attempts,octet_length(proof_digest)::int AS digest_bytes,extract(epoch FROM (expires_at-issued_at))::float AS ttl FROM app.mfa_challenges WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP' ORDER BY issued_at",[input.tenant,input.user])
-        reply({ methods:methods.rows, active:sessions.rows[0].n, outbox:outbox.rows, challenges:challenges.rows });continue
+        const fingerprints=lastProofFingerprint ? await admin.query('SELECT NOT EXISTS(SELECT 1 FROM identity_private.ceremony_idempotency WHERE request_digest=$1) AND NOT EXISTS(SELECT 1 FROM app.idempotency_records WHERE request_digest=$1) AS keyed',[lastProofFingerprint]) : null
+        reply({ methods:methods.rows, active:sessions.rows[0].n, outbox:outbox.rows, challenges:challenges.rows, proofFingerprintProtected:fingerprints?.rows[0].keyed });continue
       }
       if(message.kind==='primaryMethod'){reply({id:method});continue}
       if (message.kind === 'proof') {
@@ -178,6 +180,9 @@ try {
       if (message.kind === 'bootstrap') {
         const result = await handler.bootstrap()
         reply(result instanceof Response ? { status: result.status } : { status: 200, cookies: result.headers.getSetCookie() }); continue
+      }
+      if (['confirmEmail','verifyMfa'].includes(message.operation)) {
+        lastProofFingerprint=createHash('sha256').update(canonical(JSON.parse(message.body))).digest()
       }
       const requestId = message.rpcId
       const task = (async () => {
