@@ -74,7 +74,8 @@ The renderer produces an AppRole proposal only for workloads with explicit reads
 |mail-worker|Explicit mail AEAD versions for persisted outbox payloads|TOTP/HMAC, recipient attestation authority, other tenants, mutation|
 |key-creator (custodian operation only)|CREATE on individually approved new immutable key IDs|UPDATE/DELETE/LIST, existing key overwrite, root/policy administration|
 |snapshot-reader (separate backup identity)|READ `sys/storage/raft/snapshot` only|Restore, raw key reads, sys/policy/role changes|
-|restore-operator (threshold-approved recovery session only)|UPDATE `sys/storage/raft/snapshot` only|Forced restore endpoint, policies, key reads, workload use|
+|restore-operator (threshold-approved same-seal recovery session only)|UPDATE `sys/storage/raft/snapshot` only|Forced restore endpoint, policies, key reads, workload use|
+|restore-breakglass (separate fresh-target authorization only)|UPDATE `sys/storage/raft/snapshot-force` only|Normal workload assignment, use against the source cluster, unverified snapshots|
 
 AEAD helpers require raw32-byte data keys in their PRIVATE crypto boundary; calling
 KV read an encrypt-only or non-exportable capability would be false. This proposal

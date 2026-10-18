@@ -31,7 +31,7 @@ history is re-audited or relabeled. Source: SRS PR006/007, INF003 and existing g
 |REC06|KV create of new ID, overwrite existing ID, absent/stale CAS and metadata/destroy paths|Only approved CREATE with required CAS succeeds; no silent overwrite or bypass via metadata/version endpoints|
 |REC07|Audit sink full/unwritable, TLS wrong CA/expired cert, unavailable service|Requests fail closed and emit only redacted alert; no raw key/secret/provider-body logging|
 |REC08|Same-data-key wrapping rotation and new-data-key reseal|Old retained records readable, new writes use new exact ID; stale CAS/revocation cannot corrupt method/counter|
-|REC09|Corrupt/truncated/tampered snapshot, mismatched seal, missing decryption share|Restore rejected, originals untouched, no forced restore/reinit shortcut|
+|REC09|Corrupt/truncated/tampered snapshot, mismatched seal, missing decryption share|Restore rejected, originals untouched, no unapproved forced restore/reinit; fresh-target forced recovery requires separately approved hash, target and original quorum|
 |REC10|Complete simulated host loss to fresh target + coherent PG/config/files restore|Old/new material recovered, sessions/recovery/OTP counters never replay, real UI/API/PG checks PASS, RPO/RTO measured|
 |REC11|Restore a stale snapshot containing previously consumed OTP/recovery/trust/session state|Fail closed until independently reconciled or approved revocation; stale credentials never regain validity|
 |REC12|Uncertain delivery during failure/restore|Encrypted outbox stays quarantined; no delivery replay or expired OTP acceptance; SMTP simulator clearly labeled|
@@ -79,7 +79,7 @@ PR007 is not signed automatically by this checklist or by passing CI.
 2. **OPER-02 — isolated provisioning and rehearsal execution:** after OPER-01, approve
    exact new resource IDs/cost boundary, install/init/config/policy/role/mount scope,
    synthetic key generation, private adapter integration scope, backup/restore drill
-   targets, inventory/cleanup and REC01–12 execution. Current permission covers NONE
+   targets (including any fresh-target snapshot-force capability explicitly), inventory/cleanup and REC01–12 execution. Current permission covers NONE
    of those real infrastructure operations. Any necessary SQL/ACL outside SQL14 needs
    its own exact consolidated artifact authorization before installation.
 3. **OPER-03 — independent review/manual session:** name reviewer/PO, authorize access

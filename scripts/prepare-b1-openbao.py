@@ -58,6 +58,7 @@ def prepare(d):
  outputs['kv-config.json']={'cas_required':True,'delete_version_after':'0s'}
  outputs['snapshot-reader.policy.json']={'path':{'sys/storage/raft/snapshot':{'capabilities':['read']}}}
  outputs['restore-operator.policy.json']={'path':{'sys/storage/raft/snapshot':{'capabilities':['update']}}}
+ outputs['restore-breakglass.policy.json']={'path':{'sys/storage/raft/snapshot-force':{'capabilities':['update']}}}
  return outputs
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--inputs',type=Path,required=True);p.add_argument('--out',type=Path,required=True);a=p.parse_args()

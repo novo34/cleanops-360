@@ -1,14 +1,14 @@
 {
   "kind": "OFFLINE_REVIEW_PACKAGE_HASHES_NOT_INSTALL_AUTHORIZATION",
   "sha256": {
-    "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": "a7560ad72568c382143945126187e828ba26eb4bbcd9458df4bb1b7e29e50ccf",
-    "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": "2d74d5fd64e89c8a2276ad6904440ee3b7570c38930e49b8a51ecaa317fcad8e",
+    "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": "13c03d9028b50c761f23fd1f5b89e79177ae3013c9509eb40a39b7792d54b9aa",
+    "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": "48e23862b01688da801c0415cb2864bfb72605fa7b77629c28bfa9e8f9b7d1a2",
     "docs/implementation/b1/operational-acceptance/openbao/PREPARATION_EVIDENCE.json": "39ca27f5c8b70a87a5c762870b267ff667e1c86ef49ff0046c88038bfe292e7f",
-    "docs/implementation/b1/operational-acceptance/openbao/README.md": "c1651b6b812618ef3c142151039321435d857c29ac416d837c75e1c07cf075b4",
+    "docs/implementation/b1/operational-acceptance/openbao/README.md": "39dcaf39a7b7bdd4bde596d5c23377a39a08c74aa5459a7945ce44727e8433d2",
     "docs/implementation/b1/operational-acceptance/openbao/inputs.example.json": "c830278197e7ef6dd16bd567051c75868c37398d9752249b66f433d419e5e4d4",
     "docs/implementation/b1/operational-acceptance/openbao/release-pin.json": "e7ae9e4bef373ffa8fd20e54fd11bee7382107b9fd42e76db75697a8184c5ddb",
     "docs/implementation/b1/operational-acceptance/openbao/server.template.json": "7699bffdb14feab991aa38f52096794b31a002999a8c733036f6b02cb0024666",
-    "scripts/prepare-b1-openbao.py": "c8ba004da4336b8758ccbac0cac695a4a69aac1ebd9e339878e4e99e3c16f9a1",
-    "tests/static/test_b1_openbao_preparation.py": "e08f8812ede6f117a7656c2959bbea9eb4e08454f128f412692c7f2eff91fb2b"
+    "scripts/prepare-b1-openbao.py": "0c0bd8bb0792b8b09af44475c31aa526eb7761f7d3e799106d08bc0f452f464d",
+    "tests/static/test_b1_openbao_preparation.py": "613fbdcac680b634ee6122012ca205d24896fd9c5dadc8a53c6cae048cdcba38"
   }
 }

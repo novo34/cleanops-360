@@ -23,6 +23,9 @@ class Preparation(unittest.TestCase):
   for v in a['key-creator.policy.json']['path'].values():self.assertEqual(v['capabilities'],['create']);self.assertNotIn('allowed_parameters',v)
   self.assertEqual(a['snapshot-reader.policy.json']['path'],{'sys/storage/raft/snapshot':{'capabilities':['read']}})
   self.assertEqual(a['restore-operator.policy.json']['path'],{'sys/storage/raft/snapshot':{'capabilities':['update']}})
+  self.assertEqual(a['restore-breakglass.policy.json']['path'],{'sys/storage/raft/snapshot-force':{'capabilities':['update']}})
+  for key,value in a.items():
+   if key.endswith('.approle.json'):self.assertFalse(any('restore' in p or 'snapshot' in p for p in value['token_policies']))
  def test_public_addresses_missing_ttls_unknown_purpose_and_path_injection_rejected(self):
   cases=[('private_ipv4','8.8.8.8'),('workload_cidrs',['0.0.0.0/0']),('token_ttl_seconds',None),('token_ttl_seconds',301),('environment','production'),('node_id','../../secrets')]
   for key,value in cases:

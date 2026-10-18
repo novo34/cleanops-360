@@ -96,9 +96,19 @@ bao operator raft snapshot save /approved-private-staging/backup.snap
 bao operator raft snapshot restore /approved-private-staging/backup.snap
 ```
 
-Do not use forced snapshot restore as a shortcut. Snapshot seal mismatch, corruption
-or lost quorum is FAIL, investigated before approved recovery; never reinitialize
-an existing cluster to conceal missing custody. Encrypt a snapshot before copying
+Normal snapshot restore verifies seal consistency and is appropriate only where
+that seal is already compatible. A genuinely fresh recovery cluster initialized
+with temporary bootstrap credentials has a different seal; it needs the documented
+`/sys/storage/raft/snapshot-force` path to recover the old cluster. This is NOT a
+corruption/unknown-seal bypass: separately approve the exact fresh target and
+verified snapshot/hash, prove possession of the original quorum before proceeding,
+isolate the target from the source and temporarily assign only the separate
+restore-breakglass policy. After force restore, unseal with the ORIGINAL snapshot
+custody shares, revoke restored/temporary administrative and workload credentials
+as required and verify the full state before allowing test traffic. Never force
+restore into the source cluster, accept an unauthenticated/corrupt snapshot, or
+reinitialize an existing cluster to conceal missing custody. No forced operation
+or policy installation is authorized or performed by this package. Encrypt a snapshot before copying
 it out of controlled staging, retain checksum/signature/sequence outside the same
 failure domain, and redact status IDs/network topology in public evidence.
 
@@ -117,3 +127,5 @@ Each drill record: actual operator/custodians/reviewer, approved target IDs, sta
 finish timestamps, last committed recovery point, observed loss window and duration,
 hashes and safe assertion results. Failed/blocked steps remain visible. No mock,
 empty record or documented command counts as execution.
+
+Pinned restore semantics reference: https://github.com/openbao/openbao/blob/v2.7.1/website/content/docs/api/system/storage/raft.mdx (normal snapshot vs snapshot-force). This source review is not a restore execution.
