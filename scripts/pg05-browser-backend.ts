@@ -122,6 +122,7 @@ try {
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
   })
   const handler = createAuthHandler(backend, origin)
+  let previousDeliveryKey: string | undefined
   let controlId = input.rpcId
   const reply = (value: object, rpcId = controlId) => process.stdout.write(JSON.stringify({ ...value, rpcId }) + '\n')
   const pendingRequests = new Set<Promise<unknown>>()
@@ -133,13 +134,20 @@ try {
     controlId = message.rpcId
     try {
       if (message.kind === 'failEmailCommit') { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
+      if (message.kind === 'diagnostics') { reply({ failures:queryFailures }); continue }
       if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }
       if (message.kind === 'deliverEmail') {
-        let proof = ''
+        let proof = '', sameDeliveryKey = false
         const result = await dispatchOneMail({ store: createMailDispatchStore(mailPool as unknown as IdentityPool), now: Date.now,
           async withReadKey(tenant, version, work) { assert.equal(tenant,input.tenant); assert.equal(version,'synthetic-mail-browser-v1');return work(mailKey) },
-          async deliver(payload) { assert.equal(payload.recipient,input.email);proof=payload.code;return message.uncertain ? 'UNKNOWN' : 'ACCEPTED' } })
-        reply({ result, proof }); continue
+          async deliver(payload, deliveryKey) { assert.equal(payload.recipient,input.email);proof=payload.code;sameDeliveryKey=previousDeliveryKey===deliveryKey;previousDeliveryKey=deliveryKey;return message.uncertain ? 'UNKNOWN' : message.transient ? 'TRANSIENT' : 'ACCEPTED' } })
+        reply({ result, proof, sameDeliveryKey }); continue
+      }
+      if (message.kind === 'retryMailReady') {
+        await admin.query("UPDATE app.auth_outbox SET available_at=clock_timestamp()-interval '1 second' WHERE tenant_id=$1 AND user_id=$2 AND state='PENDING'",[input.tenant,input.user]);reply({ok:true});continue
+      }
+      if (message.kind === 'revokeRecipient') {
+        await admin.query('UPDATE app.verified_recipients SET revoked_at=clock_timestamp() WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user]);reply({ok:true});continue
       }
       if (message.kind === 'emailClock') {
         await admin.query("UPDATE app.mfa_challenges SET issued_at=clock_timestamp()-interval '60 seconds' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])

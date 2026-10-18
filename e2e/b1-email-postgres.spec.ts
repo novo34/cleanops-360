@@ -66,7 +66,7 @@ test('EMAIL ACTIVE enrollment requires independent step-up for begin and confirm
   } finally { await server.close() }
 })
 
-test('EMAIL attempts are exhausted persistently and a later valid proof cannot bypass the limit', async ({ page }) => {
+test('EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof', async ({ page }) => {
   phase('SETUP');const server = await startRealBrowserServer('email')
   try {
     await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
@@ -74,12 +74,13 @@ test('EMAIL attempts are exhausted persistently and a later valid proof cannot b
     const sent=await server.rpc({kind:'deliverEmail'})
     const wrong=sent.proof.slice(0,5)+(sent.proof[5]==='0'?'1':'0')
     phase('EXHAUST')
-    for(let i=0;i<numeric('otp_attempts');i++) {
+    const permitted=Math.min(numeric('otp_attempts'),numeric('otp_issue_user_limit')-1)
+    for(let i=0;i<permitted;i++) {
       await proof(page,wrong)
       await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
     }
     const state=await server.rpc({kind:'inspectEmail'})
-    expect(state.active===0 && state.challenges[0].state==='EXHAUSTED' && state.challenges[0].attempts===numeric('otp_attempts')).toBe(true)
+    expect(state.active===0 && state.challenges[0].state==='ISSUED' && state.challenges[0].attempts===permitted).toBe(true)
     await proof(page,sent.proof)
     await expect(page.getByRole('status')).toContainText('Demasiados intentos')
     expect((await server.rpc({kind:'inspectEmail'})).active).toBe(0)
@@ -141,6 +142,39 @@ test('EMAIL uncertain synthetic transport quarantines and cannot redeliver', asy
   } finally { await server.close() }
 })
 
+test('EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity', async ({ page }) => {
+  phase('SETUP');const server=await startRealBrowserServer('email')
+  try {
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    phase('TRANSIENT');const first=await server.rpc({kind:'deliverEmail',transient:true})
+    expect(first.result.outcome).toBe('TRANSIENT')
+    const queued=await server.rpc({kind:'inspectEmail'})
+    expect(queued.outbox[0].state==='PENDING' && queued.outbox[0].bytes>30 && queued.active===0).toBe(true)
+    expect((await server.rpc({kind:'deliverEmail'})).result.state).toBe('EMPTY')
+    await server.rpc({kind:'retryMailReady'})
+    phase('RETRY');const second=await server.rpc({kind:'deliverEmail'})
+    expect(second.result.outcome==='ACCEPTED' && second.sameDeliveryKey && first.proof===second.proof).toBe(true)
+    await proof(page,second.proof)
+    await expect(page.getByText('Seguridad de la cuenta',{exact:true})).toBeVisible()
+    expect((await server.rpc({kind:'inspectEmail'})).outbox[0].bytes).toBe(0)
+  } finally {await server.close()}
+})
+
+test('EMAIL recipient revoked after issue prevents delivery and session issuance', async ({ page }) => {
+  phase('SETUP');const server=await startRealBrowserServer('email')
+  try {
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    const first=await server.rpc({kind:'deliverEmail'})
+    await server.rpc({kind:'revokeRecipient'})
+    phase('REVOKED');await proof(page,first.proof)
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    expect((await server.rpc({kind:'inspectEmail'})).active).toBe(0)
+    expect((await server.rpc({kind:'deliverEmail'})).result.state).toBe('EMPTY')
+  } finally {await server.close()}
+})
+
 test('EMAIL lost COMMIT rolls back session and proof and permits retry through real UI', async ({ page }) => {
   phase('SETUP');const server = await startRealBrowserServer('email')
   try {
@@ -178,6 +212,9 @@ test('EMAIL real API rejects CSRF and forged authority and concurrent proof has 
       const winners = await Promise.all([submit(body),submit(body)])
       return {csrfDenied,authorityDenied,winners}
     },{challenge,code:sent.proof})
+    phase('CSRF_'+result.csrfDenied);phase('FORGED_'+result.authorityDenied);phase('RACE_'+result.winners.join('_'))
+    const diagnostic=await server.rpc({kind:'diagnostics'})
+    for(const item of diagnostic.failures) if(/^[0-9A-Z]{5}$/.test(item.sqlstate))phase('SQL_'+item.sqlstate)
     expect(result.csrfDenied).toBe(403);expect(result.authorityDenied).toBe(422)
     expect(result.winners.filter(s=>s===200).length).toBe(1)
     expect((await server.rpc({kind:'inspectEmail'})).active).toBe(1)

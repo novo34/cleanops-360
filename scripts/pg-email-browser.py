@@ -22,7 +22,7 @@ def browser():
    for item in s.get('specs',[]):
     results=[r['status'] for t in item['tests'] for r in t['results']]
     phases=[a['description'] for t in item['tests'] for a in t.get('annotations',[]) if a.get('type')=='phase' and re.fullmatch('[A-Z][A-Z0-9_]{0,39}',a.get('description',''))]
-    locations=[int(line) for t in item['tests'] for r in t['results'] for e in r.get('errors',[]) for line in re.findall(r'e2e/b1-[a-z-]+\.spec\.ts:(\d+):',e.get('stack',''))]
+    locations=[int(line) for t in item['tests'] for r in t['results'] for e in [*r.get('errors',[]),r.get('error',{})] for line in re.findall(r'e2e/b1-[a-z-]+\.spec\.ts:(\d+):',e.get('stack','')+'\n'+e.get('message',''))]
     b.record('Browser-PG-'+item['title'],'PASS' if results==['passed'] else 'FAIL',{'attemptStatuses':results,'phases':phases,'testLineNumbers':sorted(set(locations))})
    for child in s.get('suites',[]):collect(child)
   for s in data.get('suites',[]):collect(s)

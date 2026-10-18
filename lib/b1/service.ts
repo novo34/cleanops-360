@@ -156,7 +156,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           let parsed: unknown
           try {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-            parsed = operationId === 'selectTotpMethod' ? parseSelectorJson(text) : JSON.parse(text)
+            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
           } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)

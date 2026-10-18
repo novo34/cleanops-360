@@ -260,6 +260,6 @@ export function AuthPanel() {
         <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView); window.location.assign('/login') } }}>Cerrar sesión</button>
       </section>}
     </fieldset>
-    {(selection || challenge) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}
+    {(selection || challenge || emailPending) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}
   </main>
 }

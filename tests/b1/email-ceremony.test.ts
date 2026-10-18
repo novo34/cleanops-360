@@ -5,7 +5,7 @@ import { createEmailCeremony } from '../../lib/b1/email-ceremony.ts'
 import type { V4Broker } from '../../lib/b1/v4-broker.ts'
 import { contract, operations, canonical } from '../../lib/b1/contracts.ts'
 import original from '../../lib/b1/openapi.json' with { type: 'json' }
-import { type Binding } from '../../lib/b1/service.ts'
+import { type Binding, createAuthHandler, closedBackend } from '../../lib/b1/service.ts'
 
 test('EMAIL adds four operations without changing any approved V4/H1-H3 operation or schema', () => {
   for (const [path, value] of Object.entries(original.paths)) assert.equal(canonical(contract.paths[path]), canonical(value))
@@ -55,4 +55,14 @@ test('EMAIL unknown challenge, wrong ceremony purpose and missing binding fail c
 test('EMAIL failed native consumption is never promoted to success', async () => {
   const f=setup(), cookie='a'.repeat(43), result=await f.mail.issue(cookie,f.binding,'ENROLLMENT')
   f.fail();assert.equal(await f.mail.verify(cookie,f.binding,result.challenge_id,'123456',true),false)
+})
+
+test('EMAIL duplicate JSON selectors reject before dependency access with a safe HTTP error', async () => {
+  const origin='https://fixture.invalid', handler=createAuthHandler(closedBackend,origin)
+  const a=randomUUID(),b=randomUUID()
+  const response=await handler.handle(new Request(origin+'/mfa/email/confirm',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:'{"challenge_id":"'+a+'","challenge_id":"'+b+'","proof":"123456"}'}),'confirmEmail')
+  assert.equal(response.status,400)
+  assert.equal(response.headers.get('set-cookie'),null)
+  assert.equal((await response.text()).includes('123456'),false)
 })
