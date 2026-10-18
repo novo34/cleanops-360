@@ -98,6 +98,7 @@ def checks():
   decrypt="const fs=require('node:fs'),c=require('node:crypto'),cp=require('node:child_process');const key=Buffer.from(fs.readFileSync(0,'utf8'),'base64'),e=JSON.parse(fs.readFileSync('/work/pg-backup.enc'));const d=c.createDecipheriv('aes-256-gcm',key,Buffer.from(e.iv,'base64'));d.setAAD(Buffer.from('B1_PG_BACKUP_1'));d.setAuthTag(Buffer.from(e.tag,'base64'));const bytes=Buffer.concat([d.update(Buffer.from(e.data,'base64')),d.final()]);const payload=JSON.parse(bytes);const roles=payload.roles.replace(/^CREATE ROLE postgres;$/m,'');cp.execFileSync('psql',['-X','-q','-v','ON_ERROR_STOP=1','-U','postgres','-d','core'],{input:roles,stdio:['pipe','pipe','pipe']});fs.writeFileSync('/tmp/restored.dump',Buffer.from(payload.db,'base64'),{mode:0o600});bytes.fill(0);key.fill(0);"
   require(b.docker('exec','-i',RESTORE,'/opt/b1-pg05/node','-e',decrypt,data=pg_key))
   require(b.docker('exec',RESTORE,'pg_restore','-U','postgres','--exit-on-error','-d','core','/tmp/restored.dump'))
+  b.record('frozen-source-security-checkpoint-unchanged','PASS' if fingerprint(b.CID)==before else 'FAIL')
   b.record('fresh-PG16-all-32-table-values-identical-after-independent-backup','PASS' if fingerprint(RESTORE)==before else 'FAIL')
   started=time.monotonic();worker(RESTORE,'restore',pack,PRIVATE);b.REPORT['combinedRestoreCheckSeconds']=round(time.monotonic()-started,3)
   b.REPORT['technicalScope']='Real private B1 HTTP/API + PostgreSQL16 + native OpenBao; no new Chromium run or productive acceptance'

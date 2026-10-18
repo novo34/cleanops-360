@@ -41,14 +41,14 @@ async function role(h:Harness,workload:string){
 function client(h:Harness,state:State,credential:string){
  const p=h.input.pg,identity=pool(p.identityRole),keys=refs(p.tenant),vault=reader(p.tenant,credential)
  async function compose<T>(work:(backend:ReturnType<typeof createApprovedPrivateBackend>)=>Promise<T>){
-  return vault.withKeys(keys,30000,async use=>{
-   const key=(i:number)=>use(keys[i],b=>b)
+  return vault.withKeys(keys,30000,async borrow=>{
+   const key=(i:number)=>borrow(keys[i],b=>b)
    const backend=createApprovedPrivateBackend(identity,{
     factors:{dummyPasswordHash:state.dummyHash,auditKey:key(2),otpKey:key(3),recoveryKey:key(4),
      async decryptTotp(bytes,version,record){
       assert.equal(record.binding.tenantId,p.tenant);assert.equal(record.binding.userId,p.user);assert.equal(record.binding.methodId,state.method)
       assert.equal(record.algorithm,'SHA256');assert.ok(['key-v1','key-v2'].includes(version))
-      return use(keys[version==='key-v1'?0:1],k=>openEnrollmentSecret(bytes,k,version,{tenantId:p.tenant,userId:p.user,methodId:state.method,initialMethodVersion:'1',algorithm:'SHA256'}))
+      return borrow(keys[version==='key-v1'?0:1],k=>openEnrollmentSecret(bytes,k,version,{tenantId:p.tenant,userId:p.user,methodId:state.method,initialMethodVersion:'1',algorithm:'SHA256'}))
      }},cursorKey:key(5),transport:()=>({network:Buffer.alloc(32,1),device:Buffer.alloc(32,2)}),normalizeEmail:s=>s.trim().toLowerCase(),maxEligibleTotpMethods:4,
     sessionLabels:()=>({device:'Synthetic OpenBao integration',browser:'Isolated API'})
    });return work(backend)
@@ -80,10 +80,10 @@ export async function beforeSnapshot(h:Harness){
  const c=client(h,state,h.verifier!)
  try{
   await h.check('B1-actual-envelope-v2-rotation-old-new-authentication',async()=>{
-   await c.vault.withKeys(c.keys,30000,async use=>{
-    for(const[e,i,v]of[[envelope,0,'key-v1'],[rotated,1,'key-v2']] as const){const plain=use(c.keys[i],k=>openEnrollmentSecret(e,k,v,context));assert.equal(Buffer.from(plain).toString('base64'),state.secret);plain.fill(0)}
-    assert.throws(()=>use(c.keys[1],k=>openEnrollmentSecret(envelope,k,'key-v1',context)))
-    assert.throws(()=>use(c.keys[0],k=>openEnrollmentSecret(envelope,k,'key-v1',{...context,tenantId:p.otherTenant})))
+   await c.vault.withKeys(c.keys,30000,async borrow=>{
+    for(const[e,i,v]of[[envelope,0,'key-v1'],[rotated,1,'key-v2']] as const){const plain=borrow(c.keys[i],k=>openEnrollmentSecret(e,k,v,context));assert.equal(Buffer.from(plain).toString('base64'),state.secret);plain.fill(0)}
+    assert.throws(()=>borrow(c.keys[1],k=>openEnrollmentSecret(envelope,k,'key-v1',context)))
+    assert.throws(()=>borrow(c.keys[0],k=>openEnrollmentSecret(envelope,k,'key-v1',{...context,tenantId:p.otherTenant})))
    })
   })
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2',[state.passwordHash,p.principal])
@@ -125,14 +125,14 @@ export async function afterRestore(h:Harness){
    const row=(await admin.query('SELECT secret_ciphertext,key_version,last_totp_counter FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2',[p.tenant,state.method])).rows[0]
    assert.equal(row.secret_ciphertext.toString('base64'),state.envelope);assert.equal(row.key_version,'key-v1');assert.notEqual(row.last_totp_counter,null)
    const context={tenantId:p.tenant,userId:p.user,methodId:state.method,initialMethodVersion:'1' as const,algorithm:'SHA256' as const}
-   await c.vault.withKeys(c.keys,30000,async use=>{
-    for(const[e,i,v]of[[state.envelope,0,'key-v1'],[state.rotatedEnvelope,1,'key-v2']]as const){const plain=use(c.keys[i],k=>openEnrollmentSecret(Buffer.from(e,'base64'),k,v,context));assert.equal(Buffer.from(plain).toString('base64'),state.secret);plain.fill(0)}
+   await c.vault.withKeys(c.keys,30000,async borrow=>{
+    for(const[e,i,v]of[[state.envelope,0,'key-v1'],[state.rotatedEnvelope,1,'key-v2']]as const){const plain=borrow(c.keys[i],k=>openEnrollmentSecret(Buffer.from(e,'base64'),k,v,context));assert.equal(Buffer.from(plain).toString('base64'),state.secret);plain.fill(0)}
    })
   })
   await h.check('B1-restored-mail-envelope-exact-AAD-purpose-permissions',async()=>{
    const ref:PrivateKeyReference={tenantId:p.tenant,purpose:'mail-aead',keyId:'key-mail',version:1}
    const mail=reader(p.tenant,mailCredential,[ref])
-   await mail.withKeys([ref],30000,async use=>{const payload=use(ref,k=>openMailPayload(Buffer.from(state.mailEnvelope,'base64'),k,'key-mail',state.mailContext,Date.now()));assert.equal(payload.recipient,'synthetic@fixture.invalid');assert.equal(payload.code,'123456')})
+   await mail.withKeys([ref],30000,async borrow=>{const payload=borrow(ref,k=>openMailPayload(Buffer.from(state.mailEnvelope,'base64'),k,'key-mail',state.mailContext,Date.now()));assert.equal(payload.recipient,'synthetic@fixture.invalid');assert.equal(payload.code,'123456')})
    await assert.rejects(()=>reader(p.tenant,credential,[ref]).withKeys([ref],30000,async()=>{}))
   })
   await h.check('B1-restored-real-API-session-audit-multitenant-integrity',async()=>{

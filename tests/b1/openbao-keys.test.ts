@@ -26,7 +26,7 @@ test('OpenBao exact authorized version, borrowed keys zeroed, no inspect/JSON se
  let held:Buffer|undefined,after:((r:PrivateKeyReference,f:(b:Buffer)=>unknown)=>unknown)|undefined
  try{
   const provider=createOpenBaoKeys(options());assert.ok(!inspect(provider).includes('synthetic-private-key'));assert.ok(!JSON.stringify(provider).includes(secret))
-  await provider.withKeys([ref],100,async use=>{after=use;held=use(ref,b=>b);assert.equal(held.toString('base64'),secret)})
+  await provider.withKeys([ref],100,async borrow=>{after=borrow;held=borrow(ref,b=>b);assert.equal(held.toString('base64'),secret)})
   assert.ok(held?.every(v=>v===0));assert.throws(()=>after!(ref,b=>b))
  }finally{mocked.mock.restore()}
 })
@@ -51,10 +51,10 @@ test('OpenBao scope and provider failures fail closed before any network/transac
   for(const origin of ['http://bao.fixture.invalid','https://user:pass@bao.fixture.invalid','https://bao.fixture.invalid/redirect','https://bao.fixture.invalid/?query=private'])assert.throws(()=>createOpenBaoKeys({...options(),origin}))
  }finally{mocked.mock.restore()}
 })
-test('OpenBao scope deadline denies late key use and cleans up after callback failure',async()=>{
+test('OpenBao scope deadline denies late key borrow and cleans up after callback failure',async()=>{
  const mocked=transport(200,response());let held:Buffer|undefined
  try{
-  await assert.rejects(()=>createOpenBaoKeys(options()).withKeys([ref],1,async use=>{held=use(ref,b=>b);await new Promise(r=>setTimeout(r,10));use(ref,b=>b)}))
+  await assert.rejects(()=>createOpenBaoKeys(options()).withKeys([ref],1,async borrow=>{held=borrow(ref,b=>b);await new Promise(r=>setTimeout(r,10));borrow(ref,b=>b)}))
   assert.ok(held?.every(v=>v===0))
  }finally{mocked.mock.restore()}
 })

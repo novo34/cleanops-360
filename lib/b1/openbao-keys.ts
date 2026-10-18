@@ -49,7 +49,11 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   const tokenProvider = options.token
   async function read(r: PrivateKeyReference): Promise<Buffer> {
     if (!allowed.has(identity(r))) throw unavailable()
-    const token = await tokenProvider()
+    let tokenTimer: ReturnType<typeof setTimeout> | undefined
+    let token: string
+    try {
+      token = await Promise.race([tokenProvider(), new Promise<never>((_, reject) => { tokenTimer = setTimeout(() => reject(unavailable()), timeoutMs) })])
+    } finally { if (tokenTimer) clearTimeout(tokenTimer) }
     if (typeof token !== 'string' || !/^[A-Za-z0-9._-]{1,1024}$/.test(token)) throw unavailable()
     const path = `/v1/${mount}/data/${environment}/${r.tenantId.toLowerCase()}/${r.purpose}/${r.keyId}?version=${r.version}`
     return new Promise((resolve, reject) => {
@@ -86,7 +90,7 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   }
   return Object.freeze({
     async withKeys<T>(references: readonly PrivateKeyReference[], lifetimeMs: number,
-      work: (use: <R>(r: PrivateKeyReference, fn: (key: Buffer) => R) => R) => Promise<T>): Promise<T> {
+      work: (borrow: <R>(r: PrivateKeyReference, fn: (key: Buffer) => R) => R) => Promise<T>): Promise<T> {
       const keys = new Map<string, Buffer>()
       let active = true
       if (!Number.isSafeInteger(lifetimeMs) || lifetimeMs < 1 || lifetimeMs > 30000 || !references.length) throw unavailable()
@@ -94,12 +98,12 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
         // Sequential reads avoid orphaned successful secret buffers after a failure.
         for (const r of references) { const id = identity(r); if (keys.has(id)) throw unavailable(); keys.set(id, await read(r)) }
         const deadline = performance.now() + lifetimeMs
-        const use = <R>(r: PrivateKeyReference, fn: (key: Buffer) => R): R => {
+        const borrow = <R>(r: PrivateKeyReference, fn: (key: Buffer) => R): R => {
           if (!active || performance.now() >= deadline) throw unavailable()
           const key = keys.get(identity(r)); if (!key) throw unavailable()
           return fn(key)
         }
-        const result = await work(use)
+        const result = await work(borrow)
         if (performance.now() >= deadline) throw unavailable()
         return result
       } catch { throw unavailable() }
