@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
   "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
-  "accepted": 9,
+  "accepted": 14,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -529,11 +529,12 @@
         "remaining": "Validar la UI de login contra el backend real y completar aceptación; HTTP/Argon2id/PG se evidencian separadamente."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "REAL_RESET_AND_RETAINED_SESSION_ACCEPTANCE"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null,
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "641886171bc24557ff5f49ae6bc7564036efc6b0",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -542,7 +543,22 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptanceSQL09": "OPEN",
+      "acceptanceEvidence": {
+        "source": "9f73907fdfe506619444201deac6655a54fe4462",
+        "run": 39115439609,
+        "report": "docs/implementation/b1/consolidated-test-09/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real reset UI commits credential CAS and requires password plus MFA again"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_DEPENDENCIES",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidateSQL09": null
     },
     {
       "id": "REQ-AUTH-002",
@@ -1995,7 +2011,8 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "remaining": "Complete administrative MFA-reset UI/API and real E2E over the approved identity-proof/RBAC/step-up contract; password reset is a separate completed flow. Remains within B1."
     },
     {
       "id": "REQ-AUTH-040",
@@ -2048,10 +2065,11 @@
         "remaining": "Lista/paginación de52 sesiones y revocaciones UI/API/PG ejecutadas; completar aceptación del producto/PO y fuente operacional de contexto."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "REAL_RESET_AND_RETAINED_SESSION_ACCEPTANCE"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2061,7 +2079,21 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptanceSQL09": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_DEPENDENCIES",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": ""
     },
     {
       "id": "REQ-AUTH-041",
@@ -2114,10 +2146,11 @@
         "remaining": "Campos dispositivo/navegador/creación/actividad y caducidad, con páginas reales probados. Completar evidencia operacional de actividad/absoluta y aceptación PO."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "REAL_RESET_AND_RETAINED_SESSION_ACCEPTANCE"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2127,7 +2160,21 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptanceSQL09": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_DEPENDENCIES",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": ""
     },
     {
       "id": "REQ-AUTH-042",
@@ -2180,10 +2227,11 @@
         "remaining": "Revocación individual UI/API/PG ejecutada. Vincular aceptación integral con negativas/fallos aprobados; runtime operativo cerrado."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "REAL_RESET_AND_RETAINED_SESSION_ACCEPTANCE"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2193,7 +2241,21 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptanceSQL09": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_DEPENDENCIES",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": ""
     },
     {
       "id": "REQ-AUTH-043",
@@ -2246,10 +2308,11 @@
         "remaining": "Bulk con step-up preserva actual; evidencia previa protege tenant ajeno. Pendiente aceptación integral/operacional."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "REAL_RESET_AND_RETAINED_SESSION_ACCEPTANCE"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2259,7 +2322,21 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptanceSQL09": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_DEPENDENCIES",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": ""
     },
     {
       "id": "REQ-AUTH-044",
@@ -2369,7 +2446,8 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": false,
+      "remaining": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed."
     },
     {
       "id": "REQ-AUTH-047",
@@ -2817,6 +2895,12 @@
     "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
     "run": 39111607391,
     "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+    "result": "PASS"
+  },
+  "latestSQL09Evidence": {
+    "source": "9f73907fdfe506619444201deac6655a54fe4462",
+    "run": 39115439609,
+    "report": "docs/implementation/b1/consolidated-test-09/EXECUTION.json",
     "result": "PASS"
   }
 }

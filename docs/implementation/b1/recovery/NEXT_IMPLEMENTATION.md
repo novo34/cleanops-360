@@ -1,3 +1,9 @@
+# Current sequence after SQL09
+
+Password reset integration and security evidence are in PASSWORD_RESET_HTTP.md and ../consolidated-test-09/. SQL09 is approved/installed in isolated tests; its prior authorization dependency is resolved. B1 is14/44 accepted in isolated functional scope, AUTH-GATE-05 OPEN, closedBackend. Next: complete trusted-device public UI/API/HTTP-only token semantics over the already-approved broker functions without bypassing MFA, then AUTHZ/Manage Access and remaining administrative MFA reset within B1. No new SQL/ACL, production, infrastructure activation or other module is authorized by these next code/test tasks.
+
+## Historical independent preparation (superseded status)
+
 # Independent preparation after SQL08
 
 B1 remains9/44, AUTH-GATE-05 OPEN, runtime closedBackend. No SQL09 installation, new SQL/ACL, provider activation or another module.

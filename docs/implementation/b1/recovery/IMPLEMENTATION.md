@@ -1,3 +1,11 @@
+# Current password reset / recovery integration
+
+SQL09 is owner-authorized and installed/tested only in isolated synthetic PG16. Normal and operator-authorized password reset now use the existing auth panel/private service and a single owned SQL09 transaction. See PASSWORD_RESET_HTTP.md and ../consolidated-test-09/ for exact source/run evidence and boundaries.14/44 requirements accepted individually in isolated functional scope; B1/AUTH-GATE-05 OPEN, closedBackend. External attestation/custody are synthetic; the local password checker is real with a synthetic corpus dataset, not a selected production corpus.
+
+The previous missing BOOTSTRAP reservation contract is resolved by exact approved09, with no additional SQL/ACL. Next B1 vertical is trusted-device UI/API/PostgreSQL, then full AUTHZ. Administrative MFA reset remains distinct from password reset and within B1; no omission or phase transfer.
+
+## Historical SQL08 / SQL07 increments below
+
 # Current recovery code — SQL08 isolated COMPLETE; reset OPEN
 
 Source80a193b0ea8ead58e999e669826f979c6a0b11b1, real PG16/Chromium run39111607391:134PASS including23 real browser flows. See ../consolidated-test-08/RESULT.md and EXECUTION.json. The approved durable binding closes the SQL07 independent-password-browser takeover; expired abandonment stays closed, real COMMIT rollback retains the binding and bound retry succeeds. Direct service table/role and cross-user/tenant enrollment negatives PASS.9/44 requirements accepted individually; no production or full recovery/reset/admin acceptance. Existing frontend/private handler reused; runtime closedBackend.
