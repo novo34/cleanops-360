@@ -232,6 +232,14 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async authorize(binding, rule, resource) { return (await auth(binding, rule, resource)).allowed === true },
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
+        async auditFailure(binding,code){
+          owns(binding)
+          if(code!=='CSRF_DENIED')throw unavailable()
+          const transport=deps.transport()
+          if(![transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
+          const subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,binding.kind,binding.tenantId??null,binding.userId??binding.id])).digest()
+          try{await broker.call('securityEvent',[code,subject,transport.network,transport.device,correlation])}finally{subject.fill(0)}
+        },
         async rateLimit(operation, binding) {
           owns(binding)
           if (!['registerTrustedDevice','adminResetMfa','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null

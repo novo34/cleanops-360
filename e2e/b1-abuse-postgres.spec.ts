@@ -92,3 +92,13 @@ test('ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing chall
   expect(state.rates.some((r:{dimension:string;purpose:string;maximum:number})=>r.dimension==='USER'&&r.purpose==='OTP_VERIFY'&&r.maximum>=limit)).toBe(true)
  }finally{await server.close()}
 })
+test('CSRF durable real denial uses trusted hashed context and never consumes credentials or issues session',async({page})=>{
+ const server=await startRealBrowserServer('abuse')
+ try{
+  const email=(await server.rpc({kind:'fixtureEmail'})).email;await page.goto('/login')
+  const denied=await page.evaluate(async email=>{const r=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':'x'.repeat(43)},body:JSON.stringify({email,password:'PG05 synthetic passphrase!'})});return{status:r.status,body:await r.json()}},email)
+  expect(denied.status).toBe(403);expect(denied.body.error.code).toBe('CSRF_INVALID')
+  const state=await server.rpc({kind:'inspectAbuse'});expect(state.active).toBe(0);expect(state.events.some((r:{code:string;total:number;subject_hashed:boolean;network_hashed:boolean;device_hashed:boolean})=>r.code==='CSRF_DENIED'&&r.total===1&&r.subject_hashed&&r.network_hashed&&r.device_hashed)).toBe(true)
+  expect((await post(page,'/auth/login',{email,password:'PG05 synthetic passphrase!'})).status).toBe(200)
+ }finally{await server.close()}
+})

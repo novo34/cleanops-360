@@ -1,6 +1,6 @@
 # B1 — matriz individual de aceptación
 
-**22/44 aceptados en alcance funcional aislado**. Fuente `38e385e9cbf33d2030d8b924d747eaf057bb92c2`, Actions 39124915880. B1/AUTH-GATE-05 OPEN; runtime closedBackend. No aceptación productiva ni cierre formal.
+**27/44 aceptados en alcance funcional aislado**. Última evidencia fuente `6456d28fcb7fca81ff09c2acf7b8b26d987880b4`, Actions 39129522063. B1 y AUTH-GATE-05 OPEN; closedBackend conectado. No aceptación productiva.
 
 |Requisito|Criterio canónico|Aceptación|Pendiente|
 |---|---|---|---|
@@ -17,14 +17,14 @@
 |REQ-AUTH-002|Tras validar credenciales, se exigirá segundo factor según la política de riesgo del rol: obligatorio para administradores, comerciales, planificación, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigirán step-up MFA aunque el login operativo se haya permitido sin MFA.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
 |REQ-AUTH-003|Métodos MFA: código OTP por email o TOTP Authenticator.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
 |REQ-AUTH-004|TOTP deberá ser compatible con aplicaciones estándar.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
-|REQ-AUTH-010|OTP de un solo uso.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-010|OTP de un solo uso.|ACCEPTED|None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.|
 |REQ-AUTH-011|Código OTP por email válido durante 5 minutos, de un solo uso y con invalidación por consumo o reenvío.|ACCEPTED||
 |REQ-AUTH-012|OTP almacenado como hash.|ACCEPTED||
 |REQ-AUTH-013|Reenvío invalida códigos anteriores.|ACCEPTED||
 |REQ-AUTH-014|Cooldown de reenvío.|ACCEPTED||
-|REQ-AUTH-015|Rate limit por usuario, IP y dispositivo.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
-|REQ-AUTH-016|Límite de intentos.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
-|REQ-AUTH-017|Mensajes que no permitan enumeración de cuentas.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-015|Rate limit por usuario, IP y dispositivo.|ACCEPTED|None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.|
+|REQ-AUTH-016|Límite de intentos.|ACCEPTED|None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.|
+|REQ-AUTH-017|Mensajes que no permitan enumeración de cuentas.|ACCEPTED|None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.|
 |REQ-AUTH-020|Activación mediante QR.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
 |REQ-AUTH-021|No se activa hasta validar el primer código.|ACCEPTED||
 |REQ-AUTH-022|Secreto TOTP cifrado.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
@@ -32,7 +32,7 @@
 |REQ-AUTH-031|Mostrar una única vez.|ACCEPTED||
 |REQ-AUTH-032|Guardar como hash.|ACCEPTED||
 |REQ-AUTH-033|Un solo uso.|ACCEPTED||
-|REQ-AUTH-034|MFA reset por admin deberá quedar auditado.|OPEN|Complete administrative MFA-reset UI/API and real E2E over the approved identity-proof/RBAC/step-up contract; password reset is a separate completed flow. Remains within B1.|
+|REQ-AUTH-034|MFA reset por admin deberá quedar auditado.|ACCEPTED|None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.|
 |REQ-AUTH-040|Pantalla `Account → Security → Active Sessions`.|ACCEPTED||
 |REQ-AUTH-041|Mostrar dispositivo, navegador, creación y última actividad.|ACCEPTED||
 |REQ-AUTH-042|Revocar sesión individual.|ACCEPTED||

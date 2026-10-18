@@ -15,7 +15,7 @@ test('malformed private recovery adapter cannot emit ACTIVE or cookies',async()=
   const origin='https://fixture.invalid',raw='a'.repeat(43),csrf='b'.repeat(43),id=randomUUID(),tenant=randomUUID(),user=randomUUID()
   const binding:Binding={kind:'PREAUTH',state:'PENDING_MFA',id,tenantId:tenant,userId:user,csrfDigest:digest(csrf),expiresAt:Date.now()+600000}
   let completed=0,committed=0
-  const tx:Transaction={async resolve(){return binding},async authorize(){return true},async stepUp(){return true},async rateLimit(){return null},
+  const tx:Transaction={async resolve(){return binding},async authorize(){return true},async stepUp(){return true},async auditFailure(){},async rateLimit(){return null},
     async reserve(_scope,requestHash){return {replay:false,requestHash,oneTime:true,expiresAt:binding.expiresAt}},async discard(){},async complete(){completed++},
     async execute(){return {data:{state:'ACTIVE',session_id:randomUUID(),tenant_id:tenant,absolute_expires_at:new Date(Date.now()+600000).toISOString()},transition:{kind:'ACTIVE',token:'c'.repeat(43),csrf:'d'.repeat(43),expiresAt:Date.now()+300000}}}}
   const backend:Backend={async bootstrap(){},async transaction(work){const result=await work(tx);committed++;return result}}

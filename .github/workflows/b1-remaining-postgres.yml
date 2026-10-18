@@ -6,11 +6,11 @@ permissions:
   contents: read
 jobs:
   recovery-pg:
-    if: github.event.pull_request.number == 7 && github.event.before == '191e3bdcc640debecf9798d7c51db8078fd17b33' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == '6456d28fcb7fca81ff09c2acf7b8b26d987880b4' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     strategy:
       fail-fast: false
       matrix:
-        group: [abuse, mfa-admin]
+        group: [policy, enrollment, isolation, csrf, switch]
     runs-on: ubuntu-latest
     timeout-minutes: 16
     env:
@@ -32,6 +32,11 @@ jobs:
       - run: npm run test:b1
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Install isolated QR decoder
+        if: matrix.group == 'enrollment'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zbar-tools
       - run: python3 scripts/pg-b1-remaining.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

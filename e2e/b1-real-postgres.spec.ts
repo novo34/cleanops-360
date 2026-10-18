@@ -1,3 +1,4 @@
+import {spawnSync} from 'node:child_process'
 import { test, expect } from '@playwright/test'
 import { numeric } from '../lib/b1/config'
 // @ts-expect-error CI-only JS bridge intentionally has no application import/declaration.
@@ -111,7 +112,12 @@ test('real first enrollment confirms SHA256 with CAS, recovery codes and committ
       data: { enrollment_id: material.enrollment_id, proof: 'invalid' } })
     expect(invalid.status()).toBe(422)
     const { URI, TOTP } = await import('otpauth')
-    const authenticator = URI.parse(material.provisioning_uri)
+    // Decode the actual rendered QR, not merely the enrollment JSON URI.
+    const png=await qr.evaluate((element:HTMLCanvasElement)=>element.toDataURL('image/png'))
+    const decoded=spawnSync('zbarimg',['--quiet','--raw','-'],{input:Buffer.from(png.split(',')[1],'base64'),encoding:'utf8',timeout:10000,maxBuffer:8192})
+    if(decoded.status!==0)throw Error('SYNTHETIC_QR_DECODE_FAILED')
+    const qrUri=decoded.stdout.trim();expect(qrUri).toBe(material.provisioning_uri)
+    const authenticator = URI.parse(qrUri)
     if (!(authenticator instanceof TOTP)) throw Error('INVALID_AUTHENTICATOR_TYPE')
     expect(authenticator.algorithm).toBe('SHA256')
     expect(authenticator.issuer).toBe('CleanOps 360')

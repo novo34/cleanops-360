@@ -22,11 +22,15 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
-      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER'].includes(evidence.newUIE2E))
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER'].includes(evidence.newUIE2E))
       if(evidence.kind==='COMPOSITE_REAL_CASE_EVIDENCE'){
         for(const check of evidence.checks){const raw=JSON.parse(read(check.sourceReport));assert.equal(raw.source,check.source);assert.equal(raw.run,check.run);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===check.name&&c.status==='PASS'))}
       }
       for (const name of row.acceptanceEvidence.cases) assert.ok(evidence.checks.some((c: {name:string;status:string}) => c.name === name && c.status === 'PASS'))
+      for(const proof of row.supportingAcceptanceEvidence??[]){
+        const raw=JSON.parse(read(proof.report));assert.equal(raw.result,'PASS');assert.equal(raw.cleanup,'PASS');assert.equal(raw.source,proof.source);assert.equal(raw.run,proof.run)
+        for(const name of proof.cases)assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===name&&c.status==='PASS'))
+      }
       assert.equal(row.acceptanceEvidence.productionAcceptance, false)
     } else {
       assert.equal(row.acceptance, 'OPEN'); assert.ok(row.pending.length)
@@ -91,5 +95,6 @@ test('SQL11 acceptance is backed by real role/resource matrix, denied HTTP audit
  const required=['SQL11-concurrency-real-row-lock-observed','SQL11-concurrent-CAS-exactly-one-winner','SQL11-concurrent-success-and-denial-both-durable','SQL11-denial-audit-durable-private-server-actor','SQL11-success-audit-server-derived-before-after','SQL11-reactivation-no-overdelegation','SQL11-legitimate-reactivation-allowed','SQL11-old-role-entrypoint-execution-denied','SQL11-hierarchy-cross-tenant-parent-rejected','SQL11-hierarchy-cycle-fails-closed','Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors','Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry']
  for(const name of required)assert.ok(report.checks.some((c:{name:string;status:string})=>c.name===name&&c.status==='PASS'),name)
  for(let role=1;role<=10;role++)for(const phase of ['role-label-has-no-authority','explicit-grants-allowed','same-tenant-outside-scope-denied','foreign-tenant-denied','individual-explicit-deny-beats-role','expired-grants-denied','revoked-membership-denied-in-existing-session'])assert.ok(report.checks.some((c:{name:string;status:string})=>c.name==='SQL11-matrix-'+role+'-'+phase&&c.status==='PASS'))
- assert.equal(matrix.requirements.filter((r:{acceptance:string})=>r.acceptance==='ACCEPTED').length,22)
+ assert.equal(matrix.requirements.filter((r:{acceptance:string})=>r.acceptance==='ACCEPTED').length,matrix.accepted)
+ assert.ok(matrix.accepted>=22)
 })

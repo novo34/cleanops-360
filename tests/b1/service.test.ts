@@ -26,7 +26,7 @@ function fixture(kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']) {
           async resolve(cookies) { return cookies[names.session] === bindingToken || cookies[names.preauth] === bindingToken ? f.binding : null },
           async authorize(_b, rule) { f.rules.push(rule); return f.allow },
           async stepUp() { return f.step },
-          async rateLimit() { return f.retry },
+          async auditFailure(){},async rateLimit() { return f.retry },
           async reserve(scope, hash) { return records.get(scope) ?? { replay: false, requestHash: hash } },
           async discard(scope) { records.delete(scope) },
           async complete(scope, hash, data, oneTime) { records.set(scope, { replay: true, requestHash: hash, data, oneTime, expiresAt: clock()+86400000 }) },

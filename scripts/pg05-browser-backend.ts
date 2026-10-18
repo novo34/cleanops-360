@@ -39,6 +39,8 @@ const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user:
 const key = randomBytes(32), secret = randomBytes(32), method = randomUUID()
 const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId: method, initialMethodVersion: '1' as const, algorithm: 'SHA256' as const }
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
+let secondaryTenant:{user:string;method:string;secret:Buffer}|null=null
+const secondaryKey=randomBytes(32)
 let lastProofFingerprint: Buffer | undefined
 let failNextEmailCommit = false
 let loseNextCommitAck=false
@@ -157,6 +159,10 @@ try {
     passwordAdmission,
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
+        if(secondaryTenant&&record.binding.tenantId===input.otherTenant){
+          assert.equal(version,'pg05-ephemeral-b');assert.equal(record.binding.userId,secondaryTenant.user);assert.equal(record.binding.methodId,secondaryTenant.method)
+          return openEnrollmentSecret(bytes,secondaryKey,version,{tenantId:input.otherTenant,userId:secondaryTenant.user,methodId:secondaryTenant.method,initialMethodVersion:'1',algorithm:'SHA256'})
+        }
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
         assert.ok(record.binding.userId===input.user || record.binding.userId===resetTarget?.user);
          assert.equal(record.algorithm, 'SHA256'); assert.equal(bytes[0], 2)
@@ -183,6 +189,41 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
+      if(input.scenario==='abuse' && message.kind==='addSwitchMembership'){
+        if(secondaryTenant)throw Error('DUPLICATE_SYNTHETIC_MEMBERSHIP')
+        secondaryTenant={user:randomUUID(),method:randomUUID(),secret:randomBytes(32)}
+        await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic second company user','ACTIVE','SENSITIVE',statement_timestamp())",[input.otherTenant,secondaryTenant.user,input.principal])
+        const cipher=sealEnrollmentSecret(secondaryTenant.secret,secondaryKey,'pg05-ephemeral-b',{tenantId:input.otherTenant,userId:secondaryTenant.user,methodId:secondaryTenant.method,initialMethodVersion:'1',algorithm:'SHA256'})
+        await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral-b',statement_timestamp(),1,'SHA256')",[input.otherTenant,secondaryTenant.method,secondaryTenant.user,cipher])
+        reply({tenant:input.otherTenant,user:secondaryTenant.user});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='switchProof' && secondaryTenant){reply({proof:TOTP.generate({secret:new Secret({buffer:Uint8Array.from(secondaryTenant.secret).buffer}),algorithm:'SHA256',period:numeric('totp_period'),digits:numeric('totp_digits')})});continue}
+      if(input.scenario==='abuse' && message.kind==='revokeSwitchSource'){
+        await admin.query("UPDATE app.sessions SET state='REVOKED',revoked_at=statement_timestamp() WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='inspectSwitch' && secondaryTenant){
+        const old=await admin.query('SELECT state FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at',[input.tenant,input.user])
+        const dest=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.sessions WHERE tenant_id=$1 AND user_id=$2",[input.otherTenant,secondaryTenant.user])
+        const counter=await admin.query('SELECT last_totp_counter IS NOT NULL AS consumed FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2',[input.otherTenant,secondaryTenant.method])
+        reply({source:old.rows.map(r=>r.state),activeDestination:dest.rows[0].active,destinationConsumed:counter.rows[0].consumed});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='setAbuseRisk'){
+        if(!['SENSITIVE','OPERATIONAL'].includes(message.risk))throw Error('INVALID_SYNTHETIC_RISK')
+        await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,message.risk]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='inspectPolicySession'){
+        const rows=await admin.query("SELECT idle_seconds,extract(epoch FROM absolute_expires_at-created_at)::float AS absolute_seconds,extract(epoch FROM idle_expires_at-last_activity_at)::float AS idle_remaining FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' ORDER BY created_at DESC",[input.tenant,input.user]);reply({sessions:rows.rows});continue
+      }
+      if(input.scenario==='abuse' && ['expireSessionIdle','expireSessionAbsolute'].includes(message.kind)){
+        const r=await admin.query('SELECT risk_class FROM app.users WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user])
+        const idle=numeric(r.rows[0].risk_class==='OPERATIONAL'?'idle_operational':'idle_sensitive'),absolute=numeric(r.rows[0].risk_class==='OPERATIONAL'?'absolute_operational':'absolute_sensitive')
+        if(message.kind==='expireSessionIdle')await admin.query("UPDATE app.sessions SET created_at=statement_timestamp()-make_interval(secs=>$3+60),mfa_verified_at=statement_timestamp()-make_interval(secs=>$3+60),last_activity_at=statement_timestamp()-make_interval(secs=>$3+1),idle_expires_at=statement_timestamp()-interval '1s',absolute_expires_at=statement_timestamp()-make_interval(secs=>$3+60)+make_interval(secs=>$4) WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user,idle,absolute])
+        else await admin.query("UPDATE app.sessions SET created_at=statement_timestamp()-make_interval(secs=>$3+1),mfa_verified_at=statement_timestamp()-make_interval(secs=>$3+1),last_activity_at=statement_timestamp()-interval '2s',idle_expires_at=statement_timestamp()-interval '1s',absolute_expires_at=statement_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user,absolute])
+        reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='tamperAbuseCiphertext'){
+        await admin.query("UPDATE app.mfa_methods SET secret_ciphertext=set_byte(secret_ciphertext,octet_length(secret_ciphertext)-1,get_byte(secret_ciphertext,octet_length(secret_ciphertext)-1) # 1) WHERE tenant_id=$1 AND user_id=$2 AND kind='TOTP' AND state='ACTIVE'",[input.tenant,input.user]);reply({ok:true});continue
+      }
       if(input.scenario==='abuse' && message.kind==='rotateAbuseTransport'){
         if(message.network)randomBytes(32).copy(fixtureNetwork)
         if(message.device)randomBytes(32).copy(fixtureDevice)
@@ -374,7 +415,7 @@ try {
   if(!setupComplete){const code=typeof error==='object'&&error!==null&&'code' in error?String(error.code):'UNKNOWN';process.stdout.write(JSON.stringify({rpcId:input.rpcId,ready:false,sqlstate:/^[0-9A-Z]{5}$/.test(code)?code:'UNKNOWN'})+'\n')}
   process.exitCode=1
 } finally {
-  key.fill(0); secret.fill(0); resetTarget?.secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
+  key.fill(0); secret.fill(0); secondaryTenant?.secret.fill(0);secondaryKey.fill(0);resetTarget?.secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
   await mailPool.end()
   await identity.end(); await admin.end()
 }

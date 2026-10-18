@@ -27,6 +27,8 @@ export interface Transaction {
   authorize(binding: Binding, rule: string, resource?: string): Promise<boolean>
   stepUp(binding: Binding, rule: string, resource?: string): Promise<boolean>
   rateLimit(operation: string, binding: Binding): Promise<number | null>
+  /** Trusted binding only; commit security denial without business effects. */
+  auditFailure(binding: Binding, code: 'CSRF_DENIED'): Promise<void>
   /** Atomic reserve + effect + audit + completion on this same transaction/connection. */
   reserve(scope: string, requestHash: string): Promise<{ replay: boolean; requestHash?: string; data?: unknown; oneTime?: boolean; expiresAt?: number }>
   discard(scope: string): Promise<void>
@@ -173,7 +175,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
         const outcome = await backend.transaction(async tx => {
           const binding = await tx.resolve(received)
           if (!binding || binding.expiresAt <= now() || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
-          if (request.method !== 'GET' && !safeEqual(digest(received[names.csrf]), binding.csrfDigest)) throw new AuthError(403, 'CSRF_INVALID')
+          if(request.method!=='GET'&&!safeEqual(digest(received[names.csrf]),binding.csrfDigest)){await tx.auditFailure(binding,'CSRF_DENIED');return new AuthError(403,'CSRF_INVALID')}
           if (operationId === 'selectTotpMethod') {
             if (binding.kind === 'ACTIVE' ? input.grant_id === undefined : input.grant_id !== undefined || input.resource_id !== undefined)
               throw new AuthError(422, 'INVALID_INPUT')

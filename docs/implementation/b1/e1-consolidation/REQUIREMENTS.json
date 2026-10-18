@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
-  "assessmentSource": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
-  "accepted": 22,
+  "assessmentSource": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+  "accepted": 27,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -1175,12 +1175,10 @@
         "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
       },
       "currentProgress": [
-        "PRIVATE_PG_EMAIL_ENROLLMENT_DELIVERY_CONSUMPTION_SESSION_PARTIAL_PASS",
-        "GC_LIFECYCLE_FAIL",
-        "PRODUCT_HTTP_UI_PENDING"
+        "REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -1193,7 +1191,25 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "remaining": "None in isolated functional scope.",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+        "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+        "run": 39129522063,
+        "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+          "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+          "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+          "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+          "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-011",
@@ -1444,11 +1460,10 @@
         "remaining": "Validar límites de las tres dimensiones con ingreso confiable, carga y flujos reales completos; perfil actual de ensayo."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -1458,7 +1473,25 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "remaining": "None in isolated functional scope.",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+        "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+        "run": 39129522063,
+        "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+          "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+          "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+          "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+          "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-016",
@@ -1478,11 +1511,10 @@
         "remaining": "Cubrir presupuestos de intentos y bloqueo por todos los canales públicos, incluidos EMAIL y recuperación."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -1492,7 +1524,25 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "remaining": "None in isolated functional scope.",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+        "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+        "run": 39129522063,
+        "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+          "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+          "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+          "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+          "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-017",
@@ -1545,10 +1595,10 @@
         "remaining": "Validar presentación UI y todos los errores reales seguros; pruebas HTTP de contraseña conocida/ausente se vinculan como evidencia parcial."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": null,
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -1558,7 +1608,25 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "remaining": "None in isolated functional scope.",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+        "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+        "run": 39129522063,
+        "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+          "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+          "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+          "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+          "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+          "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-020",
@@ -2274,14 +2342,10 @@
         "remaining": "C-SCOPE aprobado. Implementar reset administrativo con permiso explícito, step-up, motivo, comprobación de identidad real y auditoría; SQL/ACL nuevos aún no instalados."
       },
       "currentProgress": [
-        "PRIVATE_MFA_RESET_WITH_INDEPENDENT_PROOF_PASS",
-        "PASSWORD_RESET_FAIL_COLUMN_PRIVILEGE",
-        "RECOVERY_EXPECTED_VERSION_SETUP_BLOCKED",
-        "SQL07_REVIEW_ONLY",
-        "PRODUCT_HTTP_UI_PENDING"
+        "REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
       "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
       "native06": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -2294,8 +2358,21 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false,
-      "remaining": "Complete administrative MFA-reset UI/API and real E2E over the approved identity-proof/RBAC/step-up contract; password reset is a separate completed flow. Remains within B1."
+      "accepted": true,
+      "remaining": "None in isolated functional scope.",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/ADMIN_MFA_EXECUTION.json",
+        "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+        "run": 39129522063,
+        "uiScope": "EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-ADMIN MFA real UI step-up resets only the attested target and persists actor target reason and outcome",
+          "Browser-PG-ADMIN MFA password PREAUTH cannot reset or expose privileged target state",
+          "Browser-PG-ADMIN MFA real expired attestation and forged authority fail closed without revoking factors",
+          "Browser-PG-ADMIN MFA actual failed COMMIT restores factors receipt and audit before a safe retry"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-040",
@@ -3277,6 +3354,89 @@
       "pass": 57,
       "fail": 0,
       "scope": "HTTP fixtures, not new real PostgreSQL browser flows"
+    }
+  },
+  "latestRemainingEvidence": {
+    "REQ-AUTH-010": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-015": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-016": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-017": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-034": {
+      "report": "docs/implementation/b1/remaining/ADMIN_MFA_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ADMIN MFA real UI step-up resets only the attested target and persists actor target reason and outcome",
+        "Browser-PG-ADMIN MFA password PREAUTH cannot reset or expose privileged target state",
+        "Browser-PG-ADMIN MFA real expired attestation and forged authority fail closed without revoking factors",
+        "Browser-PG-ADMIN MFA actual failed COMMIT restores factors receipt and audit before a safe retry"
+      ],
+      "productionAcceptance": false
     }
   }
 }
