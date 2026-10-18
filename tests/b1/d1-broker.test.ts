@@ -43,6 +43,7 @@ function fixture(options: Options = {}) {
      queue = new Promise<void>(resolve => { unlock = resolve })
      await prior; staged = { ...state }; return {}
     }
+    if(['SAVEPOINT b1_totp_material','ROLLBACK TO SAVEPOINT b1_totp_material','RELEASE SAVEPOINT b1_totp_material'].includes(sql))return {}
     if (sql === 'ROLLBACK') return {}
     if (sql === 'COMMIT') {
      if (options.commitFailure) throw error('private diagnostic key ciphertext recipient')

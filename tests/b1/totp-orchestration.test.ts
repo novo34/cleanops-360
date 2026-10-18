@@ -38,6 +38,7 @@ async function fixture(options:Options={}) {
      const prior=queue;queue=new Promise<void>(resolve=>{unlock=resolve});await prior
      staged=structuredClone(committed);return {}
     }
+    if(['SAVEPOINT b1_totp_material','ROLLBACK TO SAVEPOINT b1_totp_material','RELEASE SAVEPOINT b1_totp_material'].includes(sql))return {}
     if(sql==='ROLLBACK')return {}
     if(sql==='COMMIT'){
      if(options.commitFailure)throw err('private commit diagnostic')
