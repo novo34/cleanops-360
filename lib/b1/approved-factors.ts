@@ -76,7 +76,14 @@ export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys,
       if (!uuid(actor.tenantId) || !uuid(actor.userId) || !uuid(ceremony) ||
           (actor.kind === 'ACTIVE') !== (rawPreauth === null) ||
           (purpose === 'STEP_UP' && actor.kind !== 'ACTIVE') || (purpose === 'LOGIN' && actor.kind !== 'PREAUTH')) return invalid()
-      const material = await broker.call('totpMaterial', [rawPreauth, ceremony, purpose])
+      let material: unknown
+      try{material=await broker.call('totpMaterial',[rawPreauth,ceremony,purpose])}
+      catch(error){
+        // The typed broker restores only expected read-only material denials.
+        // Return so the outer transaction commits rate counters/security audit.
+        if(error instanceof AuthError && error.status===401)return denied('MFA_DENIED',actor.id)
+        throw error
+      }
       if (!object(material) || !object(material.binding)) throw unavailable()
       const b = material.binding
       if (b.tenantId !== actor.tenantId || b.userId !== actor.userId || !uuid(b.methodId) ||

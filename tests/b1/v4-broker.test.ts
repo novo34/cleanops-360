@@ -108,3 +108,16 @@ test('unawaited work drains before rollback and never commits', async () => {
   assert.equal(f.calls.some(c => c.sql === 'COMMIT'), false)
 })
 
+
+test('expected TOTP material denial restores a savepoint for durable counters while unknown SQL errors still poison',async()=>{
+ const args:[string,string,'LOGIN']=['a'.repeat(43),'00000000-0000-4000-8000-000000000001','LOGIN']
+ const f=fixture(name=>{if(name==='totp_material_locked')throw Object.assign(new Error('AUTH_INVALID'),{code:'42501'});return null})
+ await createV4IdentityRepository(f.pool).transaction(async broker=>{
+  await assert.rejects(broker.call('totpMaterial',args),(e:unknown)=>e instanceof AuthError&&e.status===401)
+  await broker.call('securityEvent',['MFA_DENIED',Buffer.alloc(32),null,null,'00000000-0000-4000-8000-000000000002'])
+ })
+ assert.ok(f.calls.some(c=>c.sql==='ROLLBACK TO SAVEPOINT b1_totp_material'));assert.equal(f.calls.at(-1)?.sql,'COMMIT');assert.deepEqual(f.released,[false])
+ const broken=fixture(()=>{throw Object.assign(new Error('private native failure'),{code:'40001'})})
+ await assert.rejects(createV4IdentityRepository(broken.pool).transaction(async broker=>{await assert.rejects(broker.call('totpMaterial',args),unavailable)}),unavailable)
+ assert.equal(broken.calls.at(-1)?.sql,'ROLLBACK');assert.deepEqual(broken.released,[true])
+})

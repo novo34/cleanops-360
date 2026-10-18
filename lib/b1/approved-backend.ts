@@ -176,6 +176,11 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         return { data: { state: 'ACTIVE', session_id: result.session_id, tenant_id: result.tenant_id, absolute_expires_at: new Date(absolute).toISOString() },
           transition: { kind: 'ACTIVE', token: cookie, csrf: newCsrf, expiresAt: Math.min(absolute, now() + policy.idleSeconds * 1000) } }
       }
+      async function rateDenied(subject: Buffer, retry: number, transport=deps.transport()) {
+        if(![subject,transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
+        await broker.call('securityEvent',['RATE_LIMITED',subject,transport.network,transport.device,correlation])
+        return new AuthError(429,'RATE_LIMITED',retry)
+      }
       async function factorDenied(binding: Binding) {
         const pseudonym = createHmac('sha256', deps.factors.auditKey).update(canonical(['MFA_DENIED', binding.id])).digest()
         try { await broker.call('securityEvent', ['MFA_DENIED', pseudonym, null, null, correlation]) }
@@ -239,7 +244,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             [numeric('otp_issue_user_limit'), numeric('otp_issue_ip_limit'), numeric('otp_issue_device_limit')]
           let retry = 0
           for (let i = 0; i < values.length; i++) retry = Math.max(retry, await broker.call('rateAttempt', [values[i], dims[i], purpose, limits[i]]))
-          return retry > 0 ? retry : null
+          try{if(retry>0)await rateDenied(subject,retry,transport);return retry>0?retry:null}finally{subject.fill(0)}
         },
         async reserve(scope, requestHash) {
           if (!actor || (actor.kind === 'BOOTSTRAP' && operationHint!=='resetPassword') || !/^[a-f0-9]{64}$/.test(requestHash) || reservations.has(scope)) throw unavailable()
@@ -423,8 +428,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const email = deps.normalizeEmail(String(input.email))
             if (!email || email.length > numeric('email_max')) return invalid()
             const userBucket = createHmac('sha256', deps.factors.auditKey).update(canonical(['LOGIN', email])).digest()
-            const retry = await broker.call('rateAttempt', [userBucket, 'USER', 'LOGIN', numeric('login_user_limit')])
-            if (retry > 0) return new AuthError(429, 'RATE_LIMITED', retry)
+            try{const retry=await broker.call('rateAttempt',[userBucket,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return await rateDenied(userBucket,retry)}finally{userBucket.fill(0)}
             const proof = await factors.password(email, String(input.password))
             if (proof instanceof AuthError) return proof
             const cookie = token(), newCsrf = token()
@@ -484,7 +488,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const ticket=hex(digest(input.ticket)),trusted=await broker.call('resetMaterial',[ticket])
             if(!trusted || Date.parse(trusted.expiresAt)<=now()){await factorDenied(binding);return invalid()}
             const subject=createHmac('sha256',deps.factors.auditKey).update(canonical(['PASSWORD_RESET',trusted.principalId])).digest()
-            try{const retry=await broker.call('rateAttempt',[subject,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return new AuthError(429,'RATE_LIMITED',retry)}finally{subject.fill(0)}
+            try{const retry=await broker.call('rateAttempt',[subject,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return await rateDenied(subject,retry)}finally{subject.fill(0)}
             if(trusted.requiresRecovery && (typeof input.recovery_code!=='string' || !/^[A-Z2-7]{26}$/.test(input.recovery_code))){await factorDenied(binding);return invalid()}
             const replacement=await prepareReplacementHash(String(input.new_password),deps.passwordAdmission)
             if(replacement instanceof AuthError){await factorDenied(binding);return replacement}

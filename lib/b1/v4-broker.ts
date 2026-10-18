@@ -386,10 +386,30 @@ export function createV4IdentityRepository(pool: IdentityPool) {
             // Snapshot buffers/arrays before handing them to pg; never retain caller-owned secrets.
             const copy = (v: unknown): unknown => Buffer.isBuffer(v) ? Buffer.from(v) : Array.isArray(v) ? v.map(copy) : v
             const values = args.map(copy)
-            const query = Promise.resolve().then(() => connection.query(statements[operation].sql, values))
+            // A semantic denial from this read/lock-only getter must not erase
+            // the already charged abuse buckets. Successful RELEASE retains its
+            // locks in the outer transaction; no mutation gets this exception.
+            const guarded=operation==='totpMaterial'
+            let restoredDenial=false
+            const query = Promise.resolve().then(async()=>{
+              if(guarded)await connection.query('SAVEPOINT b1_totp_material')
+              try{
+                const result=await connection.query(statements[operation].sql,values)
+                if(guarded)await connection.query('RELEASE SAVEPOINT b1_totp_material')
+                return result
+              }catch(error){
+                const denial=safeError(error)
+                if(guarded && denial.status===401){
+                  await connection.query('ROLLBACK TO SAVEPOINT b1_totp_material')
+                  await connection.query('RELEASE SAVEPOINT b1_totp_material')
+                  restoredDenial=true;throw denial
+                }
+                throw error
+              }
+            })
             pending = query
             try { return decode(operation, await query, values as unknown as BrokerArgs[K]) }
-            catch (error) { failed = true; throw safeError(error) }
+            catch (error) { if(restoredDenial && error instanceof AuthError)throw error;failed=true;throw safeError(error) }
             finally { pending = undefined }
           },
         })

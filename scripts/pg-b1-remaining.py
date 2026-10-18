@@ -1,0 +1,14 @@
+"""Already owner-authorized SQL11; targeted remaining B1 criteria only."""
+import importlib.util
+from pathlib import Path
+import sys
+ROOT=Path(__file__).resolve().parents[1]
+spec=importlib.util.spec_from_file_location('remaining11',ROOT/'scripts/pg-consolidated-11.py');eleven=importlib.util.module_from_spec(spec);spec.loader.exec_module(eleven)
+runner=eleven.runner;b=eleven.b
+def checks():
+ browser=eleven.prior.nine.previous.browser
+ browser.CONFIG='playwright.abuse-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL11_OTP_ABUSE_ANTIENUM_REAL_BROWSER';browser.SECURITY_GATE='pg11-access-security-tests.py'
+ browser.browser()
+ b.REPORT['increment']='REMAINING_B1_OTP_ABUSE_ANTIENUM'
+runner.checks=checks
+if __name__=='__main__':sys.exit(runner.main())

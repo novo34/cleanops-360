@@ -19,7 +19,7 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const recoveryScenario = ['recovery','reset','reset-admin','trusted','trusted-admin','authz','authz-readonly'].includes(input.scenario)
+const recoveryScenario = ['abuse','recovery','reset','reset-admin','trusted','trusted-admin','authz','authz-readonly'].includes(input.scenario)
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
@@ -43,6 +43,8 @@ let failNextEmailCommit = false
 let loseNextCommitAck=false
 let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
+const fixtureRateKeys=new Set<string>()
+const fixtureCorrelations=new Set<string>()
 let setupComplete=false
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
@@ -126,6 +128,8 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
+        if(input.scenario==='abuse' && sql.includes('auth_api.rate_attempt') && values && Buffer.isBuffer(values[0]))fixtureRateKeys.add(values[0].toString('hex'))
+        if(input.scenario==='abuse' && sql.includes('auth_api.record_security_event') && typeof values?.[4]==='string')fixtureCorrelations.add(values[4])
         if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
@@ -178,7 +182,35 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
-      if(message.kind==='accessFixture' && resetTarget){reply({targetUser:resetTarget.user,targetEmail:resetTarget.email,roleId:accessRole,roleRuleId:accessRoleRule,ruleId:accessTargetRule,resourceId:accessResource,foreignResource:accessForeign,foreignUser:input.otherUser});continue}
+      if(input.scenario==='abuse' && message.kind==='rotateAbuseTransport'){
+        if(message.network)randomBytes(32).copy(fixtureNetwork)
+        if(message.device)randomBytes(32).copy(fixtureDevice)
+        reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='ageRateWindow'){
+        const keys=[...fixtureRateKeys].map(k=>Buffer.from(k,'hex'))
+        await admin.query('UPDATE identity_private.rate_buckets SET window_start=window_start-make_interval(secs=>$2) WHERE key_digest=ANY($1::bytea[])',[keys,numeric('rate_window')])
+        reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='disableAbusePrincipal'){
+        await admin.query("UPDATE identity_private.principals SET state='DISABLED' WHERE id=$1",[input.principal]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='ageChallengeCooldown'){
+        await admin.query("UPDATE app.mfa_challenges SET issued_at=issued_at-make_interval(secs=>$3),expires_at=expires_at-make_interval(secs=>$3) WHERE tenant_id=$1 AND user_id=$2 AND state='ISSUED'",[input.tenant,input.user,numeric('otp_resend_cooldown')+1]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='expireAbuseChallenge'){
+        await admin.query("UPDATE app.mfa_challenges SET issued_at=statement_timestamp()-make_interval(secs=>$3)-interval '1s',expires_at=statement_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2 AND state='ISSUED'",[input.tenant,input.user,numeric('email_otp_ttl')]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='inspectAbuse'){
+        const keys=[...fixtureRateKeys].map(k=>Buffer.from(k,'hex'))
+        const rates=await admin.query("SELECT dimension,purpose,max(count)::int AS maximum,count(*)::int AS buckets FROM identity_private.rate_buckets WHERE key_digest=ANY($1::bytea[]) AND window_start=to_timestamp(floor(extract(epoch FROM statement_timestamp())/$2)*$2) GROUP BY dimension,purpose",[keys,numeric('rate_window')])
+        const events=await admin.query("SELECT code,count(*)::int AS total,bool_and(octet_length(principal_hash)=32) AS subject_hashed,bool_and(network_hash IS NULL OR octet_length(network_hash)=32) AS network_hashed,bool_and(device_hash IS NULL OR octet_length(device_hash)=32) AS device_hashed FROM identity_private.security_log WHERE correlation_id=ANY($1::uuid[]) GROUP BY code",[[...fixtureCorrelations]])
+        const sessions=await admin.query("SELECT count(*)::int AS active FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
+        const challenges=await admin.query('SELECT state,attempts FROM app.mfa_challenges WHERE tenant_id=$1 AND user_id=$2 ORDER BY issued_at',[input.tenant,input.user])
+        const methods=await admin.query("SELECT count(*) FILTER(WHERE last_totp_counter IS NOT NULL)::int AS consumed FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 AND kind='TOTP'",[input.tenant,input.user])
+        reply({rates:rates.rows,events:events.rows,active:sessions.rows[0].active,challenges:challenges.rows,consumedMethods:methods.rows[0].consumed});continue
+      }
+      if(message.kind==='accessFixture'  && resetTarget){reply({targetUser:resetTarget.user,targetEmail:resetTarget.email,roleId:accessRole,roleRuleId:accessRoleRule,ruleId:accessTargetRule,resourceId:accessResource,foreignResource:accessForeign,foreignUser:input.otherUser});continue}
       if(message.kind==='inspectAccess'){
         const policy=await admin.query('SELECT version::text AS version FROM app.policy_versions WHERE tenant_id=$1',[input.tenant])
         const rules=await admin.query('SELECT id,effect,action,resource_kind,revoked_at FROM app.access_rules WHERE tenant_id=$1 AND (id=$2 OR id=$3)',[input.tenant,accessTargetRule,accessRoleRule])
