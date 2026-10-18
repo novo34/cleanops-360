@@ -91,6 +91,7 @@ export async function beforeSnapshot(h:Harness){
   await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'key-v1',now(),1,'SHA256')",[p.tenant,method,p.user,envelope])
   await h.check('B1-real-API-password-TOTP-PG-session-OpenBao-keys',async()=>{
    const bootstrap=token(),csrf=token();await c.compose(b=>b.bootstrap(digest(bootstrap),digest(csrf),Date.now()+numeric('preauth_ttl')*1000-1000));state.jar[names.preauth]=bootstrap;state.jar[names.csrf]=csrf
+   const denied=await c.request('/auth/login','login',{email:'u2@fixture.invalid',password:'Wrong synthetic password'});assert.equal(denied.response.status,401)
    const login=await c.request('/auth/login','login',{email:'u2@fixture.invalid',password});assert.equal(login.response.status,200);assert.equal(login.data.data.state,'PENDING_MFA')
    const proof=TOTP.generate({secret:new Secret({buffer:Uint8Array.from(secret).buffer}),algorithm:'SHA256',period:numeric('totp_period'),digits:numeric('totp_digits')})
    const verified=await c.request('/auth/mfa/verify','verifyMfa',{challenge_id:login.data.data.challenge_id,method:'TOTP',proof});assert.equal(verified.response.status,200);assert.equal(verified.data.data.state,'ACTIVE');state.session=verified.data.data.session_id
@@ -102,6 +103,13 @@ export async function beforeSnapshot(h:Harness){
    await assert.rejects(()=>c.vault.withKeys([{...c.keys[0],tenantId:p.otherTenant}],5000,async()=>{ran++}))
    const wrong={...c.keys[0],version:2};await assert.rejects(()=>reader(p.tenant,h.verifier!,[wrong]).withKeys([wrong],5000,async()=>{ran++}))
    await assert.rejects(()=>reader(p.tenant,'invalid-revoked-fixture').withKeys(c.keys,5000,async()=>{ran++}));assert.equal(ran,0)
+  })
+  await h.check('B1-deleted-key-version-denied-without-fallback',async()=>{
+   const retired:PrivateKeyReference={tenantId:p.tenant,purpose:'totp-aead',keyId:'retired-key',version:1}
+   const path=`b1-keys/data/isolated-fixture/${p.tenant}/totp-aead/retired-key`
+   await h.api(path,{options:{cas:0},data:{value:h.k1!.toString('base64')}},h.root)
+   await h.api(path,undefined,h.root,'DELETE')
+   let ran=false;await assert.rejects(()=>reader(p.tenant,h.verifier!,[retired]).withKeys([retired],5000,async()=>{ran=true}));assert.equal(ran,false)
   })
   await h.check('B1-unavailable-OpenBao-no-HTTP-operation-no-session-effect',async()=>{
    const before=(await admin.query('SELECT count(*)::int AS n FROM app.sessions')).rows[0].n

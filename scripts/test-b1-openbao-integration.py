@@ -27,7 +27,7 @@ def payload():
 
 def config():
  prep=module('bao_prep','prepare-b1-openbao.py')
- reads=[{'tenant':b.A,'purpose':p,'key_id':k,'workload':w} for w,p,k in [('identity-verifier','totp-aead','key-v1'),('identity-verifier','totp-aead','key-v2'),('mail-worker','mail-aead','key-mail')]+[('identity-verifier',p,'key-v1') for p in ['audit-hmac','otp-hmac','recovery-hmac','cursor-hmac']]]
+ reads=[{'tenant':b.A,'purpose':p,'key_id':k,'workload':w} for w,p,k in [('identity-verifier','totp-aead','key-v1'),('identity-verifier','totp-aead','key-v2'),('identity-verifier','totp-aead','retired-key'),('mail-worker','mail-aead','key-mail')]+[('identity-verifier',p,'key-v1') for p in ['audit-hmac','otp-hmac','recovery-hmac','cursor-hmac']]]
  pack=prep.prepare(dict(environment='isolated-fixture',private_ipv4='10.42.1.2',api_dns='bao.fixture.invalid',node_id='synthetic-node',token_ttl_seconds=120,token_max_ttl_seconds=300,secret_id_ttl_seconds=60,workload_cidrs=['10.42.2.0/24'],approved_key_reads=reads,approved_key_creates=[{'tenant':b.A,'purpose':'totp-aead','key_id':k} for k in ['key-v2','race-key']]))
  server=json.loads(json.dumps(pack['server.json']).replace('10.42.1.2','127.0.0.1').replace('bao.fixture.invalid','localhost').replace('/run/openbao-tls/server-chain.pem','/work/server.pem').replace('/run/openbao-tls/server-key.pem','/work/server-key.pem').replace('/run/openbao-tls/workload-ca.pem','/work/ca.pem'))
  for name,value in pack.items():
@@ -47,7 +47,12 @@ def worker(cid,mode,pack,recovery=None):
  if recovery is not None:body['recovery']=recovery
  r=b.docker('exec','-i',cid,'/opt/b1-pg05/node','--experimental-strip-types','/opt/b1-pg05/scripts/openbao-isolated-worker.mjs',data=json.dumps(body),timeout=300)
  try:report=json.loads(r.stdout)
- except Exception:raise RuntimeError('INTEGRATION_WORKER_REDACTED_PROTOCOL_FAILURE')
+ except Exception:
+  import re
+  code=re.search(r'\b(?:ERR_[A-Z_]+|ENOENT|EACCES|SyntaxError|TypeError|ReferenceError)\b',r.stderr)
+  missing=re.search(r"Cannot find (?:package|module) ['\"]([a-zA-Z0-9@_./-]+)['\"]",r.stderr)
+  b.REPORT['workerTransportDiagnostic']={'exitCode':r.returncode,'code':code.group(0) if code else 'REDACTED','missingModule':missing.group(1).split('/opt/b1-pg05/')[-1] if missing else None,'stdoutBytes':len(r.stdout)}
+  raise RuntimeError('INTEGRATION_WORKER_REDACTED_PROTOCOL_FAILURE')
  for check in report['checks']:b.record(mode+'-'+check['name'],check['status'],check.get('detail'))
  if r.returncode:raise RuntimeError('INTEGRATION_WORKER_CHECK_FAILED')
  return report['privateResult']
