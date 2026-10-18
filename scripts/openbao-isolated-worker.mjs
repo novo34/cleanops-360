@@ -79,6 +79,16 @@ try{
   await check('restored-original-custody-quorum-required',async()=>{assert((await request('sys/seal-status',{token:null})).json.sealed===true);assert((await api('sys/unseal',{key:p.keys[0]},null,'PUT')).sealed===true);await unseal(p.keys);assert((await request('sys/health')).status===200)})
   await check('restored-old-new-key-values-and-AEAD-integrity',async()=>{for(const[path,value]of[[p.old,p.key1],[p.next,p.key2]])assert((await request(path)).json.data.data.value===value);for(const[e,k,id]of[[p.e1,p.key1,'key-v1'],[p.e2,p.key2,'key-v2']])assert(open(e,Buffer.from(k,'base64'),p.aad+id).toString('base64')===p.secret)})
   await check('restore-quarantine-revokes-snapshot-era-identities-before-use',async()=>{for(const t of[p.verifier,p.worker,p.backupToken])await api('auth/token/revoke',{token:t});assert((await request(p.old,{token:p.verifier})).status===403);assert((await request(p.mail,{token:p.worker})).status===403)})
+  await check('restored-ordinary-AppRole-keeps-tenant-and-purpose-isolation',async()=>{
+   const role=input.pack['identity-verifier.approle.json'].token_policies[0]
+   const id=(await request('auth/b1-approle/role/'+role+'/role-id')).json.data.role_id
+   const sid=(await api('auth/b1-approle/role/'+role+'/secret-id',{})).data.secret_id
+   const t=(await api('auth/b1-approle/login',{role_id:id,secret_id:sid},null)).auth.client_token
+   assert((await request(p.old,{token:t})).json.data.data.value===p.key1)
+   assert((await request(p.next,{token:t})).json.data.data.value===p.key2)
+   assert((await request(p.mail,{token:t})).status===403)
+   assert((await request(p.old.replace('11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222'),{token:t})).status===403)
+  })
   await check('restored-KV-CAS-configuration',async()=>{assert((await request('b1-keys/config')).json.data.cas_required===true)})
  }
  await check('synthetic-initial-root-revoked-after-drill',async()=>{await api('auth/token/revoke-self',{});assert((await request('sys/mounts')).status===403)})

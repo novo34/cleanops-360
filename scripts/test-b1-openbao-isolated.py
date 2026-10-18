@@ -4,13 +4,18 @@ import hashlib,importlib.util,json,os,shutil,subprocess,tarfile,tempfile,time,ur
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];BASE=ROOT/'docs/implementation/b1/operational-acceptance/openbao'
 REPORT={'scope':'B1_OPENBAO_SYNTHETIC_ISOLATED','B1':'OPEN','accepted':42,'AUTH-GATE-05':'OPEN','runtime':'closedBackend','checks':[],'productiveCustodyAccepted':False,'realSwissResidenceVerified':False,'signatureTrustVerified':False,'postgresExecuted':False}
-containers=[];private={};tmp=None
+containers=[];private={};tmp=None;PHASE="START"
 RUN='b1-bao-'+uuid.uuid4().hex
 ENV=dict(os.environ);ENV.pop('DOCKER_HOST',None);ENV.pop('DOCKER_CONTEXT',None)
-def cmd(*args,data=None,timeout=120):return subprocess.run(args,input=data,capture_output=True,text=True,timeout=timeout,env=ENV)
+def cmd(*args,data=None,timeout=120):
+ r=subprocess.run(args,input=data,capture_output=True,text=not isinstance(data,bytes),timeout=timeout,env=ENV)
+ if isinstance(r.stdout,bytes):r.stdout=r.stdout.decode('utf8',errors='replace');r.stderr=r.stderr.decode('utf8',errors='replace')
+ return r
 def docker(*args,**kw):return cmd('docker','--host=unix:///var/run/docker.sock',*args,**kw)
 def require(r):
- if r.returncode:raise RuntimeError('PROCESS_FAILED')
+ if r.returncode:
+  flags={'read-only':'READ_ONLY_FILESYSTEM','permission denied':'PERMISSION_DENIED','no such file':'FILE_NOT_FOUND','no space left':'NO_SPACE'}
+  raise RuntimeError(next((v for k,v in flags.items() if k in r.stderr.lower()),'PROCESS_FAILED'))
  return r.stdout.strip()
 def record(name,status='PASS',detail=None):
  x={'name':name,'status':status}
@@ -54,12 +59,17 @@ try:
  dg=next(x['digest'] for x in manifest['manifests'] if x['platform'].get('os')=='linux' and x['platform'].get('architecture')=='amd64')
  image='node@'+dg;require(docker('pull',image,timeout=180));REPORT['sandboxImage']=image
  certificates(tmp);pack,server=configuration();(tmp/'server.json').write_text(json.dumps(server));shutil.copy(ROOT/'scripts/openbao-isolated-worker.mjs',tmp/'worker.mjs')
+ def transfer(cid,source,target):
+  require(docker('exec','-i',cid,'node','-e',"const fs=require('node:fs');const f=fs.createWriteStream(process.argv[1],{mode:0o600});process.stdin.pipe(f);f.on('finish',()=>fs.chmodSync(process.argv[1],process.argv[1].endsWith('/bao')?0o700:0o600));",target,data=source.read_bytes()))
  def container(mode):
+  global PHASE
+  PHASE='CREATE_'+mode.upper()
   cid=require(docker('create','--name',RUN+'-'+mode,'--label','cleanops.b1.openbao='+RUN,'--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges','--tmpfs','/work:rw,exec,size=256m','--tmpfs','/tmp:rw,noexec,size=32m','--tmpfs','/var/lib/openbao:rw,noexec,size=64m','--tmpfs','/var/log/openbao:rw,noexec,size=4m',image,'sleep','600'))
   containers.append(cid);require(docker('start',cid))
   ins=json.loads(require(docker('inspect',cid)))[0]
   if ins['HostConfig']['NetworkMode']!='none' or ins['HostConfig']['PortBindings'] or any(m['Type'] in ['bind','volume'] for m in ins['Mounts']):raise RuntimeError('ISOLATION_FAILED')
-  for f in ['bao','worker.mjs','server.json','ca.pem','foreign-ca.pem','server.pem','server-key.pem','client.pem','client-key.pem']:require(docker('cp',str(tmp/f),cid+':/work/'+f))
+  for f in ['bao','worker.mjs','server.json','ca.pem','foreign-ca.pem','server.pem','server-key.pem','client.pem','client-key.pem']:
+   PHASE='TRANSFER_'+f.upper().replace('.','_').replace('-','_');transfer(cid,tmp/f,'/work/'+f)
   record(mode+'-owned-network-none-no-ports-no-shared-mounts');return cid
  def run(cid,payload):
   result=docker('exec','-i',cid,'node','/work/worker.mjs',data=json.dumps(payload),timeout=240)
@@ -71,10 +81,10 @@ try:
  if not private.get('backupKey'):raise RuntimeError('PRIMARY_BACKUP_BLOCKED')
  require(docker('cp',primary+':/work/backup.enc',str(tmp/'backup.enc')))
  REPORT['encryptedBackupSha256']=hashlib.sha256((tmp/'backup.enc').read_bytes()).hexdigest()
- restore=container('restore');require(docker('cp',str(tmp/'backup.enc'),restore+':/work/backup.enc'))
+ restore=container('restore');transfer(restore,tmp/'backup.enc','/work/backup.enc')
  started=time.monotonic();run(restore,{'mode':'restore','pack':pack,'recovery':private});REPORT['syntheticRestoreSeconds']=round(time.monotonic()-started,3)
  REPORT['recoveryTargets']='Synthetic OpenBao snapshot only; not full B1/PG PITR RPO/RTO or real custody/residence acceptance'
-except Exception as e:record('isolated-harness','FAIL',{'exception':type(e).__name__,'code':str(e) if str(e).isupper() and len(str(e))<70 else 'REDACTED'})
+except Exception as e:record('isolated-harness','FAIL',{'exception':type(e).__name__,'phase':PHASE,'code':str(e) if str(e).isupper() and len(str(e))<70 else 'REDACTED'})
 finally:
  cleanup=True
  for cid in containers:
