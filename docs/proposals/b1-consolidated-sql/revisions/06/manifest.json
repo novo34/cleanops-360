@@ -1,0 +1,140 @@
+{
+  "status": "REVIEW_ONLY_NOT_INSTALLED",
+  "base": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875
+  },
+  "candidate": {
+    "gitBlob": "524419e4f6d37abf7fda43a3fcae2bec72bb9fe9",
+    "sha256": "d024aefb8443477c925773c0493b64feb629b20a3883034413234cb763b45cb1",
+    "bytes": 167388
+  },
+  "source": {
+    "gitBlob": "281da953e76387735dea29dc2ff4358dd9b24a79",
+    "sha256": "942004dcc38e54cbe846e6f51fd4b3d2a73624b0dce9a6ea376e191ac042ac8f",
+    "bytes": 41008
+  },
+  "functions": [
+    {
+      "signature": "auth_api.record_verified_recipient(uuid,uuid,bigint,bytea,uuid,timestamptz,uuid)",
+      "execute": "cleanops_recipient_verifier",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.mail_recipient_material(text,text,text,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.issue_email_assigned(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,text,uuid,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "identity_private.lock_mail(uuid,uuid)",
+      "execute": null,
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.authorize_mail_dispatch(uuid,uuid,bytea,uuid)",
+      "execute": "cleanops_mail_worker",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.finish_mail_outcome_cas(uuid,uuid,bytea,text,uuid)",
+      "execute": "cleanops_mail_worker",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.effective_access(text,text,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.register_trusted_device(bytea,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.trusted_device_valid(bytea)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.revoke_trusted_device(uuid,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.recover_to_enrollment(text,bytea,bytea,bytea,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.rotate_preauth_tenant(text,uuid,bytea,bytea,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.begin_email_enrollment(text,uuid,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.issue_email_enrollment(text,uuid,bigint,bigint,uuid,uuid,bytea,bytea,text,timestamptz,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.attest_reset(uuid,uuid,bytea,text,uuid,timestamptz,uuid)",
+      "execute": "cleanops_recipient_verifier",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.reset_password_cas(bytea,bigint,bytea,text,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.admin_reset_mfa(uuid,bytea,text,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.quarantine_expired_mail(uuid)",
+      "execute": "cleanops_mail_worker",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    },
+    {
+      "signature": "auth_api.set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "execute": "cleanops_identity_service",
+      "owner": "cleanops_auth_broker",
+      "searchPath": "pg_catalog"
+    }
+  ],
+  "authorizationRequired": "Exact new SQL/ACL hash in fresh isolated synthetic PG16 only",
+  "installationAuthorized": false,
+  "sqlCompiled": false,
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN"
+}
