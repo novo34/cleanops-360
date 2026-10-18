@@ -258,7 +258,9 @@ test('approved PREAUTH confirmation rejects absent stored enrollment before CAS 
  assert.equal(response.status,401);assert.equal(response.headers.get('set-cookie'),null)
  assert.equal(f.calls.some(c=>c.name==='totp_material_locked'),true)
  assert.equal(f.calls.some(c=>c.name==='consume_enrollment_cas'),false)
- assert.equal(f.state.sessions,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+ assert.equal(f.state.sessions,0);assert.equal(f.calls.at(-1)?.name,'COMMIT')
+ assert.equal(f.calls.some(c=>c.name==='record_security_event'),true)
+ assert.equal(Object.keys(f.state.reservations).length,0)
 })
 
 test('approved missing selection response exposes own locators only; concurrent discovery has no challenge/factor effects',async()=>{
