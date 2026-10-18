@@ -2954,7 +2954,7 @@
     {
       "id": "AUTH-GATE-01",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Duraci\u00f3n absoluta, clasificaci\u00f3n y pruebas reales por riesgo."
+      "pending": "12h/24h and idle30min/8h approved and real numeric/expiry tests PASS. Remaining: most-restrictive role aggregate (SQL14 uninstalled) and designated Security operating acceptance."
     },
     {
       "id": "AUTH-GATE-02",
@@ -2964,12 +2964,12 @@
     {
       "id": "AUTH-GATE-03",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Recuperaci\u00f3n y p\u00e9rdida total MFA, identidad, reset, revocaci\u00f3n y auditor\u00eda."
+      "pending": "Recovery, total-MFA-loss reset, revocation and audit have accepted isolated UI/API/PG evidence. Remaining operational evidence: actual independent identity-attestation responsibility and approved operating recovery exercise; no functionality is deferred."
     },
     {
       "id": "AUTH-GATE-04",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Mapping de roles/riesgo/step-up y permisos m\u00ednimos exactos; no rol=>ALLOW."
+      "pending": "Existing RBAC/RLS/minimum privilege and action-bound step-up real evidence retained. Remaining: reviewed actual role-risk catalogue and SQL14 most-restrictive aggregation; no role label or permission automatically determines risk/ALLOW."
     },
     {
       "id": "AUTH-GATE-05",
@@ -2979,17 +2979,19 @@
     {
       "id": "D2",
       "source": "docs/proposals/b1-ceremony-material/KEY_OPERATIONS.md",
-      "pending": "Custodia, acceso, residencia, rotaci\u00f3n CAS y recuperaci\u00f3n implementados/ensayados."
+      "pending": "OpenBao/Swiss architecture approved. Actual custodian/infrastructure/workload identity, Swiss custody/residence, key isolation, rotation/old-key reads and recovery/restore evidence not supplied; synthetic callbacks do not establish these."
     },
     {
       "id": "D3",
       "source": "docs/proposals/b1-ceremony-material/TOTP_CANDIDATE.md",
-      "pending": "Pol\u00edtica elegida y compatibilidad observada en autenticadores reales."
+      "pending": "No unresolved algorithm/entropy/issuer decision: owner SHA256/32-byte CSPRNG/CleanOps360 approved. Actual KeePassXC2.7.6 and OATH Toolkit2.6.11 Linux CLI evidence accepted for AUTH004. No mobile/GUI compatibility claimed; no invented additional app approval required.",
+      "isolatedTechnicalStatus": "VERIFIED",
+      "evidence": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json"
     },
     {
       "id": "D4",
       "source": "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md",
-      "pending": "Fuente verificada de destinatario, contrato/worker/SMTP/outbox y recuperaci\u00f3n reales."
+      "pending": "Verified-recipient/encrypted-outbox/quarantine design approved and isolated UI/API/PG/worker/recovery evidence accepted. Actual verified-recipient/identity-attestation operators and external delivery boundary still need designation/authorization; external SMTP is not executed."
     },
     {
       "id": "INFRA-AUTH",
