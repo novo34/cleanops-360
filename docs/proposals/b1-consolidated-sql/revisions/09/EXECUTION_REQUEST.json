@@ -1,0 +1,11 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-09",
+  "ownerApproved": false,
+  "executed": false,
+  "candidate": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
+    "bytes": 196276
+  },
+  "scope": "Exact new bootstrap owned-reservation function and EXECUTE only; fresh isolated synthetic PG16; no other SQL/ACL, runtime activation, SMTP, production, deployment or merge."
+}

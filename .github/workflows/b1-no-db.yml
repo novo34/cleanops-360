@@ -41,6 +41,8 @@ jobs:
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql
       - run: python3 scripts/consolidate-b1-reset.py --check
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql
+      - run: python3 scripts/consolidate-b1-bootstrap-reset.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql
       - run: python3 -m unittest discover -s tests/static -v
       - run: npm run test:b1
       - run: npm test
