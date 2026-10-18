@@ -26,7 +26,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false); setEmailPending(null)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -38,19 +38,20 @@ export function AuthPanel() {
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
+  const [emailPending, setEmailPending] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [emailEnrollment, setEmailEnrollment] = useState(false)
   const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
   useEffect(() => {
     const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
-    const deadlines = [selection?.expires_at, challenge?.expires_at, enrollment?.expires_at, authExpiry].filter((value): value is string => !!value)
+    const deadlines = [selection?.expires_at, challenge?.expires_at, enrollment?.expires_at, emailPending?.expires_at, authExpiry].filter((value): value is string => !!value)
     if (!deadlines.length) return
     const remaining = Math.min(...deadlines.map(value => Date.parse(value))) - Date.now()
     const timer = setTimeout(() => {
       endCeremony('La verificación ha caducado. Inicia una nueva verificación.')
     }, Math.min(2_147_483_647, Math.max(0, remaining)))
     return () => clearTimeout(timer)
-  }, [selection, challenge, enrollment, view.auth])
+  }, [selection, challenge, enrollment, emailPending, view.auth])
   function requestKey(scope: string) {
     let key = selectionKeys.current.get(scope)
     if (!key) { key = crypto.randomUUID(); selectionKeys.current.set(scope, key) }
@@ -146,7 +147,7 @@ export function AuthPanel() {
     if (!challenge) return
     if (expired(challenge.expires_at)) { endCeremony('La verificación ha caducado. Inicia una nueva verificación.'); return }
     const data = new FormData(form); form.reset()
-    const auth = emailEnrollment
+    const auth = emailEnrollment && !stepContext.current
       ? await call('confirmEmail', { challenge_id: challenge.challenge_id, proof: String(data.get('proof')) })
       : await call('verifyMfa', { challenge_id: challenge.challenge_id, method: String(data.get('method')), proof: String(data.get('proof')) })
     if (auth) {
@@ -156,13 +157,16 @@ export function AuthPanel() {
         endCeremony('Respuesta no válida. Inicia una nueva verificación.'); return
       }
       const action = pendingAction
+      const retainedEmail = stepContext.current?.grant_id === 'B1-SELF-06' ? emailPending : null
       const retainedEnrollment = stepContext.current?.grant_id === 'B1-SELF-06' ? enrollment : null
       clearCeremony()
       accept(auth)
+      if (retainedEmail && auth.state === 'ACTIVE') { setEmailPending(null); setEmailEnrollment(true); setChallenge(retainedEmail) }
       if (retainedEnrollment && auth.state === 'ACTIVE') { setEnrollment(retainedEnrollment); setEnrollmentAuthorized(true) }
       if (action && auth.state === 'ACTIVE' && !expired(auth.absolute_expires_at)) {
         const result = await call(action.operation, action.body)
         if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
+        else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
         else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
       }
@@ -224,6 +228,10 @@ export function AuthPanel() {
       </form>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button type="button" onClick={async () => { const r = await call('enrollEmail'); if (r) { setEmailEnrollment(true); setChallenge(r) } }}>Configurar códigos por email</button>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button onClick={() => void enroll()}>Configurar autenticador</button>}
+      {emailPending && !challenge && !selection && <section><h2>Confirma el método por email</h2>
+        <p>Autoriza la confirmación con un método MFA ya activo antes de introducir el primer código del nuevo método.</p>
+        <button type="button" onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-06' }); if (r) prepare(r, { grant_id: 'B1-SELF-06' }) }}>Autorizar confirmación email</button>
+      </section>}
       {enrollment && !challenge && !selection && <section><h2>Configura tu autenticador</h2><p>Introduce esta URI en tu aplicación. Se muestra una sola vez.</p>
         <TotpEnrollmentQr key={enrollment.enrollment_id} uri={enrollment.provisioning_uri} />
         <output style={{ overflowWrap: 'anywhere' }}>{enrollment.provisioning_uri}</output>
@@ -236,9 +244,10 @@ export function AuthPanel() {
         <button onClick={() => void tenants()}>Seleccionar empresa</button>
         <ul>{(view.tenants as Tenant[]).map(t => <li key={t.id}><button onClick={() => void choose(t.id)}>{t.name}</button></li>)}</ul>
       </section>}
-      {view.auth?.state === 'ACTIVE' && !challenge && !selection && !enrollment && <section>
+      {view.auth?.state === 'ACTIVE' && !challenge && !selection && !enrollment && !emailPending && <section>
         <h2>Seguridad de la cuenta</h2>
         <button onClick={async () => { const result = await call('startStepUp', { grant_id: 'B1-SELF-05' }); if (result) { setPendingAction({ operation: 'enrollTotp' }); prepare(result, { grant_id: 'B1-SELF-05' }) } }}>Añadir autenticador</button>
+        <button type="button" onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-05' }); if (r) { setPendingAction({ operation: 'enrollEmail' }); prepare(r, { grant_id: 'B1-SELF-05' }) } }}>Añadir códigos por email</button>
         <button onClick={async () => { const r = await call('getCurrentIdentity'); if (r) setMessage(`Sesión de ${r.display_name}`) }}>Mi identidad</button>
         <button onClick={() => void sessions()}>Mis sesiones</button>
         <ul>{(view.sessions as Session[]).map(s => <li key={s.id}><span>{s.device_label} · {s.browser_label} {s.is_current ? '(actual)' : ''}</span><dl>

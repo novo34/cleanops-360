@@ -18,7 +18,7 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const emailScenario = ['email', 'email-enrollment'].includes(input.scenario)
+const emailScenario = ['email', 'email-enrollment', 'email-additional'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
@@ -33,6 +33,7 @@ const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
 let failNextEmailCommit = false
 let emailConsumption = false
+const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
@@ -43,7 +44,7 @@ try {
   }
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
-  if (!emailScenario && input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  if ((!emailScenario || input.scenario === 'email-additional') && input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
   if(input.scenario==='multiple') {
     const extraId=randomUUID(),extraSecret=randomBytes(32)
     try {
@@ -79,7 +80,7 @@ try {
     FROM (SELECT * FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 LIMIT 1) s
     CROSS JOIN generate_series(1,$3::int) g`,[input.tenant,input.user,numeric('page_default')])
   const transportResult = await admin.query("SELECT encode(secret_ciphertext,'base64') AS encoded FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2", [input.tenant, method])
-  if (!emailScenario && input.scenario !== 'enrollment') {
+  if ((!emailScenario || input.scenario === 'email-additional') && input.scenario !== 'enrollment') {
     const encoded: string = transportResult.rows[0].encoded
     assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
   }
@@ -116,17 +117,20 @@ try {
       async withWriteKey(tenantId, work) { assert.equal(tenantId, input.tenant); const borrowed = Buffer.from(key); try { return work(borrowed, 'pg05-ephemeral') } finally { borrowed.fill(0) } },
       async accountAlias() { return 'synthetic-enrollment-alias' },
     },
-    cursorKey: randomBytes(32), transport: () => ({ network: Buffer.alloc(32, 1), device: Buffer.alloc(32, input.scenario==='multiple'?3:2) }),
+    cursorKey: randomBytes(32), transport: () => ({ network: fixtureNetwork, device: fixtureDevice }),
     normalizeEmail: email => email.trim().toLowerCase(), maxEligibleTotpMethods: 4,
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
   })
   const handler = createAuthHandler(backend, origin)
-  const reply = (value: unknown) => process.stdout.write(JSON.stringify(value) + '\n')
+  let controlId = input.rpcId
+  const reply = (value: object, rpcId = controlId) => process.stdout.write(JSON.stringify({ ...value, rpcId }) + '\n')
+  const pendingRequests = new Set<Promise<unknown>>()
   reply({ ready: true })
   for (;;) {
     const line = await iterator.next()
     if (line.done) break
     const message = JSON.parse(line.value)
+    controlId = message.rpcId
     try {
       if (message.kind === 'failEmailCommit') { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
       if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }
@@ -138,15 +142,16 @@ try {
         reply({ result, proof }); continue
       }
       if (message.kind === 'emailClock') {
-        if (message.expire) await admin.query("UPDATE app.mfa_challenges SET expires_at=clock_timestamp()-interval '1 second' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
         await admin.query("UPDATE app.mfa_challenges SET issued_at=clock_timestamp()-interval '60 seconds' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
+        if (message.expire) await admin.query("UPDATE app.mfa_challenges SET expires_at=clock_timestamp()-interval '1 second' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
         reply({ ok:true });continue
       }
       if (message.kind === 'inspectEmail') {
         const methods=await admin.query("SELECT state FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
         const sessions=await admin.query("SELECT count(*)::int AS n FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
         const outbox=await admin.query('SELECT state,octet_length(payload_ciphertext)::int AS bytes FROM app.auth_outbox WHERE tenant_id=$1 AND user_id=$2 ORDER BY available_at',[input.tenant,input.user])
-        reply({ methods:methods.rows, active:sessions.rows[0].n, outbox:outbox.rows });continue
+        const challenges=await admin.query("SELECT state,attempts,octet_length(proof_digest)::int AS digest_bytes,extract(epoch FROM (expires_at-issued_at))::float AS ttl FROM app.mfa_challenges WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP' ORDER BY issued_at",[input.tenant,input.user])
+        reply({ methods:methods.rows, active:sessions.rows[0].n, outbox:outbox.rows, challenges:challenges.rows });continue
       }
       if(message.kind==='primaryMethod'){reply({id:method});continue}
       if (message.kind === 'proof') {
@@ -166,10 +171,18 @@ try {
         const result = await handler.bootstrap()
         reply(result instanceof Response ? { status: result.status } : { status: 200, cookies: result.headers.getSetCookie() }); continue
       }
-      const response = await handler.handle(new Request(origin + message.path, { method: message.method, headers: message.headers, body: message.body || undefined }), message.operation)
-      reply({ status: response.status, headers: [...response.headers].filter(([k]) => k !== 'set-cookie'), cookies: response.headers.getSetCookie(), body: await response.text() })
+      const requestId = message.rpcId
+      const task = (async () => {
+        try {
+          const response = await handler.handle(new Request(origin + message.path, { method: message.method, headers: message.headers, body: message.body || undefined }), message.operation)
+          reply({ status: response.status, headers: [...response.headers].filter(([k]) => k !== 'set-cookie'), cookies: response.headers.getSetCookie(), body: await response.text() }, requestId)
+        } catch { reply({ status: 503, transportFailure: true }, requestId) }
+      })()
+      pendingRequests.add(task)
+      void task.finally(() => pendingRequests.delete(task))
     } catch { reply({ status: 503, transportFailure: true }) }
   }
+  await Promise.allSettled([...pendingRequests])
 } finally {
   key.fill(0); secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
   await mailPool.end()

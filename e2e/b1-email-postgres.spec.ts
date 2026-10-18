@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { numeric } from '../lib/b1/config'
 // @ts-expect-error CI-only isolated bridge has no application declaration.
 import { startRealBrowserServer } from '../scripts/b1-real-browser-server.mjs'
 
@@ -23,6 +24,7 @@ test('EMAIL enrollment first proof and committed login through real UI API PG', 
     await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
     const pending = await server.rpc({ kind: 'inspectEmail' })
     expect(pending.methods[0].state === 'PENDING' && pending.active === 0 && pending.outbox[0].bytes > 30).toBe(true)
+    expect(pending.challenges[0].digest_bytes === 32 && pending.challenges[0].ttl > 290 && pending.challenges[0].ttl <= 300).toBe(true)
     phase('DELIVER');const sent = await server.rpc({ kind: 'deliverEmail' })
     expect(sent.result.state).toBe('FINISHED')
     const wrong = sent.proof.slice(0,5) + (sent.proof[5] === '0' ? '1' : '0')
@@ -34,6 +36,53 @@ test('EMAIL enrollment first proof and committed login through real UI API PG', 
     const committed = await server.rpc({ kind: 'inspectEmail' })
     expect(committed.active === 1 && committed.methods[0].state === 'ACTIVE' && committed.outbox[0].bytes === 0).toBe(true)
     expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0)
+  } finally { await server.close() }
+})
+
+test('EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation', async ({ page }) => {
+  test.setTimeout(140000)
+  phase('SETUP');const server = await startRealBrowserServer('email-additional')
+  try {
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    await proof(page,(await server.rpc({kind:'proof'})).proof)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
+    phase('BEGIN_STEPUP');await page.getByRole('button',{name:'Añadir códigos por email',exact:true}).click()
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    await proof(page,(await server.rpc({kind:'proof',next:true})).proof)
+    await expect(page.getByRole('button',{name:'Autorizar confirmación email',exact:true})).toBeVisible()
+    expect((await server.rpc({kind:'inspectEmail'})).methods[0].state).toBe('PENDING')
+    const sent = await server.rpc({kind:'deliverEmail'})
+    // Preserve canonical challenge cooldown and TOTP global replay counter.
+    await page.waitForTimeout(numeric('otp_resend_cooldown')*1000+200)
+    phase('CONFIRM_STEPUP');await page.getByRole('button',{name:'Autorizar confirmación email',exact:true}).click()
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    await proof(page,(await server.rpc({kind:'proof',next:true})).proof)
+    phase('FIRST_EMAIL_PROOF');await expect(page.getByText('Introduce el código enviado a tu dirección verificada. No compartas este código.')).toBeVisible()
+    await proof(page,sent.proof)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
+    const state=await server.rpc({kind:'inspectEmail'})
+    expect(state.methods[0].state==='ACTIVE' && state.active===1).toBe(true)
+  } finally { await server.close() }
+})
+
+test('EMAIL attempts are exhausted persistently and a later valid proof cannot bypass the limit', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const sent=await server.rpc({kind:'deliverEmail'})
+    const wrong=sent.proof.slice(0,5)+(sent.proof[5]==='0'?'1':'0')
+    phase('EXHAUST')
+    for(let i=0;i<numeric('otp_attempts');i++) {
+      await proof(page,wrong)
+      await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    }
+    const state=await server.rpc({kind:'inspectEmail'})
+    expect(state.active===0 && state.challenges[0].state==='EXHAUSTED' && state.challenges[0].attempts===numeric('otp_attempts')).toBe(true)
+    await proof(page,sent.proof)
+    await expect(page.getByRole('status')).toContainText('Demasiados intentos')
+    expect((await server.rpc({kind:'inspectEmail'})).active).toBe(0)
   } finally { await server.close() }
 })
 

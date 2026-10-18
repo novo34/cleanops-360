@@ -20,7 +20,7 @@ export function closeOwnedServer(server) {
 export async function startRealBrowserServer(scenario = 'existing') {
   const input = JSON.parse(process.env.B1_BROWSER_FIXTURE || '{}')
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
-  if (!['existing','enrollment','additional','multiple','email','email-enrollment'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
+  if (!['existing','enrollment','additional','multiple','email','email-enrollment','email-additional'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
   input.scenario = scenario
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]
@@ -29,19 +29,23 @@ export async function startRealBrowserServer(scenario = 'existing') {
   if (metadata.Config.Labels?.['cleanops.pgtest01'] !== input.run || metadata.HostConfig.NetworkMode !== 'none'
     || Object.keys(metadata.HostConfig.PortBindings || {}).length || metadata.Mounts.some(m => ['bind','volume'].includes(m.Type))) throw Error('ISOLATION_OR_OWNERSHIP_MISMATCH')
   const child = spawn('docker', ['--host=unix:///var/run/docker.sock', 'exec', '-i', input.container, '/opt/b1-pg05/node', '--experimental-strip-types', '/opt/b1-pg05/scripts/pg05-browser-backend.ts'], { env: environment, stdio: ['pipe','pipe','ignore'] })
-  const pending = []
+  const pending = new Map()
+  let nextRpcId = 0
   const lines = createInterface({ input: child.stdout })
   lines.on('line', line => {
-    const item = pending.shift()
+    let value
+    try { value = JSON.parse(line) } catch { for (const item of pending.values()) item.reject(Error('REDACTED_RPC_FAILURE')); pending.clear(); return }
+    const item = pending.get(value.rpcId)
     if (!item) return
-    try { item.resolve(JSON.parse(line)) } catch { item.reject(Error('REDACTED_RPC_FAILURE')) }
+    pending.delete(value.rpcId); item.resolve(value)
   })
-  child.on('exit', () => { for (const item of pending.splice(0)) item.reject(Error('REDACTED_RPC_EXIT')) })
+  child.on('exit', () => { for (const item of pending.values()) item.reject(Error('REDACTED_RPC_EXIT')); pending.clear() })
   function rpc(message) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(Error('REDACTED_RPC_TIMEOUT')), 20000)
-      pending.push({ resolve: value => { clearTimeout(timer); resolve(value) }, reject: error => { clearTimeout(timer); reject(error) } })
-      child.stdin.write(JSON.stringify(message) + '\n')
+      const rpcId = ++nextRpcId
+      const timer = setTimeout(() => { pending.delete(rpcId); reject(Error('REDACTED_RPC_TIMEOUT')) }, 20000)
+      pending.set(rpcId, { resolve: value => { clearTimeout(timer); resolve(value) }, reject: error => { clearTimeout(timer); reject(error) } })
+      child.stdin.write(JSON.stringify({ ...message, rpcId }) + '\n')
     })
   }
   const directory = mkdtempSync(join(tmpdir(), 'cleanops-real-browser-'))
