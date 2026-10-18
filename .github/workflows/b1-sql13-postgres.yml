@@ -6,13 +6,13 @@ permissions:
   contents: read
 jobs:
   authorized-pg:
-    if: github.event.pull_request.number == 7 && github.event.before == '253fd5bc65d1f36182b1adf36ab584951abf4bc2' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == '485edfa75ab9ccfcd65dc96e1344a7156e766fef' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 18
     strategy:
       fail-fast: false
       matrix:
-        group: [browser, policy]
+        group: [browser, policy, locks]
     env:
       B1_SQL13_GROUP: ${{ matrix.group }}
       DATABASE_URL: ''

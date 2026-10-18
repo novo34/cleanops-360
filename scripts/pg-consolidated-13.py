@@ -15,10 +15,11 @@ def payload():
  runner.original_record('exact13-approved-blob-sha256-full-diff-ACL-RLS','PASS');return [('V4',raw.decode())]
 def checks():
  group=os.environ.get('B1_SQL13_GROUP','native')
- if group=='native':
+ if group in {'native','locks'}:
   if not runner.module('sql13gate','pg11-access-security-tests.py').gate(b):b.record('SQL13-dependent-native','BLOCKED');return
-  runner.module('sql13runtime','pg-http-integration.py').copy_runtime(b,('scripts/pg13-real.ts',))
-  result=b.docker('exec','-i',b.CID,'/opt/b1-pg05/node','--experimental-strip-types','/opt/b1-pg05/scripts/pg13-real.ts',data=json.dumps({'tenant':b.A,'otherTenant':b.B,'user':b.U,'principal':b.P,'identityRole':b.ROLE['identity'],'roles':list(b.ROLE.values())+['pgtest_verifier']}),timeout=180)
+  script='pg13-locks.ts' if group=='locks' else 'pg13-real.ts'
+  runner.module('sql13runtime','pg-http-integration.py').copy_runtime(b,('scripts/'+script,))
+  result=b.docker('exec','-i',b.CID,'/opt/b1-pg05/node','--experimental-strip-types','/opt/b1-pg05/scripts/'+script,data=json.dumps({'tenant':b.A,'otherTenant':b.B,'user':b.U,'principal':b.P,'identityRole':b.ROLE['identity'],'roles':list(b.ROLE.values())+['pgtest_verifier']}),timeout=180)
   try:
    report=json.loads(result.stdout)
    for c in report['checks']:b.record(c['name'],c['status'],c.get('detail'))

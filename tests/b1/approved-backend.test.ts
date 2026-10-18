@@ -18,7 +18,7 @@ const dummy = hash('dummy proof never authenticates', { type: argon2id, memoryCo
 const unavailable = (e: unknown) => e instanceof AuthError && e.status === 503
 type Options = { foreign?: boolean; allowed?: boolean; stepUp?: boolean; commitFailure?: boolean; badPolicy?: boolean }
 async function fixture(options: Options = {}) {
-  const calls: { name: string; values: unknown[] }[] = [], releases: boolean[] = []
+  const calls: { name: string; values: unknown[]; connection:number }[] = [], releases: boolean[] = []
   const committed = { revoked: 0, completed: 0, discarded: 0, failures: 0 }
   let staged = { ...committed }, counter = null as number | null
   const binding = { kind: 'ACTIVE', id: S, sessionId: S, tenantId: A, userId: U, csrfDigest: digest(csrf), expiresAt: now + 30_000 }
@@ -26,7 +26,7 @@ async function fixture(options: Options = {}) {
   const connection: IdentityConnection = {
     async query(sql, values = []) {
       const name = /auth_api\.([a-z_]+)/.exec(sql)?.[1] ?? sql
-      calls.push({ name, values })
+      calls.push({ name, values,connection:connects })
       if (sql.startsWith('BEGIN')) { staged = { ...committed }; return {} }
       if (sql === 'ROLLBACK') { staged = { ...committed }; return {} }
       if (sql === 'COMMIT') { if (options.commitFailure) throw Error('private commit failure'); Object.assign(committed, staged); return {} }
@@ -84,8 +84,9 @@ test('HTTP identity uses approved Binding and one transaction; foreign tenant ca
     const handler = createAuthHandler(f.backend, origin, () => now)
     const response = await handler.handle(new Request(origin + '/auth/me', { headers }), 'getCurrentIdentity')
     assert.equal(response.status, foreign ? 503 : 200)
-    assert.equal(f.connects, 1)
-    assert.equal(f.calls.at(-1)?.name, foreign ? 'ROLLBACK' : 'COMMIT')
+    assert.equal(f.connects,foreign?2:1)
+    const primary=f.calls.filter(c=>c.connection===1);assert.equal(primary.at(-1)?.name,foreign?'ROLLBACK':'COMMIT')
+    if(foreign){assert.equal(f.calls.at(-1)?.name,'COMMIT');assert.equal(f.calls.find(c=>c.name==='record_security_event')?.values[0],'DEPENDENCY_FAILURE')}
   }
 })
 
@@ -97,7 +98,8 @@ test('RBAC and step-up deny before own-session effect or idempotency; no ALLOW c
     }), 'revokeOtherOwnSessions')
     assert.equal(response.status, 403)
     assert.equal(f.calls.some(c => c.name === 'revoke_other_own_sessions' || c.name === 'reserve_owned'), false)
-    assert.equal(f.calls.at(-1)?.name, 'ROLLBACK')
+    assert.equal(f.calls.at(-1)?.name,'COMMIT');assert.equal(f.calls.find(c=>c.name==='record_security_event')?.values[0],options.allowed===false?'POLICY_DENIED':'STEP_UP_REQUIRED')
+    assert.equal(f.committed.revoked,0);assert.equal(f.committed.completed,0)
   }
 })
 
@@ -112,7 +114,7 @@ test('revocation, audit correlation and owned completion commit together; uncert
     if (commitFailure) {
       assert.equal(response.headers.get('set-cookie'), null)
       assert.equal(f.committed.revoked, 0)
-      assert.deepEqual(f.releases, [true])
+      assert.deepEqual(f.releases,[true,true]);assert.equal(f.calls.filter(c=>c.connection===1).at(-1)?.name,'ROLLBACK')
     } else {
       assert.equal(f.committed.revoked, 1); assert.equal(f.committed.completed, 1)
       assert.equal(f.calls.find(c => c.name === 'revoke_own_session')!.values[1], data.meta.correlation_id)
@@ -172,7 +174,7 @@ test('cursor cannot cross tenant/kind and abandoned reservations cannot commit',
     const scope = canonical([actor.kind, actor.id, actor.tenantId, actor.userId, 'logout', 'key-for-rollback-123'])
     await tx.reserve(scope, 'c'.repeat(64))
   }), unavailable)
-  assert.equal(f.calls.at(-1)?.name, 'ROLLBACK')
+  assert.equal(f.calls.filter(c=>c.connection===f.calls.findLast(c=>c.name==='resolve_binding')?.connection).at(-1)?.name,'ROLLBACK')
 })
 
 test('unsupported material-dependent ceremony fails closed and runtime remains closed', async () => {
@@ -209,5 +211,5 @@ test('D1 does not enable EMAIL OTP without D4; HTTP errors contain no proof or c
  assert.ok(!body.includes('123456'))
  assert.equal(response.headers.get('set-cookie'), null)
  assert.equal(f.calls.some(c => c.name === 'email_otp_material' || c.name === 'consume_email_otp'), false)
- assert.equal(f.calls.at(-1)?.name, 'ROLLBACK')
+ assert.equal(f.calls.filter(c=>c.connection===f.calls.findLast(c=>c.name==='resolve_binding')?.connection).at(-1)?.name,'ROLLBACK')
 })

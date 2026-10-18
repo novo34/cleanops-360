@@ -311,7 +311,7 @@ test('session metadata is normalized at the private callback boundary and never 
  const bad=await fixture({labels:{device:'Device\r\nlog-canary',browser:'Browser'}})
  const error=await bad.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
  assert.equal(error.status,503);assert.equal(bad.state.counter,null);assert.equal(bad.state.sessions,0)
- assert.ok(!(await error.text()).includes('log-canary'));assert.equal(bad.calls.at(-1)?.name,'ROLLBACK')
+ assert.ok(!(await error.text()).includes('log-canary'));primaryRollback(bad)
 })
 
 test('approved selector creates bound TOTP challenges in ACTIVE and proven PREAUTH without consuming any factor',async()=>{

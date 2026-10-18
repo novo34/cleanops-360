@@ -110,3 +110,10 @@ test('private preparation redacts default JSON/inspection and excludes secret pr
  assert.ok(prepared.provisioningUri.startsWith('otpauth://'))
  assert.match(email.code, /^[0-9]{6}$/)
 })
+
+test('owner-approved session limits are 12h/24h independently of idle and trusted-device lifetime',()=>{
+ assert.deepEqual(sessionPolicyForRisk('SENSITIVE'),{absoluteSeconds:43200,idleSeconds:1800})
+ assert.deepEqual(sessionPolicyForRisk('OPERATIONAL'),{absoluteSeconds:86400,idleSeconds:28800})
+ assert.notEqual(numeric('absolute_operational'),numeric('trusted_device_max'))
+ assert.throws(()=>sessionPolicyForRisk({risk:'OPERATIONAL',roles:['admin']}))
+})

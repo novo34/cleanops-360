@@ -48,6 +48,7 @@ let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
 const fixtureRateKeys=new Set<string>()
 const fixtureCorrelations=new Set<string>()
+let fixtureNow:number|undefined
 let setupComplete=false
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
@@ -156,7 +157,7 @@ try {
   const corpus=Buffer.from(createHash('sha256').update('Compromised fixture password!').digest('hex')+'\n')
   const passwordAdmission=createPasswordAdmission({version:'synthetic-browser-fixture-v1',content:corpus,sha256:createHash('sha256').update(corpus).digest('hex')},{minimumCodePoints:numeric('password_min'),maximumCodePoints:numeric('password_max'),maximumCorpusBytes:1024})
   const backend = createApprovedPrivateBackend(privatePool, {
-    passwordAdmission,
+    passwordAdmission,now:()=>fixtureNow??Date.now(),
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
         if(secondaryTenant&&record.binding.tenantId===input.otherTenant){
@@ -177,7 +178,7 @@ try {
     normalizeEmail: email => email.trim().toLowerCase(), maxEligibleTotpMethods: 4,
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
   })
-  const handler = createAuthHandler(backend, origin)
+  const handler = createAuthHandler(backend, origin,()=>fixtureNow??Date.now())
   let previousDeliveryKey: string | undefined
   let controlId = input.rpcId
   const reply = (value: object, rpcId = controlId) => process.stdout.write(JSON.stringify({ ...value, rpcId }) + '\n')
@@ -222,8 +223,14 @@ try {
         if(!['SENSITIVE','OPERATIONAL'].includes(message.risk))throw Error('INVALID_SYNTHETIC_RISK')
         await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,message.risk]);reply({ok:true});continue
       }
+      if(input.scenario==='abuse' && message.kind==='policyExactBoundary'){
+        if(![-1,0,1].includes(message.offset))throw Error('INVALID_SYNTHETIC_BOUNDARY')
+        const r=await admin.query("UPDATE app.sessions SET absolute_expires_at=statement_timestamp()+interval '60 seconds',idle_expires_at=statement_timestamp()+interval '120 seconds' WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' RETURNING absolute_expires_at",[input.tenant,input.user])
+        if(r.rows.length!==1)throw Error('SYNTHETIC_ACTIVE_REQUIRED')
+        fixtureNow=+r.rows[0].absolute_expires_at+message.offset;reply({ok:true});continue
+      }
       if(input.scenario==='abuse' && message.kind==='inspectPolicySession'){
-        const rows=await admin.query("SELECT idle_seconds,extract(epoch FROM absolute_expires_at-created_at)::float AS absolute_seconds,extract(epoch FROM idle_expires_at-last_activity_at)::float AS idle_remaining FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' ORDER BY created_at DESC",[input.tenant,input.user]);reply({sessions:rows.rows});continue
+        const rows=await admin.query("SELECT absolute_expires_at,idle_seconds,extract(epoch FROM absolute_expires_at-created_at)::float AS absolute_seconds,extract(epoch FROM idle_expires_at-last_activity_at)::float AS idle_remaining FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' ORDER BY created_at DESC",[input.tenant,input.user]);reply({sessions:rows.rows});continue
       }
       if(input.scenario==='abuse' && ['expireSessionIdle','expireSessionAbsolute'].includes(message.kind)){
         const r=await admin.query('SELECT risk_class FROM app.users WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user])

@@ -9,9 +9,9 @@ const now = 1700000000000, expiry = now+60000, raw='a'.repeat(43),csrf='b'.repea
 async function fixture(options: { commitFailure?: boolean; foreign?: boolean; denied?: boolean; custodyFailure?: boolean; replay?: boolean; atCap?: boolean; missingBound?: boolean }={}) {
  let committed=false,keyReads=0
  const key=Buffer.alloc(32,7),calls:string[]=[]
- const pool={ async connect() { return { async query(sql:string,values:unknown[]=[]) {
+ const pool={ async connect() { let business=false;return { async query(sql:string,values:unknown[]=[]) {
   const name=/auth_api\.([a-z_]+)/.exec(sql)?.[1]??sql; calls.push(name)
-  if(sql==='COMMIT') { if(options.commitFailure) throw Error('private commit failure'); committed=true }
+  if(sql==='COMMIT') { if(options.commitFailure) throw Error('private commit failure'); if(business)committed=true }
   let value:unknown=null
   if(name==='security_policy') value=profile.values
   if(name==='resolve_binding') value={kind:'PREAUTH',id:id(1),tenantId:id(2),userId:id(3),state:'ENROLLMENT_REQUIRED',csrfDigest:digest(csrf),expiresAt:expiry}
@@ -20,6 +20,7 @@ async function fixture(options: { commitFailure?: boolean; foreign?: boolean; de
   if(name==='reserve_owned') value={replay:!!options.replay,requestHash:(values[3] as Buffer).toString('hex'),oneTime:true,expiresAt:expiry,data:null}
   if(name==='trusted_mfa_material') value={tenantId:id(options.foreign?9:2),userId:id(3),bindingId:id(1),riskClass:'SENSITIVE',enabledMethods:options.atCap?Array.from({length:4},(_,n)=>({id:id(n+20),kind:'TOTP',version:'1'})):[],recipient:null,expiresAt:new Date(expiry).toISOString()}
   if(name==='begin_totp_enrollment_assigned') {
+   business=true
    assert.equal(values[1],id(2));assert.equal(values[2],id(3));assert.equal(values[4],'1');assert.equal(values[7],'SHA256')
    const plaintext=openEnrollmentSecret(values[5] as Buffer,key,String(values[6]),{tenantId:id(2),userId:id(3),methodId:String(values[3]),initialMethodVersion:'1',algorithm:'SHA256'})
    assert.equal(plaintext.length,32);plaintext.fill(0)
@@ -48,7 +49,7 @@ test('commit/custody failures never emit provisioning secret or cookies; transac
  for(const options of [{commitFailure:true},{custodyFailure:true}]){
   const f=await fixture(options),response=await f.request();assert.equal(response.status,503)
   assert.equal(response.headers.get('set-cookie'),null);assert.equal((await response.text()).includes('otpauth:'),false)
-  assert.equal(f.committed,false);assert.equal(f.calls.at(-1),'ROLLBACK')
+  assert.equal(f.committed,false);assert.ok(f.calls.includes('ROLLBACK'));assert.equal(f.calls.filter(n=>n==='begin_totp_enrollment_assigned').length,options.custodyFailure?0:1);assert.equal(f.calls.filter(n=>n==='record_security_event').length,1)
  }
 })
 test('foreign material, denied permission and one-time replay never read custody or provision a method',async()=>{
