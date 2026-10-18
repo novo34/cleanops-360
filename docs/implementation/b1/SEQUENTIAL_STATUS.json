@@ -1,5 +1,5 @@
 {
-  "referenceHead": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+  "referenceHead": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -11,9 +11,9 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 40,
+    "numerator": 41,
     "denominator": 44,
-    "percent": 90.9090909090909,
+    "percent": 93.18181818181819,
     "verifiedRequirementIds": [
       "REQ-AUTHZ-001",
       "REQ-AUTHZ-002",
@@ -54,32 +54,33 @@
       "REQ-TEN-002",
       "REQ-TEN-003",
       "REQ-TEN-004",
-      "REQ-SEC-020"
+      "REQ-SEC-020",
+      "REQ-AUD-001"
     ],
     "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "REMAINING_CRITERIA_AND_PREAUTH_SELECTION_ROTATION_CONTRACT",
+  "nextBlocker": "MOST_RESTRICTIVE_ROLE_RISK_SQL14_AND_FORMAL_OPERATING_ACCEPTANCE",
   "candidate": {
-    "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
-    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
-    "bytes": 205225,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql"
+    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+    "bytes": 209170,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/11/SQL10_TO_SQL11.diff",
-    "sha256": "bacb95c11fae79a8fe2031e942995eb35cf5e5695c8088a08cd744334d9f4d5a"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/13/SQL11_TO_SQL13.diff",
+    "sha256": "e8d56b63f6c39f9dccbd4f49328bbc2a9c3d67447f12e19496e67a8dc3bf453e"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "SQL11_TARGETED_AUTHZ_PASS_FULL_B1_OPEN",
+  "pgTest01": "SQL13_24_DIRECTED_CASES_PASS_FULL_B1_OPEN",
   "lastPostgresExecution": {
-    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
-    "run": 39124915880,
-    "scope": "SQL11_AUTHZ_AND_DIRECTED_AUTHENTICATION_REGRESSION",
+    "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+    "run": 39137748800,
+    "scope": "SQL13_DIRECTED_REAL_NEGATIVES_LOCKS_ACL",
     "checks": {
-      "PASS": 333,
+      "PASS": 101,
       "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
@@ -87,22 +88,24 @@
     "cleanup": "PASS"
   },
   "proposedCandidate": {
-    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
-    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
-    "bytes": 209170,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
+    "gitBlob": "b946f009631df1377c9bd4ac4fae5917a2ec740f",
+    "sha256": "e2e19da0df3444d52700846b04887885f5a2ade61f56110ed716cf6f55557727",
+    "bytes": 212192,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
+    "status": "REVIEW ONLY",
+    "installed": false
   },
   "nextAuthorization": {
-    "SQL13": "Exact blob7a2df8463e6c1a45b2a2c9005187c0269d2cf423 requires approval; supersedes uninstalled SQL12, not covered by SQL11 authorization.",
-    "operational": "See remaining/OPERATING_DECISIONS.md; no production activation inferred."
+    "SQL14": "Exact blobb946f009631df1377c9bd4ac4fae5917a2ec740f SHA256e2e19da0df3444d52700846b04887885f5a2ade61f56110ed716cf6f55557727; no installation until exact owner approval.",
+    "operational": "Designated actual Swiss OpenBao/custodian and operating/independent/manual PO evidence; no production/deployment/SMTP authorization inferred."
   },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
-  "pgTest01Scope": "Exact approved SQL11 only; no SQL12 installation.",
+  "pgTest01Scope": "Exact approved SQL13 installed; SQL14 not installed. Separate historic full batteries retained.",
   "lastRealBrowserExecution": {
-    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
-    "run": 39124915880,
-    "scope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
-    "cases": 9,
+    "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+    "run": 39137308745,
+    "scope": "EXECUTED_SQL13_BROWSER_REAL_BROWSER",
+    "cases": 12,
     "result": "PASS"
   },
   "architectureDecisions": {
@@ -359,9 +362,9 @@
   },
   "remainingFunctionalBlockers": [
     {
-      "operation": "switchTenant from password-verified SELECTION PREAUTH",
-      "code": "lib/b1/approved-backend.ts",
-      "failure": "Deliberate fail-closed503; no approved owned PREAUTH rotation primitive. Requires exact consolidated SQL candidate/approval, not weakened cookie-rotation checks."
+      "operation": "Most-restrictive risk across active roles and existing-session ceilings",
+      "code": "docs/proposals/b1-consolidated-sql/revisions/14/APPROVAL.md",
+      "failure": "SQL13 only exposes app.users.risk_class; SQL14 private read-only role-risk catalogue/helper requires exact approval and real tests."
     }
   ],
   "adminMfaReset": {
@@ -392,5 +395,41 @@
       "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session"
     ],
     "productionAcceptance": false
+  },
+  "currentEvidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+  "remainingStatus": "docs/implementation/b1/remaining/STATUS.json",
+  "historicalLastPostgresExecutionSQL11": {
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "SQL11_AUTHZ_AND_DIRECTED_AUTHENTICATION_REGRESSION",
+    "checks": {
+      "PASS": 333,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "cleanup": "PASS"
+  },
+  "historicalLastRealBrowserExecutionSQL11": {
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": 9,
+    "result": "PASS"
+  },
+  "remainingEvidence": {
+    "REQ-AUD-001": {
+      "report": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+      "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+      "run": 39137308745,
+      "uiScope": "EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+        "Browser-PG-SQL13 AUD04 real terminated denial journal transaction rolls back then persists trusted denial separately",
+        "Browser-PG-SQL13 AUD05 real concurrent protected challenge mutation and policy denial have independent durable outcomes",
+        "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor"
+      ],
+      "productionAcceptance": false
+    }
   }
 }
