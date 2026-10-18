@@ -9,9 +9,9 @@ import provenance from '../../lib/b1/provenance.json' with { type: 'json' }
 import { emptyView, receiveAuth } from '../../lib/b1/ui-state.ts'
 
 import { id, tenantB, sample } from './schema-fixture.ts'
-test('exact V4 provenance; 60 values, 5 approved and 55 trial proposals', () => {
+test('exact V4 provenance; 60 original V4 values plus owner-approved absolute policy overlay', () => {
   assert.equal(profile.productionApproved, false); assert.equal(profile.authGate05, 'OPEN')
-  assert.equal(Object.keys(profile.values).length, 60); assert.equal(profile.approvedKeys.length, 5); assert.equal(profile.proposedKeys.length, 55)
+  assert.equal(Object.keys(profile.values).length, 60); assert.equal(profile.approvedKeys.length, 7); assert.equal(profile.proposedKeys.length, 53)
   for (const [path, hash] of Object.entries(provenance)) assert.equal(createHash('sha256').update(readFileSync('docs/canonical/auth-review/v4/' + path)).digest('hex'), hash)
   assert.equal(numeric('argon_memory'), 65536); assert.equal(numeric('argon_iterations'), 3); assert.equal(numeric('argon_parallelism'), 1)
 })

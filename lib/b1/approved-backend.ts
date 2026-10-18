@@ -73,6 +73,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
   function transaction<T>(work: (tx: Transaction) => Promise<T>, context = { correlationId: randomUUID(), operation: '' }): Promise<T> {
     const correlation = context.correlationId, operationHint = context.operation
     if (!uuid(correlation)) return Promise.reject(unavailable())
+    let failureActor:Binding|undefined
     return repository.transaction(async broker => {
       const policy = await broker.call('policy', [])
       if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
@@ -228,17 +229,17 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               Object.assign(b, { tenantId: value.tenantId, userId: value.userId })
             } else if (value.tenantId || value.userId) throw invalid()
           }
-          actor = Object.freeze(b); return actor
+          actor = Object.freeze(b);failureActor=actor; return actor
         },
         async authorize(binding, rule, resource) { return (await auth(binding, rule, resource)).allowed === true },
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async auditFailure(binding,code){
           owns(binding)
-          if(code!=='CSRF_DENIED')throw unavailable()
+          if(!['CSRF_DENIED','POLICY_DENIED','STEP_UP_REQUIRED','MFA_DENIED'].includes(code))throw unavailable()
           const transport=deps.transport()
           if(![transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
-          const subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,binding.kind,binding.tenantId??null,binding.userId??binding.id])).digest()
-          try{await broker.call('securityEvent',[code,subject,transport.network,transport.device,correlation])}finally{subject.fill(0)}
+          const subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,operationHint,binding.kind,binding.tenantId??null,binding.userId??binding.id])).digest()
+          try{await broker.call('securityEvent',[code,subject,transport.network,transport.device,correlation])}finally{subject?.fill(0)}
         },
         async rateLimit(operation, binding) {
           owns(binding)
@@ -252,7 +253,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             [numeric('otp_issue_user_limit'), numeric('otp_issue_ip_limit'), numeric('otp_issue_device_limit')]
           let retry = 0
           for (let i = 0; i < values.length; i++) retry = Math.max(retry, await broker.call('rateAttempt', [values[i], dims[i], purpose, limits[i]]))
-          try{if(retry>0)await rateDenied(subject,retry,transport);return retry>0?retry:null}finally{subject.fill(0)}
+          try{if(retry>0)await rateDenied(subject,retry,transport);return retry>0?retry:null}finally{subject?.fill(0)}
         },
         async reserve(scope, requestHash) {
           if (!actor || (actor.kind === 'BOOTSTRAP' && operationHint!=='resetPassword') || !/^[a-f0-9]{64}$/.test(requestHash) || reservations.has(scope)) throw unavailable()
@@ -262,7 +263,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = (actor.kind==='PREAUTH'&&operation==='switchTenant')||['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -452,8 +453,22 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           if (operation === 'switchTenant') {
             const target = String(input.target_tenant_id)
             if (!uuid(target)) throw invalid()
-            // No approved PREAUTH selection rotation primitive; keep that path closed.
-            if (binding.kind === 'PREAUTH') throw unavailable()
+            if(binding.kind==='PREAUTH'){
+              const owned=[...reservations.values()].filter(r=>!r.done&&r.operation==='switchTenant'&&r.oneTime&&r.raw===raw)
+              if(owned.length!==1||binding.state!=='TENANT_SELECTION_REQUIRED')throw unavailable()
+              const cookie=token(),newCsrf=token(),r=owned[0]
+              try{return await broker.selectionUnit(async()=>{
+                const selected=await broker.call('selectTenantRotatedOwned',[raw,hex(digest(cookie)),hex(digest(newCsrf)),target,r.key,hex(requestTag(r.hash)),correlation])
+                if(!object(selected)||typeof selected.selected!=='boolean')throw unavailable()
+                if(!selected.selected){if(selected.error!=='POLICY_DENIED')throw unavailable();throw new AuthError(403,'POLICY_DENIED')}
+                if(selected.binding_id!==binding.id)throw unavailable()
+                const result=await preauthResult(cookie,{id:binding.id,tenantId:target})
+                return{data:result.data,transition:{kind:'PREAUTH' as const,token:cookie,csrf:newCsrf,expiresAt:result.expiresAt}}
+              })}catch(error){
+                if(error instanceof AuthError&&error.status<500){await tx.auditFailure(binding,error.status===403?'POLICY_DENIED':'MFA_DENIED');return error}
+                throw error
+              }
+            }
             const cookie = token(), newCsrf = token()
             const preauthId = await broker.call('beginSwitch', [cookie, hex(digest(newCsrf)), target, correlation])
             const result = await preauthResult(cookie, { id: preauthId, tenantId: target })
@@ -504,7 +519,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const ticket=hex(digest(input.ticket)),trusted=await broker.call('resetMaterial',[ticket])
             if(!trusted || Date.parse(trusted.expiresAt)<=now()){await factorDenied(binding);return invalid()}
             const subject=createHmac('sha256',deps.factors.auditKey).update(canonical(['PASSWORD_RESET',trusted.principalId])).digest()
-            try{const retry=await broker.call('rateAttempt',[subject,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return await rateDenied(subject,retry)}finally{subject.fill(0)}
+            try{const retry=await broker.call('rateAttempt',[subject,'USER','LOGIN',numeric('login_user_limit')]);if(retry>0)return await rateDenied(subject,retry)}finally{subject?.fill(0)}
             if(trusted.requiresRecovery && (typeof input.recovery_code!=='string' || !/^[A-Z2-7]{26}$/.test(input.recovery_code))){await factorDenied(binding);return invalid()}
             const replacement=await prepareReplacementHash(String(input.new_password),deps.passwordAdmission)
             if(replacement instanceof AuthError){await factorDenied(binding);return replacement}
@@ -629,6 +644,23 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const result = await work(Object.freeze(tx))
       if ([...reservations.values()].some(r => !r.done)) throw unavailable()
       return result
+    }).catch(async(error)=>{
+      // A rolled-back/uncertain operation cannot persist its own failure event.
+      // Use the approved separate restricted security channel AFTER rollback/discard,
+      // with only the previously server-verified actor and no business effects.
+      if(failureActor){
+        const actor=failureActor
+        const code=error instanceof AuthError&&error.status===403?'POLICY_DENIED':error instanceof AuthError&&error.status===401?'MFA_DENIED':'DEPENDENCY_FAILURE'
+        let subject:Buffer|undefined
+        try{
+          const transport=deps.transport()
+          subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,operationHint,actor.kind,actor.tenantId??null,actor.userId??actor.id])).digest()
+          if(![transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
+          await repository.transaction(broker=>broker.call('securityEvent',[code,subject,transport.network,transport.device,correlation]))
+        }catch{/* Original operation still fails closed; never claim an unconfirmed failure event. */}
+        finally{subject?.fill(0)}
+      }
+      throw error
     })
   }
   return Object.freeze({

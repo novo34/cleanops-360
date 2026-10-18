@@ -5,6 +5,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  selectTenantRotatedOwned:{sql:'SELECT auth_api.select_tenant_rotated_owned($1::text,$2::bytea,$3::bytea,$4::uuid,$5::bytea,$6::bytea,$7::uuid) AS value',arity:7,kind:'json'},
   authorizeReset: {sql:'SELECT auth_api.authorize_password_reset($1::uuid,$2::bytea,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   reserveResetOwned: {sql:'SELECT auth_api.reserve_reset_owned($1::text,$2::text,$3::bytea,$4::bytea) AS value',arity:4,kind:'json'},
   changeAccessOwned: {sql:'SELECT auth_api.change_access_owned($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'json'},
@@ -206,6 +207,7 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  selectTenantRotatedOwned:[preauth:string,cookie:Buffer,csrf:Buffer,target:string,key:Buffer,request:Buffer,correlation:string]
   adminResetMfa: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   authorizeReset: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   reserveResetOwned: [bootstrap:string,csrf:string,keyDigest:Buffer,requestDigest:Buffer]
@@ -274,7 +276,7 @@ export type BrokerArgs = {
   reserveCeremony: [preauth: string, operation: string, key: Buffer, request: Buffer, oneTime: boolean]
   completeCeremony: [preauth: string, operation: string, key: Buffer, safeJson: string]
   rateAttempt: [key: Buffer, dimension: 'USER' | 'IP' | 'DEVICE', purpose: 'LOGIN' | 'OTP_ISSUE' | 'OTP_VERIFY', limit: number]
-  securityEvent: [code: 'LOGIN_DENIED' | 'RATE_LIMITED' | 'MFA_DENIED' | 'CSRF_DENIED' | 'DEPENDENCY_FAILURE',
+  securityEvent: [code: 'LOGIN_DENIED' | 'RATE_LIMITED' | 'MFA_DENIED' | 'CSRF_DENIED' | 'DEPENDENCY_FAILURE' | 'POLICY_DENIED' | 'STEP_UP_REQUIRED',
     principal: Buffer | null, network: Buffer | null, device: Buffer | null, correlation: string]
 }
 type Row = Record<string, unknown>
@@ -285,6 +287,7 @@ type Result<K extends keyof BrokerArgs> = K extends 'resetMaterial' ? PrivateRes
   typeof statements[K]['kind'] extends 'count' ? number :
   typeof statements[K]['kind'] extends 'uuid' ? string : unknown
 export interface V4Broker {
+  selectionUnit<T>(work:()=>Promise<T>):Promise<T>
   call<K extends keyof BrokerArgs>(operation: K, args: BrokerArgs[K]): Promise<Result<K>>
 }
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
@@ -377,9 +380,29 @@ export function createV4IdentityRepository(pool: IdentityPool) {
   return Object.freeze({
     transaction<T>(work: (broker: V4Broker) => Promise<T>): Promise<T> {
       return runner.run(async (connection: IdentityConnection) => {
-        let open = true, failed = false
+        let open = true, failed = false, selecting = false, recoverableSelectionError = false
         let pending: Promise<unknown> | undefined
         const broker: V4Broker = Object.freeze({
+          async selectionUnit<T>(work:()=>Promise<T>):Promise<T>{
+            if(!open||failed||pending||selecting){failed=true;throw unavailable()}
+            selecting=true;recoverableSelectionError=false
+            try{
+              await connection.query('SAVEPOINT b1_selection')
+              try{
+                const result=await work()
+                if(failed||pending)throw unavailable()
+                await connection.query('RELEASE SAVEPOINT b1_selection')
+                return result
+              }catch(error){
+                if((failed&&!recoverableSelectionError)||pending||!(error instanceof AuthError)||error.status>=500)throw error
+                await connection.query('ROLLBACK TO SAVEPOINT b1_selection')
+                await connection.query('RELEASE SAVEPOINT b1_selection')
+                failed=false;recoverableSelectionError=false
+                throw error
+              }
+            }catch(error){if(!(error instanceof AuthError)||error.status>=500)failed=true;throw error}
+            finally{selecting=false}
+          },
           async call<K extends keyof BrokerArgs>(operation: K, args: BrokerArgs[K]): Promise<Result<K>> {
             if (!open || failed || pending || !Object.hasOwn(statements, operation) ||
                 !Array.isArray(args) || args.length !== statements[operation].arity) {
@@ -411,13 +434,13 @@ export function createV4IdentityRepository(pool: IdentityPool) {
             })
             pending = query
             try { return decode(operation, await query, values as unknown as BrokerArgs[K]) }
-            catch (error) { if(restoredDenial && error instanceof AuthError)throw error;failed=true;throw safeError(error) }
+            catch (error) { if(restoredDenial && error instanceof AuthError)throw error;const mapped=safeError(error);failed=true;recoverableSelectionError=selecting&&mapped.status<500;throw mapped }
             finally { pending = undefined }
           },
         })
         try {
           const result = await work(broker)
-          if (pending || failed) { failed = true; throw unavailable() }
+          if (pending || failed || selecting) { failed = true; throw unavailable() }
           return result
         } finally {
           open = false

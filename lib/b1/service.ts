@@ -28,7 +28,7 @@ export interface Transaction {
   stepUp(binding: Binding, rule: string, resource?: string): Promise<boolean>
   rateLimit(operation: string, binding: Binding): Promise<number | null>
   /** Trusted binding only; commit security denial without business effects. */
-  auditFailure(binding: Binding, code: 'CSRF_DENIED'): Promise<void>
+  auditFailure(binding: Binding, code: 'CSRF_DENIED'|'POLICY_DENIED'|'STEP_UP_REQUIRED'|'MFA_DENIED'): Promise<void>
   /** Atomic reserve + effect + audit + completion on this same transaction/connection. */
   reserve(scope: string, requestHash: string): Promise<{ replay: boolean; requestHash?: string; data?: unknown; oneTime?: boolean; expiresAt?: number }>
   discard(scope: string): Promise<void>
@@ -180,9 +180,9 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
               throw new AuthError(422, 'INVALID_INPUT')
           }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
-          if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
+          if (rule && !await tx.authorize(binding, rule, resource)){await tx.auditFailure(binding,'POLICY_DENIED');return new AuthError(403,'POLICY_DENIED')}
           const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','adminResetMfa','authorizePasswordReset','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices'].includes(operationId)
-          if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
+          if (needsStep && !await tx.stepUp(binding, rule!, resource)){await tx.auditFailure(binding,'STEP_UP_REQUIRED');return new AuthError(403,'STEP_UP_REQUIRED')}
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
           if (retry !== null) return new AuthError(429, 'RATE_LIMITED', retry)
@@ -243,7 +243,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
-          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operationId))
+          if (scope) await tx.complete(scope, requestHash, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')) ? null : effect.data, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')))
           return effect
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome

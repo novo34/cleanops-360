@@ -6,6 +6,28 @@ import { AuthError } from '../../lib/b1/service.ts'
 import type { IdentityConnection } from '../../lib/b1/pg-identity-driver.ts'
 
 const unavailable = (error: unknown) => error instanceof AuthError && error.status === 503 && error.cause === undefined
+
+test('SQL13 selection scope rolls back expected late denial but retains the outer owned unit',async()=>{
+ const f=fixture(()=>({selected:true,binding_id:'00000000-0000-4000-8000-000000000001'}))
+ await createV4IdentityRepository(f.pool).transaction(async broker=>{
+  await assert.rejects(broker.selectionUnit(async()=>{
+   await broker.call('selectTenantRotatedOwned',['x'.repeat(43),Buffer.alloc(32),Buffer.alloc(32),'00000000-0000-4000-8000-000000000001',Buffer.alloc(32),Buffer.alloc(32),'00000000-0000-4000-8000-000000000001'])
+   throw new AuthError(403,'POLICY_DENIED')
+  }),e=>e instanceof AuthError&&e.status===403)
+  await broker.call('securityEvent',['POLICY_DENIED',Buffer.alloc(32),null,null,'00000000-0000-4000-8000-000000000001'])
+ })
+ assert.ok(f.calls.some(c=>c.sql==='ROLLBACK TO SAVEPOINT b1_selection'));assert.equal(f.calls.at(-1)?.sql,'COMMIT');assert.deepEqual(f.released,[false])
+})
+test('SQL13 recoverable SQL denial restores only its selection savepoint; serialization remains poisoned',async()=>{
+ for(const code of ['42501','40001']){
+  const f=fixture(name=>{if(name==='select_tenant_rotated_owned')throw Object.assign(new Error(code==='42501'?'AUTH_INVALID':'private diagnostic'),{code});return null})
+  const work=createV4IdentityRepository(f.pool).transaction(async broker=>{
+   await assert.rejects(broker.selectionUnit(()=>broker.call('selectTenantRotatedOwned',['x'.repeat(43),Buffer.alloc(32),Buffer.alloc(32),'00000000-0000-4000-8000-000000000001',Buffer.alloc(32),Buffer.alloc(32),'00000000-0000-4000-8000-000000000001'])))
+  })
+  if(code==='42501'){await work;assert.equal(f.calls.at(-1)?.sql,'COMMIT')}
+  else{await assert.rejects(work,unavailable);assert.equal(f.calls.at(-1)?.sql,'ROLLBACK')}
+ }
+})
 type Call = { sql: string; values: unknown[] }
 function fixture(answer: (name: string, values: unknown[]) => unknown = () => null) {
   const calls: Call[] = [], released: boolean[] = []
@@ -42,8 +64,8 @@ test('broker uses canonical functions and placeholders; no SQL value interpolati
   // Static drift check for every literal statement, not SQL execution.
   const source = readFileSync(new URL('../../lib/b1/v4-broker.ts', import.meta.url), 'utf8')
   const functions = [...source.matchAll(/SELECT (?:\* FROM )?auth_api\.([a-z_]+)\(/g)].map(match => match[1])
-  assert.equal(functions.length, 69)
-  const sql07 = readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql', import.meta.url), 'utf8')
+  assert.equal(functions.length, 70)
+  const sql07 = readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql', import.meta.url), 'utf8')
   const extension = readFileSync(new URL('../../docs/proposals/b1-v4-extension/review-only.sql', import.meta.url), 'utf8')
   const d1 = readFileSync(new URL('../../docs/proposals/b1-ceremony-material/review-only.sql', import.meta.url), 'utf8')
   for (const name of functions) assert.ok(sql07.includes('CREATE FUNCTION auth_api.' + name + '(') || sql07.includes('CREATE OR REPLACE FUNCTION auth_api.' + name + '(') || d1.includes('CREATE FUNCTION auth_api.' + name + '(') || ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '('), name)

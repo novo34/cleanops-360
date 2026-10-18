@@ -177,6 +177,7 @@ test('PREAUTH real TOTP CAS and risk-specific session issuance share one transac
   assert.equal(f.connects,1);assert.equal(f.calls.at(-1)?.name,'COMMIT')
  }
 })
+function primaryRollback(f:{calls:{connection:number;name:string}[];releases:boolean[]}){const connection=f.calls.filter(c=>c.name==='resolve_binding').at(-1)!.connection;assert.equal(f.calls.filter(c=>c.connection===connection).at(-1)?.name,'ROLLBACK');assert.equal(f.releases[connection-1],true)}
 test('step-up prepares TOTP only, replays safe descriptor and revalidates method generation on retry',async()=>{
  const f=await fixture({mode:'ACTIVE'}),key='step-up-key-for-test-123'
  const first=await f.request('startStepUp',{grant_id:'B1-SELF-05'},key)
@@ -188,7 +189,7 @@ test('step-up prepares TOTP only, replays safe descriptor and revalidates method
  assert.equal(f.calls.filter(c=>c.name==='issue_bound_challenge').length,1)
  f.setGeneration('4')
  const stale=await f.request('startStepUp',{grant_id:'B1-SELF-05'},key)
- assert.equal(stale.status,401);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+ assert.equal(stale.status,401);primaryRollback(f)
 })
 test('TOTP resend binds old method/context, replaces challenge and never invokes EMAIL',async()=>{
  const f=await fixture({mode:'ACTIVE'})
@@ -204,7 +205,7 @@ test('ambiguous/no-TOTP, foreign context, stale generation and expiry abort prep
   const response=await f.request('startStepUp',{grant_id:'B1-SELF-05'},'step-key-fail-test-123')
   assert.ok(response.status>=400)
   privateFree(await response.text());assert.equal(response.headers.get('set-cookie'),null)
-  assert.equal(f.state.audits,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+  assert.equal(f.state.audits,0);primaryRollback(f)
  }
 })
 test('missing trusted labels, audit failure and COMMIT failure roll back factor consumption and session together',async()=>{
@@ -213,7 +214,7 @@ test('missing trusted labels, audit failure and COMMIT failure roll back factor 
   const response=await f.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
   assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null);privateFree(await response.text())
   assert.equal(f.state.counter,null);assert.equal(f.state.sessions,0);assert.equal(f.state.audits,0)
-  assert.equal(f.calls.at(-1)?.name,'ROLLBACK');assert.deepEqual(f.releases,[true])
+  primaryRollback(f)
  }
 })
 test('concurrent PREAUTH verification has one session winner; consumed proof cannot be retried',async()=>{
@@ -226,10 +227,10 @@ test('concurrent PREAUTH verification has one session winner; consumed proof can
 test('rollback permits fresh whole-request retry; no implicit retry of uncertain COMMIT',async()=>{
  const f=await fixture({commitFailure:true})
  const first=await f.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
- assert.equal(first.status,503);assert.equal(f.connects,1)
+ assert.equal(first.status,503);assert.equal(f.connects,2);assert.equal(f.calls.filter(c=>c.name==='consume_totp_cas').length,1);assert.ok(f.calls.some(c=>c.name==='record_security_event'&&c.values[0]==='DEPENDENCY_FAILURE'))
  f.options.commitFailure=false
  const second=await f.request('verifyMfa',{challenge_id:C,method:'TOTP',proof:proof()})
- assert.equal(second.status,200);assert.equal(f.state.sessions,1);assert.equal(f.connects,2)
+ assert.equal(second.status,200);assert.equal(f.state.sessions,1);assert.equal(f.connects,3);assert.equal(f.calls.filter(c=>c.name==='consume_totp_cas').length,2)
 })
 test('invalid TOTP commits bounded attempt and discards internal reservation; EMAIL remains closed',async()=>{
  const f=await fixture()
@@ -297,7 +298,7 @@ test('resend selects the prior trusted UUID among multiple methods; revoked/dupl
   const f=await fixture({mode:'ACTIVE',multiple:true,...options})
   const response=await f.request('resendOtp',{challenge_id:C},'invalid-selection-key-123')
   assert.ok(response.status>=400);assert.equal(response.headers.get('set-cookie'),null)
-  assert.equal(f.state.audits,0);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+  assert.equal(f.state.audits,0);primaryRollback(f)
  }
 })
 test('session metadata is normalized at the private callback boundary and never reflected in HTTP',async()=>{
@@ -372,7 +373,7 @@ test('foreign/revoked/stale/expired choices and audit/COMMIT failure roll back s
   const f=await fixture({mode:'ACTIVE',multiple:true,...options})
   const response=await f.request('selectTotpMethod',{totp_method_id:M2,grant_id:'B1-SELF-05'},'selector-rollback-key-123')
   assert.ok(response.status>=400);assert.equal(f.state.audits,0);assert.equal(f.state.attempts,0)
-  assert.equal(response.headers.get('set-cookie'),null);assert.equal(f.calls.at(-1)?.name,'ROLLBACK')
+  assert.equal(response.headers.get('set-cookie'),null);primaryRollback(f)
  }
  const alien=await fixture({mode:'ACTIVE',multiple:true})
  assert.equal((await alien.request('selectTotpMethod',{totp_method_id:P,grant_id:'B1-SELF-05'},'foreign-method-key-123')).status,401)

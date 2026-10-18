@@ -15,7 +15,7 @@ const denied = (v: unknown) => v instanceof AuthError && v.status === 401
 const unavailable = (v: unknown) => v instanceof AuthError && v.status === 503
 function fixture(answer: (name: keyof BrokerArgs, args: unknown[]) => unknown) {
   const calls: { name: keyof BrokerArgs; args: unknown[] }[] = []
-  const broker: V4Broker = { async call(name, args) { calls.push({ name, args }); return answer(name, args) as never } }
+  const broker: V4Broker = {async selectionUnit(){throw Error("UNEXPECTED_SELECTION_UNIT")}, async call(name, args) { calls.push({ name, args }); return answer(name, args) as never } }
   return { broker, calls }
 }
 async function keys(): Promise<PrivateFactorKeys> {

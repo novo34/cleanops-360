@@ -33,5 +33,10 @@ def checks():
   browser=prior.prior.nine.previous.browser
   browser.CONFIG='playwright.sql13-'+group+'.config.ts';browser.UI_SCOPE='EXECUTED_SQL13_'+group.upper()+'_REAL_BROWSER';browser.SECURITY_GATE='pg11-access-security-tests.py';browser.browser()
  b.REPORT['fullB1Result']='OPEN_NOT_FORMALLY_ACCEPTED'
+original_fixtures=runner.fixtures
+def fixtures():
+ if not original_fixtures():return False
+ return b.check('SQL13-approved-12h24h-configuration-data-only',"UPDATE identity_private.configuration SET values_json=jsonb_set(jsonb_set(values_json,'{absolute_sensitive}','43200'::jsonb),'{absolute_operational}','86400'::jsonb);")
+runner.fixtures=fixtures
 runner.payload=payload;runner.checks=checks
 if __name__=='__main__':sys.exit(runner.main())

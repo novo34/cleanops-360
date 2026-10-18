@@ -133,7 +133,7 @@ try {
       try {
         if(input.scenario==='abuse' && sql.includes('auth_api.rate_attempt') && values && Buffer.isBuffer(values[0]))fixtureRateKeys.add(values[0].toString('hex'))
         if(input.scenario==='abuse' && sql.includes('auth_api.record_security_event') && typeof values?.[4]==='string')fixtureCorrelations.add(values[4])
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
+        if ((sql.includes('auth_api.select_tenant_rotated_owned') || sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -196,6 +196,17 @@ try {
         const cipher=sealEnrollmentSecret(secondaryTenant.secret,secondaryKey,'pg05-ephemeral-b',{tenantId:input.otherTenant,userId:secondaryTenant.user,methodId:secondaryTenant.method,initialMethodVersion:'1',algorithm:'SHA256'})
         await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral-b',statement_timestamp(),1,'SHA256')",[input.otherTenant,secondaryTenant.method,secondaryTenant.user,cipher])
         reply({tenant:input.otherTenant,user:secondaryTenant.user});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='inspectSql13'){
+        const q=await admin.query("SELECT state,tenant_id,expires_at FROM identity_private.preauth WHERE principal_id=$1 ORDER BY created_at",[input.principal])
+        reply({preauth:q.rows});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='revokeSwitchMembership' && secondaryTenant){
+        await admin.query("UPDATE app.users SET state='DISABLED' WHERE tenant_id=$1 AND id=$2",[input.otherTenant,secondaryTenant.user]);reply({ok:true});continue
+      }
+      if(input.scenario==='abuse' && message.kind==='setSelfRule'){
+        if(!['B1-SELF-01','B1-SELF-08'].includes(message.rule)||!['ALLOW','DENY'].includes(message.effect))throw Error('INVALID_SYNTHETIC_RULE')
+        await admin.query('UPDATE app.self_service_rules SET effect=$3 WHERE tenant_id=$1 AND rule_key=$2',[input.tenant,message.rule,message.effect]);reply({ok:true});continue
       }
       if(input.scenario==='abuse' && message.kind==='switchProof' && secondaryTenant){reply({proof:TOTP.generate({secret:new Secret({buffer:Uint8Array.from(secondaryTenant.secret).buffer}),algorithm:'SHA256',period:numeric('totp_period'),digits:numeric('totp_digits')})});continue}
       if(input.scenario==='abuse' && message.kind==='revokeSwitchSource'){

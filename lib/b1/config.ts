@@ -1,4 +1,5 @@
 import source from './security-values.json' with { type: 'json' }
+import sessionApproval from './approved-session-policy.json' with {type:'json'}
 
 export type SecurityValue = string | number | number[]
 export type SecurityEntry = { key: string; value: SecurityValue; status: string; source: string; unit: string; verification: string }
@@ -14,10 +15,11 @@ export function securityProfile(entries: readonly SecurityEntry[] = source.value
     const expected = source.values.find(e => e.key === entry.key)
     if (!expected || JSON.stringify(entry) !== JSON.stringify(expected)) throw new Error('UNREVIEWED_PROFILE_CHANGE')
   }
-  const values = Object.freeze(Object.fromEntries(entries.map(e => [e.key, Array.isArray(e.value) ? Object.freeze([...e.value]) : e.value])))
-  return Object.freeze({ id: 'b1-v4-trial', productionApproved: false, authGate05: 'OPEN', values,
-    approvedKeys: Object.freeze(Object.keys(approved)),
-    proposedKeys: Object.freeze(entries.filter(e => e.status === 'PROPOSED_BENCHMARK_REQUIRED').map(e => e.key)) })
+  const values:Readonly<Record<string,SecurityValue|readonly number[]>> = Object.freeze({...Object.fromEntries(entries.map(e => [e.key, Array.isArray(e.value) ? Object.freeze([...e.value]) : e.value])),absolute_sensitive:sessionApproval.absolute_sensitive,absolute_operational:sessionApproval.absolute_operational})
+  return Object.freeze({ id: 'b1-v4-owner-session-2026-10-18', productionApproved: false, authGate05: 'OPEN', values,
+    approvedKeys: Object.freeze([...Object.keys(approved),'absolute_sensitive','absolute_operational']),
+    approvedSessionPolicy:sessionApproval.id,
+    proposedKeys: Object.freeze(entries.filter(e => e.status === 'PROPOSED_BENCHMARK_REQUIRED' && !['absolute_sensitive','absolute_operational'].includes(e.key)).map(e => e.key)) })
 }
 export const profile = securityProfile()
 export function numeric(key: string): number {
