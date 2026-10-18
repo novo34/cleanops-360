@@ -37,6 +37,7 @@ const statements = {
 "preauthVerified": {"sql":"SELECT auth_api.new_preauth_verified($1::uuid, $2::uuid, $3::bigint, $4::text, $5::bytea, $6::bytea) AS value","arity":6,"kind":"uuid"},
 "binding": {"sql":"SELECT auth_api.resolve_binding($1::text, $2::text, $3::text) AS value","arity":3,"kind":"json"},
 "authorization": {"sql":"SELECT * FROM auth_api.binding_authorization($1::text, $2::text, $3::uuid)","arity":3,"kind":"rows"},
+"adminResetMfa":{"sql":"SELECT auth_api.admin_reset_mfa($1::uuid, $2::bytea, $3::text, $4::uuid) AS value","arity":4,"kind":"boolean"},
 "totpMaterial": {"sql":"SELECT auth_api.totp_material_locked($1::text, $2::uuid, $3::text) AS value","arity":3,"kind":"json"},
 "consumeTotp": {"sql":"SELECT auth_api.consume_totp_cas($1::text, $2::uuid, $3::text, $4::bigint, $5::bigint, $6::bigint, $7::uuid) AS value","arity":7,"kind":"boolean"},
 "consumeEnrollment": {"sql":"SELECT auth_api.consume_enrollment_cas($1::text, $2::uuid, $3::bigint, $4::bigint, $5::bigint, $6::bytea[], $7::uuid) AS value","arity":7,"kind":"boolean"},
@@ -205,6 +206,7 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  adminResetMfa: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   authorizeReset: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   reserveResetOwned: [bootstrap:string,csrf:string,keyDigest:Buffer,requestDigest:Buffer]
   changeAccessOwned: [payload:string,keyHash:Buffer,requestHash:Buffer,correlation:string]

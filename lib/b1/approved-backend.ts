@@ -234,7 +234,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['registerTrustedDevice','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['registerTrustedDevice','adminResetMfa','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
           const purpose = ['login','resetPassword'].includes(operation) ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
@@ -254,7 +254,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','changeAccess'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -303,8 +303,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','changeAccess'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','adminResetMfa','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operation) || r.oneTime))) throw unavailable()
           if(operation==='getUserAccess'){
             if(binding.kind!=='ACTIVE' || !uuid(input.target_user_id))throw invalid()
             const detail=await broker.call('accessDetail',[input.target_user_id])
@@ -475,6 +475,14 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               binding, grant, resource, input.totp_method_id as string)
             if ('state' in data) throw unavailable()
             return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
+          }
+          if(operation==='adminResetMfa'){
+            if(binding.kind!=='ACTIVE'||!uuid(input.target_user_id)||typeof input.ticket!=='string'||typeof input.reason!=='string'||!input.reason.trim())throw new AuthError(422,'INVALID_INPUT')
+            const proof=hex(digest(input.ticket))
+            try{
+              if(!await broker.call('adminResetMfa',[input.target_user_id,proof,input.reason.trim(),correlation])){await factorDenied(binding);return new AuthError(403,'POLICY_DENIED')}
+              return {data:{reset:true}}
+            }finally{proof.fill(0)}
           }
           if(operation==='authorizePasswordReset'){
             if(binding.kind!=='ACTIVE' || !uuid(input.target_user_id) || typeof input.ticket!=='string' || typeof input.reason!=='string')throw invalid()

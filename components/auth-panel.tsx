@@ -184,6 +184,7 @@ export function AuthPanel() {
         else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
         else if(result && action.operation==='changeAccess' && action.accessTarget){await loadUserAccess(action.accessTarget);setMessage('Permisos actualizados.')}
         else if(result && action.operation.includes('Trusted')){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(action.operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.')}
+        else if(result&&action.operation==='adminResetMfa')setMessage('MFA restablecido. El usuario debe configurar y verificar un nuevo factor.')
         else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
       }
@@ -343,6 +344,14 @@ export function AuthPanel() {
             </form>
           </details>
         </section>
+        <details><summary>Restablecer MFA de otro usuario</summary><p>Requiere comprobación de identidad independiente, autorización del servidor y step-up. Revoca factores, sesiones y dispositivos de confianza del destinatario en esta empresa.</p>
+          <form onSubmit={async event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();const body={target_user_id:String(data.get('mfa_reset_target')),ticket:String(data.get('mfa_reset_ticket')),reason:String(data.get('mfa_reset_reason'))};const r=await call('startStepUp',{grant_id:'B1-SELF-06'});if(r){setPendingAction({operation:'adminResetMfa',body});prepare(r,{grant_id:'B1-SELF-06'})}}}>
+            <p><label>Usuario para restablecer MFA <input name="mfa_reset_target" minLength={36} maxLength={36} required /></label></p>
+            <p><label>Comprobante verificado de reset MFA <input name="mfa_reset_ticket" type="password" autoComplete="off" minLength={43} maxLength={43} required /></label></p>
+            <p><label>Motivo del reset MFA <input name="mfa_reset_reason" maxLength={500} required /></label></p>
+            <button type="submit">Verificar y restablecer MFA</button>
+          </form>
+        </details>
         <details><summary>Autorizar restablecimiento de credenciales</summary><p>Solo para operadores autorizados, tras la comprobación independiente de identidad. No introduzcas la contraseña de otra persona.</p>
           <form onSubmit={async event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();const body={target_user_id:String(data.get('target_user_id')),ticket:String(data.get('ticket')),reason:String(data.get('reason'))};const r=await call('startStepUp',{grant_id:'B1-SELF-06'});if(r){setPendingAction({operation:'authorizePasswordReset',body});prepare(r,{grant_id:'B1-SELF-06'})}}}>
             <p><label>Usuario destinatario <input name="target_user_id" minLength={36} maxLength={36} required /></label></p>

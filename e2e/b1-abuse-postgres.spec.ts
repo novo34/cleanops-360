@@ -12,7 +12,7 @@ async function post(page:Page,path:string,body:object){return page.evaluate(asyn
 async function begin(page:Page,email:string,password='PG05 synthetic passphrase!'){
  await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Contraseña',{exact:true}).fill(password)
  const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
- await page.getByRole('button',{name:'Continuar',exact:true}).click();const r=await response;return {status:r.status,data:(await r.json()).data}
+ await page.getByRole('button',{name:'Continuar',exact:true}).click();const r=await response;phase('LOGIN_START_'+r.status());return {status:r.status(),data:(await r.json()).data}
 }
 for(const dimension of ['USER','IP','DEVICE'] as const)test('ABUSE real login '+dimension+' ceiling persists and spoofed transport headers do not bypass it',async({page})=>{
  const server=await startRealBrowserServer('abuse')

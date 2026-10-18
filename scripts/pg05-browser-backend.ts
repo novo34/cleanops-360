@@ -32,6 +32,7 @@ const recoveryKey = randomBytes(32)
 const recoverySecret = new Secret({size:numeric('recovery_entropy')})
 const fixtureRecoveryCode = recoverySecret.base32
 const resetTicket=randomBytes(32).toString('base64url')
+const mfaResetTicket=randomBytes(32).toString('base64url')
 recoverySecret.bytes.fill(0)
 const mailKey = randomBytes(32), otpKey = randomBytes(32)
 const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'pgtest_mail', max: 2 })
@@ -130,7 +131,7 @@ try {
       try {
         if(input.scenario==='abuse' && sql.includes('auth_api.rate_attempt') && values && Buffer.isBuffer(values[0]))fixtureRateKeys.add(values[0].toString('hex'))
         if(input.scenario==='abuse' && sql.includes('auth_api.record_security_event') && typeof values?.[4]==='string')fixtureCorrelations.add(values[4])
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
         if(sql==='COMMIT' && loseNextCommitAck && emailConsumption){
           loseNextCommitAck=false;emailConsumption=false
           await client.query(sql,values)
@@ -204,11 +205,27 @@ try {
       if(input.scenario==='abuse' && message.kind==='inspectAbuse'){
         const keys=[...fixtureRateKeys].map(k=>Buffer.from(k,'hex'))
         const rates=await admin.query("SELECT dimension,purpose,max(count)::int AS maximum,count(*)::int AS buckets FROM identity_private.rate_buckets WHERE key_digest=ANY($1::bytea[]) AND window_start=to_timestamp(floor(extract(epoch FROM statement_timestamp())/$2)*$2) GROUP BY dimension,purpose",[keys,numeric('rate_window')])
-        const events=await admin.query("SELECT code,count(*)::int AS total,bool_and(octet_length(principal_hash)=32) AS subject_hashed,bool_and(network_hash IS NULL OR octet_length(network_hash)=32) AS network_hashed,bool_and(device_hash IS NULL OR octet_length(device_hash)=32) AS device_hashed FROM identity_private.security_log WHERE correlation_id=ANY($1::uuid[]) GROUP BY code",[[...fixtureCorrelations]])
+        const events=await admin.query("SELECT event_code AS code,count(*)::int AS total,bool_and(octet_length(principal_digest)=32) AS subject_hashed,bool_and(network_digest IS NULL OR octet_length(network_digest)=32) AS network_hashed,bool_and(device_digest IS NULL OR octet_length(device_digest)=32) AS device_hashed FROM identity_private.security_log WHERE correlation_id=ANY($1::uuid[]) GROUP BY event_code",[[...fixtureCorrelations]])
         const sessions=await admin.query("SELECT count(*)::int AS active FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
         const challenges=await admin.query('SELECT state,attempts FROM app.mfa_challenges WHERE tenant_id=$1 AND user_id=$2 ORDER BY issued_at',[input.tenant,input.user])
         const methods=await admin.query("SELECT count(*) FILTER(WHERE last_totp_counter IS NOT NULL)::int AS consumed FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 AND kind='TOTP'",[input.tenant,input.user])
         reply({rates:rates.rows,events:events.rows,active:sessions.rows[0].active,challenges:challenges.rows,consumedMethods:methods.rows[0].consumed});continue
+      }
+      if(message.kind==='mfaResetProof' && resetTarget){
+        const verifier=new Pool({host:'/var/run/postgresql',database:'core',user:'pgtest_verifier'})
+        try{await verifier.query("SELECT auth_api.attest_reset($1,$2,$3,'MFA_RESET',$4,statement_timestamp()+interval '5m',$5)",[input.tenant,resetTarget.user,createHash('sha256').update(mfaResetTicket).digest(),randomUUID(),randomUUID()])}finally{await verifier.end()}
+        reply({ticket:mfaResetTicket,targetUser:resetTarget.user,targetEmail:resetTarget.email,actorUser:input.user,foreignUser:input.otherUser});continue
+      }
+      if(message.kind==='expireMfaResetProof' && resetTarget){
+        await admin.query("UPDATE identity_private.reset_tickets SET created_at=statement_timestamp()-interval '10m',expires_at=statement_timestamp()-interval '1s' WHERE token_digest=$1",[createHash('sha256').update(mfaResetTicket).digest()]);reply({ok:true});continue
+      }
+      if(message.kind==='inspectMfaReset' && resetTarget){
+        const methods=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2",[input.tenant,resetTarget.user])
+        const sessions=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.sessions WHERE tenant_id=$1 AND user_id=$2",[input.tenant,resetTarget.user])
+        const audit=await admin.query("SELECT count(*)::int AS total,bool_and(actor_user_id=$3 AND resource_id=$2 AND outcome='SUCCESS' AND correlation_id IS NOT NULL) AS correct FROM app.audit_logs WHERE tenant_id=$1 AND resource_id=$2 AND action='auth.mfa.admin_reset'",[input.tenant,resetTarget.user,input.user])
+        const evidence=await admin.query("SELECT count(*)::int AS total,bool_and(actor_user_id=$3 AND reason='Synthetic verified MFA reset' AND proof_reference IS NOT NULL) AS correct FROM app.identity_reset_evidence WHERE tenant_id=$1 AND user_id=$2",[input.tenant,resetTarget.user,input.user])
+        const receipt=await admin.query('SELECT consumed_at IS NOT NULL AS consumed FROM identity_private.reset_tickets WHERE token_digest=$1',[createHash('sha256').update(mfaResetTicket).digest()])
+        reply({methods:methods.rows[0].active,sessions:sessions.rows[0].active,audit:audit.rows[0],evidence:evidence.rows[0],consumed:receipt.rows[0]?.consumed??false});continue
       }
       if(message.kind==='accessFixture'  && resetTarget){reply({targetUser:resetTarget.user,targetEmail:resetTarget.email,roleId:accessRole,roleRuleId:accessRoleRule,ruleId:accessTargetRule,resourceId:accessResource,foreignResource:accessForeign,foreignUser:input.otherUser});continue}
       if(message.kind==='inspectAccess'){
