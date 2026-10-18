@@ -17,7 +17,9 @@ function fixture(kind:'ACTIVE'|'PREAUTH'='ACTIVE',commitFailure=false){
 test('AUTHZ HTTP accepts locators and CAS but rejects asserted tenant roles authorization and duplicate selectors',async()=>{
  const schema=operations.find(o=>o.operationId==='changeAccess')!.requestBody!.content['application/json'].schema
  assert.equal(valid(schema,body),true)
+ for(const reason of [' ','\t','\n'])assert.equal(valid(schema,{...body,reason}),false)
  for(const extra of [{tenant_id:id},{actor_id:id},{is_admin:true},{allowed:true},{roles:['Super Admin']}])assert.equal(valid(schema,{...body,...extra}),false)
+ const blank=fixture();assert.equal((await blank.handle(JSON.stringify({...body,reason:'  '}))).status,422);assert.equal(blank.calls,0);assert.equal(blank.committed,false)
  const f=fixture();assert.equal((await f.handle(JSON.stringify(body).replace('"ROLE"','"ROLE","operation":"ROLE"'))).status,400);assert.equal(f.calls,0)
 })
 test('AUTHZ PREAUTH cannot mutate and successful HTTP result remains one-time without cookies',async()=>{

@@ -906,7 +906,8 @@
             "reason": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500
+              "maxLength": 500,
+              "pattern": "\\S"
             }
           }
         },
@@ -944,7 +945,8 @@
             "reason": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500
+              "maxLength": 500,
+              "pattern": "\\S"
             }
           }
         },
@@ -1042,7 +1044,8 @@
             "reason": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500
+              "maxLength": 500,
+              "pattern": "\\S"
             }
           }
         },
@@ -1098,7 +1101,8 @@
             "reason": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500
+              "maxLength": 500,
+              "pattern": "\\S"
             }
           }
         },
@@ -1153,7 +1157,8 @@
             "reason": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 500
+              "maxLength": 500,
+              "pattern": "\\S"
             }
           }
         }

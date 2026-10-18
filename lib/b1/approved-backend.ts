@@ -318,6 +318,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           }
           if(operation==='changeAccess'){
             if(binding.kind!=='ACTIVE')throw invalid()
+            if(typeof input.reason!=='string'||!input.reason.trim())throw new AuthError(422,'INVALID_INPUT')
             const version=String(input.expected_policy)
             if(!/^[1-9][0-9]{0,18}$/.test(version)||BigInt(version)>BigInt('9223372036854775807'))throw new AuthError(422,'INVALID_INPUT')
             // Do not acquire authorization SHARE locks before these approved SQL
