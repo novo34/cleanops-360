@@ -113,10 +113,10 @@ def run(b):
  # New function inventory is not full B1 UI/PO acceptance.
  b.REPORT['newFunctionInventory']=len(manifest['functions'])
 
-def backup(b):
+def backup(b,table_count=30):
  def fingerprint(database):
   tables=b.sql("SELECT quote_ident(n.nspname)||'.'||quote_ident(c.relname) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r' ORDER BY 1;",database=database)
-  if tables.returncode or len(tables.stdout.splitlines())!=30:return None
+  if tables.returncode or len(tables.stdout.splitlines())!=table_count:return None
   parts=["SELECT '"+t+"'||coalesce(md5(string_agg(to_jsonb(r)::text,',' ORDER BY to_jsonb(r)::text)),'') AS f FROM "+t+' r' for t in tables.stdout.splitlines()]
   r=b.sql("SELECT md5(string_agg(f,',' ORDER BY f)) FROM ("+' UNION ALL '.join(parts)+') v;',database=database)
   return r.stdout.strip() if not r.returncode else None
@@ -124,4 +124,4 @@ def backup(b):
  b.check('create-owned-restore-db','CREATE DATABASE restored06;')
  restored=b.docker('exec',b.CID,'pg_restore','-U','postgres','--exit-on-error','-d','restored06','/tmp/pg06.dump')
  after=fingerprint('restored06') if not restored.returncode else None
- b.record('backup-restore-all30-tables-integrity','PASS' if dump.returncode==0 and restored.returncode==0 and before is not None and before==after else 'FAIL')
+ b.record(f'backup-restore-all{table_count}-tables-integrity','PASS' if dump.returncode==0 and restored.returncode==0 and before is not None and before==after else 'FAIL')
