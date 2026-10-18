@@ -1,5 +1,11 @@
 # Current EMAIL integration: real PASS; B1 OPEN4/44
 
+EMAIL evidence: ../email/EXECUTION.json, sourceef27ca0a53dce659bd4598c60e4269b187348793, run39107192800. Four independent EMAIL requirements accepted on real UI/API/PostgreSQL evidence. B1 and AUTH-GATE-05 remain OPEN; no production acceptance or runtime activation.
+
+## Prior SQL07 evidence (historical counters retained)
+
+# Current EMAIL integration: real PASS; B1 OPEN4/44
+
 EMAIL evidence: ../email/EXECUTION.json, sourceb54d7562f1b9326d2acfadd6d8a707b9f0e4a226, run39106575063. Four independent EMAIL requirements accepted on real UI/API/PostgreSQL evidence. B1 and AUTH-GATE-05 remain OPEN; no production acceptance or runtime activation.
 
 ## Prior SQL07 evidence (historical counters retained)

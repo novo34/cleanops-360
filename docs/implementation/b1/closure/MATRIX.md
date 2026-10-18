@@ -1,6 +1,6 @@
 # B1 — individual requirement acceptance
 
-Current assessment: b54d7562f1b9326d2acfadd6d8a707b9f0e4a226. **4/44 accepted** in isolated functional scope; B1/AUTH-GATE-05 OPEN. closedBackend unchanged. Synthetic external mail/key custody is not a production integration.
+Current assessment: ef27ca0a53dce659bd4598c60e4269b187348793. **4/44 accepted** in isolated functional scope; B1/AUTH-GATE-05 OPEN. closedBackend unchanged. Synthetic external mail/key custody is not a production integration.
 
 Individual acceptance follows the owner instruction; it is independent of formal phase/production acceptance. Original44 normative statements retained. Historical prior evidence remains in JSON. Current EMAIL evidence: [execution](../email/EXECUTION.json); prior module progress: [E1 matrix](../e1-consolidation/MATRIX.md).
 

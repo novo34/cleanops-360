@@ -1,6 +1,6 @@
 # B1 —44 requirements,4 accepted
 
-Exact SQL07 retained. EMAIL14 real browser flows/native45 checks PASS; see ../email/EXECUTION.json. Four EMAIL requirements individually accepted in isolated scope. B1 and AUTH-GATE-05 remain OPEN; closedBackend unchanged.
+Exact SQL07 retained. EMAIL15 real browser flows/46 checks PASS; see ../email/EXECUTION.json. Four EMAIL requirements individually accepted in isolated scope. B1 and AUTH-GATE-05 remain OPEN; closedBackend unchanged.
 
 |Requirement|Current evidence|Acceptance|
 |---|---|---|

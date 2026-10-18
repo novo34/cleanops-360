@@ -1,5 +1,5 @@
 {
-  "referenceHead": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+  "referenceHead": "ef27ca0a53dce659bd4598c60e4269b187348793",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -112,11 +112,12 @@
     "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
   },
   "lastEmailRealBrowserExecution": {
-    "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-    "run": 39106575063,
+    "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+    "run": 39107192800,
     "report": "docs/implementation/b1/email/EXECUTION.json",
     "result": "PASS",
     "cases": [
+      "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
       "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
       "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
       "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",

@@ -1,7 +1,7 @@
 {
-  "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-  "run": 39106575063,
-  "codeCi": 39106574954,
+  "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+  "run": 39107192800,
+  "codeCi": 39107192725,
   "scope": "PG-TEST-01-CONSOLIDATED-07-NEW-CONTRACTS",
   "b1": "OPEN",
   "authGate05": "OPEN",
@@ -153,6 +153,20 @@
       }
     },
     {
+      "name": "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "VERIFY"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
       "name": "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
       "status": "PASS",
       "detail": {
@@ -165,6 +179,7 @@
           "BEGIN",
           "DELIVER",
           "INVALID",
+          "RESEND_ENROLLMENT",
           "CONFIRM"
         ],
         "testLineNumbers": []

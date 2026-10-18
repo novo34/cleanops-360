@@ -18,6 +18,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(row.testsExecuted, 'REAL_UI_API_PG_PASS')
       const evidence = JSON.parse(read(row.acceptanceEvidence.report))
       assert.equal(evidence.result, 'PASS'); assert.equal(evidence.cleanup, 'PASS')
+      assert.ok(evidence.checks.every((c:{status:string})=>c.status==='PASS'))
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, 'EXECUTED_EMAIL_AND_EXISTING_TOTP')

@@ -300,11 +300,12 @@
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
       "acceptanceEvidence": {
-        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-        "run": 39106575063,
+        "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+        "run": 39107192800,
         "report": "docs/implementation/b1/email/EXECUTION.json",
         "result": "PASS",
         "cases": [
+          "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
           "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
           "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
           "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
@@ -341,11 +342,12 @@
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
       "acceptanceEvidence": {
-        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-        "run": 39106575063,
+        "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+        "run": 39107192800,
         "report": "docs/implementation/b1/email/EXECUTION.json",
         "result": "PASS",
         "cases": [
+          "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
           "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
           "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
           "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
@@ -382,11 +384,12 @@
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
       "acceptanceEvidence": {
-        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-        "run": 39106575063,
+        "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+        "run": 39107192800,
         "report": "docs/implementation/b1/email/EXECUTION.json",
         "result": "PASS",
         "cases": [
+          "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
           "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
           "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
           "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
@@ -423,11 +426,12 @@
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
       "acceptanceEvidence": {
-        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
-        "run": 39106575063,
+        "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+        "run": 39107192800,
         "report": "docs/implementation/b1/email/EXECUTION.json",
         "result": "PASS",
         "cases": [
+          "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
           "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
           "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
           "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
@@ -1161,7 +1165,7 @@
       "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retención y restore de datos/claves/configuración de Auth; RPO≤15 min/RTO≤4 h medidos."
     }
   ],
-  "assessmentHead": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+  "assessmentHead": "ef27ca0a53dce659bd4598c60e4269b187348793",
   "accepted": 4,
   "individualAcceptanceAuthority": "Owner instruction2026-10-18: accept each requirement with complete evidence without waiting for all44.",
   "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",

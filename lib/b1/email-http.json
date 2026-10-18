@@ -557,8 +557,8 @@
           "REQ-TEN-004"
         ],
         "x-rule": "B1-SELF-05",
-        "x-rule-status": "CEREMONY_NO_BUSINESS_GRANT",
-        "x-authentication-state": "CEREMONY",
+        "x-rule-status": "APPROVED_FUNCTIONAL_NOT_ACTIVE",
+        "x-authentication-state": "ACTIVE_STEP_UP_OR_ENROLLMENT",
         "x-numeric-parameters-status": "See security-values.yaml; non-approved values PROPOSED",
         "parameters": [
           {
