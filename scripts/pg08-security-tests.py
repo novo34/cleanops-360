@@ -25,7 +25,7 @@ def gate(b,table_count=31):
   b.check('08-no-owner-assumption-'+caller,'SET ROLE cleanops_ddl_owner;',role=caller,failure='42501')
   b.check('08-reader-execute-only-identity-'+caller,f"SELECT has_function_privilege(current_user,{reader},'EXECUTE');",'t' if caller==b.ROLE['identity'] else 'f',caller)
  if any(c['status']!='PASS' for c in b.REPORT['checks'][start:]):return False
- return durable(b)
+ return durable(b) and reset_reader(b)
 
 def durable(b):
  start=len(b.REPORT['checks']);role=b.ROLE['identity'];corr=str(uuid.uuid4())
@@ -56,10 +56,32 @@ def durable(b):
  b.check('08-expired-bound-preauth-denied',f"SELECT auth_api.preauth_summary('{new}');",role=role,failure='42501')
  b.check('08-gc-no-password-fallback','SELECT auth_api.gc_ephemeral();',role=b.ROLE['maintenance'])
  b.check('08-abandoned-recovery-binding-survives',f"SELECT count(*) FROM identity_private.recovery_enrollments WHERE tenant_id='{b.A}' AND user_id='{b.U}';",'1')
- b.check('08-abandon-restart-new-password-proof',create(token()),'t',role)
+ restart=token()
+ b.check('08-abandon-restart-new-password-proof',create(restart),'t',role)
+ b.check('08-abandon-restart-cannot-enroll',f"SELECT auth_api.preauth_summary('{restart}');",role=role,failure='42501')
  b.check('08-abandon-existing-password-context-still-denied',f"SELECT auth_api.preauth_summary('{outsider}');",role=role,failure='42501')
  b.check('08-no-cross-tenant-marker-created',f"SELECT count(*) FROM identity_private.recovery_enrollments WHERE tenant_id='{b.B}';",'0')
  b.check('08-reader-unknown-ticket-safe-null',"SELECT auth_api.password_reset_material(decode(repeat('00',32),'hex')) IS NULL;",'t',role)
  b.check('08-reader-malformed-ticket-safe-null',"SELECT auth_api.password_reset_material(decode('ab','hex')) IS NULL;",'t',role)
  # Existing fixtures are isolated from every browser principal; no admin grant or marker repair.
+ return all(c['status']=='PASS' for c in b.REPORT['checks'][start:])
+
+def reset_reader(b):
+ start=len(b.REPORT['checks']);role=b.ROLE['identity'];corr=str(uuid.uuid4())
+ principal,user=str(uuid.uuid4()),str(uuid.uuid4())
+ digest=lambda value:"decode('"+hashlib.sha256(value.encode()).hexdigest()+"','hex')"
+ ticket=digest('synthetic08-reset-ticket');wrong=digest('synthetic08-wrong-purpose');recovery=digest('synthetic08-recovery-proof')
+ b.check('08-reset-synthetic-independent-subject',f"INSERT INTO identity_private.principals VALUES('{principal}','reset08@fixture.invalid','ACTIVE',now());INSERT INTO identity_private.credentials VALUES('{principal}','$argon2id$synthetic08-before',1,now());INSERT INTO app.users VALUES('{b.A}','{user}','{principal}','Synthetic reset08','ACTIVE','SENSITIVE',now());INSERT INTO app.recovery_codes VALUES('{b.A}','{uuid.uuid4()}','{user}','{uuid.uuid4()}',{recovery},now(),NULL,NULL);")
+ for label,token,purpose in [('password',ticket,'PASSWORD'),('wrong-purpose',wrong,'MFA_RESET')]:
+  b.check('08-reset-independent-attestation-'+label,f"SELECT auth_api.attest_reset('{b.A}','{user}',{token},'{purpose}','{uuid.uuid4()}',now()+interval '2m','{corr}') IS NOT NULL;",'t','pgtest_verifier')
+ b.check('08-reset-reader-exact-private-projection',f"WITH m AS MATERIALIZED(SELECT auth_api.password_reset_material({ticket}) AS j) SELECT j->>'tenantId'='{b.A}' AND j->>'userId'='{user}' AND j->>'principalId'='{principal}' AND j->>'credentialVersion'='1' AND (j->>'requiresRecovery')::boolean AND (SELECT count(*) FROM jsonb_object_keys(j))=6 FROM m;",'t',role)
+ b.check('08-reset-reader-rejects-MFA_RESET',f"SELECT auth_api.password_reset_material({wrong}) IS NULL;",'t',role)
+ b.check('08-reset-invalid-recovery-cannot-CAS',f"SELECT auth_api.reset_password_cas({ticket},1,{wrong},'$argon2id$synthetic08-after','{corr}');",'f',role)
+ b.check('08-reset-invalid-proof-retains-ticket',f"SELECT auth_api.password_reset_material({ticket}) IS NOT NULL;",'t',role)
+ b.check('08-reset-stale-CAS-cannot-consume-proof',f"SELECT auth_api.reset_password_cas({ticket},2,{recovery},'$argon2id$synthetic08-after','{corr}');",'f',role)
+ b.check('08-reset-native-reader-CAS-one-transaction',f"BEGIN;WITH m AS MATERIALIZED(SELECT auth_api.password_reset_material({ticket}) AS j) SELECT auth_api.reset_password_cas({ticket},(j->>'credentialVersion')::bigint,{recovery},'$argon2id$synthetic08-after','{corr}') FROM m;COMMIT;",'t',role)
+ b.check('08-reset-consumed-ticket-material-denied',f"SELECT auth_api.password_reset_material({ticket}) IS NULL;",'t',role)
+ b.check('08-reset-replay-cannot-CAS',f"SELECT auth_api.reset_password_cas({ticket},2,{recovery},'$argon2id$synthetic08-again','{corr}');",'f',role)
+ b.check('08-reset-native-version-proof-audit-atomic',f"SELECT (SELECT credential_version=2 FROM identity_private.credentials WHERE principal_id='{principal}') AND (SELECT consumed_at IS NOT NULL FROM app.recovery_codes WHERE tenant_id='{b.A}' AND user_id='{user}' AND digest={recovery});",'t')
+ # Deliberately synthetic PHC strings above test SQL/CAS only, not password policy or UI.
  return all(c['status']=='PASS' for c in b.REPORT['checks'][start:])

@@ -29,7 +29,7 @@ test('real recovery code rotates restricted PREAUTH and requires new first facto
     const next=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_preauth')!.value
     expect(old!==next).toBe(true)
     const restricted=await server.rpc({kind:'inspectRecovery'})
-    expect(restricted.active===0 && restricted.codes.consumed===1 && restricted.methods.every((m:{state:string})=>m.state==='REVOKED') && restricted.proofFingerprintProtected).toBe(true)
+    expect(restricted.active===0 && restricted.recoveryBindings===1 && restricted.codes.consumed===1 && restricted.methods.every((m:{state:string})=>m.state==='REVOKED') && restricted.proofFingerprintProtected).toBe(true)
     const pending=restricted.preauth.find((p:{state:string})=>p.state==='ENROLLMENT_REQUIRED')
     expect(pending.expires_at===before.preauth.find((p:{state:string})=>p.state==='PENDING_MFA').expires_at).toBe(true)
     phase('REENROLL')
@@ -42,7 +42,7 @@ test('real recovery code rotates restricted PREAUTH and requires new first facto
     phase('FIRST_FACTOR');await page.getByRole('button',{name:'Confirmar',exact:true}).click()
     await expect(page.getByRole('heading',{name:'Códigos de recuperación',exact:true})).toBeVisible()
     const committed=await server.rpc({kind:'inspectRecovery'})
-    expect(committed.active===1 && committed.codes.unused===10 && committed.codes.hmac_only).toBe(true)
+    expect(committed.active===1 && committed.recoveryBindings===0 && committed.codes.unused===10 && committed.codes.hmac_only).toBe(true)
     expect(await page.evaluate(()=>localStorage.length+sessionStorage.length)).toBe(0)
   }finally{await server.close()}
 })
@@ -56,7 +56,7 @@ test('real recovery COMMIT failure rolls back code and revocations before a safe
     phase('COMMIT_FAILURE');await recover(page,code)
     await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
     const failed=await server.rpc({kind:'inspectRecovery'})
-    expect(failed.codes.consumed===0 && failed.active===0 && failed.methods.some((m:{state:string})=>m.state==='ACTIVE')).toBe(true)
+    expect(failed.codes.consumed===0 && failed.recoveryBindings===0 && failed.active===0 && failed.methods.some((m:{state:string})=>m.state==='ACTIVE')).toBe(true)
     phase('RETRY');await recover(page,code)
     await expect(page.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
     expect((await server.rpc({kind:'inspectRecovery'})).codes.consumed).toBe(1)
@@ -128,4 +128,76 @@ test('a separate password-only session must not take over an in-progress recover
     phase('UNBOUND_ACTIVE_'+state.active)
     expect(status===200 && state.active>0).toBe(false)
   }finally{await outsider.close();await server.close()}
+})
+
+test('concurrent first-factor confirmations complete only the authorized recovery once',async({page})=>{
+  phase('SETUP');const server=await startRealBrowserServer('recovery')
+  try{
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await recover(page,(await server.rpc({kind:'recoveryProof'})).code)
+    await expect(page.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
+    const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/enroll')
+    await page.getByRole('button',{name:'Configurar autenticador',exact:true}).click()
+    const material=(await (await response).json()).data
+    const {URI,TOTP}=await import('otpauth'),authenticator=URI.parse(material.provisioning_uri)
+    if(!(authenticator instanceof TOTP))throw Error('INVALID_AUTHENTICATOR_TYPE')
+    phase('CONCURRENT_CONFIRM')
+    const statuses=await page.evaluate(async proof=>{
+      const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
+      const submit=async()=> (await fetch('/mfa/totp/confirm',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(proof)})).status
+      return Promise.all([submit(),submit()])
+    },{enrollment_id:material.enrollment_id,proof:authenticator.generate()})
+    phase('CONFIRM_'+statuses.join('_'))
+    expect(statuses.filter(s=>s===200).length).toBe(1)
+    const state=await server.rpc({kind:'inspectRecovery'})
+    expect(state.active===1 && state.recoveryBindings===0 && state.codes.unused===10).toBe(true)
+  }finally{await server.close()}
+})
+
+test('abandoned expired recovery cannot reopen password-only enrollment',async({page,browser})=>{
+  phase('SETUP');const server=await startRealBrowserServer('recovery')
+  const second=await browser.newContext({ignoreHTTPSErrors:true})
+  try{
+    const email=(await server.rpc({kind:'fixtureEmail'})).email
+    await login(page,email)
+    await recover(page,(await server.rpc({kind:'recoveryProof'})).code)
+    await expect(page.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
+    await server.rpc({kind:'expireRecovery'})
+    phase('ABANDONED_RESTART')
+    const fresh=await second.newPage();await fresh.goto('https://127.0.0.1:3000/login')
+    await fresh.getByLabel('Email',{exact:true}).fill(email)
+    await fresh.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+    const pending=fresh.waitForResponse(r=>new URL(r.url()).pathname==='/auth/login')
+    await fresh.getByRole('button',{name:'Continuar',exact:true}).click()
+    expect((await pending).status()).not.toBe(200)
+    const state=await server.rpc({kind:'inspectRecovery'})
+    expect(state.active===0 && state.recoveryBindings===1 && state.codes.consumed===1).toBe(true)
+  }finally{await second.close();await server.close()}
+})
+
+test('lost first-factor COMMIT retains recovery binding and allows only the bound retry',async({page})=>{
+  phase('SETUP');const server=await startRealBrowserServer('recovery')
+  try{
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await recover(page,(await server.rpc({kind:'recoveryProof'})).code)
+    await expect(page.getByRole('button',{name:'Configurar autenticador',exact:true})).toBeVisible()
+    const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/mfa/totp/enroll')
+    await page.getByRole('button',{name:'Configurar autenticador',exact:true}).click()
+    const material=(await (await response).json()).data
+    const {URI,TOTP}=await import('otpauth'),authenticator=URI.parse(material.provisioning_uri)
+    if(!(authenticator instanceof TOTP))throw Error('INVALID_AUTHENTICATOR_TYPE')
+    await server.rpc({kind:'failFactorCommit'})
+    await page.getByLabel('Primer código',{exact:true}).fill(authenticator.generate())
+    phase('FIRST_FACTOR_COMMIT_FAILURE')
+    await page.getByRole('button',{name:'Confirmar',exact:true}).click()
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    const failed=await server.rpc({kind:'inspectRecovery'})
+    expect(failed.active===0 && failed.recoveryBindings===1 && failed.methods.every((m:{state:string})=>m.state!=='ACTIVE')).toBe(true)
+    phase('BOUND_FIRST_FACTOR_RETRY')
+    await page.getByLabel('Primer código',{exact:true}).fill(authenticator.generate())
+    await page.getByRole('button',{name:'Confirmar',exact:true}).click()
+    await expect(page.getByRole('heading',{name:'Códigos de recuperación',exact:true})).toBeVisible()
+    const committed=await server.rpc({kind:'inspectRecovery'})
+    expect(committed.active===1 && committed.recoveryBindings===0 && committed.codes.unused===10).toBe(true)
+  }finally{await server.close()}
 })

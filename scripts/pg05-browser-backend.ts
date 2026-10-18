@@ -100,7 +100,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment'))) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas'))) emailConsumption = true
         if (sql === 'COMMIT' && failNextEmailCommit && emailConsumption) {
           failNextEmailCommit = false; emailConsumption = false
           const pid = await client.query('SELECT pg_backend_pid() AS pid')
@@ -155,7 +155,9 @@ try {
         const codes=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed,count(*) FILTER(WHERE revoked_at IS NULL AND consumed_at IS NULL)::int AS unused,bool_and(octet_length(digest)=32) AS hmac_only FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user])
         const sessions=await admin.query("SELECT count(*)::int AS n FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
         const tags=lastProofFingerprint?await admin.query('SELECT NOT EXISTS(SELECT 1 FROM identity_private.ceremony_idempotency WHERE request_digest=$1) AS keyed',[lastProofFingerprint]):null
-        reply({preauth:preauth.rows,methods:methods.rows,codes:codes.rows[0],active:sessions.rows[0].n,proofFingerprintProtected:tags?.rows[0].keyed});continue
+        const bindingTable=await admin.query("SELECT to_regclass('identity_private.recovery_enrollments') IS NOT NULL AS present")
+        const bindings=bindingTable.rows[0].present?await admin.query('SELECT count(*)::int AS n FROM identity_private.recovery_enrollments WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user]):null
+        reply({preauth:preauth.rows,methods:methods.rows,codes:codes.rows[0],active:sessions.rows[0].n,recoveryBindings:bindings?.rows[0].n,proofFingerprintProtected:tags?.rows[0].keyed});continue
       }
       if (message.kind === 'diagnostics') { reply({ failures:queryFailures }); continue }
       if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }

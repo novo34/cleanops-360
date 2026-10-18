@@ -5,6 +5,8 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  resetMaterial: {sql: 'SELECT auth_api.password_reset_material($1::bytea) AS value', arity:1, kind:'json'},
+  resetPassword: {sql: 'SELECT auth_api.reset_password_cas($1::bytea,$2::bigint,$3::bytea,$4::text,$5::uuid) AS value', arity:5, kind:'boolean'},
   recoverEnrollment: {sql: 'SELECT auth_api.recover_to_enrollment($1::text,$2::bytea,$3::bytea,$4::bytea,$5::uuid) AS value', arity:5, kind:'json'},
 "mailMaterial": {"sql": "SELECT auth_api.mail_recipient_material($1::text,$2::text,$3::text,$4::uuid) AS value", "arity": 4, "kind": "json"},
 "beginEmail": {"sql": "SELECT auth_api.begin_email_enrollment($1::text,$2::uuid,$3::bigint,$4::uuid) AS value", "arity": 4, "kind": "uuid"},
@@ -185,7 +187,10 @@ export type D1MfaMaterial = Readonly<{
   recipient: string | null; expiresAt: string
 }>
 export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: '1'; expiresAt: string }>
+export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type BrokerArgs = {
+  resetMaterial: [ticketDigest:Buffer]
+  resetPassword: [ticketDigest:Buffer,credentialVersion:string,recoveryDigest:Buffer|null,replacementHash:string,correlation:string]
   recoverEnrollment: [preauth: string, recoveryDigest: Buffer, cookieDigest: Buffer, csrfDigest: Buffer, correlation: string]
   mailMaterial: [preauth: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ENROLLMENT', grant: string | null, resource: string | null]
   beginEmail: [preauth: string | null, method: string, recipientVersion: string, correlation: string]
@@ -240,7 +245,7 @@ export type BrokerArgs = {
     principal: Buffer | null, network: Buffer | null, device: Buffer | null, correlation: string]
 }
 type Row = Record<string, unknown>
-type Result<K extends keyof BrokerArgs> = K extends 'mfaMaterial' ? D1MfaMaterial :
+type Result<K extends keyof BrokerArgs> = K extends 'resetMaterial' ? PrivateResetMaterial|null : K extends 'mfaMaterial' ? D1MfaMaterial :
   K extends 'enrollAssigned' ? D1AssignedEnrollment : typeof statements[K]['kind'] extends 'rows' ? Row[] :
   typeof statements[K]['kind'] extends 'void' ? void :
   typeof statements[K]['kind'] extends 'boolean' ? boolean :
@@ -301,6 +306,16 @@ function decode<K extends keyof BrokerArgs>(operation: K, result: unknown, args:
   if (kind === 'rows') return rows as Result<K>
   if (rows.length !== 1 || !Object.hasOwn(rows[0], 'value')) throw unavailable()
   const value = rows[0].value
+  if (operation === 'resetMaterial') {
+    if(value===null)return null as Result<K>
+    if(!object(value) || !keys(value,['tenantId','userId','principalId','credentialVersion','expiresAt','requiresRecovery']) ||
+      !uuid(value.tenantId) || !uuid(value.userId) || !uuid(value.principalId) || !generation(value.credentialVersion) ||
+      !timestamp(value.expiresAt) || typeof value.requiresRecovery!=='boolean')throw unavailable()
+    const material={...value}
+    Object.defineProperty(material,'toJSON',{value:()=> '[REDACTED_RESET_MATERIAL]'})
+    Object.defineProperty(material,inspect.custom,{value:()=> '[REDACTED_RESET_MATERIAL]'})
+    return Object.freeze(material) as Result<K>
+  }
   if (operation === 'mailMaterial') {
     if (!object(value)) throw unavailable()
     const material = { ...value }

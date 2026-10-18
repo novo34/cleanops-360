@@ -42,8 +42,8 @@ test('broker uses canonical functions and placeholders; no SQL value interpolati
   // Static drift check for every literal statement, not SQL execution.
   const source = readFileSync(new URL('../../lib/b1/v4-broker.ts', import.meta.url), 'utf8')
   const functions = [...source.matchAll(/SELECT (?:\* FROM )?auth_api\.([a-z_]+)\(/g)].map(match => match[1])
-  assert.equal(functions.length, 51)
-  const sql07 = readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql', import.meta.url), 'utf8')
+  assert.equal(functions.length, 53)
+  const sql07 = readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql', import.meta.url), 'utf8')
   const extension = readFileSync(new URL('../../docs/proposals/b1-v4-extension/review-only.sql', import.meta.url), 'utf8')
   const d1 = readFileSync(new URL('../../docs/proposals/b1-ceremony-material/review-only.sql', import.meta.url), 'utf8')
   for (const name of functions) assert.ok(sql07.includes('CREATE FUNCTION auth_api.' + name + '(') || sql07.includes('CREATE OR REPLACE FUNCTION auth_api.' + name + '(') || d1.includes('CREATE FUNCTION auth_api.' + name + '(') || ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '('), name)
@@ -57,6 +57,23 @@ test('database error poisons the transaction even if the consumer catches it', a
   }), unavailable)
   assert.equal(f.calls.at(-1)?.sql, 'ROLLBACK')
   assert.deepEqual(f.released, [true])
+})
+
+test('SQL08 reset material is strict, private and bound to the same transaction as CAS',async()=>{
+  const material={tenantId:'00000000-0000-4000-8000-000000000001',userId:'00000000-0000-4000-8000-000000000002',principalId:'00000000-0000-4000-8000-000000000003',credentialVersion:'9',expiresAt:new Date(Date.now()+60000).toISOString(),requiresRecovery:true}
+  const f=fixture(name=>name==='password_reset_material'?material:name==='reset_password_cas'?true:null)
+  await createV4IdentityRepository(f.pool).transaction(async broker=>{
+    const ticket=Buffer.alloc(32,1),value=await broker.call('resetMaterial',[ticket])
+    assert.equal(value?.credentialVersion,'9')
+    assert.equal(JSON.stringify(value),'"[REDACTED_RESET_MATERIAL]"')
+    assert.equal(await broker.call('resetPassword',[ticket,value!.credentialVersion,Buffer.alloc(32,2),'$argon2id$private','00000000-0000-4000-8000-000000000004']),true)
+  })
+  assert.equal(f.connects,1);assert.equal(f.calls.at(-1)?.sql,'COMMIT')
+  for(const bad of [{...material,credentialVersion:'0'},{...material,requiresRecovery:'true'},{...material,passwordHash:'private'}]){
+    const broken=fixture(()=>bad)
+    await assert.rejects(createV4IdentityRepository(broken.pool).transaction(b=>b.call('resetMaterial',[Buffer.alloc(32)])),unavailable)
+    assert.equal(broken.calls.at(-1)?.sql,'ROLLBACK')
+  }
 })
 
 test('EMAIL verified recipient material is private under serialization and spread', async () => {
