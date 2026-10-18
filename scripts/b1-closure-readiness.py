@@ -22,7 +22,7 @@ def evaluate(root=BASE):
     integrity = (
         len(rows) == 44 and len(set(ids)) == 44
         and len(accepted) == matrix["accepted"]
-        and set(pending) == {"REQ-PR-006", "REQ-PR-007"}
+        and set(pending).issubset({"REQ-PR-006", "REQ-PR-007"})\n        and all(r["acceptance"] in {"OPEN", "ACCEPTED"} for r in rows)
         and all(
             "accepted" not in r or (
                 type(r["accepted"]) is bool
