@@ -9,7 +9,7 @@ runner=eleven.runner;b=eleven.b
 def checks():
  browser=eleven.prior.nine.previous.browser
  group=os.environ.get('B1_REMAINING_GROUP','abuse')
- if group not in ['abuse','mfa-admin','enrollment','policy','isolation','csrf','switch','policy-negative']:raise RuntimeError('INVALID_REMAINING_GROUP')
+ if group not in ['abuse','mfa-admin','enrollment','policy','isolation','csrf','switch','policy-negative','email','recovery','reset-only','trusted','access11']:raise RuntimeError('INVALID_REMAINING_GROUP')
  if group=='isolation':
   import json
   if not runner.module('pool_gate','pg11-access-security-tests.py').gate(b):b.record('POOL-prerequisite','BLOCKED');return

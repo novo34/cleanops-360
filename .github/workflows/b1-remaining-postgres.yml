@@ -6,11 +6,11 @@ permissions:
   contents: read
 jobs:
   recovery-pg:
-    if: github.event.pull_request.number == 7 && github.event.before == '59dfbe49afe32365e5b1d26e255145f098ec2b78' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    if: github.event.pull_request.number == 7 && github.event.before == 'aebf762d95d62a5d1d05127fd6d8771265cb4173' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
     strategy:
       fail-fast: false
       matrix:
-        group: [policy-negative, isolation, csrf]
+        group: [email, recovery, reset-only, trusted, access11]
     runs-on: ubuntu-latest
     timeout-minutes: 16
     env:
