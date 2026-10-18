@@ -1,0 +1,12 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-09",
+  "ownerApproved": true,
+  "referenceHead": "e2d8dfcc05711d39d647a703085999ba704ada81",
+  "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql",
+  "candidate": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+  },
+  "approvalSource": "Explicit owner SQL09 Y CONTINUACION B1 authorization in this conversation,2026-10-18",
+  "scope": "Only exact SQL09, new isolated synthetic PG16 Docker; no additional SQL/ACL, production, SMTP, deployment, merge or runtime activation."
+}
