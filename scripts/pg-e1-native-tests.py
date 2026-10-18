@@ -7,13 +7,14 @@ from pathlib import Path
 import uuid
 
 def run(b):
+ revision=getattr(b,'E1_REVISION','06');count=96 if revision=='07' else 95
  role=b.ROLE['identity'];mail=b.ROLE['mail'];corr=str(uuid.uuid4());q=lambda x:"'"+str(x).replace("'","''")+"'"
  session=lambda body:"BEGIN;SELECT auth_api.begin_verified_context(repeat('a',43));"+body+'COMMIT;'
  def service(name,body,expected=None,failure=None):return b.check(name,session(body),expected,role,failure)
  b.check('catalog30-forced-RLS-tables',"SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity;",'30')
- b.check('catalog95-functions44-policies',"SELECT (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('auth_api','identity_private') AND p.prokind='f')=95 AND (SELECT count(*) FROM pg_policies WHERE schemaname IN('app','identity_private'))=44;",'t')
+ b.check('catalog'+str(count)+'-functions44-policies',f"SELECT (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('auth_api','identity_private') AND p.prokind='f')={count} AND (SELECT count(*) FROM pg_policies WHERE schemaname IN('app','identity_private'))=44;",'t')
  b.check('all-functions-pinned-path',"SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('auth_api','identity_private') AND NOT coalesce(p.proconfig,'{}') @> ARRAY['search_path=pg_catalog'];",'0')
- manifest=json.loads((b.ROOT/'docs/proposals/b1-consolidated-sql/revisions/06/manifest.json').read_text())
+ manifest=json.loads((b.ROOT/('docs/proposals/b1-consolidated-sql/revisions/'+revision+'/manifest.json')).read_text())
  for i,f in enumerate(manifest['functions']):
   sig=q(f['signature']);oid=b.sql("SELECT "+sig+"::regprocedure::oid;").stdout.strip();b.check('new-function-owner-acl-'+str(i),f"SELECT p.proowner='cleanops_auth_broker'::regrole AND p.prosecdef AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') FROM pg_proc p WHERE p.oid={sig}::regprocedure;",'t')
   for caller,r in [('identity',role),('mail',mail),('verifier','pgtest_verifier')]:

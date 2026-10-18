@@ -13,6 +13,7 @@ b=module('pg06_transport','pg-test-01.py')
 original_sql,original_record,original_docker,original_fixtures=b.sql,b.record,b.docker,b.fixtures
 BLOB='939a521911e34296e055eb05c57264cbeee6d785'
 SHA='aade4ed7aeb065899c086f0ee02e11aef024d2cb84f2d9e4a13155a273ab0962'
+REVISION='06'
 def docker(*args,**kwargs):return original_docker(*tuple('postgres:16-bookworm' if x=='postgres:16-alpine' else x for x in args),**kwargs)
 def payload():
  approval=json.loads((ROOT/'docs/implementation/b1/e1-consolidation/AUTHORIZATION.json').read_text())
@@ -27,7 +28,7 @@ def payload():
 def record(name,status,detail=None):
  # Focused new-contract execution does not rerun/re-credit unchanged approved294 tests.
  if name in {'credential-CAS-concurrent-one-winner','global-TOTP-CAS-concurrent-one-winner','D1-method-version-revalidation'} and status=='BLOCKED' and detail=='Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass.':return
- return original_record('install-consolidated06' if name=='install-V4' else name,status,detail)
+ return original_record('install-consolidated'+REVISION if name=='install-V4' else name,status,detail)
 def sql(text,role='postgres',database='core'):
  if text=="SELECT count(*)=21 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r';":text=text.replace('=21','=30')
  if hashlib.sha256(text.encode()).hexdigest()==SHA:
@@ -52,12 +53,13 @@ def checks():
  # Full new UI/API routes are not falsely represented by a private worker test.
  b.REPORT['newUIE2E']='NOT_IMPLEMENTED_NOT_EXECUTED'
  b.REPORT['b1RequirementsAccepted']=0
-if __name__=='__main__':
+def main():
  b.docker=docker;b.verified_candidates=payload;b.record=record;b.sql=sql;b.fixtures=fixtures;b.checks_v4=checks
  result=b.main();report=b.REPORT
- installed=any(c['name']=='install-consolidated06' and c['status']=='PASS' for c in report['checks'])
+ installed=any(c['name']=='install-consolidated'+REVISION and c['status']=='PASS' for c in report['checks'])
  if not installed:
   for label in ['EMAIL-native-worker','recovery-trust-AUTHZ-native','new-UI-API-PG-E2E','new-rollback-concurrency-restore']:record(label,'BLOCKED','Installation prerequisite failed; no additional SQL installed')
  report['result']='PASS' if report['cleanup']=='PASS' and all(c['status']=='PASS' for c in report['checks']) else 'FAIL'
- report['fullB1Result']='OPEN_NOT_ACCEPTED';target=ROOT/'artifacts/pg-consolidated-06';target.mkdir(parents=True,exist_ok=True);(target/'report.json').write_text(json.dumps(report,indent=2)+'\n')
- print(json.dumps(report,indent=2));sys.exit(0 if report['result']=='PASS' else 1)
+ report['fullB1Result']='OPEN_NOT_ACCEPTED';target=ROOT/('artifacts/pg-consolidated-'+REVISION);target.mkdir(parents=True,exist_ok=True);(target/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+ print(json.dumps(report,indent=2));return 0 if report['result']=='PASS' else 1
+if __name__=='__main__':sys.exit(main())
