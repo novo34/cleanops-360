@@ -11,10 +11,10 @@ async function check(name,fn){try{await fn();checks.push({name,status:'PASS'})}c
 const tls={ca:fs.readFileSync('/work/ca.pem'),cert:fs.readFileSync('/work/client.pem'),key:fs.readFileSync('/work/client-key.pem'),servername:'localhost',rejectUnauthorized:true}
 async function request(path,{method='GET',token=root,body,raw,client=true,ca=tls.ca,headers={}}={}){
  const bytes=raw??(body===undefined?undefined:Buffer.from(JSON.stringify(body)))
- return new Promise((resolve,reject)=>{const r=https.request({hostname:'127.0.0.1',port:8200,path:'/v1/'+path,method,ca,servername:'localhost',rejectUnauthorized:true,...(client?{cert:tls.cert,key:tls.key}:{}),headers:{...(token?{'X-Vault-Token':token}:{}),...(bytes?{'Content-Type':raw?'application/octet-stream':'application/json','Content-Length':bytes.length}:{}),...headers}},res=>{const chunks=[];res.on('data',b=>chunks.push(b));res.on('end',()=>{const raw=Buffer.concat(chunks);let json;try{json=JSON.parse(raw)}catch{}resolve({status:res.statusCode,raw,json})})});r.setTimeout(30000,()=>r.destroy(Error('REQUEST_TIMEOUT')));r.on('error',reject);r.end(bytes)})
+ return new Promise((resolve,reject)=>{const r=https.request({hostname:'127.0.0.1',port:8200,path:'/v1/'+path,method,ca,servername:'localhost',rejectUnauthorized:true,...(client?{cert:tls.cert,key:tls.key}:{}),headers:{...(token?{'X-Vault-Token':token}:{}),...(bytes?{'Content-Type':raw?'application/octet-stream':'application/json','Content-Length':bytes.length}:{}),...headers}},res=>{const chunks=[];res.on('data',b=>chunks.push(b));res.on('end',()=>{const raw=Buffer.concat(chunks);let json;try{json=JSON.parse(raw)}catch{ /* Expected failure is handled through safe status; never log raw material. */ }resolve({status:res.statusCode,raw,json})})});r.setTimeout(30000,()=>r.destroy(Error('REQUEST_TIMEOUT')));r.on('error',reject);r.end(bytes)})
 }
 async function api(path,body,token=root,method='POST',headers={}){const r=await request(path,{method,token,body,headers});if(r.status>=400)throw Error('HTTP_'+r.status);return r.json}
-async function ready(){for(let n=0;n<100;n++){try{const r=await request('sys/health',{token:null});if([200,429,501,503].includes(r.status))return}catch{}await wait(100)}throw Error('SERVER_NOT_READY')}
+async function ready(){for(let n=0;n<100;n++){try{const r=await request('sys/health',{token:null});if([200,429,501,503].includes(r.status))return}catch{ /* Expected failure is handled through safe status; never log raw material. */ }await wait(100)}throw Error('SERVER_NOT_READY')}
 async function start(){const f=fs.openSync('/work/server.private.log','a',0o600);child=spawn('/work/bao',['server','-config=/work/server.json'],{stdio:['ignore',f,f]});await ready()}
 async function init(){const r=await api('sys/init',{secret_shares:2,secret_threshold:2},null,'PUT');root=r.root_token;return r.keys_base64}
 async function unseal(keys){for(const key of keys)await api('sys/unseal',{key},null,'PUT');for(let n=0;n<100;n++){if((await request('sys/health')).status===200)return;await wait(100)}throw Error('UNSEALED_NOT_ACTIVE')}
@@ -75,7 +75,7 @@ try{
     // Keep the actual denial status; never turn a successful read into PASS.
     checks.push({name:'audit-full-observed-HTTP-status',status:observed>=500?'PASS':'FAIL',detail:{status:observed}})
     assert(observed>=500)
-   }finally{try{fs.unlinkSync('/var/log/openbao/fill')}catch{}}
+   }finally{try{fs.unlinkSync('/var/log/openbao/fill')}catch{ /* Expected failure is handled through safe status; never log raw material. */ }}
    for(let n=0;n<100;n++){if((await request(old,{token:verifier})).status===200)return;await wait(100)}
    throw Error('AUDIT_DID_NOT_RECOVER')
   })
@@ -107,5 +107,5 @@ try{
  await check('synthetic-initial-root-revoked-after-drill',async()=>{await api('auth/token/revoke-self',{});assert((await request('sys/mounts')).status===403)})
 }catch(e){checks.push({name:'dependent-runtime-tests',status:'FAIL',detail:{code:/^[A-Z0-9_]{1,45}$/.test(e.message)?e.message:'REDACTED'}})}finally{child?.kill('SIGTERM');if(child)await new Promise(r=>{child.once('exit',r);setTimeout(r,3000)})}
 const nativeMessages=[]
-if(checks.some(c=>c.status==='FAIL'))try{for(const line of fs.readFileSync('/work/server.private.log','utf8').split('\n')){let obj;try{obj=JSON.parse(line)}catch{continue}if(['error','warn'].includes(obj['@level'])){const message=String(obj['@message']??'').replace(/[A-Za-z0-9+/_=-]{16,}/g,'REDACTED').slice(0,160);if(message&&!nativeMessages.includes(message))nativeMessages.push(message)}}}catch{}
+if(checks.some(c=>c.status==='FAIL'))try{for(const line of fs.readFileSync('/work/server.private.log','utf8').split('\n')){let obj;try{obj=JSON.parse(line)}catch{continue}if(['error','warn'].includes(obj['@level'])){const message=String(obj['@message']??'').replace(/[A-Za-z0-9+/_=-]{16,}/g,'REDACTED').slice(0,160);if(message&&!nativeMessages.includes(message))nativeMessages.push(message)}}}catch{ /* Expected failure is handled through safe status; never log raw material. */ }
 process.stdout.write(JSON.stringify({checks,nativeMessages:nativeMessages.slice(-8),privateResult}));process.exitCode=checks.every(c=>c.status==='PASS')?0:1
