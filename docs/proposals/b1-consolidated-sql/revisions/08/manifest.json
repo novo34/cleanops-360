@@ -7,22 +7,36 @@
     "bytes": 187018
   },
   "candidate": {
-    "gitBlob": "e2cb714af305622a77b650768d9320f2ba4ad049",
-    "sha256": "953824f5c690037b1ce7106b66d838654f32a2dfe6c20d3b62fd4837cb6c143b",
-    "bytes": 190976
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+    "bytes": 193163
   },
   "existingSQLSignaturesUnchanged": true,
   "newSQLSignatures": [
     "auth_api.password_reset_material(bytea)"
   ],
-  "newTableGrants": [],
+  "changedFunctionBodies": [
+    "identity_private.checked_preauth",
+    "auth_api.recover_to_enrollment",
+    "auth_api.issue_active_session",
+    "auth_api.admin_reset_mfa",
+    "auth_api.reset_password_cas"
+  ],
+  "newTableGrants": [
+    "SELECT,INSERT,DELETE ON identity_private.recovery_enrollments TO cleanops_auth_broker"
+  ],
   "newRoles": [],
-  "newRLSPolicies": [],
+  "newRLSPolicies": [
+    "identity_private.recovery_enrollments:broker_internal"
+  ],
+  "newTables": [
+    "identity_private.recovery_enrollments"
+  ],
   "newFunctionOwner": "cleanops_auth_broker",
   "newFunctionExecute": [
     "cleanops_identity_service"
   ],
   "publicExecute": false,
   "searchPath": "pg_catalog",
-  "diffSha256": "3795aa844a60972741817dc25a55eb8ce48396f09d30692cc6c612c712fb931c"
+  "diffSha256": "2481f6439c562955a9e256f20034eae3efc852e67ef26e281397d366a065bd18"
 }

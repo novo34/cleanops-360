@@ -5,7 +5,76 @@
  -- CleanOps 360: PROPOSED CANONICAL CONSOLIDATION, REVIEW ONLY. DO NOT EXECUTE.
  -- Fresh empty PostgreSQL 16 only AFTER separate owner approval of this exact hash.
  -- Not approved, not SQL-compiled, not a migration. B1/AUTH-GATE-05 OPEN; closedBackend.
-@@ -2227,4 +2228,54 @@
+@@ -380,6 +381,19 @@
+  IF raw_preauth IS NOT NULL THEN UPDATE identity_private.preauth SET state='VERIFIED',factor_verified_at=clock_timestamp() WHERE id=q.id; END IF;
+  PERFORM identity_private.append_audit(t,u,'self_mfa.confirm',enrollment,1,corr); RETURN true;
+ END $fn$;
++-- Durable recovery authorization: expiration never grants a password-only fallback.
++CREATE TABLE identity_private.recovery_enrollments (
++ tenant_id uuid NOT NULL,user_id uuid NOT NULL,principal_id uuid NOT NULL,
++ cookie_digest bytea NOT NULL CHECK(octet_length(cookie_digest)=32),
++ credential_version bigint NOT NULL CHECK(credential_version>0),created_at timestamptz NOT NULL,
++ PRIMARY KEY(tenant_id,user_id),
++ FOREIGN KEY(tenant_id,user_id,principal_id) REFERENCES app.users(tenant_id,id,principal_id) ON DELETE RESTRICT
++);
++ALTER TABLE identity_private.recovery_enrollments OWNER TO cleanops_ddl_owner;
++ALTER TABLE identity_private.recovery_enrollments ENABLE ROW LEVEL SECURITY;
++ALTER TABLE identity_private.recovery_enrollments FORCE ROW LEVEL SECURITY;
++CREATE POLICY broker_internal ON identity_private.recovery_enrollments TO cleanops_auth_broker USING(true) WITH CHECK(true);
++GRANT SELECT,INSERT,DELETE ON identity_private.recovery_enrollments TO cleanops_auth_broker;
+ CREATE FUNCTION auth_api.issue_active_session(raw_preauth text,new_token_hash bytea,new_csrf_hash bytea,absolute_seconds integer,idle_seconds integer,device text,browser text,corr uuid) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+ DECLARE q identity_private.preauth;k uuid:=gen_random_uuid();cv bigint;origin_user uuid; risk text;
+@@ -402,6 +416,8 @@
+   UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE tenant_id=q.origin_tenant_id AND id=q.origin_session_id;
+   PERFORM identity_private.append_audit(q.origin_tenant_id,origin_user,'tenant.switch.out',q.origin_session_id,1,corr);
+  END IF;
++ DELETE FROM identity_private.recovery_enrollments WHERE tenant_id=q.tenant_id AND user_id=q.user_id
++ AND principal_id=q.principal_id AND cookie_digest=q.cookie_digest AND credential_version=q.credential_version;
+  UPDATE identity_private.preauth SET state='CONSUMED' WHERE id=q.id;
+  PERFORM identity_private.append_audit(q.tenant_id,q.user_id,CASE WHEN q.origin_session_id IS NULL THEN 'auth.login' ELSE 'tenant.switch.in' END,k,1,corr);
+  RETURN (SELECT jsonb_build_object('state','ACTIVE','session_id',s.id,'tenant_id',s.tenant_id,'absolute_expires_at',s.absolute_expires_at) FROM app.sessions s WHERE s.tenant_id=q.tenant_id AND s.id=k);
+@@ -832,6 +848,12 @@
+  IF q.origin_session_id IS NOT NULL AND (NOT identity_private.valid_session(origin.tenant_id,origin.id,origin.user_id)
+  OR clock_timestamp()>=LEAST(origin.absolute_expires_at,origin.idle_expires_at))
+  THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
++ IF EXISTS(SELECT 1 FROM identity_private.recovery_enrollments AS pending
++ WHERE pending.tenant_id=q.tenant_id AND pending.user_id=q.user_id
++ AND (pending.principal_id IS DISTINCT FROM q.principal_id
++ OR pending.cookie_digest IS DISTINCT FROM q.cookie_digest
++ OR pending.credential_version IS DISTINCT FROM q.credential_version))
++ THEN RAISE EXCEPTION 'RECOVERY_CONTEXT_REQUIRED' USING ERRCODE='42501'; END IF;
+  RETURN q;
+ END $fn$;
+ 
+@@ -1799,6 +1821,8 @@
+  UPDATE identity_private.preauth SET state='REVOKED' WHERE principal_id=q.principal_id AND tenant_id=q.tenant_id AND state NOT IN('CONSUMED','REVOKED');
+  INSERT INTO identity_private.preauth(id,principal_id,tenant_id,user_id,cookie_digest,csrf_digest,state,password_verified_at,credential_version,created_at,expires_at)
+  VALUES(k,q.principal_id,q.tenant_id,q.user_id,new_cookie,new_csrf,'ENROLLMENT_REQUIRED',q.password_verified_at,q.credential_version,clock_timestamp(),q.expires_at);
++ INSERT INTO identity_private.recovery_enrollments(tenant_id,user_id,principal_id,cookie_digest,credential_version,created_at)
++ VALUES(q.tenant_id,q.user_id,q.principal_id,new_cookie,q.credential_version,clock_timestamp());
+  PERFORM identity_private.append_audit(q.tenant_id,q.user_id,'auth.recovery.enrollment_required',k,1,corr);RETURN k;
+ END $fn$;
+ 
+@@ -1938,6 +1962,8 @@
+  END IF;
+  UPDATE identity_private.credentials SET argon2id_hash=replacement_hash,credential_version=credential_version+1,changed_at=clock_timestamp() WHERE principal_id=r.principal_id AND credential_version=expected_version;
+  IF NOT FOUND THEN RAISE EXCEPTION 'CREDENTIAL_CAS_FAILED';END IF;
++ -- A successful independently proven credential reset supersedes old recovery bindings.
++ DELETE FROM identity_private.recovery_enrollments WHERE principal_id=r.principal_id;
+  UPDATE identity_private.reset_tickets SET consumed_at=clock_timestamp() WHERE principal_id=r.principal_id AND consumed_at IS NULL;
+  UPDATE identity_private.preauth SET state='REVOKED' WHERE principal_id=r.principal_id AND state NOT IN('CONSUMED','REVOKED');
+  UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE principal_id=r.principal_id AND state='ACTIVE';
+@@ -1964,6 +1990,8 @@
+  SELECT * INTO r FROM identity_private.reset_tickets WHERE id=r.id FOR UPDATE;
+  IF r.consumed_at IS NOT NULL OR clock_timestamp()>=r.expires_at OR r.credential_version IS DISTINCT FROM (SELECT credential_version FROM identity_private.credentials WHERE principal_id=subject) THEN RETURN false;END IF;
+  UPDATE identity_private.reset_tickets SET consumed_at=clock_timestamp() WHERE id=r.id;
++ -- Existing independently attested/admin-authorized reset is the recovery escape path.
++ DELETE FROM identity_private.recovery_enrollments WHERE tenant_id=c.tenant_id AND user_id=target;
+  UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=c.tenant_id AND user_id=target AND state<>'REVOKED';
+  UPDATE app.recovery_codes SET revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND user_id=target AND revoked_at IS NULL;
+  UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND user_id=target AND state='ACTIVE';
+@@ -2227,4 +2255,54 @@
  REVOKE ALL ON FUNCTION identity_private.lock_pair_nowait(uuid,uuid) FROM PUBLIC;
  REVOKE EXECUTE ON FUNCTION auth_api.claim_mail(bytea),auth_api.finish_mail(uuid,uuid,bytea,boolean) FROM cleanops_mail_worker;
  REVOKE EXECUTE ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid),auth_api.email_otp_material(text,uuid) FROM cleanops_identity_service;

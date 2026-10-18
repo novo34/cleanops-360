@@ -3,9 +3,9 @@
   "ownerApproved": false,
   "executed": false,
   "candidate": {
-    "gitBlob": "e2cb714af305622a77b650768d9320f2ba4ad049",
-    "sha256": "953824f5c690037b1ce7106b66d838654f32a2dfe6c20d3b62fd4837cb6c143b",
-    "bytes": 190976
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+    "bytes": 193163
   },
   "base": {
     "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
@@ -14,7 +14,9 @@
   },
   "changes": [
     "One private ticket-bound reset-material reader",
-    "Owner/revoke PUBLIC/EXECUTE to identity service only"
+    "One durable recovery binding table with broker-only SELECT/INSERT/DELETE and forced RLS",
+    "Five existing function bodies bind/check/complete recovery or clear it only on independently proven reset; signatures unchanged",
+    "Owner/revoke PUBLIC/EXECUTE of reader to identity service only"
   ],
   "environment": {
     "postgres": 16,

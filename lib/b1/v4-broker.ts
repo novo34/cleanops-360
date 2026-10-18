@@ -255,7 +255,7 @@ function safeError(error: unknown): AuthError {
   // Match only stable, known broker messages; never surface server diagnostics or SQL.
   if (object(error)) {
     const codes: Record<string, [number, string]> = {
-      RATE_LIMITED: [429, 'RATE_LIMITED'],
+      RATE_LIMITED: [429, 'RATE_LIMITED'], RECOVERY_CONTEXT_REQUIRED: [409, 'CEREMONY_UNAVAILABLE'],
       AUTH_INVALID: [401, 'AUTH_INVALID'], CREDENTIAL_CHANGED: [401, 'AUTH_INVALID'],
       RESERVATION_NOT_OWNED: [409, 'IDEMPOTENCY_CONFLICT'],
       INVALID_SESSION: [401, 'AUTH_INVALID'], INVALID_CEREMONY: [401, 'AUTH_INVALID'],
