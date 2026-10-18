@@ -169,13 +169,12 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
         if (request.method !== 'GET') {
           const referer = request.headers.get('referer')
           if (request.headers.get('origin') !== origin || request.headers.get('sec-fetch-site') !== 'same-origin' || (referer && new URL(referer).origin !== origin)) throw new AuthError(403, 'CSRF_ORIGIN')
-          const csrf = request.headers.get('x-csrf-token') ?? ''
-          if (!received[names.csrf] || !safeEqual(csrf, received[names.csrf])) throw new AuthError(403, 'CSRF_INVALID')
+          if(!received[names.csrf])throw new AuthError(403,'CSRF_INVALID')
         }
         const outcome = await backend.transaction(async tx => {
           const binding = await tx.resolve(received)
           if (!binding || binding.expiresAt <= now() || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
-          if(request.method!=='GET'&&!safeEqual(digest(received[names.csrf]),binding.csrfDigest)){await tx.auditFailure(binding,'CSRF_DENIED');return new AuthError(403,'CSRF_INVALID')}
+          if(request.method!=='GET'&&(!safeEqual(request.headers.get('x-csrf-token')??'',received[names.csrf])||!safeEqual(digest(received[names.csrf]),binding.csrfDigest))){await tx.auditFailure(binding,'CSRF_DENIED');return new AuthError(403,'CSRF_INVALID')}
           if (operationId === 'selectTotpMethod') {
             if (binding.kind === 'ACTIVE' ? input.grant_id === undefined : input.grant_id !== undefined || input.resource_id !== undefined)
               throw new AuthError(422, 'INVALID_INPUT')

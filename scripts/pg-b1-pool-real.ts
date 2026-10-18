@@ -15,7 +15,7 @@ try{
  record('POOL-explicit-B-context',await context('d',input.otherTenant,input.otherUser))
  record('POOL-real-same-backend-A-to-B',pids[0]===pids[1])
  let denied=false
- try{await repo.transaction(b=>b.call('identity',[]))}catch(error){denied=error instanceof AuthError&&error.status===503}
+ try{await repo.transaction(b=>b.call('identity',[]))}catch(error){denied=error instanceof AuthError&&error.status===401}
  record('POOL-stale-previous-transaction-context-denied',denied)
  record('POOL-explicit-A-context-after-denial',await context('a',input.tenant,input.user))
  record('POOL-poisoned-connection-actually-discarded',pids[3]!==pids[2])

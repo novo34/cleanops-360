@@ -18,7 +18,7 @@ for(const risk of ['SENSITIVE','OPERATIONAL'] as const)for(const expiry of ['Idl
 test('CIPHER real PostgreSQL tampering rejects GCM authentication without leaking secret or issuing session',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await login(page,(await server.rpc({kind:'fixtureEmail'})).email);await server.rpc({kind:'tamperAbuseCiphertext'})
+  await server.rpc({kind:'tamperAbuseCiphertext'});await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
   const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/mfa/verify');await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();const r=await response
   expect(r.status()).toBe(503);const body=await r.json();expect(body.error.details).toEqual([]);expect(Object.keys(body).sort()).toEqual(['correlation_id','error'])
   expect((await server.rpc({kind:'inspectAbuse'})).active).toBe(0)
