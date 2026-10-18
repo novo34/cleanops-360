@@ -58,9 +58,9 @@ test('AUTHZ role creation uses policy CAS and stale simultaneous changes never a
  const server=await startRealBrowserServer('authz')
  try{const f=await server.rpc({kind:'accessFixture'});await login(page,server);await open(page,f.targetUser);const before=(await server.rpc({kind:'inspectAccess'})).policy
   await page.getByLabel('Tipo de cambio',{exact:true}).selectOption('ROLE');const role=randomUUID();await page.getByLabel('Identificador del rol',{exact:true}).fill(role);await page.getByLabel('Nombre del rol',{exact:true}).fill('Synthetic explicit role');await finish(page,server)
-  expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+1n).toString())
+  expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+BigInt(1)).toString())
   const stale={operation:'ROLE',role_id:randomUUID(),label:'Stale request',expected_policy:before,reason:'Synthetic stale CAS'}
-  expect((await send(page,stale)).status).toBe(409);expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+1n).toString())
+  expect((await send(page,stale)).status).toBe(409);expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+BigInt(1)).toString())
  }finally{await server.close()}
 })
 test('AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions',async({page,browser})=>{
@@ -77,6 +77,6 @@ test('AUTHZ failed COMMIT rolls back rule policy audit and owned result before c
   await page.getByRole('button',{name:'Guardar cambio de acceso',exact:true}).click();await server.rpc({kind:'failFactorCommit'});await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof',next:true})).proof);const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/access');await page.getByRole('button',{name:'Verificar',exact:true}).click();expect((await response).status()).toBe(503)
   const failed=await server.rpc({kind:'inspectAccess'});expect(failed.policy).toBe(before);expect(failed.audit.length).toBe(0)
   const body={operation:'USER_RULE',target_user_id:f.targetUser,rule_id:f.ruleId,action:'view',resource_kind:'documents',resource_id:f.resourceId,effect:'DENY',start_at:new Date(Date.now()-60000).toISOString(),expires_at:null,expected_policy:before,reason:'Synthetic retry'},key=randomUUID()
-  const statuses=(await Promise.all([send(page,body,key),send(page,body,key)])).map(r=>r.status).sort();expect(statuses).toEqual([200,409]);expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+1n).toString())
+  const statuses=(await Promise.all([send(page,body,key),send(page,body,key)])).map(r=>r.status).sort();expect(statuses).toEqual([200,409]);expect((await server.rpc({kind:'inspectAccess'})).policy).toBe((BigInt(before)+BigInt(1)).toString())
  }finally{await server.close()}
 })

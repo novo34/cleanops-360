@@ -319,7 +319,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           if(operation==='changeAccess'){
             if(binding.kind!=='ACTIVE')throw invalid()
             const version=String(input.expected_policy)
-            if(!/^[1-9][0-9]{0,18}$/.test(version)||BigInt(version)>9223372036854775807n)throw new AuthError(422,'INVALID_INPUT')
+            if(!/^[1-9][0-9]{0,18}$/.test(version)||BigInt(version)>BigInt('9223372036854775807'))throw new AuthError(422,'INVALID_INPUT')
             // Do not acquire authorization SHARE locks before these approved SQL
             // functions take their exclusive policy CAS lock. Each function performs
             // effective RBAC, no-overdelegation and fresh step-up before any effect.
