@@ -33,8 +33,8 @@ evidence remains historical and is not recredited as this OpenBao integration.
 Run: npm ci --ignore-scripts; python3 scripts/test-b1-openbao-integration.py
 Report: artifacts/pg-consolidated-14/report.json (redacted only).
 
-The original47-check OpenBao execution is retained. New results are pending until
-an actual fresh Actions runner completes. Both containers and private transfer
+The original47-check OpenBao execution is retained. Final144/144 PASS is recorded in EXECUTION.json / RESULT.md with actual
+fresh-runner provenance; failed attempts are retained. Both containers and private transfer
 material must be removed, and preexisting inventories must match. Synthetic two
 shares in one harness are not human dual control or approval of productive quorum.
 PR006 still requires actual Swiss residency, additional custodians/quorum, real

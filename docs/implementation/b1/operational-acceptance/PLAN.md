@@ -80,3 +80,8 @@ The separate final integration record must distinguish subsequent security chang
 and their rerun. PR006 remains OPEN for real residence/custody/recovery targets,
 independent review and actual manual PO observations; PR007 requires formal owner
 acceptance after its prerequisites.42/44; closedBackend; AUTH-GATE-05 OPEN.
+
+Final current integration:144/144 PASS, source08ecbab3e3816f660d635d0ee48b92f92850eb7f,
+Actions39150315948. [Full evidence and limitations](openbao/integration/RESULT.md).
+The final audit-full injection proves denied append and observes HTTP500; all
+failed attempts remain linked. No further technical B1 changes or SQL/ACL installed.

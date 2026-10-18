@@ -13,7 +13,7 @@
       "id": "REQ-PR-006",
       "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
       "implementation": "ISOLATED_TECHNICAL_EVIDENCE_COMPLETE_OPERATING_ACCEPTANCE_OPEN",
-      "pending": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (143 checks, initial source9f11305). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
+      "pending": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (144 checks, final source08ecbab3). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
       "tests": [
         "E2E-01",
         "CI-01"
@@ -23,7 +23,9 @@
         "lib/b1/approved-backend.ts",
         "lib/b1/openbao-keys.ts",
         "docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION_INITIAL.json",
-        "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md"
+        "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md",
+        "docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json",
+        "docs/implementation/b1/operational-acceptance/openbao/integration/RESULT.md"
       ],
       "realIntegration": "VERIFIED_IN_ISOLATION_OPERATING_NOT_VERIFIED",
       "testsExecuted": "REAL_ISOLATED_PASS_OPERATING_MANUAL_NOT_EXECUTED",

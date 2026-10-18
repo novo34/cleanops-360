@@ -136,3 +136,6 @@ and [scope/limitations](integration/PLAN.md). Check the final integration result
 its exact source. No productive installation, residency, human quorum, independent
 review or manual PO acceptance is inferred. Principal designation is now confirmed
 as the project owner; additional custodians/quorum remain pending.
+
+Final integration verification: [144/144 real PASS, independent fresh recovery](integration/RESULT.md);
+source08ecbab3e3816f660d635d0ee48b92f92850eb7f, Actions39150315948.

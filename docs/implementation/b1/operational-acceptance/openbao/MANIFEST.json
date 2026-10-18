@@ -4,7 +4,7 @@
     "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": "ca1058beae3576daf851e50ced7926a4c9ac2e9990573d1f236bfb8bd14c8ceb",
     "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": "2bd031caaccb7234529b4d7c8289577bf164143df1625b2578146946fa212e00",
     "docs/implementation/b1/operational-acceptance/openbao/PREPARATION_EVIDENCE.json": "39ca27f5c8b70a87a5c762870b267ff667e1c86ef49ff0046c88038bfe292e7f",
-    "docs/implementation/b1/operational-acceptance/openbao/README.md": "2d671af748393ba26708544db2b629a55512ea9fa081090dccaf4de428f4de4b",
+    "docs/implementation/b1/operational-acceptance/openbao/README.md": "6cb109314099a48acba6590930fdb9744125a66931246a4a61bcb339cd633395",
     "docs/implementation/b1/operational-acceptance/openbao/inputs.example.json": "c830278197e7ef6dd16bd567051c75868c37398d9752249b66f433d419e5e4d4",
     "docs/implementation/b1/operational-acceptance/openbao/release-pin.json": "e7ae9e4bef373ffa8fd20e54fd11bee7382107b9fd42e76db75697a8184c5ddb",
     "docs/implementation/b1/operational-acceptance/openbao/server.template.json": "7699bffdb14feab991aa38f52096794b31a002999a8c733036f6b02cb0024666",
