@@ -74,6 +74,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
     const correlation = context.correlationId, operationHint = context.operation
     if (!uuid(correlation)) return Promise.reject(unavailable())
     let failureActor:Binding|undefined
+    let failureCode: 'CSRF_DENIED'|'POLICY_DENIED'|'STEP_UP_REQUIRED'|'MFA_DENIED'|undefined
     return repository.transaction(async broker => {
       const policy = await broker.call('policy', [])
       if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
@@ -236,6 +237,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async auditFailure(binding,code){
           owns(binding)
           if(!['CSRF_DENIED','POLICY_DENIED','STEP_UP_REQUIRED','MFA_DENIED'].includes(code))throw unavailable()
+          failureCode=code
           const transport=deps.transport()
           if(![transport.network,transport.device].every(v=>Buffer.isBuffer(v)&&v.length===32))throw unavailable()
           const subject=createHmac('sha256',deps.factors.auditKey).update(canonical([code,operationHint,binding.kind,binding.tenantId??null,binding.userId??binding.id])).digest()
@@ -650,7 +652,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       // with only the previously server-verified actor and no business effects.
       if(failureActor){
         const actor=failureActor
-        const code=error instanceof AuthError&&error.status===403?'POLICY_DENIED':error instanceof AuthError&&error.status===401?'MFA_DENIED':'DEPENDENCY_FAILURE'
+        const code=failureCode??(error instanceof AuthError&&error.status===403?'POLICY_DENIED':error instanceof AuthError&&error.status===401?'MFA_DENIED':'DEPENDENCY_FAILURE')
         let subject:Buffer|undefined
         try{
           const transport=deps.transport()

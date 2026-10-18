@@ -43,6 +43,7 @@ let secondaryTenant:{user:string;method:string;secret:Buffer}|null=null
 const secondaryKey=randomBytes(32)
 let lastProofFingerprint: Buffer | undefined
 let failNextEmailCommit = false
+let failNextJournal=false
 let loseNextCommitAck=false
 let emailConsumption = false
 const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
@@ -132,6 +133,9 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
+        if(input.scenario==='abuse'&&failNextJournal&&sql.includes('auth_api.record_security_event')){
+          failNextJournal=false;const pid=await client.query('SELECT pg_backend_pid() AS pid');await admin.query('SELECT pg_terminate_backend($1)',[pid.rows[0].pid])
+        }
         if(input.scenario==='abuse' && sql.includes('auth_api.rate_attempt') && values && Buffer.isBuffer(values[0]))fixtureRateKeys.add(values[0].toString('hex'))
         if(input.scenario==='abuse' && sql.includes('auth_api.record_security_event') && typeof values?.[4]==='string')fixtureCorrelations.add(values[4])
         if ((sql.includes('auth_api.select_tenant_rotated_owned') || sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment') || sql.includes('auth_api.consume_enrollment_cas') || sql.includes('auth_api.reset_password_cas') || sql.includes('auth_api.register_trusted_device') || sql.includes('auth_api.revoke_trusted_device') || sql.includes('auth_api.admin_revoke_trusted_devices') || sql.includes('auth_api.admin_reset_mfa') || sql.includes('auth_api.change_access_owned') || sql.includes('auth_api.set_user_access_rule') || sql.includes('auth_api.set_access_role') || sql.includes('auth_api.set_role_membership') || sql.includes('auth_api.set_role_access_rule') || sql.includes('auth_api.revoke_access_assignment'))) emailConsumption = true
@@ -198,6 +202,15 @@ try {
         await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral-b',statement_timestamp(),1,'SHA256')",[input.otherTenant,secondaryTenant.method,secondaryTenant.user,cipher])
         reply({tenant:input.otherTenant,user:secondaryTenant.user});continue
       }
+      if(input.scenario==='abuse'&&message.kind==='failNextJournal'){failNextJournal=true;reply({ok:true});continue}
+      if(input.scenario==='abuse'&&message.kind==='excessSwitchMethods'&&secondaryTenant){
+        for(let n=0;n<4;n++){
+          const id=randomUUID(),value=randomBytes(32)
+          try{const cipher=sealEnrollmentSecret(value,secondaryKey,'pg05-ephemeral-b',{tenantId:input.otherTenant,userId:secondaryTenant.user,methodId:id,initialMethodVersion:'1',algorithm:'SHA256'});await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral-b',statement_timestamp(),1,'SHA256')",[input.otherTenant,id,secondaryTenant.user,cipher])}finally{value.fill(0)}
+        }
+        reply({ok:true});continue
+      }
+      if(input.scenario==='abuse'&&message.kind==='clearExcessSwitchMethods'&&secondaryTenant){await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2 AND id<>$3",[input.otherTenant,secondaryTenant.user,secondaryTenant.method]);reply({ok:true});continue}
       if(input.scenario==='abuse' && message.kind==='inspectSql13'){
         const q=await admin.query("SELECT state,tenant_id,expires_at FROM identity_private.preauth WHERE principal_id=$1 ORDER BY created_at",[input.principal])
         reply({preauth:q.rows});continue
