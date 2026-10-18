@@ -299,6 +299,14 @@ function decode<K extends keyof BrokerArgs>(operation: K, result: unknown, args:
   if (kind === 'rows') return rows as Result<K>
   if (rows.length !== 1 || !Object.hasOwn(rows[0], 'value')) throw unavailable()
   const value = rows[0].value
+  if (operation === 'mailMaterial') {
+    if (!object(value)) throw unavailable()
+    const material = { ...value }
+    Object.defineProperty(material, 'recipient', { value: value.recipient, enumerable: false })
+    Object.defineProperty(material, 'toJSON', { value: () => '[REDACTED_MAIL_MATERIAL]' })
+    Object.defineProperty(material, inspect.custom, { value: () => '[REDACTED_MAIL_MATERIAL]' })
+    return Object.freeze(material) as Result<K>
+  }
   if (operation === 'mfaMaterial') return d1Material(value, args as BrokerArgs['mfaMaterial']) as Result<K>
   if (operation === 'enrollAssigned') {
     if (!object(value) || !keys(value, ['methodId', 'initialVersion', 'expiresAt']) || !uuid(value.methodId) ||

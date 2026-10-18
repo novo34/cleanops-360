@@ -85,6 +85,7 @@ try {
   }
   const privatePool = { async connect() {
     const client = await identity.connect()
+    client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
         if (sql.includes('auth_api.consume_email_v2')) emailConsumption = true
