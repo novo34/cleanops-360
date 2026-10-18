@@ -18,14 +18,18 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
+const recoveryScenario = input.scenario === 'recovery'
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
-if(input.scenario==='multiple' || emailScenario){input.principal=randomUUID();input.user=randomUUID()}
+if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
 const password = 'PG05 synthetic passphrase!'
 const recoveryKey = randomBytes(32)
+const recoverySecret = new Secret({size:numeric('recovery_entropy')})
+const fixtureRecoveryCode = recoverySecret.base32
+recoverySecret.bytes.fill(0)
 const mailKey = randomBytes(32), otpKey = randomBytes(32)
 const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'pgtest_mail', max: 2 })
 const key = randomBytes(32), secret = randomBytes(32), method = randomUUID()
@@ -38,8 +42,8 @@ const fixtureNetwork=randomBytes(32), fixtureDevice=randomBytes(32)
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
-  if(input.scenario==='multiple' || emailScenario) {
-    await admin.query("INSERT INTO identity_private.principals VALUES($1,$2,'ACTIVE',now())",[input.principal,emailScenario ? input.email : 'multi@fixture.invalid'])
+  if(input.scenario==='multiple' || emailScenario || recoveryScenario) {
+    await admin.query("INSERT INTO identity_private.principals VALUES($1,$2,'ACTIVE',now())",[input.principal,(emailScenario || recoveryScenario) ? input.email : 'multi@fixture.invalid'])
     await admin.query('INSERT INTO identity_private.credentials VALUES($1,$2,1,now())',[input.principal,passwordHash])
     await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic multi','ACTIVE','SENSITIVE',now())",[input.tenant,input.user,input.principal])
   }
@@ -73,6 +77,11 @@ try {
     if (['email','email-multiple'].includes(input.scenario)) await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)", [input.tenant,method,input.user])
   }
   if (input.scenario === 'email-multiple') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)",[input.tenant,randomUUID(),input.user])
+  if(recoveryScenario) {
+    const proof=createHmac('sha256',recoveryKey).update(canonical(['RECOVERY',input.tenant,input.user,fixtureRecoveryCode])).digest()
+    try {await admin.query('INSERT INTO app.recovery_codes VALUES($1,$2,$3,$4,$5,clock_timestamp(),NULL,NULL)',[input.tenant,randomUUID(),input.user,randomUUID(),proof])}
+    finally {proof.fill(0)}
+  }
   // Synthetic rows exercise the existing approved page_default, not a new UI default.
   await admin.query(`INSERT INTO app.sessions
     SELECT tenant_id,gen_random_uuid(),user_id,principal_id,
@@ -91,7 +100,7 @@ try {
     client.on('error', () => {}) // Query/COMMIT still reject; synthetic termination must not crash the IPC process.
     return { async query(sql: string, values?: unknown[]) {
       try {
-        if (sql.includes('auth_api.consume_email_v2')) emailConsumption = true
+        if ((sql.includes('auth_api.consume_email_v2') || sql.includes('auth_api.recover_to_enrollment'))) emailConsumption = true
         if (sql === 'COMMIT' && failNextEmailCommit && emailConsumption) {
           failNextEmailCommit = false; emailConsumption = false
           const pid = await client.query('SELECT pg_backend_pid() AS pid')
@@ -135,7 +144,19 @@ try {
     const message = JSON.parse(line.value)
     controlId = message.rpcId
     try {
-      if (message.kind === 'failEmailCommit') { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
+      if (['failEmailCommit','failFactorCommit'].includes(message.kind)) { failNextEmailCommit = true; emailConsumption = false; reply({ armed: true }); continue }
+      if(message.kind==='recoveryProof'){reply({code:fixtureRecoveryCode});continue}
+      if(message.kind==='expireRecovery'){
+        await admin.query("UPDATE identity_private.preauth SET created_at=clock_timestamp()-interval '700 seconds',expires_at=clock_timestamp()-interval '1 second' WHERE principal_id=$1",[input.principal]);reply({ok:true});continue
+      }
+      if(message.kind==='inspectRecovery'){
+        const preauth=await admin.query('SELECT state,expires_at FROM identity_private.preauth WHERE principal_id=$1 ORDER BY created_at',[input.principal])
+        const methods=await admin.query('SELECT state FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 ORDER BY created_at',[input.tenant,input.user])
+        const codes=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed,count(*) FILTER(WHERE revoked_at IS NULL AND consumed_at IS NULL)::int AS unused,bool_and(octet_length(digest)=32) AS hmac_only FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user])
+        const sessions=await admin.query("SELECT count(*)::int AS n FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
+        const tags=lastProofFingerprint?await admin.query('SELECT NOT EXISTS(SELECT 1 FROM identity_private.ceremony_idempotency WHERE request_digest=$1) AS keyed',[lastProofFingerprint]):null
+        reply({preauth:preauth.rows,methods:methods.rows,codes:codes.rows[0],active:sessions.rows[0].n,proofFingerprintProtected:tags?.rows[0].keyed});continue
+      }
       if (message.kind === 'diagnostics') { reply({ failures:queryFailures }); continue }
       if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }
       if (message.kind === 'deliverEmail') {
@@ -182,7 +203,7 @@ try {
         const result = await handler.bootstrap()
         reply(result instanceof Response ? { status: result.status } : { status: 200, cookies: result.headers.getSetCookie() }); continue
       }
-      if (['confirmEmail','verifyMfa'].includes(message.operation)) {
+      if (['confirmEmail','verifyMfa','recoverMfa'].includes(message.operation)) {
         lastProofFingerprint=createHash('sha256').update(canonical(JSON.parse(message.body))).digest()
       }
       const requestId = message.rpcId

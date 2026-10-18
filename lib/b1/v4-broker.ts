@@ -5,6 +5,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  recoverEnrollment: {sql: 'SELECT auth_api.recover_to_enrollment($1::text,$2::bytea,$3::bytea,$4::bytea,$5::uuid) AS value', arity:5, kind:'json'},
 "mailMaterial": {"sql": "SELECT auth_api.mail_recipient_material($1::text,$2::text,$3::text,$4::uuid) AS value", "arity": 4, "kind": "json"},
 "beginEmail": {"sql": "SELECT auth_api.begin_email_enrollment($1::text,$2::uuid,$3::bigint,$4::uuid) AS value", "arity": 4, "kind": "uuid"},
 "issueEmailEnrollment": {"sql": "SELECT auth_api.issue_email_enrollment($1::text,$2::uuid,$3::bigint,$4::bigint,$5::uuid,$6::uuid,$7::bytea,$8::bytea,$9::text,$10::timestamptz,$11::uuid) AS value", "arity": 11, "kind": "uuid"},
@@ -185,6 +186,7 @@ export type D1MfaMaterial = Readonly<{
 }>
 export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: '1'; expiresAt: string }>
 export type BrokerArgs = {
+  recoverEnrollment: [preauth: string, recoveryDigest: Buffer, cookieDigest: Buffer, csrfDigest: Buffer, correlation: string]
   mailMaterial: [preauth: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ENROLLMENT', grant: string | null, resource: string | null]
   beginEmail: [preauth: string | null, method: string, recipientVersion: string, correlation: string]
   issueEmailEnrollment: [preauth: string | null, method: string, methodVersion: string, recipientVersion: string, challenge: string, outbox: string, digest: Buffer, ciphertext: Buffer, keyVersion: string, expires: string, correlation: string]

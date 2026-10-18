@@ -86,6 +86,7 @@ async function body(request: Request): Promise<Uint8Array> {
   return bytes
 }
 function stateAllowed(operation: string, binding: Binding) {
+  if (operation === 'recoverMfa') return binding.kind === 'PREAUTH' && binding.state === 'PENDING_MFA'
   if (operation === 'login') return binding.kind === 'BOOTSTRAP'
   if (operation === 'listAuthorizedTenants') return binding.kind !== 'BOOTSTRAP'
   if (operation === 'switchTenant') return binding.kind === 'ACTIVE' || binding.state === 'TENANT_SELECTION_REQUIRED'
@@ -156,7 +157,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           let parsed: unknown
           try {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
+            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
           } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)
@@ -178,7 +179,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
           if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
-          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId)
+          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa'].includes(operationId)
           if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
@@ -207,6 +208,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             return effect
           }
           if (!valid(operation.responses['200'].content['application/json'].schema, { data: effect.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+          if (operationId === 'recoverMfa' && ((effect.data as Input).state !== 'ENROLLMENT_REQUIRED' || effect.transition?.kind !== 'PREAUTH')) throw new AuthError(503, 'MFA_REQUIRED')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
           if (operationId === 'selectTotpMethod' &&
@@ -232,7 +234,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
-          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId))
+          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa'].includes(operationId))
           return effect
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome

@@ -26,7 +26,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false); setEmailPending(null)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false); setEmailPending(null); setRecovering(false)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -38,6 +38,7 @@ export function AuthPanel() {
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
+  const [recovering, setRecovering] = useState(false)
   const [emailPending, setEmailPending] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [emailEnrollment, setEmailEnrollment] = useState(false)
   const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
@@ -208,7 +209,7 @@ export function AuthPanel() {
         <button type="submit">Continuar</button>
       </form>}
       {view.auth && <p>{view.auth.state === 'ACTIVE' && !selection && !challenge ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
-      {selection && <form onSubmit={event => { event.preventDefault(); void selectMethod() }}>
+      {selection && !recovering && <form onSubmit={event => { event.preventDefault(); void selectMethod() }}>
         <fieldset>
           <legend>Selecciona tu autenticador</legend>
           <p>Elige la aplicación configurada con la que introducirás el código.</p>
@@ -219,12 +220,21 @@ export function AuthPanel() {
         </fieldset>
         <button type="submit" disabled={!selected}>Continuar con este método</button>
       </form>}
-      {challenge && <form onSubmit={event => { event.preventDefault(); void verify(event.currentTarget) }}>
+      {challenge && !recovering && <form onSubmit={event => { event.preventDefault(); void verify(event.currentTarget) }}>
         {challenge.allowed_methods.includes('EMAIL_OTP') && <p>Introduce el código enviado a tu dirección verificada. No compartas este código.</p>}
         <label>Método <select name="method">{challenge.allowed_methods.map(m => <option key={m}>{m}</option>)}</select></label>
         <p><label>Código <input name="proof" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required /></label></p>
         <button type="submit">Verificar</button>
         {challenge.allowed_methods.includes('EMAIL_OTP') && <button type="button" onClick={async () => { const r = await call(emailEnrollment ? 'resendEmailEnrollment' : 'resendEmail', { challenge_id: challenge.challenge_id }); if (r) setChallenge({ challenge_id: r.challenge_id, allowed_methods: r.allowed_methods ?? [r.method], expires_at: r.expires_at }) }}>Reenviar código</button>}
+      </form>}
+      {!recovering && !stepContext.current && (view.auth?.state === 'PENDING_MFA' || selection) && <button type="button" onClick={() => setRecovering(true)}>Usar código de recuperación</button>}
+      {recovering && <form onSubmit={async event => {
+        event.preventDefault(); const form=event.currentTarget; const data=new FormData(form);form.reset()
+        const result=await call('recoverMfa',{recovery_code:String(data.get('recovery_code'))})
+        if(result){clearCeremony();accept(result)}
+      }}><h2>Recuperar segundo factor</h2><p>El código se consume una sola vez. Deberás configurar y verificar un nuevo método MFA antes de acceder.</p>
+        <label>Código de recuperación <input name="recovery_code" type="password" autoComplete="off" pattern="[A-Z2-7]{26}" minLength={26} maxLength={26} required /></label>
+        <button type="submit">Recuperar y configurar MFA</button>
       </form>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button type="button" onClick={async () => { const r = await call('enrollEmail'); if (r) { setEmailEnrollment(true); setChallenge(r) } }}>Configurar códigos por email</button>}
       {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button onClick={() => void enroll()}>Configurar autenticador</button>}
@@ -260,6 +270,6 @@ export function AuthPanel() {
         <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView); window.location.assign('/login') } }}>Cerrar sesión</button>
       </section>}
     </fieldset>
-    {(selection || challenge || emailPending) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}
+    {(selection || challenge || emailPending || recovering) && <button type="button" onClick={() => endCeremony('Verificación cancelada. Inicia una nueva verificación.')}>Cancelar verificación</button>}
   </main>
 }

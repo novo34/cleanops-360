@@ -172,7 +172,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         return { data: { state: 'ACTIVE', session_id: result.session_id, tenant_id: result.tenant_id, absolute_expires_at: new Date(absolute).toISOString() },
           transition: { kind: 'ACTIVE', token: cookie, csrf: newCsrf, expiresAt: Math.min(absolute, now() + policy.idleSeconds * 1000) } }
       }
-      async function emailDenied(binding: Binding) {
+      async function factorDenied(binding: Binding) {
         const pseudonym = createHmac('sha256', deps.factors.auditKey).update(canonical(['MFA_DENIED', binding.id])).digest()
         try { await broker.call('securityEvent', ['MFA_DENIED', pseudonym, null, null, correlation]) }
         finally { pseudonym.fill(0) }
@@ -193,7 +193,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const tx: Transaction = {
         async resolve(cookies) {
           if (actor) throw unavailable()
-          const preferPreauth = ['verifyMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
+          const preferPreauth = ['verifyMfa', 'recoverMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
           const mode = operationHint === 'login' ? 'BOOTSTRAP' :
             preferPreauth && cookies[names.preauth] ? 'PREAUTH' : cookies[names.session] ? 'ACTIVE' : 'PREAUTH'
           raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''
@@ -225,10 +225,10 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['login', 'verifyMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['login', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
-          const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
+          const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
           const subject = createHmac('sha256', deps.factors.auditKey).update(canonical([purpose, binding.tenantId ?? null, binding.userId ?? binding.id])).digest()
           const values = [subject, transport.network, transport.device], dims = ['USER', 'IP', 'DEVICE'] as const
           const limits = purpose === 'LOGIN' ? [numeric('login_user_limit'), numeric('login_ip_limit'), numeric('login_device_limit')] :
@@ -245,7 +245,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -294,8 +294,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa'].includes(operation) || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()
@@ -385,12 +385,27 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if ('state' in data) throw unavailable()
             return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
           }
+          if (operation === 'recoverMfa') {
+            if (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA' || !binding.tenantId || !binding.userId ||
+                typeof input.recovery_code !== 'string' || !/^[A-Z2-7]{26}$/.test(input.recovery_code) ||
+                !Buffer.isBuffer(deps.factors.recoveryKey) || deps.factors.recoveryKey.length < 32) throw invalid()
+            const cookie = token(), newCsrf = token()
+            const proof = createHmac('sha256', deps.factors.recoveryKey).update(canonical(['RECOVERY', binding.tenantId, binding.userId, input.recovery_code])).digest()
+            let id: unknown
+            try { id = await broker.call('recoverEnrollment', [raw, proof, hex(digest(cookie)), hex(digest(newCsrf)), correlation]) }
+            finally { proof.fill(0) }
+            if (id === null) return factorDenied(binding)
+            if (!uuid(id)) throw unavailable()
+            const result = await preauthResult(cookie, {id, tenantId:binding.tenantId})
+            if (result.data.state !== 'ENROLLMENT_REQUIRED' || result.expiresAt > binding.expiresAt) throw unavailable()
+            return { data: result.data, transition: {kind:'PREAUTH',token:cookie,csrf:newCsrf,expiresAt:result.expiresAt} }
+          }
           if (['enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation)) {
             if (!mail || (binding.kind !== 'ACTIVE' && binding.state !== 'ENROLLMENT_REQUIRED')) throw unavailable()
             if (operation === 'enrollEmail') return { data: await mail.issue(preauth(), binding, 'ENROLLMENT') }
             if (operation === 'resendEmailEnrollment') return { data: await mail.resend(preauth(), binding, String(input.challenge_id)) }
             const ok = await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof), true)
-            if (!ok) return emailDenied(binding)
+            if (!ok) return factorDenied(binding)
             return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
           }
           if (operation === 'resendEmail' || operation === 'resendOtp') {
@@ -465,7 +480,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if (input.method === 'EMAIL_OTP') {
               if (!mail) throw unavailable()
               return ownedInternal(preauth(), 'verifyMfa', input, async () => {
-                if (!await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof))) return emailDenied(binding)
+                if (!await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof))) return factorDenied(binding)
                 return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
               })
             }

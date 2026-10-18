@@ -1,0 +1,11 @@
+# Recovery/reset — sequential B1 vertical
+
+EMAIL was validated first and remains accepted4/44. Current independent work uses exact approved SQL07 recover_to_enrollment(text,bytea,bytea,bytea,uuid); no SQL/ACL changes.
+
+POST /auth/recovery/consume accepts only a26-character base32 recovery code after a password-verified PENDING_MFA binding. CSRF, same origin, USER/IP/DEVICE rate limits, strict duplicate JSON detection and one-time owned idempotency remain in the same identity transaction. Context and HMAC scope derive from trusted binding, never client tenant/user/version. Failed code commits safe denial/rate effects; infrastructure failure rolls back.
+
+SQL07 consumes the HMAC code atomically, revokes old tenant MFA/codes/sessions/trusted devices/challenges and old PREAUTH, and rotates to a password-proof-deadline-preserving ENROLLMENT_REQUIRED. It does not authorize ACTIVE or step-up. The HTTP layer independently rejects any attempted ACTIVE result. Only new enrollment/first-factor confirmation can issue a committed session and replacement recovery codes. Browser proof form clears on submit/cancel and uses no persistent storage.
+
+Real tests use a fresh exact07 PG16 environment, actual UI/API/SQL and synthetic accounts. A fixture CSPRNG recovery secret is stored only as the same scoped HMAC produced by actual TOTP enrollment. Positive flow reenrolls through real QR/first-code API and checks the new10-code batch. Negative/expiry/concurrent and terminated-connection COMMIT rollback cases are real; EMAIL suite is the regression. No operational runtime, external SMTP or deployment.
+
+Password reset remains distinct and INCOMPLETE. SQL07 exposes attest_reset/reset_password_cas, but the private identity adapter lacks an approved ticket-bound material reader for tenant/user/current credential generation before computing the scoped recovery HMAC and CAS. It must not obtain those authorities from HTTP, guess a credential version, read tables directly, synthesize a password proof or add an unapproved encrypted ticket format. A minimal consolidated REVIEW ONLY extension will be prepared; no SQL/ACL change may be installed without exact owner approval. No loss-of-all-factors workflow is claimed complete by recovery-code success.

@@ -9,12 +9,14 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('sql07',ROOT/'scripts/pg-consolidated-07.py');seven=importlib.util.module_from_spec(spec);spec.loader.exec_module(seven)
 runner=seven.runner;b=seven.b
+CONFIG='playwright.email-b1.config.ts'
+UI_SCOPE='EXECUTED_EMAIL_AND_EXISTING_TOTP'
 def browser():
  if not runner.module('email_gate','pg07-security-tests.py').gate(b):
   b.record('EMAIL-browser','BLOCKED','Native role gate failed');return
  runner.module('email_runtime','pg-http-integration.py').copy_runtime(b,('scripts/pg05-browser-backend.ts',))
  fixture={'container':b.CID,'run':b.RUN,'tenant':b.A,'user':b.V,'principal':b.Q,'identityRole':b.ROLE['identity']}
- result=subprocess.run(['npx','--no-install','playwright','test','--config=playwright.email-b1.config.ts'],cwd=ROOT,env=dict(b.ENV,B1_BROWSER_FIXTURE=json.dumps(fixture)),capture_output=True,text=True,timeout=480)
+ result=subprocess.run(['npx','--no-install','playwright','test','--config='+CONFIG],cwd=ROOT,env=dict(b.ENV,B1_BROWSER_FIXTURE=json.dumps(fixture)),capture_output=True,text=True,timeout=480)
  path=ROOT/'artifacts/b1-real-browser/playwright.json'
  if path.exists():
   data=json.loads(path.read_text())
@@ -29,6 +31,6 @@ def browser():
   path.unlink()
  b.record('EMAIL-real-browser-process','PASS' if result.returncode==0 else 'FAIL','No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output.')
  runner.module('email_backup','pg-e1-native-tests.py').backup(b)
- b.REPORT['newUIE2E']='EXECUTED_EMAIL_AND_EXISTING_TOTP';b.REPORT['b1RequirementsAccepted']=0
+ b.REPORT['newUIE2E']=UI_SCOPE;b.REPORT['b1RequirementsAccepted']=0
 runner.checks=browser
 if __name__=='__main__':sys.exit(runner.main())
