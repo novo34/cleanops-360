@@ -11,9 +11,9 @@
   "requirements": [
     {
       "id": "REQ-PR-006",
-      "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
+      "requirement": "Cada feature deber\u00e1 desarrollarse de extremo a extremo: DB \u2192 backend \u2192 API \u2192 permisos \u2192 UI \u2192 seguridad \u2192 pruebas \u2192 staging \u2192 validaci\u00f3n Codex \u2192 prueba manual Product Owner.",
       "implementation": "FRONTEND_SIMULATED_ACCEPTED_B1_OPEN",
-      "pending": "End-to-end formal acceptance still requires the missing initial PREAUTH company selection, full security evidence, authorized staging/independent review and manual Product Owner validation; deployment not authorized.",
+      "pending": "Private initial multi-company UI\u2192API\u2192PG rotation, security journal and directed regression now PASS. Remaining: most-restrictive role-risk integration, actual operational custody/Swiss infrastructure evidence, independent review and manual Product Owner acceptance. No deployment is authorized.",
       "tests": [
         "E2E-01",
         "CI-01"
@@ -25,12 +25,12 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar toda esta matriz con integración real y staging autorizado, revisión independiente y prueba manual PO. La aceptación del selector simulado no acepta B1 ni AUTH-GATE-05.",
+      "historicalPendingBeforeSQL07": "Completar toda esta matriz con integraci\u00f3n real y staging autorizado, revisi\u00f3n independiente y prueba manual PO. La aceptaci\u00f3n del selector simulado no acepta B1 ni AUTH-GATE-05.",
       "pendingClass": "FORMAL_ACCEPTANCE_PENDING"
     },
     {
       "id": "REQ-PR-007",
-      "requirement": "No se iniciará una fase dependiente hasta que la fase anterior esté `ACCEPTED`, salvo autorización explícita del Product Owner.",
+      "requirement": "No se iniciar\u00e1 una fase dependiente hasta que la fase anterior est\u00e9 `ACCEPTED`, salvo autorizaci\u00f3n expl\u00edcita del Product Owner.",
       "implementation": "FRONTEND_SIMULATED_ACCEPTED_B1_OPEN",
       "pending": "B1 and AUTH-GATE-05 remain OPEN; no next module may start before documented phase acceptance.",
       "tests": [
@@ -44,12 +44,12 @@
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar toda esta matriz con integración real y staging autorizado, revisión independiente y prueba manual PO. La aceptación del selector simulado no acepta B1 ni AUTH-GATE-05.",
+      "historicalPendingBeforeSQL07": "Completar toda esta matriz con integraci\u00f3n real y staging autorizado, revisi\u00f3n independiente y prueba manual PO. La aceptaci\u00f3n del selector simulado no acepta B1 ni AUTH-GATE-05.",
       "pendingClass": "FORMAL_ACCEPTANCE_PENDING"
     },
     {
       "id": "REQ-AUTHZ-001",
-      "requirement": "Permisos por acción: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
+      "requirement": "Permisos por acci\u00f3n: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -68,7 +68,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -115,7 +115,7 @@
     },
     {
       "id": "REQ-AUTHZ-002",
-      "requirement": "Ámbitos: tenant, módulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
+      "requirement": "\u00c1mbitos: tenant, m\u00f3dulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -134,7 +134,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -181,7 +181,7 @@
     },
     {
       "id": "REQ-AUTHZ-003",
-      "requirement": "El sistema deberá permitir overrides individuales por usuario.",
+      "requirement": "El sistema deber\u00e1 permitir overrides individuales por usuario.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -200,7 +200,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -247,7 +247,7 @@
     },
     {
       "id": "REQ-AUTHZ-004",
-      "requirement": "Deberá permitir accesos temporales con `start_at` y `expires_at`.",
+      "requirement": "Deber\u00e1 permitir accesos temporales con `start_at` y `expires_at`.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -266,7 +266,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -313,7 +313,7 @@
     },
     {
       "id": "REQ-AUTHZ-005",
-      "requirement": "La UI incluirá `Administration → Users → User Detail → Manage Access`.",
+      "requirement": "La UI incluir\u00e1 `Administration \u2192 Users \u2192 User Detail \u2192 Manage Access`.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -332,7 +332,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sitúa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacción por ocho grants propios.",
+      "historicalPendingBeforeSQL07": "Resolver C-SCOPE: SRS/AuthSpec exige el requisito pero V4 acota a self-service; roadmap sit\u00faa Manage Access en fase 2. Preparar/aprobar addendum exacto antes de desarrollar permisos administrativos; no afirmar satisfacci\u00f3n por ocho grants propios.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -379,7 +379,7 @@
     },
     {
       "id": "REQ-AUTHZ-006",
-      "requirement": "La autorización deberá aplicarse también en API, no solo UI.",
+      "requirement": "La autorizaci\u00f3n deber\u00e1 aplicarse tambi\u00e9n en API, no solo UI.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -445,7 +445,7 @@
     },
     {
       "id": "REQ-AUTHZ-007",
-      "requirement": "`explicit deny` prevalecerá sobre cualquier concesión; las políticas de aislamiento tenant y las restricciones de plataforma no podrán sobrepasarse mediante overrides. Ante falta de autorización, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las políticas superiores. Denegaciones y concesiones se aplicarán en API, con caducidad y auditoría.",
+      "requirement": "`explicit deny` prevalecer\u00e1 sobre cualquier concesi\u00f3n; las pol\u00edticas de aislamiento tenant y las restricciones de plataforma no podr\u00e1n sobrepasarse mediante overrides. Ante falta de autorizaci\u00f3n, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las pol\u00edticas superiores. Denegaciones y concesiones se aplicar\u00e1n en API, con caducidad y auditor\u00eda.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this AUTHZ requirement in isolated functional scope. Approved SQL11, real service/PG matrix and Chromium write/read/denial/COMMIT evidence PASS. No productive role grants or production acceptance inferred.",
       "tests": [
@@ -528,7 +528,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Integrar Argon2id, corpus local versionado, normalización coherente con provisión, hash ficticio y rate dimensions confiables; probar cookies PREAUTH reales.",
+      "historicalPendingBeforeSQL07": "Integrar Argon2id, corpus local versionado, normalizaci\u00f3n coherente con provisi\u00f3n, hash ficticio y rate dimensions confiables; probar cookies PREAUTH reales.",
       "priorSQL09Assessment": {
         "implementation": "PARTIAL_CODE_SIMULATED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -551,7 +551,7 @@
     },
     {
       "id": "REQ-AUTH-002",
-      "requirement": "Tras validar credenciales, se exigirá segundo factor según la política de riesgo del rol: obligatorio para administradores, comerciales, planificación, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigirán step-up MFA aunque el login operativo se haya permitido sin MFA.",
+      "requirement": "Tras validar credenciales, se exigir\u00e1 segundo factor seg\u00fan la pol\u00edtica de riesgo del rol: obligatorio para administradores, comerciales, planificaci\u00f3n, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigir\u00e1n step-up MFA aunque el login operativo se haya permitido sin MFA.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Approved C-LOGIN requires MFA for both trusted risk profiles; roles never grant implicit permissions. Productive inventory remains a gate, not a password-only fallback.",
       "tests": [
@@ -566,7 +566,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Resolver C-LOGIN: SRS permite MFA configurable para operativos; V4 y service.ts/frontend rechazan ACTIVE desde login siempre. Addendum mínimo para política confiable configurable, sin relajar MFA sensible/step-up ni inferir riesgo del cliente.",
+      "historicalPendingBeforeSQL07": "Resolver C-LOGIN: SRS permite MFA configurable para operativos; V4 y service.ts/frontend rechazan ACTIVE desde login siempre. Addendum m\u00ednimo para pol\u00edtica confiable configurable, sin relajar MFA sensible/step-up ni inferir riesgo del cliente.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -585,7 +585,7 @@
     },
     {
       "id": "REQ-AUTH-003",
-      "requirement": "Métodos MFA: código OTP por email o TOTP Authenticator.",
+      "requirement": "M\u00e9todos MFA: c\u00f3digo OTP por email o TOTP Authenticator.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Actual EMAIL and TOTP factors work in real UI/API/PG. External delivery uses the explicitly synthetic custody/transport, not productive SMTP.",
       "tests": [
@@ -601,7 +601,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenvío invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensión.",
+      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -618,7 +618,7 @@
     },
     {
       "id": "REQ-AUTH-004",
-      "requirement": "TOTP deberá ser compatible con aplicaciones estándar.",
+      "requirement": "TOTP deber\u00e1 ser compatible con aplicaciones est\u00e1ndar.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None in isolated functional compatibility scope: installed KeePassXC2.7.6 and OATH Toolkit2.6.11 Linux CLI, actual decoded QR URI, SHA256,32-byte secret, canonical digits/period/window, valid enrollment and subsequent login accepted by real PostgreSQL; expired/wrong/reused attempts denied. No mobile, GUI scanner or other app/version compatibility claimed. Formal phase/manual Product Owner acceptance remains OPEN.",
       "tests": [
@@ -635,7 +635,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D3: elegir algoritmo/entropía/issuer/label, probar QR y códigos de autenticadores reales con versiones registradas; no degradación implícita.",
+      "historicalPendingBeforeSQL07": "D3: elegir algoritmo/entrop\u00eda/issuer/label, probar QR y c\u00f3digos de autenticadores reales con versiones registradas; no degradaci\u00f3n impl\u00edcita.",
       "pendingClass": "REAL_OPERATIONAL_DEPENDENCY",
       "historicalPendingBeforeRealApplicationEvidence": "D3 algorithm/entropy/issuer approved; zbar and OTPAuth are not real authenticator apps. Need designated supported app versions/devices and observed QR/code acceptance; no external service connection or fabricated app evidence.",
       "accepted": true,
@@ -669,7 +669,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenvío invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensión.",
+      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -714,7 +714,7 @@
     },
     {
       "id": "REQ-AUTH-011",
-      "requirement": "Código OTP por email válido durante 5 minutos, de un solo uso y con invalidación por consumo o reenvío.",
+      "requirement": "C\u00f3digo OTP por email v\u00e1lido durante 5 minutos, de un solo uso y con invalidaci\u00f3n por consumo o reenv\u00edo.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -798,7 +798,7 @@
     },
     {
       "id": "REQ-AUTH-013",
-      "requirement": "Reenvío invalida códigos anteriores.",
+      "requirement": "Reenv\u00edo invalida c\u00f3digos anteriores.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -840,7 +840,7 @@
     },
     {
       "id": "REQ-AUTH-014",
-      "requirement": "Cooldown de reenvío.",
+      "requirement": "Cooldown de reenv\u00edo.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -898,7 +898,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenvío invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensión.",
+      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -921,7 +921,7 @@
     },
     {
       "id": "REQ-AUTH-016",
-      "requirement": "Límite de intentos.",
+      "requirement": "L\u00edmite de intentos.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.",
       "tests": [
@@ -937,7 +937,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenvío invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensión.",
+      "historicalPendingBeforeSQL07": "D4: destinatario verificado/versionado y revalidado, HMAC de OTP, outbox cifrado, worker real separado, reenv\u00edo invalidante, lease/consumo CAS, cooldown/intentos/abuso y SMTP autorizado; verificar 300 s sin extensi\u00f3n.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -960,7 +960,7 @@
     },
     {
       "id": "REQ-AUTH-017",
-      "requirement": "Mensajes que no permitan enumeración de cuentas.",
+      "requirement": "Mensajes que no permitan enumeraci\u00f3n de cuentas.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.",
       "tests": [
@@ -975,7 +975,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Medir mensajes y tiempos de cuenta ausente/inactiva/credencial/factor incorrecto bajo carga; asegurar rate/backoff sin enumeración ni lockout permanente.",
+      "historicalPendingBeforeSQL07": "Medir mensajes y tiempos de cuenta ausente/inactiva/credencial/factor incorrecto bajo carga; asegurar rate/backoff sin enumeraci\u00f3n ni lockout permanente.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -998,7 +998,7 @@
     },
     {
       "id": "REQ-AUTH-020",
-      "requirement": "Activación mediante QR.",
+      "requirement": "Activaci\u00f3n mediante QR.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. QR canvas PNG decoded by independent zbar utility; its exact URI generates a proof accepted by real PostgreSQL enrollment. No claim of real authenticator application compatibility (004).",
       "tests": [
@@ -1013,7 +1013,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generación antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmación PREAUTH→sesión y ACTIVE; ninguna activación antes del primer código/COMMIT.",
+      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1029,7 +1029,7 @@
     },
     {
       "id": "REQ-AUTH-021",
-      "requirement": "No se activa hasta validar el primer código.",
+      "requirement": "No se activa hasta validar el primer c\u00f3digo.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1047,7 +1047,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generación antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmación PREAUTH→sesión y ACTIVE; ninguna activación antes del primer código/COMMIT.",
+      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
       "priorSQL08Assessment": {
         "implementation": "PARTIAL_HELPERS_ENROLLMENT_CLOSED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1097,7 +1097,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generación antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmación PREAUTH→sesión y ACTIVE; ninguna activación antes del primer código/COMMIT.",
+      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generaci\u00f3n antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmaci\u00f3n PREAUTH\u2192sesi\u00f3n y ACTIVE; ninguna activaci\u00f3n antes del primer c\u00f3digo/COMMIT.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1114,7 +1114,7 @@
     },
     {
       "id": "REQ-AUTH-030",
-      "requirement": "Generación al activar TOTP.",
+      "requirement": "Generaci\u00f3n al activar TOTP.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1132,7 +1132,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "historicalPendingBeforeSQL07": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
       "priorSQL08Assessment": {
         "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1167,7 +1167,7 @@
     },
     {
       "id": "REQ-AUTH-031",
-      "requirement": "Mostrar una única vez.",
+      "requirement": "Mostrar una \u00fanica vez.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1185,7 +1185,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "historicalPendingBeforeSQL07": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
       "priorSQL08Assessment": {
         "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1238,7 +1238,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "historicalPendingBeforeSQL07": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
       "priorSQL08Assessment": {
         "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1291,7 +1291,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "historicalPendingBeforeSQL07": "Completar generaci\u00f3n al confirmar tambi\u00e9n desde PREAUTH, visualizaci\u00f3n \u00fanica post-COMMIT, hashes/HMAC, regeneraci\u00f3n invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperaci\u00f3n seguro pendiente.",
       "priorSQL08Assessment": {
         "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1326,7 +1326,7 @@
     },
     {
       "id": "REQ-AUTH-034",
-      "requirement": "MFA reset por admin deberá quedar auditado.",
+      "requirement": "MFA reset por admin deber\u00e1 quedar auditado.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this requirement in isolated functional scope. Real browser/API/PostgreSQL evidence; external custody, identity attestation and delivery are not declared productive integrations.",
       "tests": [
@@ -1341,7 +1341,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "C-SCOPE/AUTH-GATE-03: V4 excluye reset ajeno; SRS exige reset administrativo auditado. Addendum con permiso propio distinto de B1-SELF, verificación de identidad, revocaciones y auditoría; ninguna autoridad por nombre de rol.",
+      "historicalPendingBeforeSQL07": "C-SCOPE/AUTH-GATE-03: V4 excluye reset ajeno; SRS exige reset administrativo auditado. Addendum con permiso propio distinto de B1-SELF, verificaci\u00f3n de identidad, revocaciones y auditor\u00eda; ninguna autoridad por nombre de rol.",
       "historicalPendingBeforeRemainingEvidence": "Complete administrative MFA-reset UI/API and real E2E over the approved identity-proof/RBAC/step-up contract; password reset is a separate completed flow. Remains within B1.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1360,7 +1360,7 @@
     },
     {
       "id": "REQ-AUTH-040",
-      "requirement": "Pantalla `Account → Security → Active Sessions`.",
+      "requirement": "Pantalla `Account \u2192 Security \u2192 Active Sessions`.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1376,7 +1376,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Conectar Account/Security a sesiones reales, paginación y revocaciones; estados accesibles sin tokens/digests.",
+      "historicalPendingBeforeSQL07": "Conectar Account/Security a sesiones reales, paginaci\u00f3n y revocaciones; estados accesibles sin tokens/digests.",
       "priorSQL09Assessment": {
         "implementation": "PARTIAL_CODE_SIMULATED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1399,7 +1399,7 @@
     },
     {
       "id": "REQ-AUTH-041",
-      "requirement": "Mostrar dispositivo, navegador, creación y última actividad.",
+      "requirement": "Mostrar dispositivo, navegador, creaci\u00f3n y \u00faltima actividad.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1415,7 +1415,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Añadir creación y última actividad a la UI (hoy solo dispositivo/navegador), consumir páginas reales y etiquetado normalizado no identificador; probar actualización de actividad sin ampliar absoluta.",
+      "historicalPendingBeforeSQL07": "A\u00f1adir creaci\u00f3n y \u00faltima actividad a la UI (hoy solo dispositivo/navegador), consumir p\u00e1ginas reales y etiquetado normalizado no identificador; probar actualizaci\u00f3n de actividad sin ampliar absoluta.",
       "priorSQL09Assessment": {
         "implementation": "PARTIAL_CODE_SIMULATED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1438,7 +1438,7 @@
     },
     {
       "id": "REQ-AUTH-042",
-      "requirement": "Revocar sesión individual.",
+      "requirement": "Revocar sesi\u00f3n individual.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1458,7 +1458,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ensayar revocación propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula éxito.",
+      "historicalPendingBeforeSQL07": "Ensayar revocaci\u00f3n propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula \u00e9xito.",
       "priorSQL09Assessment": {
         "implementation": "PARTIAL_CODE_SIMULATED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1481,7 +1481,7 @@
     },
     {
       "id": "REQ-AUTH-043",
-      "requirement": "Revocar todas las demás sesiones.",
+      "requirement": "Revocar todas las dem\u00e1s sesiones.",
       "implementation": "IMPLEMENTED",
       "pending": "",
       "tests": [
@@ -1501,7 +1501,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ensayar revocación propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula éxito.",
+      "historicalPendingBeforeSQL07": "Ensayar revocaci\u00f3n propia/bulk bajo locks, actual preservada en bulk, ajenas/otro tenant intactas, 404 indistinguible y token revocado denegado tras COMMIT; fallo DB no simula \u00e9xito.",
       "priorSQL09Assessment": {
         "implementation": "PARTIAL_CODE_SIMULATED",
         "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
@@ -1524,9 +1524,9 @@
     },
     {
       "id": "REQ-AUTH-044",
-      "requirement": "Timeout por inactividad: 30 minutos para administración/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la política restrictiva correspondiente. La clasificación de roles en los tests será explícita.",
+      "requirement": "Timeout por inactividad: 30 minutos para administraci\u00f3n/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la pol\u00edtica restrictiva correspondiente. La clasificaci\u00f3n de roles en los tests ser\u00e1 expl\u00edcita.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
-      "pending": "None for this criterion in isolated functional scope. Trusted SENSITIVE: 1800 seconds; OPERATIONAL: 28800 seconds; both profiles explicitly classified and expired through actual PG-backed browser sessions.",
+      "pending": "None for the existing isolated numeric timeout criterion. Owner-approved12h/24h, idle30min/8h and real exact expiry/activity/step-up/trust tests PASS. Most-restrictive multi-role integration remains OPEN under SEC021; production/operational acceptance not inferred.",
       "tests": [
         "SESSION-01",
         "CTX-04"
@@ -1539,7 +1539,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duración absoluta medida; conservar inactividad aprobada 1800/28800 s y expiración absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1552,13 +1552,38 @@
           "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Idle expiry"
         ],
         "productionAcceptance": false
-      }
+      },
+      "supportingAcceptanceEvidence": [
+        {
+          "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "cases": [
+            "Browser-PG-POLICY real SENSITIVE requires MFA and enforces independent Idle expiry",
+            "Browser-PG-POLICY real SENSITIVE requires MFA and enforces independent Absolute expiry",
+            "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Idle expiry",
+            "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Absolute expiry",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds -1",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds 0",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds 1"
+          ]
+        },
+        {
+          "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "cases": [
+            "Browser-PG-POLICY real step-up and trusted-device use never extend absolute lifetime SENSITIVE",
+            "Browser-PG-POLICY real step-up and trusted-device use never extend absolute lifetime OPERATIONAL"
+          ]
+        }
+      ]
     },
     {
       "id": "REQ-AUTH-045",
-      "requirement": "Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duración numérica permanece como parámetro técnico sujeto a validación de seguridad antes de habilitar autenticación en producción.",
+      "requirement": "Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duraci\u00f3n num\u00e9rica permanece como par\u00e1metro t\u00e9cnico sujeto a validaci\u00f3n de seguridad antes de habilitar autenticaci\u00f3n en producci\u00f3n.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
-      "pending": "None for this criterion in isolated functional scope. Absolute timeout is independently enforced for both profiles; values 28800/86400 seconds remain trial-only, not approved productive settings. SEC-021 and AUTH-GATE-01 remain OPEN.",
+      "pending": "None for the existing isolated numeric timeout criterion. Owner-approved12h/24h, idle30min/8h and real exact expiry/activity/step-up/trust tests PASS. Most-restrictive multi-role integration remains OPEN under SEC021; production/operational acceptance not inferred.",
       "tests": [
         "SESSION-01",
         "CTX-04"
@@ -1571,7 +1596,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duración absoluta medida; conservar inactividad aprobada 1800/28800 s y expiración absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1584,11 +1609,36 @@
           "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Absolute expiry"
         ],
         "productionAcceptance": false
-      }
+      },
+      "supportingAcceptanceEvidence": [
+        {
+          "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "cases": [
+            "Browser-PG-POLICY real SENSITIVE requires MFA and enforces independent Idle expiry",
+            "Browser-PG-POLICY real SENSITIVE requires MFA and enforces independent Absolute expiry",
+            "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Idle expiry",
+            "Browser-PG-POLICY real OPERATIONAL requires MFA and enforces independent Absolute expiry",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds -1",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds 0",
+            "Browser-PG-POLICY real absolute boundary offset milliseconds 1"
+          ]
+        },
+        {
+          "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "cases": [
+            "Browser-PG-POLICY real step-up and trusted-device use never extend absolute lifetime SENSITIVE",
+            "Browser-PG-POLICY real step-up and trusted-device use never extend absolute lifetime OPERATIONAL"
+          ]
+        }
+      ]
     },
     {
       "id": "REQ-AUTH-046",
-      "requirement": "`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
+      "requirement": "`Remember device` v\u00e1lido por 30 d\u00edas tras MFA y revocable por administrador, cambio de contrase\u00f1a, reset MFA o riesgo; no ampl\u00eda la validez de la sesi\u00f3n. La empresa podr\u00e1 deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this requirement in isolated functional scope. SQL10 root fix,9 distinct real browser cases across pinned runs and native boundaries/concurrency/negative ACL evidence verified. Production/phase activation is separate and not approved.",
       "tests": [
@@ -1603,7 +1653,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza ≤30 días, política tenant y revocación por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth íntegro.",
+      "historicalPendingBeforeSQL07": "C-SCOPE: V4 marca trusted_device DEFERRED B1, SRS exige confianza \u226430 d\u00edas, pol\u00edtica tenant y revocaci\u00f3n por admin/password/reset/riesgo; preparar contrato y UI, implementar y probar antes de cierre si se confirma alcance Auth \u00edntegro.",
       "historicalPendingBeforeTrustedVertical": "Complete trusted-device registration/status/list/revocation UI/API and HttpOnly cookie semantics over installed SQL09 functions; verify tenant/version/expiry/admin/password/MFA revocation. No new SQL/ACL currently needed.",
       "trustedDeviceEvidence": {
         "native": "docs/implementation/b1/trusted-device/NATIVE_REPRODUCTION.json",
@@ -1659,7 +1709,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Probar step-up TOTP y EMAIL real ligado a sesión/tenant/grant/recurso/versión, reautorización tras lock y sin extender sesión; factor por sí solo no concede permiso.",
+      "historicalPendingBeforeSQL07": "Probar step-up TOTP y EMAIL real ligado a sesi\u00f3n/tenant/grant/recurso/versi\u00f3n, reautorizaci\u00f3n tras lock y sin extender sesi\u00f3n; factor por s\u00ed solo no concede permiso.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1681,7 +1731,7 @@
     },
     {
       "id": "REQ-TEN-001",
-      "requirement": "Todo dato deberá pertenecer a un tenant.",
+      "requirement": "Todo dato deber\u00e1 pertenecer a un tenant.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Tenant-owned business identities/access/session/factor data and forced RLS verified. Approved private global principals, bootstrap and pretenant hashed security records intentionally have no invented tenant; canonical exceptions unchanged.",
       "tests": [
@@ -1701,7 +1751,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch atómico, revocación y pool real.",
+      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -1891,7 +1941,7 @@
     },
     {
       "id": "REQ-TEN-002",
-      "requirement": "Tenant A nunca podrá acceder a datos de Tenant B.",
+      "requirement": "Tenant A nunca podr\u00e1 acceder a datos de Tenant B.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Cross-tenant role/resource/API negatives and actual max=1 PG pool reuse with fresh context; client GUC cannot rebind tenant.",
       "tests": [
@@ -1911,7 +1961,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch atómico, revocación y pool real.",
+      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -2101,7 +2151,7 @@
     },
     {
       "id": "REQ-TEN-003",
-      "requirement": "El aislamiento se aplicará en backend/API.",
+      "requirement": "El aislamiento se aplicar\u00e1 en backend/API.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Actual private broker/API enforce trusted context and tenant filtering; no client-supplied tenant authority.",
       "tests": [
@@ -2121,7 +2171,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch atómico, revocación y pool real.",
+      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -2311,7 +2361,7 @@
     },
     {
       "id": "REQ-TEN-004",
-      "requirement": "Deberán existir tests automáticos de tenant isolation.",
+      "requirement": "Deber\u00e1n existir tests autom\u00e1ticos de tenant isolation.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Automated real PostgreSQL and browser cross-company denials, pooled connection reuse and revoked-origin cases; no mock isolation acceptance.",
       "tests": [
@@ -2331,7 +2381,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch atómico, revocación y pool real.",
+      "historicalPendingBeforeSQL07": "Ejecutar RLS/ACL/FK y contexto por xid con roles no owner, A/u1 A/u2 B/u1; switch at\u00f3mico, revocaci\u00f3n y pool real.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -2521,7 +2571,7 @@
     },
     {
       "id": "REQ-SEC-020",
-      "requirement": "El MVP empleará librerías maduras para hash, autenticación y TOTP, sin implementar criptografía propia. El registro, sesión y credenciales se verificarán con pruebas de seguridad.",
+      "requirement": "El MVP emplear\u00e1 librer\u00edas maduras para hash, autenticaci\u00f3n y TOTP, sin implementar criptograf\u00eda propia. El registro, sesi\u00f3n y credenciales se verificar\u00e1n con pruebas de seguridad.",
       "implementation": "IMPLEMENTED_REAL_UI_API_PG",
       "pending": "None for this criterion in isolated functional scope. Existing mature Argon2id, OTPAuth and Node AES-GCM exercised through real password/MFA/enrollment and authenticated-decryption failures. Standard library primitives reused, no custom cryptography.",
       "tests": [
@@ -2537,7 +2587,7 @@
       "realIntegration": "VERIFIED",
       "testsExecuted": "REAL_UI_API_PG_PASS",
       "acceptance": "ACCEPTED",
-      "historicalPendingBeforeSQL07": "Conservar bibliotecas maduras; medir Argon2id/corpus/secretos y rehash CAS; comprobar criptografía, provisión y logs con key provider real.",
+      "historicalPendingBeforeSQL07": "Conservar bibliotecas maduras; medir Argon2id/corpus/secretos y rehash CAS; comprobar criptograf\u00eda, provisi\u00f3n y logs con key provider real.",
       "historicalPendingBeforeRemainingEvidence": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "accepted": true,
       "acceptanceEvidence": {
@@ -2554,40 +2604,44 @@
     },
     {
       "id": "REQ-SEC-021",
-      "requirement": "La caducidad absoluta de sesión tendrá un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 días de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
-      "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "Owner12h/24h proposal is design-compatible with complete SENSITIVE-role coverage, not yet approved/applied. Actual trial8h/24h evidence remains valid; effective12h needs explicit configuration approval and directed real boundary tests. See remaining/ABSOLUTE_12_24_REVIEW.md.",
+      "requirement": "La caducidad absoluta de sesi\u00f3n tendr\u00e1 un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 d\u00edas de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
+      "implementation": "NUMERIC_POLICY_IMPLEMENTED_ROLE_AGGREGATION_PENDING",
+      "pending": "Owner approved12h/24h and idle30min/8h; real numeric, independent idle/absolute, exact boundary and no activity/step-up/trust extension tests PASS. Most-restrictive multi-role classification is absent from SQL13; exact consolidated SQL14 remains REVIEW ONLY and requires approval before installation/testing.",
       "tests": [
         "SESSION-01",
         "CTX-04"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/canonical/auth-review/SESSION-OWNER-RESOLUTION-2026-10-18.md",
+        "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+        "docs/proposals/b1-consolidated-sql/revisions/14/APPROVAL.md"
       ],
       "realIntegration": "NOT_VERIFIED",
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duración absoluta medida; conservar inactividad aprobada 1800/28800 s y expiración absoluta independiente; probar bordes y concurrencia de touch_activity.",
-      "pendingClass": "REAL_OPERATIONAL_DEPENDENCY"
+      "historicalPendingBeforeSQL07": "Cerrar AUTH-GATE-01 con clase de riesgo del servidor y duraci\u00f3n absoluta medida; conservar inactividad aprobada 1800/28800 s y expiraci\u00f3n absoluta independiente; probar bordes y concurrencia de touch_activity.",
+      "pendingClass": "FUNCTIONALITY_INCOMPLETE"
     },
     {
       "id": "REQ-AUD-001",
-      "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar actor, fecha, entidad, acción y resultado, sin exponer secretos o datos de otros tenants (capítulos de auditoría).",
-      "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "Successful changes and AUTHZ denials are durable; LOGIN/MFA/RATE/CSRF failure events now pass. Generic service POLICY_DENIED/STEP_UP_REQUIRED guards still throw before committing any failure journal; existing record_security_event allowlist has no POLICY_DENIED. Do not claim complete audit coverage or silently change SQL/security event semantics.",
+      "requirement": "Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deber\u00e1n registrar actor, fecha, entidad, acci\u00f3n y resultado, sin exponer secretos o datos de otros tenants (cap\u00edtulos de auditor\u00eda).",
+      "implementation": "IMPLEMENTED_PRIVATE",
+      "pending": "None for B1 isolated functional security audit scope. Existing successful mutations/AUTHZ audit retained; generic policy/step-up guard journal and separate durable denial after primary termination now have real HTTP/PostgreSQL evidence. Formal/operational acceptance remains separate.",
       "tests": [
         "AUDIT-01",
         "RETAIN-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Éxito+evento+idempotencia en un commit; intentos fallidos persistidos, fallos de infraestructura rollback, auditoría append-only, canal restringido de fallos y retención/restore con tenant/actor intactos.",
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "\u00c9xito+evento+idempotencia en un commit; intentos fallidos persistidos, fallos de infraestructura rollback, auditor\u00eda append-only, canal restringido de fallos y retenci\u00f3n/restore con tenant/actor intactos.",
       "historicalPendingBeforeAuthzPublicVertical": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
       "currentAuthzEvidence": {
         "readOnly": "docs/implementation/b1/access/READONLY_EXECUTION.json",
@@ -2597,7 +2651,31 @@
         "acceptance": "OPEN",
         "sql11Installed": false
       },
-      "pendingClass": "FUNCTIONALITY_INCOMPLETE"
+      "pendingClass": "NONE_IN_ISOLATED_FUNCTIONAL_SCOPE",
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+        "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+        "run": 39137308745,
+        "uiScope": "EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER",
+        "cases": [
+          "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+          "Browser-PG-SQL13 AUD04 real terminated denial journal transaction rolls back then persists trusted denial separately",
+          "Browser-PG-SQL13 AUD05 real concurrent protected challenge mutation and policy denial have independent durable outcomes",
+          "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor"
+        ],
+        "productionAcceptance": false
+      },
+      "supportingAcceptanceEvidence": [
+        {
+          "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+          "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+          "run": 39124915880,
+          "cases": [
+            "SQL11-denial-audit-durable-private-server-actor",
+            "SQL11-success-audit-server-derived-before-after"
+          ]
+        }
+      ]
     }
   ],
   "canonicalCases": [
@@ -2721,17 +2799,31 @@
       "id": "listAuthorizedTenants",
       "method": "GET",
       "path": "/auth/tenants",
-      "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "implementation": "PRIVATE_REAL_ISOLATED",
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "integrationEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+        "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+        "run": 39137308745,
+        "case": "Browser-PG-SQL13 ROT01 ROT14 real multi-company login rotates PREAUTH and CSRF then requires destination MFA",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "switchTenant",
       "method": "POST",
       "path": "/auth/tenant-switch",
-      "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "implementation": "PRIVATE_REAL_ISOLATED",
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "integrationEvidence": {
+        "report": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+        "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+        "run": 39137308745,
+        "case": "Browser-PG-SQL13 ROT01 ROT14 real multi-company login rotates PREAUTH and CSRF then requires destination MFA",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "listSelfSessions",
@@ -2862,47 +2954,47 @@
     {
       "id": "AUTH-GATE-01",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Duración absoluta, clasificación y pruebas reales por riesgo."
+      "pending": "Duraci\u00f3n absoluta, clasificaci\u00f3n y pruebas reales por riesgo."
     },
     {
       "id": "AUTH-GATE-02",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Coste Argon2id, corpus comprometidas, límites/cooldowns/antiabuso medidos."
+      "pending": "Coste Argon2id, corpus comprometidas, l\u00edmites/cooldowns/antiabuso medidos."
     },
     {
       "id": "AUTH-GATE-03",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Recuperación y pérdida total MFA, identidad, reset, revocación y auditoría."
+      "pending": "Recuperaci\u00f3n y p\u00e9rdida total MFA, identidad, reset, revocaci\u00f3n y auditor\u00eda."
     },
     {
       "id": "AUTH-GATE-04",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Mapping de roles/riesgo/step-up y permisos mínimos exactos; no rol=>ALLOW."
+      "pending": "Mapping de roles/riesgo/step-up y permisos m\u00ednimos exactos; no rol=>ALLOW."
     },
     {
       "id": "AUTH-GATE-05",
       "source": "docs/IMPLEMENTATION_GATES.md",
-      "pending": "Esquema/endpoints definitivos, ejecución real y aceptación humana integral."
+      "pending": "Esquema/endpoints definitivos, ejecuci\u00f3n real y aceptaci\u00f3n humana integral."
     },
     {
       "id": "D2",
       "source": "docs/proposals/b1-ceremony-material/KEY_OPERATIONS.md",
-      "pending": "Custodia, acceso, residencia, rotación CAS y recuperación implementados/ensayados."
+      "pending": "Custodia, acceso, residencia, rotaci\u00f3n CAS y recuperaci\u00f3n implementados/ensayados."
     },
     {
       "id": "D3",
       "source": "docs/proposals/b1-ceremony-material/TOTP_CANDIDATE.md",
-      "pending": "Política elegida y compatibilidad observada en autenticadores reales."
+      "pending": "Pol\u00edtica elegida y compatibilidad observada en autenticadores reales."
     },
     {
       "id": "D4",
       "source": "docs/proposals/b1-ceremony-material/EMAIL_DELIVERY.md",
-      "pending": "Fuente verificada de destinatario, contrato/worker/SMTP/outbox y recuperación reales."
+      "pending": "Fuente verificada de destinatario, contrato/worker/SMTP/outbox y recuperaci\u00f3n reales."
     },
     {
       "id": "INFRA-AUTH",
       "source": "docs/CLEANOPS_360_SRS_V1_1.md#REQ-INF-001/002/003; REQ-JOB-001; REQ-DAT-020",
-      "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retención y restore de datos/claves/configuración de Auth; RPO≤15 min/RTO≤4 h medidos."
+      "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retenci\u00f3n y restore de datos/claves/configuraci\u00f3n de Auth; RPO\u226415 min/RTO\u22644 h medidos."
     }
   ],
   "assessmentHead": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
@@ -2920,9 +3012,9 @@
   ],
   "historicalDatabaseExecutionAuthorized": false,
   "databaseExecutionScope": {
-    "artifact": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
-    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
-    "authorization": "docs/implementation/b1/consolidated-test-11/AUTHORIZATION.json",
+    "artifact": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+    "authorization": "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json",
     "environment": "NEW_ISOLATED_SYNTHETIC_PG16_DOCKER",
     "modifiedSqlAcl": false,
     "authorizedAclDelta": true,

@@ -1,21 +1,23 @@
-# B1 final five — exact acceptance responsibilities
+# B1 — final acceptance responsibilities
 
-Baseline: HEAD4b8c43a,39/44 isolated functional criteria. No canonical requirement text changed. B1/AUTH-GATE-05 OPEN; closedBackend retained. Current machine status and per-criterion results are in STATUS.json and closure/requirements.json.
+Historical baseline39/44 at4b8c43a; current41/44 isolated functional criteria.
+AUTH004 passed actual installed KeePassXC2.7.6/OATH Toolkit2.6.11 Linux tests;
+AUD001 now passed SQL13 durable journal and HTTP/rollback/COMMIT cases. No mobile
+app, formal phase or productive acceptance inferred. Canonical requirement texts
+are unchanged in closure/requirements.json and MATRIX.md.
 
-|Baseline pending criterion|Authorized work / evidence|What still requires approval or execution|Approver / responsible role|
-|---|---|---|---|
-|AUTH004 standard TOTP apps|Directed installed-application QR/URI→code→real UI/API/PG enrollment/login test; exact app versions/interfaces and result in AUTHENTICATOR_EXECUTION.json. No claim of mobile/GUI execution.|Confirm only the actually tested compatibility scope; do not claim Google/Microsoft Authenticator, Aegis or2FAS unless subsequently executed.|Engineer/QA records real functional evidence; Product Owner validates scope/manual demonstration for formal phase acceptance.|
-|SEC021 defined/tested absolute duration|Existing8h/24h trial evidence preserved; [12h/24h evaluation](ABSOLUTE_12_24_REVIEW.md).|Approve effective duration and complete trusted risk coverage, then execute only affected real boundary/configuration tests.|Product Owner: policy; Security: numeric/risk/expiry validation.|
-|AUD001 complete B1 security audit|Existing successful actions, detailed AUTHZ denial and LOGIN/MFA/RATE/CSRF failure evidence preserved. No durable generic guard event is claimed.|Authorize exact SQL13; implement outcome-based commit of allowed denial events, real failure/rollback/COMMIT tests. Never log a denied action as success or lose ACTIVE context.|Owner: SQL13 contract/ACL/artifact approval; engineer/QA/security: implementation and actual evidence.|
-|PR006 complete delivery and manual acceptance|Current real functional evidence reused; SQL13 contains owned PREAUTH rotation primitive, not yet installed.|Finish initial multi-company PREAUTH rotation and denied guards; close operational controls required by existing gates; independent review, specifically authorized staging/manual acceptance and Product Owner decision.|Owner authorizes exact operations and is final Product Owner; designated Security reviewer and DevOps/custodian supply evidence. No person/provider is fictitiously assigned.|
-|PR007 no next phase before acceptance|Only B1 work continues; no other module started.|Formal B1/AUTH-GATE-05 decision after every mandatory criterion/evidence, not CI count or a documentary sign-off alone.|Product Owner accepts phase; engineer records decision/history before starting the roadmap successor.|
+|Remaining|Exact work/evidence still missing|Responsible acceptance|
+|---|---|---|
+|SEC021|Approved12h/24h, idle30min/8h, exact expiry and no-extension tests PASS. Most-restrictive active role aggregation is missing from SQL13. Separate exact consolidated SQL14 proposal remains REVIEW ONLY, never installed.|Owner: exact SQL/ACL installation approval; engineer/QA/security: actual mixed-role, race, invalidation and negative privilege results.|
+|PR006|Initial multi-company real PREAUTH selection and failure journal now PASS. Still need role-risk completion, actual mandatory operating custody/Swiss infrastructure evidence, independent review and actual manual PO results.|Owner names actual custodian/infrastructure/tester and authorizes concrete real-infrastructure operations separately. DevOps/Security supply observed residence, least privilege, key isolation/rotation/old-key recovery and measured RPO≤15min/RTO≤4h; independent reviewer and PO record their own results.|
+|PR007|Every mandatory criterion/gate must be satisfied before phase transition; no next module started.|Product Owner records B1/AUTH-GATE-05 decision through PHASE_ACCEPTANCE_TEMPLATE. No automatic acceptance from CI or this document.|
 
-## Actual operational resources and evidence still absent
-
-- D2 architecture OpenBao/Switzerland is approved. Owner must name actual custodian/infrastructure and authorize the separate operational exercise; DevOps/Security prove Swiss storage/processing/backup/support boundaries, workload identity least privilege, old/new-key reads/writes, isolation, rotation, loss/recovery and restore. Synthetic fixture keys do not establish custody or residence.
-- D4 architecture verified recipients/encrypted outbox/uncertain-delivery quarantine is approved. Owner names authoritative verified-recipient lifecycle and independent recovery attestation operators, and authorizes the real delivery boundary when appropriate. Current EMAIL/recovery are real UI/API/PG with explicitly synthetic external delivery/attestation. No external SMTP may run under this task.
-- AUTH-GATE-01/02/04: operating duration/risk catalogue and tested hash/rate/cooldown parameters need their existing security acceptance; trial limits/costs and ten synthetic RBAC labels are not a productive role/operating policy. Reuse actual evidence, measure missing operating workload only in a specifically authorized environment.
-- INFRA-AUTH: approved Swiss isolated services, data/key/config backup and measured recovery evidence under the existing RPO≤15min/RTO≤4h targets. CI's small synthetic31-table dump/restore is valid functional evidence, not a full operational disaster-recovery drill.
-- PR006 manual/staging: an explicit isolated staging/manual test authorization, named Product Owner tester, environment/build identifiers, actual UI/API/DB outcomes and security review report; phase decision in PHASE_ACCEPTANCE_TEMPLATE. Neither real deployment nor formal acceptance is inferred from Docker CI.
-
-These are preexisting gates/resources, not added functionality or deferred obligations. No productive acceptance, infrastructure provisioning, SMTP, SQL13 installation, deployment or merge is authorized by this document.
+Manual dossier: PO_MANUAL_DEMONSTRATION.md, PREPARED / NOT EXECUTED.
+D2 OpenBao/Swiss architecture and D4 verified-recipient/encrypted outbox/quarantine
+are approved designs. Actual custodian, approved Swiss infrastructure and operating
+recovery/attestation/delivery responsibility are not fictitiously assigned. Synthetic
+external providers and small Docker backup/restore do not prove productive custody,
+SMTP, support/data residence or operational disaster recovery. No real infrastructure,
+external SMTP, deployment, merge or runtime activation is authorized. closedBackend,
+B1/AUTH-GATE-05 OPEN. Technical isolated evidence, operating acceptance and production
+authorization are separate decisions; no obligation is deferred to another module.

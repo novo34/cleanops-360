@@ -2,13 +2,13 @@
   "B1": "OPEN",
   "AUTH-GATE-05": "OPEN",
   "runtime": "closedBackend",
-  "accepted": 40,
+  "accepted": 41,
   "total": 44,
   "remaining": [
     {
       "id": "REQ-PR-006",
       "classification": "FORMAL_ACCEPTANCE_PENDING",
-      "blocker": "End-to-end formal acceptance still requires the missing initial PREAUTH company selection, full security evidence, authorized staging/independent review and manual Product Owner validation; deployment not authorized."
+      "blocker": "Private initial multi-company UI\u2192API\u2192PG rotation, security journal and directed regression now PASS. Remaining: most-restrictive role-risk integration, actual operational custody/Swiss infrastructure evidence, independent review and manual Product Owner acceptance. No deployment is authorized."
     },
     {
       "id": "REQ-PR-007",
@@ -17,22 +17,18 @@
     },
     {
       "id": "REQ-SEC-021",
-      "classification": "REAL_OPERATIONAL_DEPENDENCY",
-      "blocker": "Owner/security validation of numeric absolute lifetime by risk remains required. 8h/24h are tested trial values, independent of 30-day trusted device; no production policy approval inferred."
-    },
-    {
-      "id": "REQ-AUD-001",
       "classification": "FUNCTIONALITY_INCOMPLETE",
-      "blocker": "Successful changes and AUTHZ denials are durable; LOGIN/MFA/RATE/CSRF failure events now pass. Generic service POLICY_DENIED/STEP_UP_REQUIRED guards still throw before committing any failure journal; existing record_security_event allowlist has no POLICY_DENIED. Do not claim complete audit coverage or silently change SQL/security event semantics."
+      "blocker": "Owner approved12h/24h and idle30min/8h; real numeric, independent idle/absolute, exact boundary and no activity/step-up/trust extension tests PASS. Most-restrictive multi-role classification is absent from SQL13; exact consolidated SQL14 remains REVIEW ONLY and requires approval before installation/testing."
     }
   ],
   "functionalContractDependency": {
     "flow": "password-verified multi-company PREAUTH selection",
-    "status": "FAIL_CLOSED_503",
+    "status": "PASS_PRIVATE_REAL_UI_API_PG",
     "proposal": "docs/proposals/b1-consolidated-sql/revisions/13/APPROVAL.md",
-    "installed": false
+    "installed": true,
+    "evidence": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json"
   },
-  "operationalControls": "Architecture D2/D3/D4/C-SCOPE/C-LOGIN remain approved. Named Swiss OpenBao infrastructure/custodian, approved operating numeric policy and real recovery/delivery/staging evidence remain distinct; no productive integrations are claimed.",
+  "operationalControls": "Session numeric values approved and tested. Most-restrictive role aggregation requires SQL14 exact approval/tests; actual Swiss OpenBao custodian/infrastructure, operating recovery/delivery and independent/manual PO acceptance remain unfulfilled.",
   "regression": {
     "result": "PASS",
     "report": "docs/implementation/b1/remaining/REGRESSION.json",
@@ -46,7 +42,7 @@
     "bytes": 209170,
     "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
   },
-  "consolidatedApprovalScope": "PREAUTH owned rotation plus two denial-event codes; supersedes uninstalled SQL12. Neither candidate installed.",
+  "consolidatedApprovalScope": "SQL13 owner-authorized, installed exactly and24 prepared cases PASS; SQL14 separate REVIEW ONLY, not installed.",
   "authenticatorEvidence": {
     "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
     "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
@@ -64,5 +60,11 @@
     "status": "REVIEW_ONLY_NOT_APPLIED",
     "comparison": "SRS compatible with complete sensitive-role coverage; changes sensitive trial28800 to43200, requires explicit approval and directed validation.",
     "review": "docs/implementation/b1/remaining/ABSOLUTE_12_24_REVIEW.md"
+  },
+  "sql13Evidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+  "sessionPolicy": {
+    "numericValues": "APPROVED_IMPLEMENTED_REAL_TESTS_PASS",
+    "mostRestrictiveMultipleRoles": "OPEN_SQL14_REVIEW_ONLY",
+    "productionActivation": false
   }
 }

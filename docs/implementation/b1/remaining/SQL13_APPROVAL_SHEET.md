@@ -1,3 +1,5 @@
+> Current execution update (2026-10-18): owner authorization is recorded in ../consolidated-test-13/AUTHORIZATION.json and the append-only canonical SESSION-OWNER-RESOLUTION-2026-10-18.md. SQL13 exact bytes are installed/tested,24 directed cases PASS. Numeric12h/24h, expiry and no-extension tests PASS. Most-restrictive multi-role integration remains OPEN pending the separate uninstalled SQL14 candidate. The original review below is historical, not a renewed approval request.
+
 # SQL13 approval sheet — unchanged REVIEW ONLY artifact
 
 Verified against reference HEAD4b8c43a and its Git tree, with reproducible local full-content checks. Neither SQL12 nor SQL13 has been installed.

@@ -1,3 +1,5 @@
+> Current execution update (2026-10-18): owner authorization is recorded in ../consolidated-test-13/AUTHORIZATION.json and the append-only canonical SESSION-OWNER-RESOLUTION-2026-10-18.md. SQL13 exact bytes are installed/tested,24 directed cases PASS. Numeric12h/24h, expiry and no-extension tests PASS. Most-restrictive multi-role integration remains OPEN pending the separate uninstalled SQL14 candidate. The original review below is historical, not a renewed approval request.
+
 # Owner proposal: 12h / 24h absolute session limit — REVIEW ONLY
 
 No active/canonical value changed. Owner requested evaluation, not installation/activation. Existing verified trial profile remains SENSITIVE28800s (8h), OPERATIONAL86400s (24h); idle1800/28800s unchanged. Existing 8h tests are not evidence that a 12h profile has executed.
