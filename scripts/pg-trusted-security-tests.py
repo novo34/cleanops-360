@@ -14,4 +14,15 @@ def gate(b,table_count=31):
   for caller in [*b.ROLE.values(),'pgtest_verifier']:
    b.check('trusted-execute-'+sig+'-'+caller,f"SELECT has_function_privilege(current_user,{oid},'EXECUTE');",'t' if caller==b.ROLE['identity'] else 'f',caller)
   b.check('trusted-no-unbound-call-'+sig,'SELECT auth_api.'+sig.split('(')[0]+'('+args+');',role=b.ROLE['identity'],failure='42501')
+ # Reproduce the actual registration constraint under its real service role.
+ # Synthetic policy/evidence setup only; no DDL, substitute grants or production inputs.
+ b.check('trusted-synthetic-policy',f"INSERT INTO app.auth_preferences VALUES('{b.A}',true) ON CONFLICT(tenant_id) DO UPDATE SET trusted_devices_enabled=true;")
+ b.check('trusted-synthetic-fresh-MFA',f"INSERT INTO app.step_up_evidence(tenant_id,id,user_id,session_id,grant_key,verified_at,expires_at,policy_version) VALUES('{b.A}','{uuid.uuid4()}','{b.U}','{b.S}','B1-SELF-06',clock_timestamp(),clock_timestamp()+interval '5m',(SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}'));")
+ results=[]
+ for _ in range(32):
+  digest=uuid.uuid4().hex+uuid.uuid4().hex
+  result=b.sql("BEGIN;SELECT auth_api.begin_verified_context(repeat('a',43));SELECT auth_api.register_trusted_device(decode('"+digest+"','hex'),'"+str(uuid.uuid4())+"');ROLLBACK;",b.ROLE['identity'])
+  results.append({'ok':result.returncode==0,'sqlstate':None if result.returncode==0 else b.state(result)})
+ failed=[r for r in results if not r['ok']]
+ b.record('trusted-registration-exact-30day-constraint','FAIL' if failed else 'PASS',{'attempts':32,'successRolledBack':sum(r['ok'] for r in results),'failed':len(failed),'sqlstates':sorted(set(r['sqlstate'] for r in failed)),'expectedFailures':0,'additionalSqlAclInstalled':False})
  return all(c['status']=='PASS' for c in b.REPORT['checks'][start:])

@@ -228,7 +228,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['registerTrustedDevice','authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
           const purpose = ['login','resetPassword'].includes(operation) ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
@@ -303,7 +303,9 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if(binding.kind!=='ACTIVE')throw invalid()
             const project=(row:unknown)=>{
               if(!object(row) || Object.keys(row).sort().join(',')!=='createdAt,expiresAt,id' || !uuid(row.id))throw unavailable()
-              const created=date(row.createdAt),expires=date(row.expiresAt)
+              date(row.createdAt);date(row.expiresAt)
+              // JSON timestamps retain PostgreSQL microseconds for lossless keyset cursors.
+              const created=String(row.createdAt),expires=String(row.expiresAt)
               if(Date.parse(expires)<=Date.parse(created) || Date.parse(expires)>Date.parse(created)+numeric('trusted_device_max')*1000)throw unavailable()
               return {id:row.id,created_at:created,expires_at:expires}
             }
@@ -323,7 +325,9 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               const limit=Number(input.limit??numeric('page_default')),after=readCursor(binding,'TRUSTED',input.cursor)
               if(!Number.isInteger(limit)||limit<1||limit>numeric('page_max'))throw new AuthError(400,'INVALID_INPUT')
               if(after!==null && (!object(after)||!uuid(after.id)||typeof after.time!=='string'))throw new AuthError(400,'INVALID_CURSOR')
-              const key=after as {id:string;time:string}|null,items=await list(limit,key?date(key.time):null,key?.id??null),last=items.at(-1)
+              const key=after as {id:string;time:string}|null
+              if(key)date(key.time)
+              const items=await list(limit,key?.time??null,key?.id??null),last=items.at(-1)
               return {data:{items,next_cursor:last&&items.length===limit?cursor(binding,'TRUSTED',{id:last.id,time:last.created_at}):null}}
             }
             if(operation==='adminRevokeTrustedDevices'){

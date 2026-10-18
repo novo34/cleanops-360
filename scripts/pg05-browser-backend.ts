@@ -171,8 +171,11 @@ try {
         const audit=await admin.query("SELECT action,count(*)::int AS n FROM app.audit_logs WHERE tenant_id=$1 AND actor_user_id=$2 AND action LIKE 'auth.device.%' GROUP BY action",[input.tenant,input.user])
         reply({devices:rows.rows,audit:audit.rows});continue
       }
+      if(message.kind==='seedTrustedPage'){
+        await admin.query("INSERT INTO app.trusted_devices SELECT $1,gen_random_uuid(),$2,$3,crypto.digest(gen_random_uuid()::text,'sha256'),1,statement_timestamp(),statement_timestamp()+interval '30 days',NULL FROM generate_series(1,$4::int)",[input.tenant,input.user,input.principal,numeric('page_max')+1]);reply({ok:true});continue
+      }
       if(message.kind==='expireTrusted'){
-        await admin.query("UPDATE app.trusted_devices SET created_at=clock_timestamp()-interval '31 days',expires_at=clock_timestamp()-interval '1s' WHERE tenant_id=$1 AND user_id=$2",[input.tenant,input.user]);reply({ok:true});continue
+        await admin.query("UPDATE app.trusted_devices SET created_at=clock_timestamp()-interval '31 days',expires_at=clock_timestamp()-interval '2 days' WHERE tenant_id=$1 AND user_id=$2",[input.tenant,input.user]);reply({ok:true});continue
       }
       if(message.kind==='disableTrusted'){
         await admin.query('UPDATE app.auth_preferences SET trusted_devices_enabled=false WHERE tenant_id=$1',[input.tenant]);reply({ok:true});continue
