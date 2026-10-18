@@ -1,3 +1,9 @@
+# Current EMAIL integration: real PASS; B1 OPEN4/44
+
+EMAIL evidence: ../email/EXECUTION.json, sourceb54d7562f1b9326d2acfadd6d8a707b9f0e4a226, run39106575063. Four independent EMAIL requirements accepted on real UI/API/PostgreSQL evidence. B1 and AUTH-GATE-05 remain OPEN; no production acceptance or runtime activation.
+
+## Prior SQL07 evidence (historical counters retained)
+
 # Current SQL07 result: native PASS; full B1 OPEN
 
 Exact owner-authorized07 installed:253 PASS/0 FAIL; cleanup and existing-resource inventory PASS. Source59855dd719712b80f11d953558cf6ba956af45f4, run39102962461. Full evidence and limitations: [SQL07 result](../consolidated-test-07/RESULT.md). B1 remains0/44 accepted, closedBackend unchanged and AUTH-GATE-05 OPEN. New public UI/API full integration remains pending.

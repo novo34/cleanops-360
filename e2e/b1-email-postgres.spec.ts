@@ -15,6 +15,18 @@ async function proof(page: Page, code: string) {
 }
 const phase = (description: string) => test.info().annotations.push({ type: 'phase', description })
 
+test('EMAIL multiple authorized methods for the same verified recipient do not block login', async ({ page }) => {
+  phase('SETUP');const server=await startRealBrowserServer('email-multiple')
+  try {
+    await login(page,(await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código',{exact:true})).toBeVisible()
+    expect((await server.rpc({kind:'inspectEmail'})).methods.length).toBe(2)
+    phase('VERIFY');await proof(page,(await server.rpc({kind:'deliverEmail'})).proof)
+    await expect(page.getByText('Seguridad de la cuenta',{exact:true})).toBeVisible()
+    expect((await server.rpc({kind:'inspectEmail'})).active).toBe(1)
+  } finally {await server.close()}
+})
+
 test('EMAIL enrollment first proof and committed login through real UI API PG', async ({ page }) => {
   phase('SETUP');const server = await startRealBrowserServer('email-enrollment')
   try {

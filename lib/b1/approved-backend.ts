@@ -125,7 +125,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string,
         allowSelection = false): Promise<PreparedChallenge | RequiredSelection> {
         const value = await material(cookie, purpose, expected, grant, resource)
-        if (selectedId === undefined && value.enabledMethods.length === 1 && value.enabledMethods[0].kind === 'EMAIL_OTP') {
+        if (selectedId === undefined && value.enabledMethods.length > 0 && value.enabledMethods.every(method => method.kind === 'EMAIL_OTP')) {
           if (!mail) throw unavailable()
           const binding: Binding = { kind: cookie === null ? 'ACTIVE' : 'PREAUTH', id: expected.id, tenantId: value.tenantId,
             userId: value.userId, expiresAt: expected.expiresAt, csrfDigest: '' }

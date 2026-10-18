@@ -18,7 +18,7 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const emailScenario = ['email', 'email-enrollment', 'email-additional'].includes(input.scenario)
+const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
@@ -70,8 +70,9 @@ try {
       await verifier.query('SELECT auth_api.record_verified_recipient($1::uuid,$2::uuid,0,$3::bytea,$4::uuid,$5::timestamptz,$6::uuid)',
         [input.tenant, input.user, createHash('sha256').update(input.email).digest(), randomUUID(), new Date(Date.now()+3600000), randomUUID()])
     } finally { await verifier.end() }
-    if (input.scenario === 'email') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)", [input.tenant,method,input.user])
+    if (['email','email-multiple'].includes(input.scenario)) await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)", [input.tenant,method,input.user])
   }
+  if (input.scenario === 'email-multiple') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)",[input.tenant,randomUUID(),input.user])
   // Synthetic rows exercise the existing approved page_default, not a new UI default.
   await admin.query(`INSERT INTO app.sessions
     SELECT tenant_id,gen_random_uuid(),user_id,principal_id,

@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
   "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
-  "accepted": 0,
+  "accepted": 4,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -914,12 +914,11 @@
         "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "EMAIL_REAL_UI_API_POSTGRES_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native06": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -941,7 +940,27 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "acceptanceEvidence": {
+        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+        "run": 39106575063,
+        "report": "docs/implementation/b1/email/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+          "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+          "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+          "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+          "Browser-PG-EMAIL expired database challenge never creates a session",
+          "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+          "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+          "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+          "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+          "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-012",
@@ -961,13 +980,11 @@
         "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
       },
       "currentProgress": [
-        "PRIVATE_PG_EMAIL_ENROLLMENT_DELIVERY_CONSUMPTION_SESSION_PARTIAL_PASS",
-        "GC_LIFECYCLE_FAIL",
-        "PRODUCT_HTTP_UI_PENDING"
+        "EMAIL_REAL_UI_API_POSTGRES_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -978,7 +995,27 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "acceptanceEvidence": {
+        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+        "run": 39106575063,
+        "report": "docs/implementation/b1/email/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+          "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+          "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+          "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+          "Browser-PG-EMAIL expired database challenge never creates a session",
+          "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+          "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+          "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+          "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+          "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-013",
@@ -998,12 +1035,11 @@
         "remaining": "Completar el reenvío EMAIL público con invalidación atómica de retos/outbox anteriores y versiones de destinatario."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "EMAIL_REAL_UI_API_POSTGRES_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1012,7 +1048,27 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "acceptanceEvidence": {
+        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+        "run": 39106575063,
+        "report": "docs/implementation/b1/email/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+          "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+          "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+          "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+          "Browser-PG-EMAIL expired database challenge never creates a session",
+          "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+          "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+          "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+          "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+          "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-014",
@@ -1032,12 +1088,11 @@
         "remaining": "Completar cooldown EMAIL en la UI/API/worker real; el cooldown TOTP nativo ya se ejecutó con espera real."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "EMAIL_REAL_UI_API_POSTGRES_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1046,7 +1101,27 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "acceptanceEvidence": {
+        "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+        "run": 39106575063,
+        "report": "docs/implementation/b1/email/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+          "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+          "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+          "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+          "Browser-PG-EMAIL expired database challenge never creates a session",
+          "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+          "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+          "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+          "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+          "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-015",
@@ -2571,5 +2646,26 @@
     },
     "cleanup": "PASS",
     "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
-  }
+  },
+  "latestEmailEvidence": {
+    "source": "b54d7562f1b9326d2acfadd6d8a707b9f0e4a226",
+    "run": 39106575063,
+    "report": "docs/implementation/b1/email/EXECUTION.json",
+    "result": "PASS",
+    "cases": [
+      "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+      "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+      "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+      "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+      "Browser-PG-EMAIL expired database challenge never creates a session",
+      "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+      "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+      "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+      "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+      "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+    ],
+    "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+    "productionAcceptance": false
+  },
+  "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT"
 }

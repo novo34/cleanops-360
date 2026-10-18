@@ -55,7 +55,12 @@ export function createEmailCeremony(broker: V4Broker, custody: PrivateMailCustod
       method = previous?.method ?? randomUUID(); version = '1'
       if (!previous && await broker.call('beginEmail', [cookie, method, String(m.recipientVersion), correlation]) !== method) throw invalid()
     } else {
-      const selected = selectEnabledMethod(m.enabledMethods as Parameters<typeof selectEnabledMethod>[0], previous?.method)
+      const methods = m.enabledMethods as Parameters<typeof selectEnabledMethod>[0]
+      // SQL07 binds every EMAIL method to the same single verified recipient.
+      // Pick a stable trusted locator, not a client selector or a method limit.
+      if (!previous && methods.some(method => method.kind !== 'EMAIL_OTP')) throw invalid()
+      const selectedId = previous?.method ?? [...methods].sort((a,b) => a.id.localeCompare(b.id))[0]?.id
+      const selected = selectEnabledMethod(methods, selectedId)
       if (selected.kind !== 'EMAIL_OTP') throw invalid()
       method = selected.id; version = selected.version
     }

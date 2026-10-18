@@ -13,7 +13,7 @@ test('EMAIL adds four operations without changing any approved V4/H1-H3 operatio
   assert.equal(operations.length, Object.values(original.paths).reduce((n,v) => n+Object.keys(v).length,0)+4)
 })
 
-function setup() {
+function setup(activeEmail = false) {
   const now = Date.now(), binding: Binding = { kind: 'PREAUTH', state: 'ENROLLMENT_REQUIRED', id: randomUUID(),
     tenantId: randomUUID(), userId: randomUUID(), expiresAt: now+600000, csrfDigest:'0'.repeat(64) }
   const calls: {name:string;args:unknown[]}[] = [], reference = new Map<string,unknown>()
@@ -22,9 +22,9 @@ function setup() {
     calls.push({name,args})
     if(name==='mailMaterial')return { bindingId:binding.id,tenantId:binding.tenantId,userId:binding.userId,
       recipient:'private@fixture.invalid',recipientVersion:'7',recipientExpiresAt:new Date(now+700000).toISOString(),
-      expiresAt:new Date(binding.expiresAt).toISOString(),enabledMethods:[] }
+      expiresAt:new Date(binding.expiresAt).toISOString(),enabledMethods:activeEmail ? [{id:randomUUID(),kind:'EMAIL_OTP',version:'2'},{id:randomUUID(),kind:'EMAIL_OTP',version:'3'}] : [] }
     if(name==='beginEmail')return args[1]
-    if(name==='issueEmailEnrollment')return args[4]
+    if(name==='issueEmailEnrollment' || name==='issueEmail')return args[4]
     if(name==='reserveOwned'){const key=(args[2] as Buffer).toString('hex');return {replay:reference.has(key),requestHash:(args[3] as Buffer).toString('hex'),data:reference.get(key)}}
     if(name==='completeOwned'){reference.set((args[2] as Buffer).toString('hex'),JSON.parse(String(args[4])));return true}
     if(name==='consumeEmail')return validProof
@@ -65,4 +65,12 @@ test('EMAIL duplicate JSON selectors reject before dependency access with a safe
   assert.equal(response.status,400)
   assert.equal(response.headers.get('set-cookie'),null)
   assert.equal((await response.text()).includes('123456'),false)
+})
+
+test('multiple enabled EMAIL methods use a trusted stable locator without a client selector or invented limit', async () => {
+  const f=setup(true)
+  const result=await f.mail.issue('a'.repeat(43),{...f.binding,state:'PENDING_MFA'},'LOGIN')
+  assert.deepEqual(result.allowed_methods,['EMAIL_OTP'])
+  const call=f.calls.find(c=>c.name==='issueEmail')!
+  assert.equal(typeof call.args[1],'string')
 })
