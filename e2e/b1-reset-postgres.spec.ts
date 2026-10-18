@@ -82,3 +82,64 @@ test('real reset API rejects CSRF and forged authority then consumes one ticket 
   const state=await server.rpc({kind:'inspectReset'});expect(state.version==='2' && state.tickets===1 && state.codes===1 && state.active===0).toBe(true)
  }finally{await server.close()}
 })
+
+async function approveReset(page:Page,server:{rpc:(input:object)=>Promise<{proof:string}>},ticket:{ticket:string;targetUser:string},email:string){
+ await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!');await page.getByRole('button',{name:'Continuar',exact:true}).click()
+ await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click()
+ await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+ await page.getByText('Autorizar restablecimiento de credenciales',{exact:true}).click()
+ await page.getByLabel('Usuario destinatario',{exact:true}).fill(ticket.targetUser)
+ await page.getByLabel('Ticket comprobado',{exact:true}).fill(ticket.ticket)
+ await page.getByLabel('Motivo del restablecimiento',{exact:true}).fill('Comprobación independiente sintética de identidad')
+ await page.getByRole('button',{name:'Verificar y autorizar restablecimiento',exact:true}).click()
+ await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof',next:true})).proof)
+ await page.getByRole('button',{name:'Verificar',exact:true}).click()
+}
+test('real operator step-up RBAC receipt authorizes target reset without exposing or choosing password',async({page,browser})=>{
+ phase('ADMIN_SETUP');const server=await startRealBrowserServer('reset-admin');const target=await browser.newContext({ignoreHTTPSErrors:true})
+ try{
+  const receipt=await server.rpc({kind:'resetProof'}),email=(await server.rpc({kind:'fixtureEmail'})).email
+  await approveReset(page,server,receipt,email)
+  await expect(page.locator('p[role="status"]')).toContainText('Cambio confirmado')
+  expect((await server.rpc({kind:'inspectReset'})).version).toBe('1')
+  const denied=await page.evaluate(async ticket=>{
+   const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
+   return (await fetch('/auth/password/reset/authorize',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({target_user_id:'00000000-0000-4000-8000-000000000007',ticket,reason:'Synthetic cross-tenant denial'})})).status
+  },receipt.ticket)
+  expect(denied).toBe(403)
+  phase('TARGET_RESET');const person=await target.newPage();await person.goto('https://127.0.0.1:3000/login')
+  await person.getByRole('button',{name:'Restablecer contraseña',exact:true}).click();await submit(person,receipt.ticket,'')
+  await expect(person.getByRole('link',{name:'Volver al acceso',exact:true})).toBeVisible()
+  const state=await server.rpc({kind:'inspectReset'});expect(state.version==='2' && state.tickets===1 && state.codes===0 && state.active===0).toBe(true)
+  expect((await page.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(200)
+  phase('TARGET_MFA');await person.getByRole('link',{name:'Volver al acceso',exact:true}).click()
+  await person.getByLabel('Email',{exact:true}).fill(receipt.targetEmail);await person.getByLabel('Contraseña').fill(replacement);await person.getByRole('button',{name:'Continuar',exact:true}).click()
+  await person.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'targetProof'})).proof);await person.getByRole('button',{name:'Verificar',exact:true}).click()
+  await expect(person.getByText('Seguridad de la cuenta')).toBeVisible()
+ }finally{await target.close();await server.close()}
+})
+test('real missing operator RBAC cannot authorize reset and cannot erase ACTIVE context',async({page,browser})=>{
+ phase('ADMIN_SETUP');const server=await startRealBrowserServer('reset-admin');const target=await browser.newContext({ignoreHTTPSErrors:true})
+ try{
+  const receipt=await server.rpc({kind:'resetProof'}),email=(await server.rpc({kind:'fixtureEmail'})).email
+  await server.rpc({kind:'denyResetAuthorization'});await approveReset(page,server,receipt,email)
+  await expect(page.locator('p[role="status"]')).toContainText('No se pudo completar')
+  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+  expect((await page.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(200)
+  const person=await target.newPage();await person.goto('https://127.0.0.1:3000/login');await person.getByRole('button',{name:'Restablecer contraseña',exact:true}).click()
+  const result=person.waitForResponse(r=>new URL(r.url()).pathname==='/auth/password/reset');await submit(person,receipt.ticket,'')
+  expect((await result).status()).toBe(401);expect((await server.rpc({kind:'inspectReset'})).version).toBe('1')
+ }finally{await target.close();await server.close()}
+})
+test('real reset revalidates approving operator factor expiry before credential CAS',async({page,browser})=>{
+ phase('ADMIN_SETUP');const server=await startRealBrowserServer('reset-admin');const target=await browser.newContext({ignoreHTTPSErrors:true})
+ try{
+  const receipt=await server.rpc({kind:'resetProof'}),email=(await server.rpc({kind:'fixtureEmail'})).email
+  await approveReset(page,server,receipt,email);await expect(page.locator('p[role="status"]')).toContainText('Cambio confirmado')
+  await server.rpc({kind:'expireApproval'});phase('EXPIRED_APPROVAL')
+  const person=await target.newPage();await person.goto('https://127.0.0.1:3000/login');await person.getByRole('button',{name:'Restablecer contraseña',exact:true}).click()
+  const result=person.waitForResponse(r=>new URL(r.url()).pathname==='/auth/password/reset');await submit(person,receipt.ticket,'')
+  expect((await result).status()).toBe(401)
+  const state=await server.rpc({kind:'inspectReset'});expect(state.version==='1' && state.tickets===0 && state.active===0).toBe(true)
+ }finally{await target.close();await server.close()}
+})

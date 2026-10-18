@@ -220,6 +220,7 @@ export function AuthPanel() {
         <button type="button" onClick={()=>{clearCeremony();setMessage('')}}>Cancelar restablecimiento</button>
       </form>}
       {resetDone && <p><a href="/login">Volver al acceso</a></p>}
+      {!view.auth && !resetDone && <p><a href="/login">Reiniciar acceso</a></p>}
       {view.auth && <p>{view.auth.state === 'ACTIVE' && !selection && !challenge ? 'Acceso confirmado. Elige una acción.' : 'Completa la verificación para acceder.'}</p>}
       {selection && !recovering && <form onSubmit={event => { event.preventDefault(); void selectMethod() }}>
         <fieldset>
@@ -279,6 +280,14 @@ export function AuthPanel() {
         </dl><button onClick={async () => { const r = await call('revokeSelfSession', undefined, s.id); if (r) { if (s.is_current) { clearCeremony(); setEnrollment(null); setView(emptyView) } else { setView(v => ({ ...v, sessions: [] })); setSessionsCursor(null) } } }}>Revocar</button></li>)}</ul>
         {sessionsCursor && <button onClick={() => void sessions(sessionsCursor)}>Cargar más sesiones</button>}
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
+        <details><summary>Autorizar restablecimiento de credenciales</summary><p>Solo para operadores autorizados, tras la comprobación independiente de identidad. No introduzcas la contraseña de otra persona.</p>
+          <form onSubmit={async event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);form.reset();const body={target_user_id:String(data.get('target_user_id')),ticket:String(data.get('ticket')),reason:String(data.get('reason'))};const r=await call('startStepUp',{grant_id:'B1-SELF-06'});if(r){setPendingAction({operation:'authorizePasswordReset',body});prepare(r,{grant_id:'B1-SELF-06'})}}}>
+            <p><label>Usuario destinatario <input name="target_user_id" minLength={36} maxLength={36} required /></label></p>
+            <p><label>Ticket comprobado <input name="ticket" type="password" autoComplete="off" minLength={43} maxLength={43} required /></label></p>
+            <p><label>Motivo del restablecimiento <input name="reason" maxLength={500} required /></label></p>
+            <button type="submit">Verificar y autorizar restablecimiento</button>
+          </form>
+        </details>
         <button onClick={async () => { const r = await call('logout'); if (r) { clearCeremony(); setEnrollment(null); setView(emptyView); window.location.assign('/login') } }}>Cerrar sesión</button>
       </section>}
     </fieldset>

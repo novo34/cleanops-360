@@ -18,10 +18,11 @@ const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-const recoveryScenario = ['recovery','reset'].includes(input.scenario)
+const recoveryScenario = ['recovery','reset','reset-admin'].includes(input.scenario)
 const emailScenario = ['email', 'email-enrollment', 'email-additional', 'email-multiple'].includes(input.scenario)
 if(input.scenario==='multiple' || emailScenario || recoveryScenario){input.principal=randomUUID();input.user=randomUUID()}
 input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
+const resetTarget=input.scenario==='reset-admin'?{user:randomUUID(),principal:randomUUID(),email:'target-'+randomUUID()+'@fixture.invalid',method:randomUUID(),secret:randomBytes(32)}:null
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
@@ -47,6 +48,15 @@ try {
     await admin.query("INSERT INTO identity_private.principals VALUES($1,$2,'ACTIVE',now())",[input.principal,(emailScenario || recoveryScenario) ? input.email : 'multi@fixture.invalid'])
     await admin.query('INSERT INTO identity_private.credentials VALUES($1,$2,1,now())',[input.principal,passwordHash])
     await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic multi','ACTIVE','SENSITIVE',now())",[input.tenant,input.user,input.principal])
+  }
+  if(resetTarget){
+    await admin.query("INSERT INTO identity_private.principals VALUES($1,$2,'ACTIVE',now())",[resetTarget.principal,resetTarget.email])
+    await admin.query('INSERT INTO identity_private.credentials VALUES($1,$2,1,now())',[resetTarget.principal,passwordHash])
+    await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic reset subject','ACTIVE','SENSITIVE',now())",[input.tenant,resetTarget.user,resetTarget.principal])
+    const targetCipher=sealEnrollmentSecret(resetTarget.secret,key,'pg05-ephemeral',{...enrollmentContext,userId:resetTarget.user,methodId:resetTarget.method})
+    await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')",[input.tenant,resetTarget.method,resetTarget.user,targetCipher])
+    await admin.query("INSERT INTO app.access_resources VALUES($1,$2,'users',NULL)",[input.tenant,resetTarget.user])
+    for(const [action,kind] of [['edit','users'],['manage_permissions','access']])await admin.query("INSERT INTO app.access_rules VALUES($1,$2,NULL,$3,$4,$5,$6,'ALLOW',now()-interval '1m',NULL,NULL)",[input.tenant,randomUUID(),input.user,action,kind,resetTarget.user])
   }
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
@@ -121,9 +131,9 @@ try {
     factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
-        assert.equal(record.binding.userId, input.user);
+        assert.ok(record.binding.userId===input.user || record.binding.userId===resetTarget?.user);
          assert.equal(record.algorithm, 'SHA256'); assert.equal(bytes[0], 2)
-        return openEnrollmentSecret(bytes, key, version, { ...enrollmentContext, methodId: record.binding.methodId })
+        return openEnrollmentSecret(bytes, key, version, { ...enrollmentContext, userId:record.binding.userId, methodId: record.binding.methodId })
       } },
     mail: emailScenario ? { async withWriteKey(tenant, work) { assert.equal(tenant,input.tenant); const borrowed=Buffer.from(mailKey); try{return work(borrowed,'synthetic-mail-browser-v1')} finally{borrowed.fill(0)} } } : undefined,
     enrollment: {
@@ -150,17 +160,26 @@ try {
       if(message.kind==='recoveryProof'){reply({code:fixtureRecoveryCode});continue}
       if(message.kind==='resetProof'){
         const verifier=new Pool({host:'/var/run/postgresql',database:'core',user:'pgtest_verifier'})
-        try{await verifier.query("SELECT auth_api.attest_reset($1::uuid,$2::uuid,$3::bytea,'PASSWORD',$4::uuid,$5::timestamptz,$6::uuid)",[input.tenant,input.user,createHash('sha256').update(resetTicket).digest(),randomUUID(),new Date(Date.now()+numeric('preauth_ttl')*1000),randomUUID()])}finally{await verifier.end()}
-        reply({ticket:resetTicket,code:fixtureRecoveryCode});continue
+        try{await verifier.query("SELECT auth_api.attest_reset($1::uuid,$2::uuid,$3::bytea,'PASSWORD',$4::uuid,$5::timestamptz,$6::uuid)",[input.tenant,resetTarget?.user??input.user,createHash('sha256').update(resetTicket).digest(),randomUUID(),new Date(Date.now()+numeric('preauth_ttl')*1000),randomUUID()])}finally{await verifier.end()}
+        reply({ticket:resetTicket,code:fixtureRecoveryCode,targetUser:resetTarget?.user,targetEmail:resetTarget?.email});continue
+      }
+      if(message.kind==='expireApproval'){
+        await admin.query("UPDATE app.step_up_evidence SET verified_at=clock_timestamp()-interval '1m',expires_at=clock_timestamp()-interval '1s' WHERE user_id=$1",[input.user]);reply({ok:true});continue
+      }
+      if(message.kind==='denyResetAuthorization'){
+        await admin.query("UPDATE app.access_rules SET revoked_at=clock_timestamp() WHERE user_id=$1",[input.user]);reply({ok:true});continue
+      }
+      if(message.kind==='targetProof' && resetTarget){
+        reply({proof:TOTP.generate({secret:new Secret({buffer:Uint8Array.from(resetTarget.secret).buffer}),algorithm:'SHA256',period:numeric('totp_period'),digits:numeric('totp_digits')})});continue
       }
       if(message.kind==='expireReset'){
         await admin.query("UPDATE identity_private.reset_tickets SET created_at=clock_timestamp()-interval '700s',expires_at=clock_timestamp()-interval '1s' WHERE principal_id=$1",[input.principal]);reply({ok:true});continue
       }
       if(message.kind==='inspectReset'){
-        const credentials=await admin.query('SELECT credential_version::text AS version FROM identity_private.credentials WHERE principal_id=$1',[input.principal])
-        const tickets=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM identity_private.reset_tickets WHERE principal_id=$1',[input.principal])
-        const codes=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2',[input.tenant,input.user])
-        const sessions=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.sessions WHERE principal_id=$1",[input.principal])
+        const credentials=await admin.query('SELECT credential_version::text AS version FROM identity_private.credentials WHERE principal_id=$1',[resetTarget?.principal??input.principal])
+        const tickets=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM identity_private.reset_tickets WHERE principal_id=$1',[resetTarget?.principal??input.principal])
+        const codes=await admin.query('SELECT count(*) FILTER(WHERE consumed_at IS NOT NULL)::int AS consumed FROM app.recovery_codes WHERE tenant_id=$1 AND user_id=$2',[input.tenant,resetTarget?.user??input.user])
+        const sessions=await admin.query("SELECT count(*) FILTER(WHERE state='ACTIVE')::int AS active FROM app.sessions WHERE principal_id=$1",[resetTarget?.principal??input.principal])
         reply({version:credentials.rows[0].version,tickets:tickets.rows[0].consumed,codes:codes.rows[0].consumed,active:sessions.rows[0].active});continue
       }
 
@@ -239,7 +258,7 @@ try {
   }
   await Promise.allSettled([...pendingRequests])
 } finally {
-  key.fill(0); secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
+  key.fill(0); secret.fill(0); resetTarget?.secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
   await mailPool.end()
   await identity.end(); await admin.end()
 }

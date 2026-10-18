@@ -5,6 +5,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  authorizeReset: {sql:'SELECT auth_api.authorize_password_reset($1::uuid,$2::bytea,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   reserveResetOwned: {sql:'SELECT auth_api.reserve_reset_owned($1::text,$2::text,$3::bytea,$4::bytea) AS value',arity:4,kind:'json'},
   ownTrusted: {sql:'SELECT auth_api.own_trusted_devices($1::integer,$2::timestamptz,$3::uuid) AS value',arity:3,kind:'json'},
   registerTrusted: {sql:'SELECT auth_api.register_trusted_device($1::bytea,$2::uuid) AS value',arity:2,kind:'uuid'},
@@ -197,6 +198,7 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  authorizeReset: [targetUser:string,ticketDigest:Buffer,reason:string,correlation:string]
   reserveResetOwned: [bootstrap:string,csrf:string,keyDigest:Buffer,requestDigest:Buffer]
   ownTrusted: [limit:number,beforeTime:string|null,beforeId:string|null]
   registerTrusted: [tokenDigest:Buffer,correlation:string]

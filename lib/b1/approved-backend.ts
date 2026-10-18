@@ -228,7 +228,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
+          if (!['authorizePasswordReset','login', 'resetPassword', 'verifyMfa', 'recoverMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
           const purpose = ['login','resetPassword'].includes(operation) ? 'LOGIN' : ['verifyMfa', 'recoverMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
@@ -297,7 +297,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+          if (['authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
               ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword'].includes(operation) || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
@@ -387,6 +387,13 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               binding, grant, resource, input.totp_method_id as string)
             if ('state' in data) throw unavailable()
             return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
+          }
+          if(operation==='authorizePasswordReset'){
+            if(binding.kind!=='ACTIVE' || !uuid(input.target_user_id) || typeof input.ticket!=='string' || typeof input.reason!=='string')throw invalid()
+            const proof=hex(digest(input.ticket))
+            try{if(!await broker.call('authorizeReset',[input.target_user_id,proof,input.reason,correlation]))throw new AuthError(403,'POLICY_DENIED')}
+            finally{proof.fill(0)}
+            return {data:{authorized:true}}
           }
           if(operation==='resetPassword'){
             if(binding.kind!=='BOOTSTRAP' || !deps.passwordAdmission || typeof input.ticket!=='string' || !/^[A-Za-z0-9_-]{43}$/.test(input.ticket))throw unavailable()

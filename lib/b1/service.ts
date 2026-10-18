@@ -158,7 +158,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           let parsed: unknown
           try {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
+            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
           } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)
@@ -180,7 +180,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
           if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
-          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword'].includes(operationId)
+          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','authorizePasswordReset'].includes(operationId)
           if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
