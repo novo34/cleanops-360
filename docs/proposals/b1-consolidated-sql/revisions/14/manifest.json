@@ -1,0 +1,27 @@
+{
+  "candidate": "PG-TEST-01-CONSOLIDATED-14",
+  "status": "REVIEW ONLY",
+  "installationAuthorized": false,
+  "candidateArtifact": {
+    "gitBlob": "b320289eda5e37d4d7976ee35234b5198aece63f",
+    "sha256": "3b7b8b70035b8751efb57d228dc2b68a24b4829edc33eea669623e4797abf0b2",
+    "bytes": 212192
+  },
+  "diffSha256": "00d8af57e910a6a5baa9cb5634e032e38295259a92a6490beea898385214e817",
+  "changes": [
+    "Read-only private tenant/role UUID risk catalogue, FORCE RLS; SELECT only for private broker, no public/service writers",
+    "One private effective_risk(uuid,uuid), owned/revoked by the existing fixed function-owner pass; no public signature or role changes",
+    "Revalidate existing session ceilings against current effective risk without extending expiry",
+    "Use same effective risk for locked D1 material and session issuance; issuance holds policy SHARE; authorization rechecks after SHARE wait",
+    "Use one issuance timestamp for created/idle/absolute so strict ceiling cannot reject microsecond clock skew or gain an expiry tolerance",
+    "Relocate access_roles and access_role_memberships definitions byte-identically before their new SQL dependency"
+  ],
+  "notClaimed": [
+    "Not installed, compiled in PostgreSQL or security-accepted",
+    "No productive UUID classification, custodian or classification writer invented",
+    "Real role-change/concurrency/expiry regression remains mandatory after exact owner authorization"
+  ],
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN"
+}

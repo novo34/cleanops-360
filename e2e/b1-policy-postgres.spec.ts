@@ -6,7 +6,7 @@ async function login(page:Page,email:string){await page.goto('/login');await pag
 for(const risk of ['SENSITIVE','OPERATIONAL'] as const)for(const expiry of ['Idle','Absolute'] as const)test('POLICY real '+risk+' requires MFA and enforces independent '+expiry+' expiry',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await server.rpc({kind:'setAbuseRisk',risk});await login(page,(await server.rpc({kind:'fixtureEmail'})).email);expect((await server.rpc({kind:'inspectAbuse'})).active).toBe(0)
+  await server.rpc({kind:'enablePolicyTrusted'});await server.rpc({kind:'setAbuseRisk',risk});await login(page,(await server.rpc({kind:'fixtureEmail'})).email);expect((await server.rpc({kind:'inspectAbuse'})).active).toBe(0)
   await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
   const state=await server.rpc({kind:'inspectPolicySession'}),session=state.sessions[0];expect(state.sessions.length).toBe(1)
   const idle=numeric(risk==='OPERATIONAL'?'idle_operational':'idle_sensitive'),absolute=numeric(risk==='OPERATIONAL'?'absolute_operational':'absolute_sensitive')
@@ -37,7 +37,7 @@ for(const offset of [-1,0,1])test('POLICY real absolute boundary offset millisec
 for(const risk of ['SENSITIVE','OPERATIONAL'])test('POLICY real step-up and trusted-device use never extend absolute lifetime '+risk,async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await server.rpc({kind:'setAbuseRisk',risk});await login(page,(await server.rpc({kind:'fixtureEmail'})).email);await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.getByText('Seguridad de la cuenta')).toBeVisible();const before=(await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at
+  await server.rpc({kind:'enablePolicyTrusted'});await server.rpc({kind:'setAbuseRisk',risk});await login(page,(await server.rpc({kind:'fixtureEmail'})).email);await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof'})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.getByText('Seguridad de la cuenta')).toBeVisible();const before=(await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at
   await page.getByRole('button',{name:'Recordar este dispositivo',exact:true}).click();await expect(page.getByLabel('Código',{exact:true})).toBeVisible();await page.getByLabel('Código',{exact:true}).fill((await server.rpc({kind:'proof',next:true})).proof);await page.getByRole('button',{name:'Verificar',exact:true}).click();await expect(page.locator('p[role="status"]').first()).toContainText('Cambio de confianza confirmado')
   await page.getByRole('button',{name:'Comprobar este dispositivo',exact:true}).click();await expect(page.getByText('Este dispositivo tiene confianza vigente.',{exact:true})).toBeVisible();expect((await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at).toBe(before)
  }finally{await server.close()}

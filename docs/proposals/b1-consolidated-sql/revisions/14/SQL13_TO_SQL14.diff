@@ -1,0 +1,123 @@
+--- SQL13-authorized.sql
++++ SQL14-REVIEW-ONLY.sql
+@@ -240,14 +240,54 @@
+  SELECT EXISTS(SELECT 1 FROM app.self_service_rules r WHERE r.tenant_id=t AND r.rule_key=k AND r.state='ACTIVE' AND r.effect='ALLOW' AND r.start_at<=statement_timestamp() AND (r.expires_at IS NULL OR statement_timestamp()<r.expires_at))
+  AND NOT EXISTS(SELECT 1 FROM app.self_service_rules r WHERE r.tenant_id=t AND r.rule_key=k AND r.state='ACTIVE' AND r.effect='DENY' AND r.start_at<=statement_timestamp() AND (r.expires_at IS NULL OR statement_timestamp()<r.expires_at))
+ $fn$;
++CREATE TABLE app.access_roles (
++ tenant_id uuid NOT NULL, id uuid NOT NULL, label text NOT NULL CHECK(length(label) BETWEEN 1 AND 120),
++ revoked_at timestamptz, PRIMARY KEY(tenant_id,id), FOREIGN KEY(tenant_id) REFERENCES app.organizations(id)
++);
++CREATE TABLE app.access_role_memberships (
++ tenant_id uuid NOT NULL, role_id uuid NOT NULL, user_id uuid NOT NULL,
++ start_at timestamptz NOT NULL, expires_at timestamptz, revoked_at timestamptz,
++ PRIMARY KEY(tenant_id,role_id,user_id), FOREIGN KEY(tenant_id,role_id) REFERENCES app.access_roles(tenant_id,id),
++ FOREIGN KEY(tenant_id,user_id) REFERENCES app.users(tenant_id,id), CHECK(expires_at IS NULL OR expires_at>start_at)
++);
++-- REVIEW ONLY: server-reviewed role classification; no runtime/service writer.
++CREATE TABLE identity_private.role_risk_catalogue (
++ tenant_id uuid NOT NULL,role_id uuid NOT NULL,risk_class text NOT NULL CHECK(risk_class IN('SENSITIVE','OPERATIONAL')),
++ PRIMARY KEY(tenant_id,role_id),FOREIGN KEY(tenant_id,role_id) REFERENCES app.access_roles(tenant_id,id) ON DELETE RESTRICT
++);
++ALTER TABLE identity_private.role_risk_catalogue OWNER TO cleanops_ddl_owner;
++ALTER TABLE identity_private.role_risk_catalogue ENABLE ROW LEVEL SECURITY;
++ALTER TABLE identity_private.role_risk_catalogue FORCE ROW LEVEL SECURITY;
++CREATE POLICY broker_read ON identity_private.role_risk_catalogue TO cleanops_auth_broker FOR SELECT USING(true);
++GRANT SELECT ON identity_private.role_risk_catalogue TO cleanops_auth_broker;
++REVOKE ALL ON identity_private.role_risk_catalogue FROM PUBLIC,cleanops_runtime,cleanops_identity_service,cleanops_mail_worker;
++CREATE FUNCTION identity_private.effective_risk(t uuid,u uuid) RETURNS text
++LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++ SELECT CASE WHEN x.risk_class='SENSITIVE' THEN 'SENSITIVE'
++ WHEN EXISTS(SELECT 1 FROM app.access_role_memberships m JOIN app.access_roles r ON (r.tenant_id,r.id)=(m.tenant_id,m.role_id)
++ LEFT JOIN identity_private.role_risk_catalogue k ON (k.tenant_id,k.role_id)=(m.tenant_id,m.role_id)
++ WHERE m.tenant_id=t AND m.user_id=u AND r.revoked_at IS NULL AND m.revoked_at IS NULL
++ AND m.start_at<=statement_timestamp() AND (m.expires_at IS NULL OR statement_timestamp()<m.expires_at)
++ AND k.risk_class IS NULL) THEN NULL
++ WHEN EXISTS(SELECT 1 FROM app.access_role_memberships m JOIN app.access_roles r ON (r.tenant_id,r.id)=(m.tenant_id,m.role_id)
++ JOIN identity_private.role_risk_catalogue k ON (k.tenant_id,k.role_id)=(m.tenant_id,m.role_id)
++ WHERE m.tenant_id=t AND m.user_id=u AND r.revoked_at IS NULL AND m.revoked_at IS NULL
++ AND m.start_at<=statement_timestamp() AND (m.expires_at IS NULL OR statement_timestamp()<m.expires_at)
++ AND k.risk_class='SENSITIVE') THEN 'SENSITIVE' ELSE x.risk_class END
++ FROM app.users x WHERE x.tenant_id=t AND x.id=u AND x.state='ACTIVE'
++$fn$;
+ CREATE FUNCTION identity_private.valid_session(t uuid,s uuid,u uuid) RETURNS boolean
+ LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+  SELECT EXISTS(SELECT 1 FROM app.sessions x JOIN app.users a ON (a.tenant_id,a.id)=(x.tenant_id,x.user_id)
+  JOIN app.organizations o ON o.id=x.tenant_id JOIN identity_private.principals p ON p.id=x.principal_id
+  JOIN identity_private.credentials c ON c.principal_id=p.id
++ CROSS JOIN LATERAL (SELECT identity_private.effective_risk(x.tenant_id,x.user_id) AS risk OFFSET 0) e
+  WHERE x.tenant_id=t AND x.id=s AND x.user_id=u AND x.state='ACTIVE' AND x.revoked_at IS NULL
+  AND a.state='ACTIVE' AND o.state='ACTIVE' AND p.state='ACTIVE' AND x.credential_version=c.credential_version
+- AND statement_timestamp()<x.absolute_expires_at AND statement_timestamp()<x.idle_expires_at)
++ AND statement_timestamp()<x.absolute_expires_at AND statement_timestamp()<x.idle_expires_at
++ AND e.risk IN('SENSITIVE','OPERATIONAL')
++ AND x.idle_seconds<=(CASE WHEN e.risk='SENSITIVE' THEN 1800 ELSE 28800 END)
++ AND x.absolute_expires_at<=x.created_at+make_interval(secs=>identity_private.cfg(CASE WHEN e.risk='SENSITIVE' THEN 'absolute_sensitive' ELSE 'absolute_operational' END)))
+ $fn$;
+ CREATE FUNCTION identity_private.context() RETURNS identity_private.tx_context
+ LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+@@ -397,12 +437,15 @@
+ GRANT SELECT,INSERT,DELETE ON identity_private.recovery_enrollments TO cleanops_auth_broker;
+ CREATE FUNCTION auth_api.issue_active_session(raw_preauth text,new_token_hash bytea,new_csrf_hash bytea,absolute_seconds integer,idle_seconds integer,device text,browser text,corr uuid) RETURNS jsonb
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+-DECLARE q identity_private.preauth;k uuid:=gen_random_uuid();cv bigint;origin_user uuid; risk text;
++DECLARE q identity_private.preauth;k uuid:=gen_random_uuid();cv bigint;origin_user uuid; risk text;issued_at timestamptz;
+ BEGIN
+  q:=identity_private.checked_preauth(raw_preauth);
+  IF q.state<>'VERIFIED' OR q.factor_verified_at IS NULL OR q.tenant_id IS NULL THEN RAISE EXCEPTION 'MFA_REQUIRED' USING ERRCODE='42501'; END IF;
+  IF absolute_seconds NOT IN(identity_private.cfg('absolute_sensitive'),identity_private.cfg('absolute_operational')) OR idle_seconds NOT IN(1800,28800) OR octet_length(new_token_hash)<>32 OR octet_length(new_csrf_hash)<>32 THEN RAISE EXCEPTION 'INVALID_SESSION_POLICY'; END IF;
+- SELECT risk_class INTO risk FROM app.users WHERE tenant_id=q.tenant_id AND id=q.user_id;
++ PERFORM 1 FROM app.policy_versions WHERE tenant_id=q.tenant_id FOR SHARE;
++ IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++ risk:=identity_private.effective_risk(q.tenant_id,q.user_id);
++ IF risk IS NULL OR risk NOT IN('SENSITIVE','OPERATIONAL') THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
+  IF absolute_seconds<>(CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END)
+  OR idle_seconds<>(CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END) THEN RAISE EXCEPTION 'RISK_POLICY_MISMATCH'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM app.users u JOIN app.organizations o ON o.id=u.tenant_id WHERE u.tenant_id=q.tenant_id AND u.id=q.user_id AND u.state='ACTIVE' AND o.state='ACTIVE') THEN RAISE EXCEPTION 'INVALID_SUBJECT'; END IF;
+@@ -411,8 +454,9 @@
+   IF NOT identity_private.valid_session(q.origin_tenant_id,q.origin_session_id,origin_user) OR NOT identity_private.rule_allowed(q.tenant_id,'B1-SELF-08') THEN RAISE EXCEPTION 'INVALID_SWITCH'; END IF;
+  END IF;
+  SELECT credential_version INTO cv FROM identity_private.credentials WHERE principal_id=q.principal_id;
++ issued_at:=clock_timestamp();
+  INSERT INTO app.sessions(tenant_id,id,user_id,principal_id,token_digest,csrf_digest,state,created_at,last_activity_at,absolute_expires_at,idle_expires_at,idle_seconds,credential_version,mfa_verified_at,device_label,browser_label)
+- VALUES(q.tenant_id,k,q.user_id,q.principal_id,new_token_hash,new_csrf_hash,'ACTIVE',clock_timestamp(),clock_timestamp(),clock_timestamp()+make_interval(secs=>absolute_seconds),clock_timestamp()+make_interval(secs=>idle_seconds),idle_seconds,cv,q.factor_verified_at,device,browser);
++ VALUES(q.tenant_id,k,q.user_id,q.principal_id,new_token_hash,new_csrf_hash,'ACTIVE',issued_at,issued_at,issued_at+make_interval(secs=>absolute_seconds),issued_at+make_interval(secs=>idle_seconds),idle_seconds,cv,q.factor_verified_at,device,browser);
+  IF q.origin_session_id IS NOT NULL THEN
+   UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE tenant_id=q.origin_tenant_id AND id=q.origin_session_id;
+   PERFORM identity_private.append_audit(q.origin_tenant_id,origin_user,'tenant.switch.out',q.origin_session_id,1,corr);
+@@ -1370,7 +1414,7 @@
+  IF purpose<>'STEP_UP' AND (grant_key IS NOT NULL OR resource IS NOT NULL) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  PERFORM 1 FROM app.policy_versions WHERE tenant_id=t FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501'; END IF;
+- SELECT x.risk_class,p.email_normalized INTO risk,recipient
++ SELECT identity_private.effective_risk(x.tenant_id,x.id),p.email_normalized INTO risk,recipient
+  FROM app.users x JOIN identity_private.principals p ON p.id=x.principal_id
+  JOIN app.organizations o ON o.id=x.tenant_id
+  WHERE x.tenant_id=t AND x.id=u AND x.state='ACTIVE' AND o.state='ACTIVE' AND p.state='ACTIVE'
+@@ -1585,16 +1629,6 @@
+  tenant_id uuid NOT NULL REFERENCES app.organizations(id),id uuid NOT NULL,kind text NOT NULL CHECK(length(kind) BETWEEN 1 AND 80),parent_id uuid,
+  PRIMARY KEY(tenant_id,id),FOREIGN KEY(tenant_id,parent_id) REFERENCES app.access_resources(tenant_id,id),CHECK(parent_id IS NULL OR parent_id<>id)
+ );
+-CREATE TABLE app.access_roles (
+- tenant_id uuid NOT NULL, id uuid NOT NULL, label text NOT NULL CHECK(length(label) BETWEEN 1 AND 120),
+- revoked_at timestamptz, PRIMARY KEY(tenant_id,id), FOREIGN KEY(tenant_id) REFERENCES app.organizations(id)
+-);
+-CREATE TABLE app.access_role_memberships (
+- tenant_id uuid NOT NULL, role_id uuid NOT NULL, user_id uuid NOT NULL,
+- start_at timestamptz NOT NULL, expires_at timestamptz, revoked_at timestamptz,
+- PRIMARY KEY(tenant_id,role_id,user_id), FOREIGN KEY(tenant_id,role_id) REFERENCES app.access_roles(tenant_id,id),
+- FOREIGN KEY(tenant_id,user_id) REFERENCES app.users(tenant_id,id), CHECK(expires_at IS NULL OR expires_at>start_at)
+-);
+ CREATE TABLE app.access_rules (
+  tenant_id uuid NOT NULL, id uuid NOT NULL, role_id uuid, user_id uuid,
+  action text NOT NULL CHECK(action IN('view','create','edit','approve','delete','export','manage_permissions')),
+@@ -1884,7 +1918,8 @@
+ BEGIN
+  IF raw_preauth IS NULL THEN c:=identity_private.context();t:=c.tenant_id;u:=c.user_id;ELSE q:=identity_private.checked_preauth(raw_preauth);t:=q.tenant_id;u:=q.user_id;END IF;
+  IF corr IS NULL OR expected_version IS NULL OR expected_version<1 OR recipient_version IS NULL OR recipient_version<1 OR submitted_digest IS NULL OR octet_length(submitted_digest)<>32 THEN RETURN false;END IF;
+- SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t FOR SHARE;IF NOT FOUND THEN RETURN false;END IF;
++ SELECT version INTO pv FROM app.policy_versions WHERE tenant_id=t FOR SHARE;
++ IF raw_preauth IS NULL AND NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;IF NOT FOUND THEN RETURN false;END IF;
+  SELECT * INTO x FROM app.mfa_challenges WHERE tenant_id=t AND id=challenge AND user_id=u;
+  IF NOT FOUND THEN RETURN false;END IF;
+  SELECT * INTO m FROM app.mfa_methods WHERE tenant_id=t AND id=x.method_id AND user_id=u FOR UPDATE;

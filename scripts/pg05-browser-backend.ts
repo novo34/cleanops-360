@@ -236,6 +236,9 @@ try {
         if(!['SENSITIVE','OPERATIONAL'].includes(message.risk))throw Error('INVALID_SYNTHETIC_RISK')
         await admin.query('UPDATE app.users SET risk_class=$3 WHERE tenant_id=$1 AND id=$2',[input.tenant,input.user,message.risk]);reply({ok:true});continue
       }
+      if(input.scenario==='abuse'&&message.kind==='enablePolicyTrusted'){
+        await admin.query('INSERT INTO app.auth_preferences VALUES($1,true) ON CONFLICT(tenant_id) DO UPDATE SET trusted_devices_enabled=true',[input.tenant]);reply({ok:true});continue
+      }
       if(input.scenario==='abuse' && message.kind==='policyExactBoundary'){
         if(![-1,0,1].includes(message.offset))throw Error('INVALID_SYNTHETIC_BOUNDARY')
         const r=await admin.query("UPDATE app.sessions SET absolute_expires_at=statement_timestamp()+interval '60 seconds',idle_expires_at=statement_timestamp()+interval '120 seconds' WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE' RETURNING absolute_expires_at",[input.tenant,input.user])

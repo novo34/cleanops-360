@@ -51,6 +51,9 @@ jobs:
       - run: python3 scripts/consolidate-b1-access-audit.py --check
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql
       - run: python3 scripts/consolidate-b1-denial-events.py --check
+      - run: python3 scripts/consolidate-b1-role-risk.py --check
+      - run: python3 scripts/test-b1-role-risk-review.py
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql
       - run: python3 scripts/consolidate-b1-preauth-selection.py --check
       - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/12/schema.review.sql
