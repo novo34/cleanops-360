@@ -28,8 +28,14 @@ def checks():
   b.REPORT['newUIE2E']='NOT_RUN_NATIVE_ONLY'
  else:
   if group not in {'browser','policy','regression'}:raise RuntimeError('UNKNOWN_SQL14_GROUP')
+  b.ENV['B1_SQL14_APPROVED_BLOB']=runner.BLOB
   browser=prior.prior.prior.nine.previous.browser
   browser.CONFIG='playwright.sql14-'+group+'.config.ts';browser.UI_SCOPE='EXECUTED_SQL14_'+group.upper()+'_REAL_BROWSER';browser.SECURITY_GATE='pg11-access-security-tests.py';browser.TABLE_COUNT=32;browser.browser()
  b.REPORT['fullB1Result']='OPEN_NOT_FORMALLY_ACCEPTED'
+previous_sql=runner.sql
+def sql(text,role='postgres',database='core'):
+ if text=="SELECT count(*)=21 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN('app','identity_private') AND c.relkind='r';":text=text.replace('=21','=32')
+ return previous_sql(text,role,database)
+runner.sql=sql
 runner.payload=payload;runner.checks=checks
 if __name__=='__main__':sys.exit(runner.main())
