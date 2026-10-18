@@ -136,7 +136,7 @@ try{
    await maintenance.query('SELECT auth_api.gc_ephemeral()')
   })
  }else blocked('EMAIL-native-functional-flows')
-}catch(e){checks.push({name:'EMAIL-harness-'+stage,status:'FAIL',detail:'REDACTED'})}
+}catch{checks.push({name:'EMAIL-harness-'+stage,status:'FAIL',detail:'REDACTED'})}
 finally{key.fill(0);hmac.fill(0);await Promise.all([admin.end(),identity.end(),mail.end(),verifier.end(),maintenance.end()])}
 console.log(JSON.stringify({scope:'PRIVATE_WORKER_REAL_PG_SYNTHETIC_TRANSPORT_NOT_PRODUCT_UI',checks}))
 process.exitCode=checks.every(c=>c.status==='PASS')?0:1
