@@ -1,8 +1,8 @@
-# B1 remaining criteria — 39/44 isolated functional acceptances
+# B1 remaining criteria — 40/44 isolated functional acceptances
 
 B1 and AUTH-GATE-05 remain OPEN; closedBackend remains the runtime. This is not productive acceptance or permission to start another module.
 
-17 additional criteria now have individual real evidence: AUTH002,003,010,015,016,017,020,022,034,044,045,047; TEN001–004; SEC020. [Canonical 44-row inventory](../closure/requirements.json) retains the original criterion text, exact cases and source provenance for each acceptance. [Composite evidence](ACCEPTANCE_EVIDENCE.json) selects only real PASS cases; failed earlier attempts are preserved, not relabeled.
+18 additional criteria now have individual real evidence: AUTH002,003,004,010,015,016,017,020,022,034,044,045,047; TEN001–004; SEC020. [Canonical 44-row inventory](../closure/requirements.json) retains the original criterion text, exact cases and source provenance for each acceptance. [Composite evidence](ACCEPTANCE_EVIDENCE.json) selects only real PASS cases; failed earlier attempts are preserved, not relabeled.
 
 Implemented and verified: durable abuse counters and hashed rate-limit events, anti-enumeration responses, global one-use TOTP across concurrent browsers, administrative MFA reset through the existing approved broker, durable CSRF denial, QR canvas decoding and enrollment, authenticated ciphertext tampering rejection, both trusted risk profiles' independent idle/absolute expiry, ACTIVE source step-up/destination MFA switching and revoked-origin denial, actual pg Pool max=1 tenant-context reuse/discard/GUC negatives. Approved policy/canonical SQL originals remain intact; SQL11 alone was installed.
 
@@ -10,11 +10,12 @@ Implemented and verified: durable abuse counters and hashed rate-limit events, a
 
 Additional directed real evidence: abuse98/8 browsers, admin MFA94/4, QR91/1, ACTIVE switch92/2, generation-correct ciphertext91/1, CSRF91/1 and native pooled isolation96. Four independent policy/expiry browser cases passed in the retained earlier policy run; that full run failed its separate stale-generation tampering assertion, corrected and rerun in POLICY_NEGATIVE_EXECUTION.json. Counts are not summed as distinct tests or accepted requirements.
 
-## Five OPEN criteria, classified
+Actual application compatibility now PASS: KeePassXC2.7.6 and OATH Toolkit2.6.11 installed Linux CLIs,92 checks and one real QR→enrollment→logout→login PostgreSQL browser journey. See AUTHENTICATOR_EXECUTION.json. Neither mobile/GUI nor untested application versions are claimed. Existing514-check regression is historical evidence of the unchanged application backend.
+
+## Four OPEN criteria, classified
 
 |Criterion|Classification|Concrete closure work|
 |---|---|---|
-|AUTH004|Real operational/test dependency|Designated real authenticator apps/platform versions/device operator and observed compatibility with approved SHA256 policy; QR decoder/OTPAuth are not app evidence.|
 |SEC021|Real operational decision|Owner/security approval of absolute lifetime by trusted risk; already tested 8h/24h pair remains trial-only until explicitly approved.|
 |AUD001|Functionality incomplete|Generic authorization/step-up guard denials currently roll back without durable journal. Consolidated SQL13 adds the two exact event codes; caller guards and real denial/COMMIT tests follow exact approval. Existing AUTHZ durable denied audit is preserved.|
 |PR006|Formal acceptance pending, with a remaining functional contract gap|Initial password-verified multi-company PREAUTH selector remains fail-closed503 until owned rotation is approved/implemented/tested. Then complete missing operational evidence, independent review and authorized staging/manual PO acceptance; no deployment authorization inferred.|

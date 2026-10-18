@@ -2,7 +2,7 @@
   "B1": "OPEN",
   "AUTH-GATE-05": "OPEN",
   "runtime": "closedBackend",
-  "accepted": 39,
+  "accepted": 40,
   "total": 44,
   "remaining": [
     {
@@ -14,11 +14,6 @@
       "id": "REQ-PR-007",
       "classification": "FORMAL_ACCEPTANCE_PENDING",
       "blocker": "B1 and AUTH-GATE-05 remain OPEN; no next module may start before documented phase acceptance."
-    },
-    {
-      "id": "REQ-AUTH-004",
-      "classification": "REAL_OPERATIONAL_DEPENDENCY",
-      "blocker": "D3 algorithm/entropy/issuer approved; zbar and OTPAuth are not real authenticator apps. Need designated supported app versions/devices and observed QR/code acceptance; no external service connection or fabricated app evidence."
     },
     {
       "id": "REQ-SEC-021",
@@ -51,5 +46,23 @@
     "bytes": 209170,
     "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
   },
-  "consolidatedApprovalScope": "PREAUTH owned rotation plus two denial-event codes; supersedes uninstalled SQL12. Neither candidate installed."
+  "consolidatedApprovalScope": "PREAUTH owned rotation plus two denial-event codes; supersedes uninstalled SQL12. Neither candidate installed.",
+  "authenticatorEvidence": {
+    "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
+    "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+    "run": 39133840573,
+    "uiScope": "EXECUTED_SQL11_COMPAT_REAL_BROWSER",
+    "cases": [
+      "COMPAT-real-application-availability",
+      "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session"
+    ],
+    "productionAcceptance": false
+  },
+  "absoluteProposal": {
+    "sensitive": 43200,
+    "operational": 86400,
+    "status": "REVIEW_ONLY_NOT_APPLIED",
+    "comparison": "SRS compatible with complete sensitive-role coverage; changes sensitive trial28800 to43200, requires explicit approval and directed validation.",
+    "review": "docs/implementation/b1/remaining/ABSOLUTE_12_24_REVIEW.md"
+  }
 }

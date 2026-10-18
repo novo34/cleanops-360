@@ -1,5 +1,5 @@
 {
-  "referenceHead": "ca685cb873057409f0f5846109e2c1d88cc256a0",
+  "referenceHead": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -11,9 +11,9 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 39,
+    "numerator": 40,
     "denominator": 44,
-    "percent": 88.63636363636364,
+    "percent": 90.9090909090909,
     "verifiedRequirementIds": [
       "REQ-AUTHZ-001",
       "REQ-AUTHZ-002",
@@ -25,6 +25,7 @@
       "REQ-AUTH-001",
       "REQ-AUTH-002",
       "REQ-AUTH-003",
+      "REQ-AUTH-004",
       "REQ-AUTH-010",
       "REQ-AUTH-011",
       "REQ-AUTH-012",
@@ -380,5 +381,16 @@
     },
     "externalIdentityAuthority": "SYNTHETIC_ONLY_NOT_PRODUCTIVE"
   },
-  "latestRemainingAssessment": "docs/implementation/b1/remaining/STATUS.json"
+  "latestRemainingAssessment": "docs/implementation/b1/remaining/STATUS.json",
+  "authenticatorEvidence": {
+    "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
+    "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+    "run": 39133840573,
+    "uiScope": "EXECUTED_SQL11_COMPAT_REAL_BROWSER",
+    "cases": [
+      "COMPAT-real-application-availability",
+      "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session"
+    ],
+    "productionAcceptance": false
+  }
 }

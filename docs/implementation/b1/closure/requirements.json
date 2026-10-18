@@ -619,8 +619,8 @@
     {
       "id": "REQ-AUTH-004",
       "requirement": "TOTP deberá ser compatible con aplicaciones estándar.",
-      "implementation": "LIBRARY_TESTED_DEVICE_INTEROP_NOT_TESTED",
-      "pending": "D3 algorithm/entropy/issuer approved; zbar and OTPAuth are not real authenticator apps. Need designated supported app versions/devices and observed QR/code acceptance; no external service connection or fabricated app evidence.",
+      "implementation": "IMPLEMENTED_REAL_UI_API_PG",
+      "pending": "None in isolated functional compatibility scope: installed KeePassXC2.7.6 and OATH Toolkit2.6.11 Linux CLI, actual decoded QR URI, SHA256,32-byte secret, canonical digits/period/window, valid enrollment and subsequent login accepted by real PostgreSQL; expired/wrong/reused attempts denied. No mobile, GUI scanner or other app/version compatibility claimed. Formal phase/manual Product Owner acceptance remains OPEN.",
       "tests": [
         "TOTP-01"
       ],
@@ -628,13 +628,28 @@
         "lib/b1/service.ts",
         "lib/b1/approved-backend.ts",
         "lib/b1/totp.ts",
-        "docs/proposals/b1-ceremony-material/TOTP_CANDIDATE.md"
+        "docs/proposals/b1-ceremony-material/TOTP_CANDIDATE.md",
+        "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
+        "e2e/helpers/authenticator-apps.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
       "historicalPendingBeforeSQL07": "D3: elegir algoritmo/entropía/issuer/label, probar QR y códigos de autenticadores reales con versiones registradas; no degradación implícita.",
-      "pendingClass": "REAL_OPERATIONAL_DEPENDENCY"
+      "pendingClass": "REAL_OPERATIONAL_DEPENDENCY",
+      "historicalPendingBeforeRealApplicationEvidence": "D3 algorithm/entropy/issuer approved; zbar and OTPAuth are not real authenticator apps. Need designated supported app versions/devices and observed QR/code acceptance; no external service connection or fabricated app evidence.",
+      "accepted": true,
+      "acceptanceEvidence": {
+        "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
+        "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+        "run": 39133840573,
+        "uiScope": "EXECUTED_SQL11_COMPAT_REAL_BROWSER",
+        "cases": [
+          "COMPAT-real-application-availability",
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session"
+        ],
+        "productionAcceptance": false
+      }
     },
     {
       "id": "REQ-AUTH-010",
@@ -2541,7 +2556,7 @@
       "id": "REQ-SEC-021",
       "requirement": "La caducidad absoluta de sesión tendrá un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 días de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.",
       "implementation": "PARTIAL_CODE_SIMULATED",
-      "pending": "Owner/security validation of numeric absolute lifetime by risk remains required. 8h/24h are tested trial values, independent of 30-day trusted device; no production policy approval inferred.",
+      "pending": "Owner12h/24h proposal is design-compatible with complete SENSITIVE-role coverage, not yet approved/applied. Actual trial8h/24h evidence remains valid; effective12h needs explicit configuration approval and directed real boundary tests. See remaining/ABSOLUTE_12_24_REVIEW.md.",
       "tests": [
         "SESSION-01",
         "CTX-04"
@@ -2890,8 +2905,8 @@
       "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retención y restore de datos/claves/configuración de Auth; RPO≤15 min/RTO≤4 h medidos."
     }
   ],
-  "assessmentHead": "ca685cb873057409f0f5846109e2c1d88cc256a0",
-  "accepted": 39,
+  "assessmentHead": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+  "accepted": 40,
   "individualAcceptanceAuthority": "Owner instruction2026-10-18: accept each requirement with complete evidence without waiting for all44.",
   "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
   "phaseOwnerAcceptance": "PENDING",

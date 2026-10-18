@@ -30,7 +30,7 @@ jobs:
       - run: python3 scripts/consolidate-b1-sql.py --revision 03 --check
       - run: python3 scripts/review-b1-case-operands.py --check
       - run: python3 scripts/review-b1-consolidated.py --revision 02 --check
-      - run: python3 -m pip install pglast==6.16
+      - run: python3 scripts/install-pg16-parser.py
       - run: python3 scripts/parse-b1-sql.py
       - run: python3 scripts/consolidate-b1-sql.py --revision 04 --check
       - run: python3 scripts/review-b1-maintenance-acl.py --check

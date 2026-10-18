@@ -22,7 +22,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
       assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
-      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER','EXECUTED_SQL11_REMAINING_COMPOSITE_REAL_BROWSER'].includes(evidence.newUIE2E))
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER','EXECUTED_SQL09_RESET_AND_RECOVERY_REAL_BROWSER','EXECUTED_SQL09_PASSWORD_RESET_REAL_BROWSER','EXECUTED_SQL10_TRUSTED_DEVICE_COMPOSITE_REAL_CASES','EXECUTED_SQL11_AUTHZ_REAL_BROWSER','EXECUTED_SQL11_ABUSE_REAL_BROWSER','EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER','EXECUTED_SQL11_REMAINING_COMPOSITE_REAL_BROWSER','EXECUTED_SQL11_COMPAT_REAL_BROWSER'].includes(evidence.newUIE2E))
       if(evidence.kind==='COMPOSITE_REAL_CASE_EVIDENCE'){
         for(const check of evidence.checks){const raw=JSON.parse(read(check.sourceReport));assert.equal(raw.source,check.source);assert.equal(raw.run,check.run);assert.ok(raw.checks.some((c:{name:string;status:string})=>c.name===check.name&&c.status==='PASS'))}
       }
@@ -97,4 +97,16 @@ test('SQL11 acceptance is backed by real role/resource matrix, denied HTTP audit
  for(let role=1;role<=10;role++)for(const phase of ['role-label-has-no-authority','explicit-grants-allowed','same-tenant-outside-scope-denied','foreign-tenant-denied','individual-explicit-deny-beats-role','expired-grants-denied','revoked-membership-denied-in-existing-session'])assert.ok(report.checks.some((c:{name:string;status:string})=>c.name==='SQL11-matrix-'+role+'-'+phase&&c.status==='PASS'))
  assert.equal(matrix.requirements.filter((r:{acceptance:string})=>r.acceptance==='ACCEPTED').length,matrix.accepted)
  assert.ok(matrix.accepted>=22)
+})
+
+
+test('standard-app compatibility acceptance requires actual installed applications and both real proof phases',()=>{
+ const report=JSON.parse(read('docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json'))
+ assert.equal(report.result,'PASS');assert.equal(report.cleanup,'PASS')
+ assert.deepEqual(report.authenticatorApplications.map((a:{application:string})=>a.application).sort(),['KeePassXC','OATH Toolkit'])
+ for(const app of report.authenticatorApplications){assert.match(app.version,/^\d+\.\d+\.\d+$/);assert.match(app.interface,/installed Linux CLI/)}
+ const browser=report.checks.find((c:{name:string})=>c.name.startsWith('Browser-PG-'))
+ assert.equal(browser.status,'PASS')
+ for(const phase of ['REAL_AUTHENTICATOR_APPLICATIONS','REAL_OATHTOOL_LOGIN','CLEANUP_DONE'])assert.ok(browser.detail.phases.includes(phase))
+ assert.equal(matrix.requirements.find((r:{id:string})=>r.id==='REQ-AUTH-004').acceptanceEvidence.report,'docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json')
 })

@@ -27,7 +27,7 @@ jobs:
           python3 scripts/consolidate-b1-sql.py --revision 03 --check
           python3 scripts/review-b1-case-operands.py --check
       - name: PostgreSQL 16 offline parser dependency
-        run: python3 -m pip install pglast==6.16
+        run: python3 scripts/install-pg16-parser.py
       - name: All function declarations offline grammar diagnostics
         continue-on-error: true
         run: |
