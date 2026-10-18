@@ -60,6 +60,11 @@ provided, so there is no accidental one-command provisioning path.
 KVv2 mount `b1-keys`, independent per environment; exact paths:
 `b1-keys/data/<environment>/<tenant UUID>/<purpose>/<immutable key ID>`.
 No wildcard, list, metadata enumeration, cross-tenant path or generic runtime policy.
+Each rendered package covers exactly ONE tenant; mixed-tenant input is rejected.
+Actual policy/role names must include that tenant UUID (rendered token_policies do);
+install each under its own environment/tenant directory so another tenant cannot
+overwrite the same workload policy name. Snapshot/restore identities are explicitly
+cluster-scoped exceptional operating roles, never application identities.
 The renderer produces an AppRole proposal only for workloads with explicit reads:
 
 |Logical identity|Exact permitted material|Forbidden|

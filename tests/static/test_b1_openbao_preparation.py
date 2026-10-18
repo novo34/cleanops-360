@@ -15,6 +15,9 @@ class Preparation(unittest.TestCase):
   for path,value in p.items():self.assertNotIn('*',path);self.assertNotIn('+',path);self.assertEqual(value['capabilities'],['read'])
   r=a['mail-worker.approle.json'];self.assertTrue(r['token_no_default_policy']);self.assertTrue(r['bind_secret_id']);self.assertEqual(r['secret_id_num_uses'],1)
   self.assertNotIn('identity-verifier.approle.json',a)
+  self.assertIn('11111111-1111-1111-1111-111111111111',r['token_policies'][0])
+  d=fixture();d['approved_key_creates'][0]['tenant']='22222222-2222-2222-2222-222222222222'
+  with self.assertRaises(ValueError):m.prepare(d)
  def test_creator_has_no_update_or_delete_and_backup_no_restore(self):
   a=m.prepare(fixture());self.assertTrue(a['kv-config.json']['cas_required'])
   for v in a['key-creator.policy.json']['path'].values():self.assertEqual(v['capabilities'],['create']);self.assertNotIn('allowed_parameters',v)

@@ -29,6 +29,9 @@ def prepare(d):
  raw=(BASE/'server.template.json').read_text()
  for k,v in {'API_DNS':dns,'PRIVATE_IPV4':str(ip),'NODE_ID':name(d['node_id']),'TOKEN_TTL':ttl,'TOKEN_MAX_TTL':maximum}.items():raw=raw.replace('@'+k+'@',str(v))
  server=json.loads(raw);outputs={'server.json':server};policies={w:{'path':{}} for w in WORKLOADS};creator={'path':{}}
+ tenants={k['tenant'] for field in ['approved_key_reads','approved_key_creates'] for k in d[field]}
+ if len(tenants)!=1:raise ValueError('EXACTLY_ONE_TENANT_PER_WORKLOAD_PACKAGE_REQUIRED')
+ role_tenant=next(iter(tenants))
  seen=set()
  for field,op in [('approved_key_reads','read'),('approved_key_creates','create')]:
   for key in d[field]:
@@ -49,7 +52,7 @@ def prepare(d):
   # Empty roles must never authenticate using only an inherited default policy.
   if not p['path']:continue
   outputs[w+'.policy.json']=p
-  outputs[w+'.approle.json']={'bind_secret_id':True,'secret_id_num_uses':1,'secret_id_ttl':sid,'secret_id_bound_cidrs':cidrs,'token_bound_cidrs':cidrs,'token_no_default_policy':True,'token_policies':['b1-'+env+'-'+w],'token_ttl':ttl,'token_max_ttl':maximum,'token_type':'service'}
+  outputs[w+'.approle.json']={'bind_secret_id':True,'secret_id_num_uses':1,'secret_id_ttl':sid,'secret_id_bound_cidrs':cidrs,'token_bound_cidrs':cidrs,'token_no_default_policy':True,'token_policies':['b1-'+env+'-'+role_tenant+'-'+w],'token_ttl':ttl,'token_max_ttl':maximum,'token_type':'service'}
  if creator['path']:outputs['key-creator.policy.json']=creator
  outputs['kv-mount.json']={'type':'kv','options':{'version':'2'}}
  outputs['kv-config.json']={'cas_required':True,'delete_version_after':'0s'}
