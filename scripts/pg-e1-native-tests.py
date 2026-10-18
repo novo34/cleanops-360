@@ -99,15 +99,16 @@ def run(b):
  b.check('tenant-rotation-old-binding-denied',"SELECT auth_api.preauth_summary(repeat('n',43));",role=role,failure='42501')
  b.check('tenant-rotation-never-inherits-factor',"SELECT auth_api.preauth_summary(repeat('o',43))->>'state';",'ENROLLMENT_REQUIRED',role)
  b.check('tenant-rotation-preserves-password-proof-deadline',f"SELECT (SELECT expires_at FROM identity_private.preauth WHERE cookie_digest={dg('n')})=(SELECT expires_at FROM identity_private.preauth WHERE cookie_digest={dg('o')});",'t')
+ # Failed privileged mutation must not persist grant/audit/policy effects.
+ before=b.sql(f"SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}';").stdout.strip()
+ service('permission-stale-policy-denied-no-effects',f"SELECT auth_api.set_user_access_rule('{b.V}','{uuid.uuid4()}','edit','users','{b.V}','ALLOW',now(),NULL,0,'{corr}');",'f')
+ b.check('denied-policy-unchanged',f"SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}';",before)
+
  # Existing principal/credential row lock used by every new contract: no fake locks.
  stmt=f"BEGIN;SELECT auth_api.rehash_credential_cas('{b.P}',1,'$argon2id$fixture-not-a-real-password','$argon2id$synthetic-new');COMMIT;"
  with ThreadPoolExecutor(max_workers=2) as ex:results=list(ex.map(lambda _:b.sql(stmt,role),range(2)))
  vals=[r.stdout.strip().splitlines()[-1] if not r.returncode and r.stdout.strip() else None for r in results]
  b.record('credential-CAS-new-contract-concurrency','PASS' if sorted(v for v in vals if v is not None)==['f','t'] else 'FAIL',{'winners':vals.count('t'),'sqlstates':[b.state(r) for r in results if r.returncode]})
- # Failed privileged mutation must not persist grant/audit/policy effects.
- before=b.sql(f"SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}';").stdout.strip()
- service('permission-stale-policy-denied-no-effects',f"SELECT auth_api.set_user_access_rule('{b.V}','{uuid.uuid4()}','edit','users','{b.V}','ALLOW',now(),NULL,1,'{corr}');",'f')
- b.check('denied-policy-unchanged',f"SELECT version FROM app.policy_versions WHERE tenant_id='{b.A}';",before)
  # New function inventory is not full B1 UI/PO acceptance.
  b.REPORT['newFunctionInventory']=len(manifest['functions'])
 

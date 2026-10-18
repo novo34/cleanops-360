@@ -24,7 +24,7 @@
       "fail": 0
     }
   },
-  "newSqlInstallation": "NOT_AUTHORIZED_NOT_EXECUTED",
+  "newSqlInstallation": "EXACT06_AUTHORIZED_INSTALLED;07_NOT_AUTHORIZED_NOT_INSTALLED",
   "requirements": [
     {
       "id": "REQ-PR-006",
@@ -48,7 +48,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-PR-007",
@@ -72,7 +74,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-001",
@@ -92,12 +96,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-002",
@@ -117,12 +124,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-003",
@@ -142,12 +152,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-004",
@@ -167,12 +180,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-005",
@@ -192,12 +208,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-006",
@@ -217,12 +236,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTHZ-007",
@@ -242,12 +264,15 @@
         "remaining": "C-SCOPE aprobado: implementar matriz efectiva de permisos/deny/grants/ámbitos/vigencias y auditoría según RBAC_PERMISSIONS. Requiere contratos SQL/ACL concretos, no poderes heredados de B1-SELF."
       },
       "currentProgress": [
-        "ROLE_RESOURCE_AUTHZ_REVIEW_SQL_NOT_INSTALLED",
-        "HTTP_UI_INTEGRATION_STILL_REQUIRED"
+        "SQL06_INSTALLED_NATIVE_MUTATIONS_FAIL_COLUMN_PRIVILEGE_AND_LOCK_RACE",
+        "SQL07_REVIEW_ONLY",
+        "HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAILED_OR_BLOCKED_BY_POLICY_VERSION_PRIVILEGE_AND_ACTIVE_LOCK_RACE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-001",
@@ -304,7 +329,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-002",
@@ -422,7 +449,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-003",
@@ -494,12 +523,15 @@
         "remaining": "TOTP privado integrado y ensayado. Completar EMAIL con destinatario verificado y nuevos contratos SQL/ACL autorizados."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "PRIVATE_PG_EMAIL_ENROLLMENT_DELIVERY_CONSUMPTION_SESSION_PARTIAL_PASS",
+        "GC_LIFECYCLE_FAIL",
+        "PRODUCT_HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-004",
@@ -577,7 +609,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-010",
@@ -597,12 +631,15 @@
         "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "PRIVATE_PG_EMAIL_ENROLLMENT_DELIVERY_CONSUMPTION_SESSION_PARTIAL_PASS",
+        "GC_LIFECYCLE_FAIL",
+        "PRODUCT_HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-011",
@@ -626,8 +663,10 @@
         "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "FAIL_GC_QUARANTINE_LIFECYCLE_AND_PENDING_EMAIL_CONSTRAINT",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-012",
@@ -647,12 +686,15 @@
         "remaining": "D4 arquitectura aprobada; faltan contratos persistentes de destinatario/generación/outbox/cuarentena, nueva instalación SQL/ACL autorizada y entrega operacional verificada. EMAIL sigue cerrado."
       },
       "currentProgress": [
-        "EMAIL_WORKER_PARAMETERIZED_COMMIT_BOUNDARIES_UNIT_PASS",
-        "EMAIL_PG_UI_E2E_NOT_EXECUTED_PENDING_SQL_APPROVAL"
+        "PRIVATE_PG_EMAIL_ENROLLMENT_DELIVERY_CONSUMPTION_SESSION_PARTIAL_PASS",
+        "GC_LIFECYCLE_FAIL",
+        "PRODUCT_HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "PRIVATE_EMAIL_ENROLLMENT_WORKER_CONSUMPTION_SESSION_PASS_UI_PENDING",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-013",
@@ -677,7 +719,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-014",
@@ -702,7 +746,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-015",
@@ -727,7 +773,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-016",
@@ -752,7 +800,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-017",
@@ -809,7 +859,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-020",
@@ -885,7 +937,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-021",
@@ -961,7 +1015,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-022",
@@ -1037,7 +1093,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-030",
@@ -1113,7 +1171,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-031",
@@ -1189,7 +1249,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-032",
@@ -1265,7 +1327,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-033",
@@ -1285,12 +1349,17 @@
         "remaining": "El consumidor interno sin caller grant no es un protocolo público de recuperación. Implementar contrato SQL/HTTP/CAS de re-enrolado restringido tras autorización exacta."
       },
       "currentProgress": [
-        "RECOVERY_RESET_CAS_REVIEW_SQL_NOT_INSTALLED",
-        "OPERATIONAL_IDENTITY_PROOF_NOT_CONFIGURED"
+        "PRIVATE_MFA_RESET_WITH_INDEPENDENT_PROOF_PASS",
+        "PASSWORD_RESET_FAIL_COLUMN_PRIVILEGE",
+        "RECOVERY_EXPECTED_VERSION_SETUP_BLOCKED",
+        "SQL07_REVIEW_ONLY",
+        "PRODUCT_HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-034",
@@ -1310,12 +1379,17 @@
         "remaining": "C-SCOPE aprobado. Implementar reset administrativo con permiso explícito, step-up, motivo, comprobación de identidad real y auditoría; SQL/ACL nuevos aún no instalados."
       },
       "currentProgress": [
-        "RECOVERY_RESET_CAS_REVIEW_SQL_NOT_INSTALLED",
-        "OPERATIONAL_IDENTITY_PROOF_NOT_CONFIGURED"
+        "PRIVATE_MFA_RESET_WITH_INDEPENDENT_PROOF_PASS",
+        "PASSWORD_RESET_FAIL_COLUMN_PRIVILEGE",
+        "RECOVERY_EXPECTED_VERSION_SETUP_BLOCKED",
+        "SQL07_REVIEW_ONLY",
+        "PRODUCT_HTTP_UI_PENDING"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "PRIVATE_ADMIN_MFA_RESET_PROOF_PASS_PASSWORD_RESET_VERSION_PRIVILEGE_FAIL",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-040",
@@ -1372,7 +1446,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-041",
@@ -1429,7 +1505,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-042",
@@ -1486,7 +1564,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-043",
@@ -1543,7 +1623,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-044",
@@ -1567,7 +1649,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-045",
@@ -1591,7 +1675,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-046",
@@ -1611,12 +1697,15 @@
         "remaining": "C-SCOPE aprobado. Registro/revocación de trusted devices, expiración≤30d, invalidación por credenciales/reset/riesgo y contratos SQL/ACL pendientes."
       },
       "currentProgress": [
-        "TRUSTED_DEVICE_REVIEW_SQL_NOT_INSTALLED",
-        "MANDATORY_MFA_UNCHANGED"
+        "PRIVATE_PG_TRUST_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS",
+        "TRUST_HTTP_UI_PENDING",
+        "MANDATORY_MFA_RETAINED"
       ],
       "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
+      "newRealIntegration": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
+      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "native06": "PRIVATE_REGISTER_VALIDATION_EXPIRY_ADMIN_REVOKE_PASS_UI_PENDING",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUTH-047",
@@ -1673,7 +1762,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-TEN-001",
@@ -1697,7 +1788,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-TEN-002",
@@ -1721,7 +1814,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-TEN-003",
@@ -1778,7 +1873,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-TEN-004",
@@ -1802,7 +1899,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-SEC-020",
@@ -1859,7 +1958,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-SEC-021",
@@ -1883,7 +1984,9 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     },
     {
       "id": "REQ-AUD-001",
@@ -1907,7 +2010,20 @@
       ],
       "acceptance": "OPEN",
       "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null
+      "sqlCandidate": null,
+      "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
+      "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc"
     }
-  ]
+  ],
+  "native06": {
+    "run": 39101669219,
+    "source": "496ad213fbc72173edc076ca2dbdcd74355fda09",
+    "installation": "PASS",
+    "result": "FAIL",
+    "pass": 210,
+    "fail": 19,
+    "cleanup": "PASS",
+    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
+  },
+  "sql07": "REVIEW_ONLY_NOT_INSTALLED"
 }

@@ -19,7 +19,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "NEW_D4_RECOVERY_TRUST_AUTHZ_PREAUTH_SQL_CONTRACTS_AND_OPERATIONAL_CUSTODY_APPS",
+  "nextBlocker": "FIVE_NATIVE06_ROOT_DEFECTS_AND_FULL_NEW_HTTP_UI_INTEGRATION",
   "candidate": {
     "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
     "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
@@ -32,7 +32,7 @@
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "PASS_ISOLATED_APPROVED_SCOPE",
+  "pgTest01": "FAIL_CONSOLIDATED06_PRIOR05_PASS_RETAINED",
   "lastPostgresExecution": {
     "authorization": "PG-TEST-01-CONSOLIDATED-05",
     "status": "PASS",
@@ -49,8 +49,16 @@
     "cleanup": "PASS",
     "requirementsAccepted": 0
   },
-  "proposedCandidate": null,
-  "nextAuthorization": "EXACT_NEW_CONSOLIDATED_SQL_ACL_AFTER_REVIEWABLE_ARTIFACT_PUBLICATION",
+  "proposedCandidate": {
+    "revision": "07",
+    "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+    "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
+    "bytes": 187018,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql",
+    "status": "REVIEW_ONLY_NOT_INSTALLED",
+    "ownerApproved": false
+  },
+  "nextAuthorization": "EXACT07_SQL_ACL_ISOLATED_INSTALL_AFTER_REVIEW",
   "latestPrecheck": "docs/implementation/b1/consolidated-test-05/SUMMARY.json",
   "pgTest01Scope": "Exact consolidated 05 SQL plus mandatory real PG battery; private HTTP/crypto/PG integration. Not operational UI/key/SMTP/disaster recovery acceptance.",
   "lastRealBrowserExecution": {
@@ -72,7 +80,7 @@
     "C-SCOPE": "APPROVED_BY_OWNER_2026_10_17",
     "C-LOGIN": "APPROVED_BY_OWNER_2026_10_17"
   },
-  "latestE1Assessment": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
+  "latestE1Assessment": "docs/implementation/b1/e1-consolidation/REQUIREMENTS.json",
   "lastE1Execution": {
     "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
     "run": 39073390845,
@@ -84,5 +92,17 @@
     "runtime": "closedBackend",
     "requirementsAccepted": 0,
     "newPartialEvidenceRows": 18
+  },
+  "latestE1ConsolidationAssessment": "docs/implementation/b1/e1-consolidation/REQUIREMENTS.json",
+  "lastE1NativeExecution": {
+    "source": "496ad213fbc72173edc076ca2dbdcd74355fda09",
+    "run": 39101669219,
+    "installation": "PASS",
+    "result": "FAIL",
+    "pass": 210,
+    "fail": 19,
+    "cleanup": "PASS",
+    "accepted": 0,
+    "total": 44
   }
 }
