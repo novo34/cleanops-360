@@ -24,7 +24,15 @@ test('SQL14 UI01 unknown active role fails closed without a session or internal 
   const denied=await result
   test.info().annotations.push({type:'phase',description:'DENIED_HTTP_'+denied.status()})
   expect(denied.status()).toBe(401)
-  const safe=await denied.json()
+  // The UI deliberately aborts its fetch as soon as401 invalidates the ceremony.
+  // Inspect a separate real browser API call so body capture cannot race that abort.
+  const api=await page.evaluate(async email=>{
+    const csrf=document.cookie.split('; ').find(c=>c.startsWith('__Host-cleanops_csrf='))!.split('=')[1]
+    const r=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({email,password:'PG05 synthetic passphrase!'})})
+    return {status:r.status,body:await r.json()}
+  },(await server.rpc({kind:'fixtureEmail'})).email)
+  expect(api.status).toBe(401)
+  const safe=api.body
   if(/^[A-Z_]{1,35}$/.test(safe.error?.code))test.info().annotations.push({type:'phase',description:'PUBLIC_'+safe.error.code})
   expect(safe.error.code).toBe('AUTH_INVALID')
   expect(safe.error.details).toEqual([])
