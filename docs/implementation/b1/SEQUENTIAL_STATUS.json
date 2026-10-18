@@ -1,5 +1,5 @@
 {
-  "referenceHead": "ef27ca0a53dce659bd4598c60e4269b187348793",
+  "referenceHead": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
   "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
   "state": "OPEN",
   "roadmapOrder": [
@@ -11,47 +11,50 @@
   "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
   "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
   "verifiedEndToEnd": {
-    "numerator": 4,
+    "numerator": 9,
     "denominator": 44,
-    "percent": 9.090909090909092,
+    "percent": 20.454545454545453,
     "verifiedRequirementIds": [
       "REQ-AUTH-011",
       "REQ-AUTH-012",
       "REQ-AUTH-013",
-      "REQ-AUTH-014"
+      "REQ-AUTH-014",
+      "REQ-AUTH-021",
+      "REQ-AUTH-030",
+      "REQ-AUTH-031",
+      "REQ-AUTH-032",
+      "REQ-AUTH-033"
     ],
     "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "RECOVERY_RESET_UI_API_POSTGRES_VERTICAL_WITHIN_B1",
+  "nextBlocker": "PASSWORD_RESET_BOOTSTRAP_OWNED_RESERVATION_SQL09_REQUIRES_EXACT_APPROVAL",
   "candidate": {
-    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
-    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
-    "bytes": 119875,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql"
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+    "path": "docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql",
+    "bytes": 193163
   },
   "fullDiff": {
-    "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
-    "sha256": "20501ce3609b8c3b8a5fb190055a62e68bd7d11c00aff3a51cbc73ad7d007397"
+    "path": "docs/proposals/b1-consolidated-sql/revisions/08/APPROVED_07_TO_08.diff",
+    "sha256": "2481f6439c562955a9e256f20034eae3efc852e67ef26e281397d366a065bd18"
   },
   "runtime": "closedBackend",
   "authGate05": "OPEN",
-  "pgTest01": "SQL07_NATIVE_PASS_FULL_B1_OPEN",
+  "pgTest01": "SQL08_DIRECTED_NATIVE_AND_BROWSER_PASS_FULL_B1_OPEN",
   "lastPostgresExecution": {
-    "source": "59855dd719712b80f11d953558cf6ba956af45f4",
-    "run": 39102962461,
+    "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+    "run": 39111607391,
     "installation": "PASS",
     "checks": {
-      "PASS": 253,
+      "PASS": 134,
       "FAIL": 0,
       "BLOCKED": 0,
       "SKIP": 0
     },
     "cleanup": "PASS",
-    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED",
-    "authorization": "PG-TEST-01-CONSOLIDATED-07",
-    "requirementsAccepted": 0
+    "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json"
   },
   "proposedCandidate": {
     "revision": "07",
@@ -131,5 +134,15 @@
     ],
     "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
     "productionAcceptance": false
+  },
+  "historicalCandidate": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql"
+  },
+  "historicalFullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
+    "sha256": "20501ce3609b8c3b8a5fb190055a62e68bd7d11c00aff3a51cbc73ad7d007397"
   }
 }

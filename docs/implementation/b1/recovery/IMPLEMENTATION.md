@@ -1,3 +1,11 @@
+# Current recovery code — SQL08 isolated COMPLETE; reset OPEN
+
+Source80a193b0ea8ead58e999e669826f979c6a0b11b1, real PG16/Chromium run39111607391:134PASS including23 real browser flows. See ../consolidated-test-08/RESULT.md and EXECUTION.json. The approved durable binding closes the SQL07 independent-password-browser takeover; expired abandonment stays closed, real COMMIT rollback retains the binding and bound retry succeeds. Direct service table/role and cross-user/tenant enrollment negatives PASS.9/44 requirements accepted individually; no production or full recovery/reset/admin acceptance. Existing frontend/private handler reused; runtime closedBackend.
+
+The private SQL08 reset reader/CAS calls are typed and validated; password-reset HTTP still needs the fixed BOOTSTRAP owned-reservation contract described in docs/proposals/b1-consolidated-sql/revisions/09/REVIEW.md. SQL09 is not installed. Trusted device/AUTHZ do not start before this sequential reset dependency is resolved.
+
+## Historical SQL07 prototype and reproduced failure
+
 # Recovery/reset — sequential B1 vertical
 
 EMAIL was validated first and remains accepted4/44. Current independent work uses exact approved SQL07 recover_to_enrollment(text,bytea,bytea,bytea,uuid); no SQL/ACL changes.

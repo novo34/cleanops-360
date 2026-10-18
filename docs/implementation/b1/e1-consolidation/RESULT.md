@@ -94,3 +94,8 @@ integration and corresponding real product E2E; external-app compatibility evide
 actual Swiss OpenBao custodian/hosts/workload identities/recovery ownership and real
 mailbox/identity-proof custodian/procedure, controlled sender route/quarantine retention.
 No approved architecture decision reopened. Full B1 closure remains unachieved.
+
+
+## SQL08 directed real validation and individual acceptance
+
+Source80a193b0ea8ead58e999e669826f979c6a0b11b1/run39111607391:134PASS,23 real Chromium cases,31-table restore/cleanup/inventories PASS. Original four and exact authorized08 hashes verified; no SQL09 installed. Independent password takeover closed, service direct access/role escalation and cross-user/tenant calls denied; genuine first-factor COMMIT failure retains binding and bound retry succeeds. Historical test-selector FAIL attempts preserved. See ../consolidated-test-08/RESULT.md. New accepted021/030/031/032/033 plus prior EMAIL4 =9/44 isolated functional acceptance, not production or phase closure. Reset HTTP needs the one-function BOOTSTRAP owned-reservation proposal09; no extra SQL/ACL authorized or installed. B1/AUTH-GATE05 OPEN, closedBackend.

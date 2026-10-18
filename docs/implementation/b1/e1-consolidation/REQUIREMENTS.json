@@ -1,7 +1,7 @@
 {
   "referenceHead": "f209054b5613abb036c4f72391385bc2db339930",
   "assessmentSource": "docs/implementation/b1/e1-resolution/REQUIREMENTS.json",
-  "accepted": 4,
+  "accepted": 9,
   "total": 44,
   "priorNewPartialEvidenceRows": 18,
   "newAcceptanceFromUnitStaticTests": 0,
@@ -1416,11 +1416,12 @@
         "remaining": "Primer código/CAS y no activación previa, grants05/06 separados y COMMIT verificados. Pendientes integración de custodia real y aceptación integral."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "SQL08_RECOVERY_AND_TOTP_REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null,
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1431,7 +1432,34 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptance": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidate": null
     },
     {
       "id": "REQ-AUTH-022",
@@ -1588,11 +1616,12 @@
         "remaining": "Generación y regeneración de10 códigos reales en flujo privado probado. Completar custodia operacional y aceptación de la vertical de recuperación completa."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "SQL08_RECOVERY_AND_TOTP_REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null,
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1601,7 +1630,34 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptance": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidate": null
     },
     {
       "id": "REQ-AUTH-031",
@@ -1673,11 +1729,12 @@
         "remaining": "Entrega única y desaparición de códigos/URI/QR tras confirmación/logout/nuevo login probadas. Pendientes aceptación integral y pérdida total de MFA dentro de B1."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "SQL08_RECOVERY_AND_TOTP_REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null,
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1686,7 +1743,34 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptance": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidate": null
     },
     {
       "id": "REQ-AUTH-032",
@@ -1758,11 +1842,12 @@
         "remaining": "HMAC32 persistido sin plaintext e invalidación del lote anterior verificadas. Pendientes custodia operacional y revisión de todos los sinks del flujo completo."
       },
       "currentProgress": [
-        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE"
+        "PRIOR_VERIFIED_EVIDENCE_RETAINED_NO_NEW_ACCEPTANCE",
+        "SQL08_RECOVERY_AND_TOTP_REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "NOT_EXECUTED",
-      "sqlCandidate": null,
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
       "native06": "NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1771,7 +1856,34 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptance": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidate": null
     },
     {
       "id": "REQ-AUTH-033",
@@ -1795,11 +1907,12 @@
         "PASSWORD_RESET_FAIL_COLUMN_PRIVILEGE",
         "RECOVERY_EXPECTED_VERSION_SETUP_BLOCKED",
         "SQL07_REVIEW_ONLY",
-        "PRODUCT_HTTP_UI_PENDING"
+        "PRODUCT_HTTP_UI_PENDING",
+        "SQL08_RECOVERY_AND_TOTP_REAL_UI_API_PG_PASS"
       ],
-      "acceptance": "OPEN",
-      "newRealIntegration": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
-      "sqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785",
+      "acceptance": "ACCEPTED",
+      "newRealIntegration": "VERIFIED",
+      "sqlCandidate": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
       "native06": "BLOCKED_BY_FAILED_PASSWORD_RESET_SETUP_EXPECTED_VERSION",
       "sql07Proposal": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
       "native07": {
@@ -1815,7 +1928,34 @@
         "evidence": "../consolidated-test-07/EXECUTION.json",
         "run": 39102962461
       },
-      "accepted": false
+      "accepted": true,
+      "previousAcceptance": "OPEN",
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      },
+      "remaining": "",
+      "historicalSqlCandidate": "939a521911e34296e055eb05c57264cbeee6d785"
     },
     {
       "id": "REQ-AUTH-034",
@@ -2672,5 +2812,11 @@
     "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
     "productionAcceptance": false
   },
-  "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT"
+  "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+  "latestSQL08Evidence": {
+    "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+    "run": 39111607391,
+    "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+    "result": "PASS"
+  }
 }

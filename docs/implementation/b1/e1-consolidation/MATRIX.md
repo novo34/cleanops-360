@@ -1,50 +1,52 @@
-# B1 —44 requirements,4 accepted
+# B1 — individual requirement acceptance
 
-Exact SQL07 retained. EMAIL15 real browser flows/46 checks PASS; see ../email/EXECUTION.json. Four EMAIL requirements individually accepted in isolated scope. B1 and AUTH-GATE-05 remain OPEN; closedBackend unchanged.
+Assessment source `80a193b0ea8ead58e999e669826f979c6a0b11b1`, real PG16/Chromium run39111607391: **9/44 accepted** in isolated functional scope. B1/AUTH-GATE-05 OPEN; runtime closedBackend. Synthetic external dependencies are not production integration or formal phase acceptance.
 
-|Requirement|Current evidence|Acceptance|
-|---|---|---|
-|REQ-PR-006|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-PR-007|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-001|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-002|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-003|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-004|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-005|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-006|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTHZ-007|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-001|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-002|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-003|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-004|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-010|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-011|EMAIL real UI/API/PG evidence complete|ACCEPTED|
-|REQ-AUTH-012|EMAIL real UI/API/PG evidence complete|ACCEPTED|
-|REQ-AUTH-013|EMAIL real UI/API/PG evidence complete|ACCEPTED|
-|REQ-AUTH-014|EMAIL real UI/API/PG evidence complete|ACCEPTED|
-|REQ-AUTH-015|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-016|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-017|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-020|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-021|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-022|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-030|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-031|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-032|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-033|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-034|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-040|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-041|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-042|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-043|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-044|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-045|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUTH-046|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-AUTH-047|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-TEN-001|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-TEN-002|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-TEN-003|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-TEN-004|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
-|REQ-SEC-020|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-SEC-021|NO_NEW_COMPLETE_REQUIREMENT_ACCEPTANCE|OPEN|
-|REQ-AUD-001|PARTIAL_NATIVE_EVIDENCE_NOT_ACCEPTANCE|OPEN|
+Original44 normative statements and historical evidence remain in JSON. SQL08 changes are owner-authorized; SQL09 remains REVIEW ONLY and uninstalled.
+
+|Requirement|Statement|Acceptance|Evidence / remaining scope|
+|---|---|---|---|
+|REQ-PR-006|Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-PR-007|No se iniciará una fase dependiente hasta que la fase anterior esté `ACCEPTED`, salvo autorización explícita del Product Owner.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-001|Permisos por acción: `view`, `create`, `edit`, `approve`, `delete`, `export`, `manage_permissions`.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-002|Ámbitos: tenant, módulo, WorkEngagement, proyecto, documento, plano, oferta, finanzas y datos de empleados.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-003|El sistema deberá permitir overrides individuales por usuario.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-004|Deberá permitir accesos temporales con `start_at` y `expires_at`.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-005|La UI incluirá `Administration → Users → User Detail → Manage Access`.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-006|La autorización deberá aplicarse también en API, no solo UI.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTHZ-007|`explicit deny` prevalecerá sobre cualquier concesión; las políticas de aislamiento tenant y las restricciones de plataforma no podrán sobrepasarse mediante overrides. Ante falta de autorización, denegar por defecto. Roles conceden acceso base y grants por recurso/usuario/temporales solo dentro de las políticas superiores. Denegaciones y concesiones se aplicarán en API, con caducidad y auditoría.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-001|Login mediante email + password.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-002|Tras validar credenciales, se exigirá segundo factor según la política de riesgo del rol: obligatorio para administradores, comerciales, planificación, responsables y finanzas; configurable por tenant para empleados operativos. Las acciones sensibles exigirán step-up MFA aunque el login operativo se haya permitido sin MFA.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-003|Métodos MFA: código OTP por email o TOTP Authenticator.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-004|TOTP deberá ser compatible con aplicaciones estándar.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-010|OTP de un solo uso.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-011|Código OTP por email válido durante 5 minutos, de un solo uso y con invalidación por consumo o reenvío.|ACCEPTED|run39107192800, source ef27ca0a53dce659bd4598c60e4269b187348793; docs/implementation/b1/email/EXECUTION.json|
+|REQ-AUTH-012|OTP almacenado como hash.|ACCEPTED|run39107192800, source ef27ca0a53dce659bd4598c60e4269b187348793; docs/implementation/b1/email/EXECUTION.json|
+|REQ-AUTH-013|Reenvío invalida códigos anteriores.|ACCEPTED|run39107192800, source ef27ca0a53dce659bd4598c60e4269b187348793; docs/implementation/b1/email/EXECUTION.json|
+|REQ-AUTH-014|Cooldown de reenvío.|ACCEPTED|run39107192800, source ef27ca0a53dce659bd4598c60e4269b187348793; docs/implementation/b1/email/EXECUTION.json|
+|REQ-AUTH-015|Rate limit por usuario, IP y dispositivo.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-016|Límite de intentos.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-017|Mensajes que no permitan enumeración de cuentas.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-020|Activación mediante QR.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-021|No se activa hasta validar el primer código.|ACCEPTED|run39111607391, source 80a193b0ea8ead58e999e669826f979c6a0b11b1; docs/implementation/b1/consolidated-test-08/EXECUTION.json|
+|REQ-AUTH-022|Secreto TOTP cifrado.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-030|Generación al activar TOTP.|ACCEPTED|run39111607391, source 80a193b0ea8ead58e999e669826f979c6a0b11b1; docs/implementation/b1/consolidated-test-08/EXECUTION.json|
+|REQ-AUTH-031|Mostrar una única vez.|ACCEPTED|run39111607391, source 80a193b0ea8ead58e999e669826f979c6a0b11b1; docs/implementation/b1/consolidated-test-08/EXECUTION.json|
+|REQ-AUTH-032|Guardar como hash.|ACCEPTED|run39111607391, source 80a193b0ea8ead58e999e669826f979c6a0b11b1; docs/implementation/b1/consolidated-test-08/EXECUTION.json|
+|REQ-AUTH-033|Un solo uso.|ACCEPTED|run39111607391, source 80a193b0ea8ead58e999e669826f979c6a0b11b1; docs/implementation/b1/consolidated-test-08/EXECUTION.json|
+|REQ-AUTH-034|MFA reset por admin deberá quedar auditado.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-040|Pantalla `Account → Security → Active Sessions`.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-041|Mostrar dispositivo, navegador, creación y última actividad.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-042|Revocar sesión individual.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-043|Revocar todas las demás sesiones.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-044|Timeout por inactividad: 30 minutos para administración/comercial/finanzas y roles de riesgo administrativo equivalentes, 8 horas para empleados operativos; responsables y otros roles sensibles deben aplicar al menos la política restrictiva correspondiente. La clasificación de roles en los tests será explícita.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-045|Timeout absoluto obligatorio independiente del tiempo de inactividad y de `remember device`; su duración numérica permanece como parámetro técnico sujeto a validación de seguridad antes de habilitar autenticación en producción.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-046|`Remember device` válido por 30 días tras MFA y revocable por administrador, cambio de contraseña, reset MFA o riesgo; no amplía la validez de la sesión. La empresa podrá deshabilitar la confianza de dispositivo como endurecimiento, sin ampliar el plazo aprobado.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUTH-047|Step-up MFA para acciones sensibles.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-TEN-001|Todo dato deberá pertenecer a un tenant.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-TEN-002|Tenant A nunca podrá acceder a datos de Tenant B.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-TEN-003|El aislamiento se aplicará en backend/API.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-TEN-004|Deberán existir tests automáticos de tenant isolation.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-SEC-020|El MVP empleará librerías maduras para hash, autenticación y TOTP, sin implementar criptografía propia. El registro, sesión y credenciales se verificarán con pruebas de seguridad.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-SEC-021|La caducidad absoluta de sesión tendrá un valor definido y probado antes de la entrega de Auth; no debe inferirse de los 30 días de dispositivo confiable ni de los timeouts de inactividad. El rol y su riesgo determinan MFA y tiempo inactivo, no permisos heredados ad hoc.|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|
+|REQ-AUD-001|Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar actor, fecha, entidad, acción y resultado, sin exponer secretos o datos de otros tenants (capítulos de auditoría).|OPEN|OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.|

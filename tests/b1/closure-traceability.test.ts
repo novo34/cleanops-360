@@ -21,7 +21,8 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
       assert.ok(evidence.checks.every((c:{status:string})=>c.status==='PASS'))
       assert.equal(evidence.source, row.acceptanceEvidence.source)
       assert.equal(evidence.run, row.acceptanceEvidence.run)
-      assert.equal(evidence.newUIE2E, 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
+      assert.equal(evidence.newUIE2E, row.acceptanceEvidence.uiScope ?? 'EXECUTED_EMAIL_AND_EXISTING_TOTP')
+      assert.ok(['EXECUTED_EMAIL_AND_EXISTING_TOTP','EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER'].includes(evidence.newUIE2E))
       for (const name of row.acceptanceEvidence.cases) assert.ok(evidence.checks.some((c: {name:string;status:string}) => c.name === name && c.status === 'PASS'))
       assert.equal(row.acceptanceEvidence.productionAcceptance, false)
     } else {
@@ -32,7 +33,7 @@ test('B1 closure inventory includes every AuthSpec SRS requirement without prete
   assert.equal(matrix.authGate05, 'OPEN')
   assert.equal(matrix.runtime, 'closedBackend')
   assert.equal(matrix.databaseExecutionAuthorized, true)
-  assert.equal(matrix.databaseExecutionScope.artifact, '099345e43c03a2ee3759fa0c2d5ef875121621fc')
+  assert.equal(matrix.databaseExecutionScope.artifact, 'a585147fa19452de0f28d9c1d7542b3d77b058f7')
   assert.equal(matrix.databaseExecutionScope.modifiedSqlAcl, false)
   assert.equal(matrix.databaseExecutionScope.production, false)
   assert.equal(matrix.productionActivationAuthorized, false)
@@ -51,7 +52,13 @@ test('closure inventory preserves all canonical cases and effective HTTP operati
   assert.equal(operations.length, 14)
   assert.deepEqual(matrix.httpOperations.map(({ id, method, path }: { id: string; method: string; path: string }) => ({ id, method, path })), operations)
   for (const operation of matrix.httpOperations) {
-    assert.equal(operation.integration, 'NOT_VERIFIED')
+    if(operation.integration==='VERIFIED'){
+      const proof=operation.integrationEvidence
+      const report=JSON.parse(read(proof.report))
+      assert.equal(report.result,'PASS');assert.equal(report.source,proof.source);assert.equal(report.run,proof.run)
+      assert.ok(report.checks.some((c:{name:string;status:string})=>c.name===proof.case && c.status==='PASS'))
+      assert.equal(proof.productionAcceptance,false)
+    }else assert.equal(operation.integration, 'NOT_VERIFIED')
     assert.equal(operation.acceptance, 'OPEN')
   }
 })

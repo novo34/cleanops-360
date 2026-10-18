@@ -524,20 +524,55 @@
     {
       "id": "REQ-AUTH-021",
       "requirement": "No se activa hasta validar el primer código.",
-      "implementation": "PARTIAL_HELPERS_ENROLLMENT_CLOSED",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "implementation": "IMPLEMENTED",
+      "pending": "",
       "tests": [
         "TOTP-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
         "lib/b1/approved-backend.ts",
-        "lib/b1/ceremony-preparation.ts"
+        "lib/b1/ceremony-preparation.ts",
+        "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "e2e/b1-recovery-postgres.spec.ts",
+        "e2e/b1-real-postgres.spec.ts",
+        "lib/b1/approved-factors.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generación antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmación PREAUTH→sesión y ACTIVE; ninguna activación antes del primer código/COMMIT."
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "D2/D3: resolver claves reales; asignar UUID/generación antes del cifrado/AAD; enrollAssigned, QR real (hoy solo se imprime URI), confirmación PREAUTH→sesión y ACTIVE; ninguna activación antes del primer código/COMMIT.",
+      "priorSQL08Assessment": {
+        "implementation": "PARTIAL_HELPERS_ENROLLMENT_CLOSED",
+        "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+        "realIntegration": "NOT_VERIFIED",
+        "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
+        "acceptance": "OPEN"
+      },
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      }
     },
     {
       "id": "REQ-AUTH-022",
@@ -560,74 +595,214 @@
     {
       "id": "REQ-AUTH-030",
       "requirement": "Generación al activar TOTP.",
-      "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "implementation": "IMPLEMENTED",
+      "pending": "",
       "tests": [
         "TOTP-01",
         "RECOVERY-CODE-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "e2e/b1-recovery-postgres.spec.ts",
+        "e2e/b1-real-postgres.spec.ts",
+        "lib/b1/approved-factors.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente."
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "priorSQL08Assessment": {
+        "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
+        "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+        "realIntegration": "NOT_VERIFIED",
+        "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
+        "acceptance": "OPEN"
+      },
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      }
     },
     {
       "id": "REQ-AUTH-031",
       "requirement": "Mostrar una única vez.",
-      "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "implementation": "IMPLEMENTED",
+      "pending": "",
       "tests": [
         "TOTP-01",
         "RECOVERY-CODE-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "e2e/b1-recovery-postgres.spec.ts",
+        "e2e/b1-real-postgres.spec.ts",
+        "lib/b1/approved-factors.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente."
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "priorSQL08Assessment": {
+        "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
+        "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+        "realIntegration": "NOT_VERIFIED",
+        "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
+        "acceptance": "OPEN"
+      },
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      }
     },
     {
       "id": "REQ-AUTH-032",
       "requirement": "Guardar como hash.",
-      "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "implementation": "IMPLEMENTED",
+      "pending": "",
       "tests": [
         "TOTP-01",
         "RECOVERY-CODE-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "e2e/b1-recovery-postgres.spec.ts",
+        "e2e/b1-real-postgres.spec.ts",
+        "lib/b1/approved-factors.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente."
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "priorSQL08Assessment": {
+        "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
+        "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+        "realIntegration": "NOT_VERIFIED",
+        "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
+        "acceptance": "OPEN"
+      },
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      }
     },
     {
       "id": "REQ-AUTH-033",
       "requirement": "Un solo uso.",
-      "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
-      "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+      "implementation": "IMPLEMENTED",
+      "pending": "",
       "tests": [
         "TOTP-01",
         "RECOVERY-CODE-01"
       ],
       "evidence": [
         "lib/b1/service.ts",
-        "lib/b1/approved-backend.ts"
+        "lib/b1/approved-backend.ts",
+        "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "e2e/b1-recovery-postgres.spec.ts",
+        "e2e/b1-real-postgres.spec.ts",
+        "lib/b1/approved-factors.ts"
       ],
-      "realIntegration": "NOT_VERIFIED",
-      "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
-      "acceptance": "OPEN",
-      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente."
+      "realIntegration": "VERIFIED",
+      "testsExecuted": "REAL_UI_API_PG_PASS",
+      "acceptance": "ACCEPTED",
+      "historicalPendingBeforeSQL07": "Completar generación al confirmar también desde PREAUTH, visualización única post-COMMIT, hashes/HMAC, regeneración invalidante y consumo real concurrente; SQL consume_recovery_internal carece de llamador B1 concedido. Contrato de recuperación seguro pendiente.",
+      "priorSQL08Assessment": {
+        "implementation": "PARTIAL_CODE_NO_PUBLIC_RECOVERY_FLOW",
+        "pending": "OPEN: use current E1 requirement evidence and remaining B1 functional/operational acceptance; historical missing-SQL/approval statements are not current blockers.",
+        "realIntegration": "NOT_VERIFIED",
+        "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
+        "acceptance": "OPEN"
+      },
+      "acceptanceEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "result": "PASS",
+        "cases": [
+          "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+          "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+          "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+          "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+          "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+          "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+          "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+          "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+          "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+          "08-reused-recovery-and-old-preauth-denied",
+          "08-marker-tenant-user-version-bound",
+          "08-no-binding-direct-privileges-pgtest_identity",
+          "backup-restore-all31-tables-integrity"
+        ],
+        "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_CUSTODY",
+        "productionAcceptance": false,
+        "uiScope": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER"
+      }
     },
     {
       "id": "REQ-AUTH-034",
@@ -982,8 +1157,16 @@
       "method": "POST",
       "path": "/auth/login",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "resendOtp",
@@ -998,32 +1181,64 @@
       "method": "POST",
       "path": "/auth/mfa/verify",
       "implementation": "TOTP_ONLY_EMAIL_CLOSED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "logout",
       "method": "POST",
       "path": "/auth/logout",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "startStepUp",
       "method": "POST",
       "path": "/auth/step-up",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "getCurrentIdentity",
       "method": "GET",
       "path": "/auth/me",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "listAuthorizedTenants",
@@ -1046,48 +1261,96 @@
       "method": "GET",
       "path": "/me/sessions",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "revokeSelfSession",
       "method": "DELETE",
       "path": "/me/sessions/{session_id}",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "revokeOtherOwnSessions",
       "method": "POST",
       "path": "/me/sessions/revoke-other-own",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "enrollTotp",
       "method": "POST",
       "path": "/mfa/totp/enroll",
       "implementation": "CLOSED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "confirmTotp",
       "method": "POST",
       "path": "/mfa/totp/confirm",
       "implementation": "ACTIVE_ONLY_PREAUTH_CLOSED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+        "productionAcceptance": false
+      }
     },
     {
       "id": "selectTotpMethod",
       "method": "POST",
       "path": "/auth/mfa/totp/select",
       "implementation": "PRIVATE_CODE_SIMULATED",
-      "integration": "NOT_VERIFIED",
-      "acceptance": "OPEN"
+      "integration": "VERIFIED",
+      "acceptance": "OPEN",
+      "historicalIntegration": "NOT_VERIFIED",
+      "integrationEvidence": {
+        "source": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+        "run": 39111607391,
+        "report": "docs/implementation/b1/consolidated-test-08/EXECUTION.json",
+        "case": "Browser-PG-real authorized multi-method selection commits a session for a separate synthetic account",
+        "productionAcceptance": false
+      }
     }
   ],
   "sqlPackages": [
@@ -1165,8 +1428,8 @@
       "pending": "Servicios separados sobre infraestructura suiza aprobada, red privada, correo autorizado, retención y restore de datos/claves/configuración de Auth; RPO≤15 min/RTO≤4 h medidos."
     }
   ],
-  "assessmentHead": "ef27ca0a53dce659bd4598c60e4269b187348793",
-  "accepted": 4,
+  "assessmentHead": "80a193b0ea8ead58e999e669826f979c6a0b11b1",
+  "accepted": 9,
   "individualAcceptanceAuthority": "Owner instruction2026-10-18: accept each requirement with complete evidence without waiting for all44.",
   "acceptanceScope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
   "phaseOwnerAcceptance": "PENDING",
@@ -1180,6 +1443,13 @@
   ],
   "historicalDatabaseExecutionAuthorized": false,
   "databaseExecutionScope": {
+    "artifact": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "environment": "NEW_ISOLATED_PG16_DOCKER_SYNTHETIC",
+    "modifiedSqlAcl": false,
+    "production": false,
+    "authorization": "docs/implementation/b1/consolidated-test-08/AUTHORIZATION.json"
+  },
+  "previousDatabaseExecutionScope": {
     "artifact": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
     "environment": "NEW_ISOLATED_PG16_DOCKER_SYNTHETIC",
     "modifiedSqlAcl": false,
