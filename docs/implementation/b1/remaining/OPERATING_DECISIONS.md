@@ -1,3 +1,5 @@
+> Current authority update:12h/24h absolute and30min/8h idle are already approved; actual KeePassXC2.7.6/OATH Toolkit2.6.11 Linux compatibility is evidenced. SQL13 passed; exact SQL14 is now owner-authorized only for fresh isolated PG16/synthetic validation. The historical alternatives below are not renewed approval requests. Current operating actions/responsibilities are in ../operational-acceptance/PLAN.md; no real infrastructure/SMTP/deployment is authorized.
+
 # Remaining owner/operational decisions
 
 Architecture D2/D3/D4/C-SCOPE/C-LOGIN is approved and is not reopened. These items are not satisfied by synthetic providers or unit tests.

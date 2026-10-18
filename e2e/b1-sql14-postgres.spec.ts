@@ -21,13 +21,13 @@ test('SQL14 UI01 unknown active role fails closed without a session or internal 
 test('SQL14 UI02 actual authorization row wait revalidates reactivated sensitive role and invalidates24h session',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:['OPERATIONAL']});await password(page,server);await confirm(page,server);await server.rpc({kind:'sql14HoldReactivation'});const pending=page.request.get('/auth/me');expect((await server.rpc({kind:'sql14WaitBlocked'})).blocked).toBe(true);await server.rpc({kind:'sql14ReleaseReactivation'});expect((await pending).status()).toBe(401);expect((await page.request.get('/auth/me')).status()).toBe(401)
+  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:['OPERATIONAL']});await password(page,server);await confirm(page,server);await server.rpc({kind:'sql14HoldReactivation'});const pending=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/me');await page.getByRole('button',{name:'Mi identidad',exact:true}).click();expect((await server.rpc({kind:'sql14WaitBlocked'})).blocked).toBe(true);await server.rpc({kind:'sql14ReleaseReactivation'});expect((await pending).status()).toBe(401);expect((await page.request.get('/auth/me')).status()).toBe(401)
  }finally{await server.close()}
 })
 for(const mode of ['START','EXPIRE'])test('SQL14 UI04 actual membership '+mode+' boundary while authorization waits',async({page})=>{
  const server=await startRealBrowserServer('abuse')
  try{
-  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:mode==='START'?['OPERATIONAL']:['SENSITIVE','OPERATIONAL']});await password(page,server);await confirm(page,server);const before=(await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at;await server.rpc({kind:'sql14HoldTimedRole',mode});const pending=page.request.get('/auth/me');expect((await server.rpc({kind:'sql14WaitBlocked'})).blocked).toBe(true);await server.rpc({kind:'sql14ReleaseTimed'});expect((await pending).status()).toBe(mode==='START'?401:200);expect((await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at).toBe(before)
+  await server.rpc({kind:'sql14Roles',baseline:'OPERATIONAL',roles:mode==='START'?['OPERATIONAL']:['SENSITIVE','OPERATIONAL']});await password(page,server);await confirm(page,server);const before=(await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at;await server.rpc({kind:'sql14HoldTimedRole',mode});const pending=page.waitForResponse(r=>new URL(r.url()).pathname==='/auth/me');await page.getByRole('button',{name:'Mi identidad',exact:true}).click();expect((await server.rpc({kind:'sql14WaitBlocked'})).blocked).toBe(true);await server.rpc({kind:'sql14ReleaseTimed'});expect((await pending).status()).toBe(mode==='START'?401:200);expect((await server.rpc({kind:'inspectPolicySession'})).sessions[0].absolute_expires_at).toBe(before)
  }finally{await server.close()}
 })
 test('SQL14 UI03 real concurrent MFA counter CAS has one session winner with mixed roles',async({page})=>{
