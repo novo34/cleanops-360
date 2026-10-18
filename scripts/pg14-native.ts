@@ -20,10 +20,10 @@ try{
  })
  for(const role of input.roles)await check('SQL14-UI07-ordinary-role-denied-'+role,async()=>{
   const p=new Pool({host:'/var/run/postgresql',database:'core',user:role,max:1})
-  try{const r=await p.query("SELECT has_function_privilege(current_user,'identity_private.effective_risk(uuid,uuid)','EXECUTE') AS exec,has_table_privilege(current_user,'identity_private.role_risk_catalogue','SELECT') AS read,rolsuper,rolbypassrls,pg_has_role(current_user,'cleanops_auth_broker','MEMBER') AS broker FROM pg_roles WHERE rolname=current_user");assert.deepEqual(r.rows[0],{exec:false,read:false,rolsuper:false,rolbypassrls:false,broker:false})
+  try{const r=await admin.query("SELECT has_function_privilege($1,'identity_private.effective_risk(uuid,uuid)','EXECUTE') AS exec,has_table_privilege($1,'identity_private.role_risk_catalogue','SELECT') AS read,rolsuper,rolbypassrls,pg_has_role($1,'cleanops_auth_broker','MEMBER') AS broker FROM pg_roles WHERE rolname=$1",[role]);assert.deepEqual(r.rows[0],{exec:false,read:false,rolsuper:false,rolbypassrls:false,broker:false})
    for(const sql of ['SELECT * FROM identity_private.role_risk_catalogue','INSERT INTO identity_private.role_risk_catalogue DEFAULT VALUES',"SELECT identity_private.effective_risk(NULL,NULL)"]){let denied=false;try{await p.query(sql)}catch(e){denied=!!e&&typeof e==='object'&&'code'in e&&e.code==='42501'}assert.ok(denied)}
   }finally{await p.end()}
  })
- for(const c of await runPreparedRoleRiskTests(admin,identity,input))checks.push({name:'SQL14-'+c.id,status:c.status,...(c.detail?{detail:c.detail}:{} )})
+ for(const c of await runPreparedRoleRiskTests(admin,identity,{tenant:input.tenant,otherTenant:input.otherTenant,user:input.user,otherUser:input.otherUser,principal:input.principal}))checks.push({name:'SQL14-'+c.id,status:c.status,...(c.detail?{detail:c.detail}:{} )})
 }catch(e){const x=e as {code?:unknown;constraint?:unknown};checks.push({name:'SQL14-native-unhandled',status:'FAIL',detail:{sqlstate:/^[0-9A-Z]{5}$/.test(String(x.code))?String(x.code):'REDACTED',constraint:/^[a-z_0-9]+$/.test(String(x.constraint))?String(x.constraint):'REDACTED'}})}finally{await identity.end();await admin.end()}
 process.stdout.write(JSON.stringify({checks}));process.exitCode=checks.every(c=>c.status==='PASS')?0:1
