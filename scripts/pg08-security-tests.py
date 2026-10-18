@@ -50,6 +50,11 @@ def durable(b):
  b.check('08-forged-preauth-denied',f"SELECT auth_api.preauth_summary('{token()}');",role=role,failure='42501')
  b.check('08-other-tenant-still-usable',create(other,b.B),'t',role)
  b.check('08-other-tenant-independent-context',f"SELECT auth_api.preauth_summary('{other}')->>'state';",'ENROLLMENT_REQUIRED',role)
+ cross_user=token()
+ b.check('08-other-user-context-issued',create(cross_user,b.A,b.Q),'t',role)
+ b.check('08-other-user-remains-independent',f"SELECT auth_api.preauth_summary('{cross_user}')->>'state';",'ENROLLMENT_REQUIRED',role)
+ for label,raw in [('cross-tenant',other),('cross-user',cross_user),('password-only',outsider)]:
+  b.check('08-enrollment-cannot-forge-'+label,f"SELECT auth_api.begin_totp_enrollment_assigned('{raw}','{b.A}','{b.U}','{uuid.uuid4()}',1,decode('02'||repeat('00',60),'hex'),'synthetic-negative','SHA256','{corr}');",role=role,failure='42501')
  b.check('08-marker-tenant-user-version-bound',f"SELECT count(*)=1 FROM identity_private.recovery_enrollments WHERE tenant_id='{b.A}' AND user_id='{b.U}' AND principal_id='{b.P}' AND cookie_digest={dg(new)} AND credential_version=1;",'t')
  # Synthetic fixture aging does not change a security policy or approved function.
  b.check('08-age-owned-preauth-fixture',f"UPDATE identity_private.preauth SET created_at=now()-interval '700s',expires_at=now()-interval '1s' WHERE cookie_digest={dg(new)};")
