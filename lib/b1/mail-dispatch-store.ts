@@ -22,7 +22,7 @@ function parseClaim(v: unknown): MailClaim | null {
   if (!object(v) || Object.keys(v).length!==10) throw unavailable()
   for (const k of ['tenantId','userId','methodId','outboxId','challengeId']) if (!uuid(v[k])) throw unavailable()
   for (const k of ['methodVersion','recipientVersion'])
-    if (typeof v[k]!=='string' || !/^[1-9][0-9]{0,18}$/.test(v[k]) || BigInt(v[k])>9223372036854775807n) throw unavailable()
+    if (typeof v[k]!=='string' || !/^[1-9][0-9]{0,18}$/.test(v[k]) || BigInt(v[k])>BigInt('9223372036854775807')) throw unavailable()
   if (typeof v.ciphertext!=='string' || !/^(?:[a-f0-9]{2})+$/.test(v.ciphertext) || v.ciphertext.length<60 ||
       v.ciphertext.length>(numeric('json_body_max')+29)*2 || typeof v.keyVersion!=='string' || !v.keyVersion.length ||
       v.keyVersion.length>120 || /[\p{Cc}\p{Cf}]/u.test(v.keyVersion) || typeof v.expiresAt!=='string') throw unavailable()
