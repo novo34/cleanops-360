@@ -89,8 +89,8 @@ function stateAllowed(operation: string, binding: Binding) {
   if (operation === 'login') return binding.kind === 'BOOTSTRAP'
   if (operation === 'listAuthorizedTenants') return binding.kind !== 'BOOTSTRAP'
   if (operation === 'switchTenant') return binding.kind === 'ACTIVE' || binding.state === 'TENANT_SELECTION_REQUIRED'
-  if (operation === 'enrollTotp' || operation === 'confirmTotp') return binding.kind === 'ACTIVE' || binding.state === 'ENROLLMENT_REQUIRED'
-  if (operation === 'verifyMfa' || operation === 'resendOtp' || operation === 'selectTotpMethod') return binding.kind === 'ACTIVE' || binding.state === 'PENDING_MFA'
+  if (['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation)) return binding.kind === 'ACTIVE' || binding.state === 'ENROLLMENT_REQUIRED'
+  if (operation === 'verifyMfa' || operation === 'resendEmail' || operation === 'resendOtp' || operation === 'selectTotpMethod') return binding.kind === 'ACTIVE' || binding.state === 'PENDING_MFA'
   return binding.kind === 'ACTIVE'
 }
 function ruleFor(operation: Operation, input: Input): string | undefined {
@@ -178,7 +178,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           }
           const rule = ruleFor(operation, input), resource = resourceFor(operationId, input)
           if (rule && !await tx.authorize(binding, rule, resource)) throw new AuthError(403, 'POLICY_DENIED')
-          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp'].includes(operationId)
+          const needsStep = binding.kind === 'ACTIVE' && ['switchTenant','revokeOtherOwnSessions','enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId)
           if (needsStep && !await tx.stepUp(binding, rule!, resource)) throw new AuthError(403, 'STEP_UP_REQUIRED')
           const retry = await tx.rateLimit(operationId, binding)
           // Return instead of throw so the transaction commits failed-attempt counters.
@@ -232,7 +232,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
-          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp'].includes(operationId))
+          if (scope) await tx.complete(scope, requestHash, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId) ? null : effect.data, ['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment'].includes(operationId))
           return effect
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome

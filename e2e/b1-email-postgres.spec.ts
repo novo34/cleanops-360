@@ -1,0 +1,93 @@
+import { test, expect, type Page } from '@playwright/test'
+// @ts-expect-error CI-only isolated bridge has no application declaration.
+import { startRealBrowserServer } from '../scripts/b1-real-browser-server.mjs'
+
+async function login(page: Page, email: string) {
+  await page.goto('/login')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Contraseña').fill('PG05 synthetic passphrase!')
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click()
+}
+async function proof(page: Page, code: string) {
+  await page.getByLabel('Código', { exact: true }).fill(code)
+  await page.getByRole('button', { name: 'Verificar', exact: true }).click()
+}
+const phase = (description: string) => test.info().annotations.push({ type: 'phase', description })
+
+test('EMAIL enrollment first proof and committed login through real UI API PG', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email-enrollment')
+  try {
+    phase('PASSWORD');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByRole('button', { name: 'Configurar códigos por email', exact: true })).toBeVisible()
+    phase('BEGIN');await page.getByRole('button', { name: 'Configurar códigos por email', exact: true }).click()
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const pending = await server.rpc({ kind: 'inspectEmail' })
+    expect(pending.methods[0].state === 'PENDING' && pending.active === 0 && pending.outbox[0].bytes > 30).toBe(true)
+    phase('DELIVER');const sent = await server.rpc({ kind: 'deliverEmail' })
+    expect(sent.result.state).toBe('FINISHED')
+    const wrong = sent.proof.slice(0,5) + (sent.proof[5] === '0' ? '1' : '0')
+    phase('INVALID');await proof(page, wrong)
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(0)
+    phase('CONFIRM');await proof(page, sent.proof)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
+    const committed = await server.rpc({ kind: 'inspectEmail' })
+    expect(committed.active === 1 && committed.methods[0].state === 'ACTIVE' && committed.outbox[0].bytes === 0).toBe(true)
+    expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0)
+  } finally { await server.close() }
+})
+
+test('EMAIL login rejects invalid proof and reenables safe retry after real resend', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const first = await server.rpc({ kind: 'deliverEmail' })
+    phase('COOLDOWN');await page.getByRole('button', { name: 'Reenviar código', exact: true }).click()
+    await expect(page.getByRole('status')).toContainText('Demasiados intentos')
+    await server.rpc({ kind: 'emailClock' })
+    phase('RESEND');await page.getByRole('button', { name: 'Reenviar código', exact: true }).click()
+    await expect(page.getByRole('status')).not.toContainText('Procesando')
+    const second = await server.rpc({ kind: 'deliverEmail' })
+    phase('OLD_PROOF');await proof(page, first.proof)
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(0)
+    phase('CURRENT_PROOF');await proof(page, second.proof)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toBeVisible()
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(1)
+    phase('STEPUP');await server.rpc({ kind: 'emailClock' })
+    await page.getByRole('button', { name: 'Revocar mis demás sesiones', exact: true }).click()
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const step = await server.rpc({ kind: 'deliverEmail' });await proof(page, step.proof)
+    await expect(page.getByRole('status')).toContainText('Cambio confirmado.')
+  } finally { await server.close() }
+})
+
+test('EMAIL expired database challenge never creates a session', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    const sent = await server.rpc({ kind: 'deliverEmail' })
+    await server.rpc({ kind: 'emailClock', expire: true })
+    phase('EXPIRED_PROOF');await proof(page, sent.proof)
+    await expect(page.getByRole('status')).toContainText('No se pudo confirmar')
+    expect((await server.rpc({ kind: 'inspectEmail' })).active).toBe(0)
+    await expect(page.getByText('Seguridad de la cuenta', { exact: true })).toHaveCount(0)
+  } finally { await server.close() }
+})
+
+test('EMAIL uncertain synthetic transport quarantines and cannot redeliver', async ({ page }) => {
+  phase('SETUP');const server = await startRealBrowserServer('email')
+  try {
+    phase('LOGIN');await login(page, (await server.rpc({kind:'fixtureEmail'})).email)
+    await expect(page.getByLabel('Código', { exact: true })).toBeVisible()
+    phase('UNCERTAIN');await server.rpc({ kind: 'deliverEmail', uncertain: true })
+    const next = await server.rpc({ kind: 'deliverEmail' })
+    expect(next.result.state).toBe('EMPTY')
+    const state = await server.rpc({ kind: 'inspectEmail' })
+    expect(state.outbox[0].state === 'QUARANTINED' && state.active === 0).toBe(true)
+    await page.getByRole('button', { name: 'Cancelar verificación', exact: true }).click()
+    await expect(page.getByLabel('Contraseña')).toBeVisible()
+  } finally { await server.close() }
+})

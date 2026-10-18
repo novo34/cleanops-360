@@ -26,7 +26,7 @@ export function AuthPanel() {
     activeRequest.current?.abort(); activeRequest.current = null; setBusy(false)
     selectionKeys.current.clear(); requestKeys.current.clear()
     stepContext.current = null
-    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false)
+    setSelection(null); setSelected(''); setChallenge(null); setPendingAction(null); setSessionsCursor(null); setEnrollmentAuthorized(false); setEmailEnrollment(false)
   }
   function endCeremony(notice: string, invalidateSession = false) {
     clearCeremony(); setEnrollment(null)
@@ -38,6 +38,7 @@ export function AuthPanel() {
   const [message, setMessage] = useState('')
   const [challenge, setChallenge] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [enrollment, setEnrollment] = useState<{ enrollment_id: string; provisioning_uri: string; expires_at: string } | null>(null)
+  const [emailEnrollment, setEmailEnrollment] = useState(false)
   const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object } | null>(null)
   useEffect(() => {
@@ -145,7 +146,9 @@ export function AuthPanel() {
     if (!challenge) return
     if (expired(challenge.expires_at)) { endCeremony('La verificación ha caducado. Inicia una nueva verificación.'); return }
     const data = new FormData(form); form.reset()
-    const auth = await call('verifyMfa', { challenge_id: challenge.challenge_id, method: String(data.get('method')), proof: String(data.get('proof')) })
+    const auth = emailEnrollment
+      ? await call('confirmEmail', { challenge_id: challenge.challenge_id, proof: String(data.get('proof')) })
+      : await call('verifyMfa', { challenge_id: challenge.challenge_id, method: String(data.get('method')), proof: String(data.get('proof')) })
     if (auth) {
       if (stepContext.current && (auth.state !== 'ACTIVE' || view.auth?.state !== 'ACTIVE'
         || auth.session_id !== view.auth.session_id || auth.tenant_id !== view.auth.tenant_id || expired(auth.absolute_expires_at)
@@ -159,7 +162,7 @@ export function AuthPanel() {
       if (retainedEnrollment && auth.state === 'ACTIVE') { setEnrollment(retainedEnrollment); setEnrollmentAuthorized(true) }
       if (action && auth.state === 'ACTIVE' && !expired(auth.absolute_expires_at)) {
         const result = await call(action.operation, action.body)
-        if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false) }
+        if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
         else if (result?.state && result.state !== 'REVOKED') accept(result)
         else if (result) { setView(v => ({ ...v, sessions: [] })); setMessage('Cambio confirmado.') }
       }
@@ -213,12 +216,14 @@ export function AuthPanel() {
         <button type="submit" disabled={!selected}>Continuar con este método</button>
       </form>}
       {challenge && <form onSubmit={event => { event.preventDefault(); void verify(event.currentTarget) }}>
+        {challenge.allowed_methods.includes('EMAIL_OTP') && <p>Introduce el código enviado a tu dirección verificada. No compartas este código.</p>}
         <label>Método <select name="method">{challenge.allowed_methods.map(m => <option key={m}>{m}</option>)}</select></label>
         <p><label>Código <input name="proof" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required /></label></p>
         <button type="submit">Verificar</button>
-        {challenge.allowed_methods.includes('EMAIL_OTP') && <button type="button" onClick={async () => { const r = await call('resendOtp', { challenge_id: challenge.challenge_id }); if (r) setChallenge({ challenge_id: r.challenge_id, allowed_methods: [r.method], expires_at: r.expires_at }) }}>Reenviar código</button>}
+        {challenge.allowed_methods.includes('EMAIL_OTP') && <button type="button" onClick={async () => { const r = await call(emailEnrollment ? 'resendEmailEnrollment' : 'resendEmail', { challenge_id: challenge.challenge_id }); if (r) setChallenge({ challenge_id: r.challenge_id, allowed_methods: r.allowed_methods ?? [r.method], expires_at: r.expires_at }) }}>Reenviar código</button>}
       </form>}
-      {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && <button onClick={() => void enroll()}>Configurar autenticador</button>}
+      {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button type="button" onClick={async () => { const r = await call('enrollEmail'); if (r) { setEmailEnrollment(true); setChallenge(r) } }}>Configurar códigos por email</button>}
+      {view.auth?.state === 'ENROLLMENT_REQUIRED' && !enrollment && !challenge && <button onClick={() => void enroll()}>Configurar autenticador</button>}
       {enrollment && !challenge && !selection && <section><h2>Configura tu autenticador</h2><p>Introduce esta URI en tu aplicación. Se muestra una sola vez.</p>
         <TotpEnrollmentQr key={enrollment.enrollment_id} uri={enrollment.provisioning_uri} />
         <output style={{ overflowWrap: 'anywhere' }}>{enrollment.provisioning_uri}</output>

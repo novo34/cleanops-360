@@ -1,3 +1,4 @@
+import { createEmailCeremony, type PrivateMailCustody } from './email-ceremony.ts'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { approvedTotpEnrollmentPolicy } from './enrollment-policy.ts'
 import { canonical } from './contracts.ts'
@@ -19,6 +20,7 @@ function date(value: unknown): string {
   return d.toISOString()
 }
 export interface ApprovedBackendDependencies {
+  mail?: PrivateMailCustody
   factors: PrivateFactorKeys
   cursorKey: Buffer
   now?: () => number
@@ -71,6 +73,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const policy = await broker.call('policy', [])
       if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
       const factors = createApprovedFactors(broker, deps.factors, correlation, now)
+      const mail = deps.mail ? createEmailCeremony(broker, deps.mail, deps.factors.otpKey!, correlation, now) : undefined
       let actor: Binding | undefined, raw = '', csrf = ''
       const reservations = new Map<string, Reservation>()
       let stepUpRequest: { grant: string; resource: string | null } | undefined
@@ -120,6 +123,12 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         grant: string | null = null, resource: string | null = null, selectedId?: string, expectedVersion?: string,
         allowSelection = false): Promise<PreparedChallenge | RequiredSelection> {
         const value = await material(cookie, purpose, expected, grant, resource)
+        if (selectedId === undefined && value.enabledMethods.length === 1 && value.enabledMethods[0].kind === 'EMAIL_OTP') {
+          if (!mail) throw unavailable()
+          const binding: Binding = { kind: cookie === null ? 'ACTIVE' : 'PREAUTH', id: expected.id, tenantId: value.tenantId,
+            userId: value.userId, expiresAt: expected.expiresAt, csrfDigest: '' }
+          return mail.issue(cookie, binding, purpose, grant, resource)
+        }
         const eligible = eligibleTotpMethods(value.enabledMethods, methodLimit)
         if (allowSelection && selectedId === undefined && eligible.length > 1)
           return { state: 'TOTP_SELECTION_REQUIRED', methods: eligible.map(m => ({ method_id: m.id, kind: 'TOTP' })), expires_at: date(value.expiresAt) }
@@ -161,6 +170,12 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         return { data: { state: 'ACTIVE', session_id: result.session_id, tenant_id: result.tenant_id, absolute_expires_at: new Date(absolute).toISOString() },
           transition: { kind: 'ACTIVE', token: cookie, csrf: newCsrf, expiresAt: Math.min(absolute, now() + policy.idleSeconds * 1000) } }
       }
+      async function emailDenied(binding: Binding) {
+        const pseudonym = createHmac('sha256', deps.factors.auditKey).update(canonical(['MFA_DENIED', binding.id])).digest()
+        try { await broker.call('securityEvent', ['MFA_DENIED', pseudonym, null, null, correlation]) }
+        finally { pseudonym.fill(0) }
+        return new AuthError(422, 'MFA_INVALID')
+      }
       async function auth(binding: Binding, rule: string, resource?: string) {
         owns(binding)
         const rows = await broker.call('authorization', [preauth(), rule, resource ?? null])
@@ -176,7 +191,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       const tx: Transaction = {
         async resolve(cookies) {
           if (actor) throw unavailable()
-          const preferPreauth = ['verifyMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
+          const preferPreauth = ['verifyMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)
           const mode = operationHint === 'login' ? 'BOOTSTRAP' :
             preferPreauth && cookies[names.preauth] ? 'PREAUTH' : cookies[names.session] ? 'ACTIVE' : 'PREAUTH'
           raw = cookies[mode === 'ACTIVE' ? names.session : names.preauth] ?? ''; csrf = cookies[names.csrf] ?? ''
@@ -208,10 +223,10 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async stepUp(binding, rule, resource) { return (await auth(binding, rule, resource)).step_up === true },
         async rateLimit(operation, binding) {
           owns(binding)
-          if (!['login', 'verifyMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'selectTotpMethod'].includes(operation)) return null
+          if (!['login', 'verifyMfa', 'resendOtp', 'startStepUp', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'selectTotpMethod'].includes(operation)) return null
           const transport = deps.transport()
           if (![transport.network, transport.device].every(key => Buffer.isBuffer(key) && key.length === 32)) throw unavailable()
-          const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'confirmTotp'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
+          const purpose = operation === 'login' ? 'LOGIN' : ['verifyMfa', 'confirmTotp', 'confirmEmail'].includes(operation) ? 'OTP_VERIFY' : 'OTP_ISSUE'
           const subject = createHmac('sha256', deps.factors.auditKey).update(canonical([purpose, binding.tenantId ?? null, binding.userId ?? binding.id])).digest()
           const values = [subject, transport.network, transport.device], dims = ['USER', 'IP', 'DEVICE'] as const
           const limits = purpose === 'LOGIN' ? [numeric('login_user_limit'), numeric('login_ip_limit'), numeric('login_device_limit')] :
@@ -228,7 +243,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = ['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestHash), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestHash ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -245,6 +260,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             }
             if (!object(result.data) || !uuid(result.data.challenge_id) ||
                 Date.parse(String(result.data.expires_at)) <= now()) throw unavailable()
+            if (result.data.method === 'EMAIL_OTP' || (Array.isArray(result.data.allowed_methods) && result.data.allowed_methods.includes('EMAIL_OTP'))) throw new AuthError(409, 'RESULT_NOT_REPLAYABLE')
             const purpose = actor.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN'
             const detail = await broker.call('totpMaterial', [rawPreauth, result.data.challenge_id, purpose])
             if (!object(detail) || !object(detail.binding) || detail.binding.tenantId !== actor.tenantId ||
@@ -276,8 +292,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
-          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation) || r.oneTime))) throw unavailable()
           if (operation === 'getCurrentIdentity') {
             const rows = await broker.call('identity', [])
             if (rows.length !== 1 || rows[0].tenant_id !== binding.tenantId || rows[0].id !== binding.userId) throw unavailable()
@@ -367,7 +383,24 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             if ('state' in data) throw unavailable()
             return { data: binding.kind === 'PREAUTH' ? { state: 'PENDING_MFA', ...data } : data }
           }
-          if (operation === 'resendOtp') {
+          if (['enrollEmail', 'confirmEmail', 'resendEmailEnrollment'].includes(operation)) {
+            if (!mail || (binding.kind !== 'ACTIVE' && binding.state !== 'ENROLLMENT_REQUIRED')) throw unavailable()
+            if (operation === 'enrollEmail') return { data: await mail.issue(preauth(), binding, 'ENROLLMENT') }
+            if (operation === 'resendEmailEnrollment') return { data: await mail.resend(preauth(), binding, String(input.challenge_id)) }
+            const ok = await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof), true)
+            if (!ok) return emailDenied(binding)
+            return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
+          }
+          if (operation === 'resendEmail' || operation === 'resendOtp') {
+            if (mail) {
+              // EMAIL references live in a separate owned namespace. A lookup for a
+              // TOTP UUID would create a pending reservation, so routing is explicit.
+              if (operation === 'resendEmail') {
+                const data = await mail.resend(preauth(), binding, String(input.challenge_id))
+                return { data: { challenge_id: data.challenge_id, method: 'EMAIL_OTP', expires_at: data.expires_at } }
+              }
+            }
+
             const purpose = binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN', cookie = preauth()
             const previous = await broker.call('totpMaterial', [cookie, String(input.challenge_id), purpose])
             if (!object(previous) || !object(previous.binding) || previous.binding.tenantId !== binding.tenantId ||
@@ -427,7 +460,14 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             } finally { digests.forEach(value => value.fill(0)) }
           }
           if (operation === 'verifyMfa') {
-            if (input.method !== 'TOTP') throw unavailable() // D4 remains closed.
+            if (input.method === 'EMAIL_OTP') {
+              if (!mail) throw unavailable()
+              return ownedInternal(preauth(), 'verifyMfa', input, async () => {
+                if (!await mail.verify(preauth(), binding, String(input.challenge_id), String(input.proof))) return emailDenied(binding)
+                return binding.kind === 'ACTIVE' ? { data: await activeSummary(binding) } : issueSession(binding)
+              })
+            }
+            if (input.method !== 'TOTP') throw unavailable()
             if (binding.kind !== 'ACTIVE' && (binding.kind !== 'PREAUTH' || binding.state !== 'PENDING_MFA')) throw invalid()
             return ownedInternal(preauth(), 'verifyMfa', input, async () => {
               const result = await factors.totp(String(input.proof), binding, preauth(), String(input.challenge_id), binding.kind === 'ACTIVE' ? 'STEP_UP' : 'LOGIN')

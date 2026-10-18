@@ -5,6 +5,12 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+"mailMaterial": {"sql": "SELECT auth_api.mail_recipient_material($1::text,$2::text,$3::text,$4::uuid) AS value", "arity": 4, "kind": "json"},
+"beginEmail": {"sql": "SELECT auth_api.begin_email_enrollment($1::text,$2::uuid,$3::bigint,$4::uuid) AS value", "arity": 4, "kind": "uuid"},
+"issueEmailEnrollment": {"sql": "SELECT auth_api.issue_email_enrollment($1::text,$2::uuid,$3::bigint,$4::bigint,$5::uuid,$6::uuid,$7::bytea,$8::bytea,$9::text,$10::timestamptz,$11::uuid) AS value", "arity": 11, "kind": "uuid"},
+"issueEmail": {"sql": "SELECT auth_api.issue_email_assigned($1::text,$2::uuid,$3::bigint,$4::bigint,$5::uuid,$6::uuid,$7::bytea,$8::bytea,$9::text,$10::timestamptz,$11::text,$12::uuid,$13::uuid) AS value", "arity": 13, "kind": "uuid"},
+"consumeEmail": {"sql": "SELECT auth_api.consume_email_v2($1::text,$2::uuid,$3::bytea,$4::bigint,$5::bigint,$6::uuid) AS value", "arity": 6, "kind": "boolean"},
+
 "mfaMaterial": {"sql":"SELECT auth_api.trusted_mfa_material($1::text, $2::text, $3::text, $4::uuid) AS value","arity":4,"kind":"json"},
 "boundChallenge": {"sql":"SELECT auth_api.issue_bound_challenge($1::text, $2::text, $3::uuid, $4::bigint, $5::bytea, $6::bytea, $7::text, $8::text, $9::uuid, $10::uuid) AS value","arity":10,"kind":"uuid"},
 "enrollAssigned": {"sql":"SELECT auth_api.begin_totp_enrollment_assigned($1::text, $2::uuid, $3::uuid, $4::uuid, $5::bigint, $6::bytea, $7::text, $8::text, $9::uuid) AS value","arity":9,"kind":"json"},
@@ -179,6 +185,11 @@ export type D1MfaMaterial = Readonly<{
 }>
 export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: '1'; expiresAt: string }>
 export type BrokerArgs = {
+  mailMaterial: [preauth: string | null, purpose: 'LOGIN' | 'STEP_UP' | 'ENROLLMENT', grant: string | null, resource: string | null]
+  beginEmail: [preauth: string | null, method: string, recipientVersion: string, correlation: string]
+  issueEmailEnrollment: [preauth: string | null, method: string, methodVersion: string, recipientVersion: string, challenge: string, outbox: string, digest: Buffer, ciphertext: Buffer, keyVersion: string, expires: string, correlation: string]
+  issueEmail: [preauth: string | null, method: string, methodVersion: string, recipientVersion: string, challenge: string, outbox: string, digest: Buffer, ciphertext: Buffer, keyVersion: string, expires: string, grant: string | null, resource: string | null, correlation: string]
+  consumeEmail: [preauth: string | null, challenge: string, digest: Buffer, methodVersion: string, recipientVersion: string, correlation: string]
   mfaMaterial: [preauth: string | null, purpose: MfaPurpose, grant: string | null, resource: string | null]
   boundChallenge: [preauth: string | null, kind: 'TOTP' | 'EMAIL_OTP', method: string, expectedVersion: string,
     proof: Buffer | null, encryptedPayload: Buffer | null, payloadKey: string | null, grant: string | null, resource: string | null, correlation: string]
@@ -242,6 +253,7 @@ function safeError(error: unknown): AuthError {
   // Match only stable, known broker messages; never surface server diagnostics or SQL.
   if (object(error)) {
     const codes: Record<string, [number, string]> = {
+      RATE_LIMITED: [429, 'RATE_LIMITED'],
       AUTH_INVALID: [401, 'AUTH_INVALID'], CREDENTIAL_CHANGED: [401, 'AUTH_INVALID'],
       RESERVATION_NOT_OWNED: [409, 'IDEMPOTENCY_CONFLICT'],
       INVALID_SESSION: [401, 'AUTH_INVALID'], INVALID_CEREMONY: [401, 'AUTH_INVALID'],

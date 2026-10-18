@@ -4,37 +4,44 @@ import { hash, argon2id } from 'argon2'
 import { randomBytes, randomUUID, createHmac } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { TOTP, Secret } from 'otpauth'
+import type { IdentityPool } from '../lib/b1/pg-identity-driver.ts'
 import { createApprovedPrivateBackend } from '../lib/b1/approved-backend.ts'
 import { createAuthHandler } from '../lib/b1/service.ts'
 import { canonical } from '../lib/b1/contracts.ts'
 import { numeric } from '../lib/b1/config.ts'
 import { sealEnrollmentSecret, openEnrollmentSecret } from '../lib/b1/ceremony-preparation.ts'
 
+import { dispatchOneMail } from '../lib/b1/mail-worker.ts'
+import { createMailDispatchStore } from '../lib/b1/mail-dispatch-store.ts'
 import { createInterface } from 'node:readline'
 const lines = createInterface({ input: process.stdin, crlfDelay: Infinity })
 const iterator = lines[Symbol.asyncIterator]()
 const first = await iterator.next()
 const input = JSON.parse(first.value!)
-if(input.scenario==='multiple'){input.principal=randomUUID();input.user=randomUUID()}
+const emailScenario = ['email', 'email-enrollment'].includes(input.scenario)
+if(input.scenario==='multiple' || emailScenario){input.principal=randomUUID();input.user=randomUUID()}
+input.email = input.scenario+'-'+input.principal+'@fixture.invalid'
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: 1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
 const password = 'PG05 synthetic passphrase!'
 const recoveryKey = randomBytes(32)
+const mailKey = randomBytes(32), otpKey = randomBytes(32)
+const mailPool = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'pgtest_mail', max: 2 })
 const key = randomBytes(32), secret = randomBytes(32), method = randomUUID()
 const enrollmentContext = { tenantId: input.tenant, userId: input.user, methodId: method, initialMethodVersion: '1' as const, algorithm: 'SHA256' as const }
 const envelope = sealEnrollmentSecret(secret, key, 'pg05-ephemeral', enrollmentContext)
 const queryFailures: { operation: string; sqlstate: string }[] = []
 try {
   const passwordHash = await hash(password, { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
-  if(input.scenario==='multiple') {
-    await admin.query("INSERT INTO identity_private.principals VALUES($1,'multi@fixture.invalid','ACTIVE',now())",[input.principal])
+  if(input.scenario==='multiple' || emailScenario) {
+    await admin.query("INSERT INTO identity_private.principals VALUES($1,$2,'ACTIVE',now())",[input.principal,emailScenario ? input.email : 'multi@fixture.invalid'])
     await admin.query('INSERT INTO identity_private.credentials VALUES($1,$2,1,now())',[input.principal,passwordHash])
     await admin.query("INSERT INTO app.users VALUES($1,$2,$3,'Synthetic multi','ACTIVE','SENSITIVE',now())",[input.tenant,input.user,input.principal])
   }
   await admin.query('UPDATE identity_private.credentials SET argon2id_hash=$1 WHERE principal_id=$2', [passwordHash, input.principal])
   await admin.query("UPDATE app.mfa_methods SET state='REVOKED' WHERE tenant_id=$1 AND user_id=$2", [input.tenant, input.user])
-  if (input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
+  if (!emailScenario && input.scenario !== 'enrollment') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,secret_ciphertext,key_version,created_at,method_version,algorithm) VALUES($1,$2,$3,'TOTP','ACTIVE',$4,'pg05-ephemeral',now(),1,'SHA256')", [input.tenant, method, input.user, envelope])
   if(input.scenario==='multiple') {
     const extraId=randomUUID(),extraSecret=randomBytes(32)
     try {
@@ -52,6 +59,15 @@ try {
       finally {code.bytes.fill(0);mac.fill(0)}
     }
   }
+  if (emailScenario) {
+    const verifier = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'pgtest_verifier' })
+    try {
+      const { createHash } = await import('node:crypto')
+      await verifier.query('SELECT auth_api.record_verified_recipient($1::uuid,$2::uuid,0,$3::bytea,$4::uuid,$5::timestamptz,$6::uuid)',
+        [input.tenant, input.user, createHash('sha256').update(input.email).digest(), randomUUID(), new Date(Date.now()+3600000), randomUUID()])
+    } finally { await verifier.end() }
+    if (input.scenario === 'email') await admin.query("INSERT INTO app.mfa_methods(tenant_id,id,user_id,kind,state,created_at,method_version) VALUES($1,$2,$3,'EMAIL_OTP','ACTIVE',now(),1)", [input.tenant,method,input.user])
+  }
   // Synthetic rows exercise the existing approved page_default, not a new UI default.
   await admin.query(`INSERT INTO app.sessions
     SELECT tenant_id,gen_random_uuid(),user_id,principal_id,
@@ -61,7 +77,7 @@ try {
     FROM (SELECT * FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 LIMIT 1) s
     CROSS JOIN generate_series(1,$3::int) g`,[input.tenant,input.user,numeric('page_default')])
   const transportResult = await admin.query("SELECT encode(secret_ciphertext,'base64') AS encoded FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2", [input.tenant, method])
-  if (input.scenario !== 'enrollment') {
+  if (!emailScenario && input.scenario !== 'enrollment') {
     const encoded: string = transportResult.rows[0].encoded
     assert.ok(encoded.includes('\n')); assert.equal(Buffer.from(encoded, 'base64').length, envelope.length)
   }
@@ -77,13 +93,14 @@ try {
     }, release(discard?: boolean) { client.release(discard) } }
   } }
   const backend = createApprovedPrivateBackend(privatePool, {
-    factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey: randomBytes(32), recoveryKey,
+    factors: { dummyPasswordHash: await hash('PG05 synthetic dummy never an identity', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 }), auditKey: randomBytes(32), otpKey, recoveryKey,
       async decryptTotp(bytes, version, record) {
         assert.equal(version, 'pg05-ephemeral'); assert.equal(record.binding.tenantId, input.tenant)
         assert.equal(record.binding.userId, input.user);
          assert.equal(record.algorithm, 'SHA256'); assert.equal(bytes[0], 2)
         return openEnrollmentSecret(bytes, key, version, { ...enrollmentContext, methodId: record.binding.methodId })
       } },
+    mail: emailScenario ? { async withWriteKey(tenant, work) { assert.equal(tenant,input.tenant); const borrowed=Buffer.from(mailKey); try{return work(borrowed,'synthetic-mail-browser-v1')} finally{borrowed.fill(0)} } } : undefined,
     enrollment: {
       async withWriteKey(tenantId, work) { assert.equal(tenantId, input.tenant); const borrowed = Buffer.from(key); try { return work(borrowed, 'pg05-ephemeral') } finally { borrowed.fill(0) } },
       async accountAlias() { return 'synthetic-enrollment-alias' },
@@ -100,6 +117,25 @@ try {
     if (line.done) break
     const message = JSON.parse(line.value)
     try {
+      if (message.kind === 'fixtureEmail') { reply({ email: input.email }); continue }
+      if (message.kind === 'deliverEmail') {
+        let proof = ''
+        const result = await dispatchOneMail({ store: createMailDispatchStore(mailPool as unknown as IdentityPool), now: Date.now,
+          async withReadKey(tenant, version, work) { assert.equal(tenant,input.tenant); assert.equal(version,'synthetic-mail-browser-v1');return work(mailKey) },
+          async deliver(payload) { assert.equal(payload.recipient,input.email);proof=payload.code;return message.uncertain ? 'UNKNOWN' : 'ACCEPTED' } })
+        reply({ result, proof }); continue
+      }
+      if (message.kind === 'emailClock') {
+        if (message.expire) await admin.query("UPDATE app.mfa_challenges SET expires_at=clock_timestamp()-interval '1 second' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
+        await admin.query("UPDATE app.mfa_challenges SET issued_at=clock_timestamp()-interval '60 seconds' WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
+        reply({ ok:true });continue
+      }
+      if (message.kind === 'inspectEmail') {
+        const methods=await admin.query("SELECT state FROM app.mfa_methods WHERE tenant_id=$1 AND user_id=$2 AND kind='EMAIL_OTP'",[input.tenant,input.user])
+        const sessions=await admin.query("SELECT count(*)::int AS n FROM app.sessions WHERE tenant_id=$1 AND user_id=$2 AND state='ACTIVE'",[input.tenant,input.user])
+        const outbox=await admin.query('SELECT state,octet_length(payload_ciphertext)::int AS bytes FROM app.auth_outbox WHERE tenant_id=$1 AND user_id=$2 ORDER BY available_at',[input.tenant,input.user])
+        reply({ methods:methods.rows, active:sessions.rows[0].n, outbox:outbox.rows });continue
+      }
       if(message.kind==='primaryMethod'){reply({id:method});continue}
       if (message.kind === 'proof') {
         const proof = TOTP.generate({ secret: new Secret({ buffer: Uint8Array.from(secret).buffer }), algorithm: 'SHA256', period: numeric('totp_period'), digits: numeric('totp_digits'), timestamp: Date.now() + (message.next ? numeric('totp_period') * 1000 : 0) })
@@ -123,6 +159,7 @@ try {
     } catch { reply({ status: 503, transportFailure: true }) }
   }
 } finally {
-  key.fill(0); secret.fill(0); recoveryKey.fill(0)
+  key.fill(0); secret.fill(0); recoveryKey.fill(0); mailKey.fill(0); otpKey.fill(0)
+  await mailPool.end()
   await identity.end(); await admin.end()
 }

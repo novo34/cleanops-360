@@ -1,4 +1,8 @@
-import specification from './openapi.json' with { type: 'json' }
+import canonicalSpecification from './openapi.json' with { type: 'json' }
+import emailExtension from './email-http.json' with { type: 'json' }
+// Additive E1 EMAIL endpoints; canonical V4 bytes and existing operations unchanged.
+const specification = { ...canonicalSpecification, paths: { ...canonicalSpecification.paths, ...emailExtension.paths },
+  components: { ...canonicalSpecification.components, schemas: { ...canonicalSpecification.components.schemas, ...emailExtension.schemas } } }
 
 export interface Schema {
   $ref?: string; type?: string; const?: unknown; enum?: unknown[]; properties?: Record<string, Schema>
