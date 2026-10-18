@@ -19,7 +19,7 @@ def payload():
  runner.original_record('exact10-blob-sha256-full-diff-no-ACL-RLS-change','PASS');return [('V4',raw.decode())]
 def checks():
  browser=prior.nine.previous.browser
- browser.CONFIG='playwright.trusted-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL10_TRUSTED_DEVICE_REAL_BROWSER';browser.SECURITY_GATE='pg-trusted-security-tests.py'
+ browser.CONFIG='playwright.trusted-commit-b1.config.ts';browser.UI_SCOPE='EXECUTED_SQL10_TRUSTED_COMMIT_REAL_BROWSER';browser.SECURITY_GATE='pg-trusted-security-tests.py'
  browser.browser()
 runner.payload=payload;runner.checks=checks
 if __name__=='__main__':sys.exit(runner.main())

@@ -87,9 +87,6 @@ test('trusted failed COMMIT releases no cookie and rolls back device and audit b
   expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length)
   expect((await post(page,'/me/trusted-devices')).status).toBe(200)
   expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length+1)
-  const key=crypto.randomUUID();await server.rpc({kind:'loseResetCommitAck'});expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(503)
-  expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(before.devices.length+2)
-  expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(409)
  }finally{await server.close()}
 })
 test('trusted operator UI revokes another user only with current effective edit users and fresh MFA',async({page})=>{
@@ -123,4 +120,22 @@ test('actual recovery MFA reset invalidates trust before mandatory enrollment an
   expect((await server.rpc({kind:'inspectTrusted'})).devices.every((d:{revoked_at:string|null})=>!!d.revoked_at)).toBe(true)
   expect((await page.request.get('/me/trusted-devices/status')).status()).toBe(401);expect((await fresh.request.get('https://127.0.0.1:3000/auth/me')).status()).toBe(401)
  }finally{await fresh.close();await server.close()}
+})
+
+test('trusted durable COMMIT acknowledgement loss does not issue a cookie and replay never re-registers',async({page})=>{
+ const server=await startRealBrowserServer('trusted')
+ try{await login(page,server)
+  const sessionBefore=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_session')!
+  expect((await post(page,'/me/trusted-devices',{expires_at:'2099-01-01T00:00:00Z'})).status).toBe(400)
+  await remember(page,server)
+  const sessionAfter=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_session')!
+  expect(sessionBefore.value===sessionAfter.value && sessionBefore.expires===sessionAfter.expires).toBe(true)
+  const previous=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_trusted')!,key=crypto.randomUUID()
+  await server.rpc({kind:'loseResetCommitAck'});expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(503)
+  const actual=(await page.context().cookies()).find(c=>c.name==='__Host-cleanops_trusted')!
+  expect(previous.value===actual.value && previous.expires===actual.expires).toBe(true)
+  expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(2)
+  expect((await post(page,'/me/trusted-devices',undefined,key)).status).toBe(409)
+  expect((await server.rpc({kind:'inspectTrusted'})).devices.length).toBe(2)
+ }finally{await server.close()}
 })
