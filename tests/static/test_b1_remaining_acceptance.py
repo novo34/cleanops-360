@@ -23,4 +23,14 @@ class RemainingAcceptance(unittest.TestCase):
   for row in status['remaining']:self.assertIn(row['classification'],allowed);self.assertTrue(row['blocker'])
   self.assertEqual(status['B1'],'OPEN');self.assertEqual(status['AUTH-GATE-05'],'OPEN');self.assertEqual(status['runtime'],'closedBackend')
   self.assertFalse(status['functionalContractDependency']['installed'])
+ def test_final_directed_regression_is_raw_real_pass_with_complete_cleanup(self):
+  report=read('docs/implementation/b1/remaining/REGRESSION.json');self.assertEqual(report['result'],'PASS')
+  distinct=set();count=0;executions=0
+  for battery in report['batteries']:
+   raw=read(battery['report']);self.assertEqual(raw['result'],'PASS');self.assertEqual(raw['cleanup'],'PASS')
+   self.assertEqual(raw['source'],battery['source']);self.assertEqual(raw['run'],battery['run']);self.assertEqual(raw['job'],battery['job'])
+   self.assertTrue(all(c['status']=='PASS' for c in raw['checks']));count+=len(raw['checks'])
+   cases=[c['name'] for c in raw['checks'] if c['name'].startswith('Browser-PG')];executions+=len(cases);distinct.update(cases)
+  self.assertEqual(count,report['passedChecksIncludingRepeatedInstallationGuards']);self.assertEqual(executions,report['browserExecutionsIncludingRepeatedCommonCases']);self.assertEqual(len(distinct),report['distinctBrowserCases'])
+  self.assertEqual(report['B1'],'OPEN');self.assertEqual(report['runtime'],'closedBackend')
 if __name__=='__main__':unittest.main()

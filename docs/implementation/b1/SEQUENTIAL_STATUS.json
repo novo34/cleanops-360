@@ -86,14 +86,14 @@
     "cleanup": "PASS"
   },
   "proposedCandidate": {
-    "gitBlob": "9246692e8306100a25c402857f1273e5ee10c7ae",
-    "sha256": "78c222c842c63da80eb7f967cbae6a93dad7306f366787f3a9f5c7016b4d05da",
-    "bytes": 209135,
-    "path": "docs/proposals/b1-consolidated-sql/revisions/12/schema.review.sql"
+    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+    "bytes": 209170,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
   },
   "nextAuthorization": {
-    "SQL12": "Exact proposed blob9246692e8306100a25c402857f1273e5ee10c7ae pending owner approval; not installed.",
-    "operational": "No productive configuration/custody/SMTP/staging approval inferred."
+    "SQL13": "Exact blob7a2df8463e6c1a45b2a2c9005187c0269d2cf423 requires approval; supersedes uninstalled SQL12, not covered by SQL11 authorization.",
+    "operational": "See remaining/OPERATING_DECISIONS.md; no production activation inferred."
   },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
   "pgTest01Scope": "Exact approved SQL11 only; no SQL12 installation.",

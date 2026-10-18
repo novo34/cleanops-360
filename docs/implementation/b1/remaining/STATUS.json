@@ -34,9 +34,22 @@
   "functionalContractDependency": {
     "flow": "password-verified multi-company PREAUTH selection",
     "status": "FAIL_CLOSED_503",
-    "proposal": "docs/proposals/b1-consolidated-sql/revisions/12/APPROVAL.md",
+    "proposal": "docs/proposals/b1-consolidated-sql/revisions/13/APPROVAL.md",
     "installed": false
   },
   "operationalControls": "Architecture D2/D3/D4/C-SCOPE/C-LOGIN remain approved. Named Swiss OpenBao infrastructure/custodian, approved operating numeric policy and real recovery/delivery/staging evidence remain distinct; no productive integrations are claimed.",
-  "regression": "Shared CSRF guard changed: targeted final real EMAIL/recovery/reset/trusted/AUTHZ regression running; earlier unaffected native matrices reused."
+  "regression": {
+    "result": "PASS",
+    "report": "docs/implementation/b1/remaining/REGRESSION.json",
+    "checks": 514,
+    "browserExecutions": 64,
+    "distinctCases": 48
+  },
+  "consolidatedApprovalCandidate": {
+    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+    "bytes": 209170,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
+  },
+  "consolidatedApprovalScope": "PREAUTH owned rotation plus two denial-event codes; supersedes uninstalled SQL12. Neither candidate installed."
 }
