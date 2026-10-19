@@ -215,8 +215,12 @@
     }
   ],
   "integrationRerun": {
-    "status": "REQUESTED_NOT_EXECUTED",
-    "scope": "Existing synthetic isolated SQL14 PG16/OpenBao harness, no modified SQL/ACL",
-    "triggerBefore": "fad0c5771e620710aa004bd84e28875f5e58a85d"
+    "status": "PASS",
+    "source": "ca32fcf024cc415c080ca50e0f44bd7f099d08fd",
+    "run": 39239447182,
+    "job": 118016424543,
+    "checks": 144,
+    "cleanup": "PASS",
+    "report": "docs/implementation/b1/recovery/2026-10-19-integration.json"
   }
 }
