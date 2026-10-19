@@ -44,7 +44,7 @@ def install(record, apply=False, runner=None):
         or labels.get("com.docker.compose.service") != "postgres"
         or metadata["HostConfig"].get("PortBindings")):
         raise ValueError("POSTGRES_OWNERSHIP_OR_PORTS_MISMATCH")
-    psql = [*base, "exec", "-T", "postgres", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1",
+    psql = [*base, "exec", "-T", "postgres", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=sqlstate",
             "-U", "cleanops_bootstrap", "-d", "cleanops_staging"]
     version = runner([*psql, "-c", "SHOW server_version_num;"])
     if not version.isdigit() or not 160000 <= int(version) < 170000:

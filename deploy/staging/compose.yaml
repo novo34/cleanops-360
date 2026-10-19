@@ -64,7 +64,7 @@ services:
         max-size: 10m
         max-file: "3"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cleanops_bootstrap -d cleanops_staging"]
+      test: ["CMD-SHELL", "psql -XqAt -U cleanops_bootstrap -d cleanops_staging -c 'SELECT 1' | read result && [ \"$$result\" = 1 ]"]
       interval: 20s
       timeout: 5s
       retries: 5

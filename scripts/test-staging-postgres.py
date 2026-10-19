@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -24,7 +25,8 @@ def main():
         r = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", *args], input=data,
                            capture_output=True, env=env, timeout=120)
         if check and r.returncode:
-            raise RuntimeError("STAGING_PG_PROCESS_FAILED")
+            code = re.search(rb"ERROR:\s+([0-9A-Z]{5})\b", r.stderr)
+            raise RuntimeError("STAGING_PG_PROCESS_FAILED_" + (code[1].decode() if code else "REDACTED"))
         return r
 
     def load():
@@ -59,7 +61,10 @@ def main():
             docker("rm", "-f", container); container = None
             container = docker(*args, "--user=postgres", "postgres:16-bookworm").stdout.decode().strip()
             for _ in range(100):
-                if not docker("exec", container, "pg_isready", "-U", "cleanops_bootstrap", "-d", "cleanops_staging", check=False).returncode: break
+                logs = docker("logs", container, check=False)
+                initialized = b"init process complete; ready for start up" in logs.stdout + logs.stderr
+                probe = docker("exec", container, "psql", "-XqAt", "-U", "cleanops_bootstrap", "-d", "cleanops_staging", "-c", "SELECT 1", check=False)
+                if initialized and probe.returncode == 0 and probe.stdout.strip() == b"1": break
                 time.sleep(0.25)
             else: raise RuntimeError("NONROOT_PG16_NOT_READY")
             checks.append({"name": "fixed-nonroot-pg16-starts-with-drop-all", "status": "PASS"})
@@ -81,6 +86,9 @@ def main():
             else: raise RuntimeError("REINSTALL_NOT_DENIED")
             checks.append({"name": "existing-installed-state-rejected-no-overwrite", "status": "PASS"})
             status = "PASS"
+    except Exception as error:
+        checks.append({"name": "native-pg-execution", "status": "FAIL", "detail":
+                       str(error) if isinstance(error, (ValueError, RuntimeError)) else type(error).__name__})
     finally:
         if container:
             meta = json.loads(docker("inspect", container).stdout)[0]

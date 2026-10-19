@@ -122,6 +122,9 @@ def main():
             assert api("sys/auth", token=token)["status"] == 200
             record("raft-survives-restart-requires-original-test-share")
             status = "PASS"
+    except Exception as error:
+        checks.append({"name": "native-image-execution", "status": "FAIL", "detail":
+                       str(error) if isinstance(error, RuntimeError) else type(error).__name__})
     finally:
         if cid:
             meta = json.loads(docker("inspect", cid).stdout)[0]
