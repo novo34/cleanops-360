@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, writeFile, symlink, rm, readFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { request as httpRequest } from 'node:http'
 
 // Isolated synthetic application: never add a diagnostic endpoint to CleanOps.
 const require = createRequire(import.meta.url)
@@ -37,9 +38,20 @@ export async function POST(request) {
   ]
   const observations = []
   for (const scenario of cases) {
-    const response = await fetch(`http://127.0.0.1:${port}/probe`, { method: 'POST', headers: scenario.headers })
-    assert.equal(response.status, 200)
-    const observation = { scenario: scenario.name, ...await response.json() }
+    const result = await new Promise((resolve, reject) => {
+      const request = httpRequest({ hostname: '127.0.0.1', port, path: '/probe', method: 'POST', headers: scenario.headers }, response => {
+        let body = ''
+        response.setEncoding('utf8')
+        response.on('data', chunk => { body += chunk })
+        response.on('end', () => {
+          try { assert.equal(response.statusCode, 200); resolve(JSON.parse(body)) } catch (error) { reject(error) }
+        })
+      })
+      request.on('error', reject)
+      request.setTimeout(5000, () => request.destroy(new Error('probe timeout')))
+      request.end()
+    })
+    const observation = { scenario: scenario.name, ...result }
     observations.push(observation)
     console.log(JSON.stringify(observation))
   }
