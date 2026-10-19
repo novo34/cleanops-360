@@ -19,7 +19,9 @@ def install(record, apply=False, runner=None):
     if not apply:
         return "VERIFIED_ONLY_NOT_INSTALLED"
     s = record["STAGING_SYNTHETIC"]
-    if (s["syntheticOnly"] is not True or s["branch"] != "staging"
+    if (s["syntheticOnly"] is not True or any(s.get(k) is not False for k in
+            ["realPersonalData", "productionDatabaseCopies", "externalCommunications"])
+        or s["branch"] != "staging"
         or s.get("deploymentAuthorized") is not True or not s.get("deploymentApprovalReference")
         or s.get("sql14FreshInstallAuthorized") is not True):
         raise ValueError("EXACT_FRESH_INSTALL_AUTHORIZATION_REQUIRED")

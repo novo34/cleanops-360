@@ -138,6 +138,9 @@ approved boundary and record the checkpoint. With backupAuthorized=true and a
 snapshot-read-only token FILE (not root/workload token):
 python3 scripts/staging-maintenance.py --record /private/resource.json --snapshot-token-file /private/snapshot-token --key-file /private/staging-backup-key --out /private/backups/new-checkpoint.enc
 
+The record must name that dedicated backup destinationDirectory; the tool rejects
+an output outside it, including another project's directory.
+
 This encrypts PG dump+roles(no passwords)+Raft snapshot in an authenticated
 STAGING_SYNTHETIC archive. Add the frozen renderer manifest, public TLS trust,
 exact image digests/config and private custody references to the checkpoint

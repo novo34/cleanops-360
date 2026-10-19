@@ -14,9 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def backup(record, token_file, key_file, output):
     s = record["STAGING_SYNTHETIC"]
-    if (s["syntheticOnly"] is not True or s.get("deploymentAuthorized") is not True
+    if (s["syntheticOnly"] is not True or any(s.get(k) is not False for k in
+            ["realPersonalData", "productionDatabaseCopies", "externalCommunications"])
+        or s.get("deploymentAuthorized") is not True
         or s.get("backupAuthorized") is not True or not s.get("deploymentApprovalReference")):
         raise ValueError("SYNTHETIC_BACKUP_AUTHORIZATION_REQUIRED")
+    directory = s["backup"].get("destinationDirectory")
+    if not directory or not Path(directory).is_absolute() or output.resolve().parent != Path(directory).resolve():
+        raise ValueError("DEDICATED_STAGING_BACKUP_DIRECTORY_REQUIRED")
     if output.exists() or token_file.is_symlink() or not token_file.is_file():
         raise ValueError("PRIVATE_FILE_OR_OUTPUT_REQUIRED")
     if stat.S_IMODE(token_file.stat().st_mode) & 0o077:

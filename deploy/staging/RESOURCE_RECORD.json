@@ -56,7 +56,8 @@
       "scope": "SYNTHETIC_ONLY",
       "destinationReference": null,
       "separateFromOtherProjects": true,
-      "productionRpoRtoAccepted": false
+      "productionRpoRtoAccepted": false,
+      "destinationDirectory": null
     },
     "manualAcceptance": {
       "tester": null,

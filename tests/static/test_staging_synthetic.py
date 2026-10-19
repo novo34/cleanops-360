@@ -125,6 +125,24 @@ class Synthetic(unittest.TestCase):
         with self.assertRaises(ValueError):
             maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/not-created-output"))
 
+    def test_direct_tools_cannot_bypass_the_synthetic_data_or_backup_directory_boundary(self):
+        for field in ["realPersonalData", "productionDatabaseCopies", "externalCommunications"]:
+            r, _ = fixture()
+            s = r["STAGING_SYNTHETIC"]
+            s.update(deploymentAuthorized=True, backupAuthorized=True, sql14FreshInstallAuthorized=True,
+                     deploymentApprovalReference="TEST_ONLY")
+            s[field] = True
+            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
+                install.install(r, True, lambda *_: self.fail("No Docker allowed"))
+            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
+                maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
+        r, _ = fixture()
+        s = r["STAGING_SYNTHETIC"]
+        s.update(deploymentAuthorized=True, backupAuthorized=True, deploymentApprovalReference="TEST_ONLY")
+        s["backup"]["destinationDirectory"] = "/owned-cleanops-backups"
+        with self.assertRaisesRegex(ValueError, "DEDICATED_STAGING_BACKUP_DIRECTORY_REQUIRED"):
+            maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
+
     def test_merged_compose_has_only_web_ingress_and_persistent_private_bao(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d); (p / "pw").write_text("synthetic-config-only")
