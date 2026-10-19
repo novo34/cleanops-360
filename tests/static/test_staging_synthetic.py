@@ -144,6 +144,8 @@ class Synthetic(unittest.TestCase):
                 self.assertFalse(service.get("privileged", False), name)
             self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "ingress"})
             self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
+            self.assertEqual(config["services"]["postgres"]["user"], "postgres")
+            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][-2:], ["-c", "SELECT 1"])
             bao = config["services"]["openbao"]
             self.assertEqual(set(bao["networks"]), {"custody"})
             self.assertTrue(config["networks"]["custody"]["internal"])

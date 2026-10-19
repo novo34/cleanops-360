@@ -96,7 +96,12 @@ def main():
             assert docker("exec", cid, "node", "/opt/cleanops/staging-bao-health.mjs", check=False).returncode != 0
             record("health-rejects-uninitialized")
             # Test-only single-harness shares; not an approved human or production quorum.
-            initialization = api("sys/init", "PUT", {"secret_shares": 1, "secret_threshold": 1})["body"]
+            init_response = api("sys/init", "PUT", {"secret_shares": 1, "secret_threshold": 1})
+            initialization = init_response.get("body", {})
+            if init_response.get("status") != 200 or not initialization.get("keys_base64"):
+                errors = " ".join(initialization.get("errors", [])).lower()
+                hint = "EOF" if "eof" in errors else "SHARES" if "shares" in errors or "threshold" in errors else "STORAGE" if "permission" in errors or "storage" in errors else "REDACTED"
+                raise RuntimeError("INIT_HTTP_" + str(init_response.get("status")) + "_" + hint)
             share, token = initialization["keys_base64"][0], initialization["root_token"]
             api("sys/unseal", "PUT", {"key": share})
             ready()
