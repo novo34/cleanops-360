@@ -2,11 +2,24 @@ name: B1 proxy origin regression
 on:
   pull_request:
     branches: [staging]
+    paths:
+      - 'lib/b1/**'
+      - 'tests/b1/**'
+      - 'deploy/staging/**'
+      - 'scripts/*b1*origin*'
+      - '.github/workflows/b1-proxy-origin.yml'
+  push:
+    branches: [staging]
+    paths:
+      - 'lib/b1/**'
+      - 'tests/b1/**'
+      - 'deploy/staging/**'
+      - 'scripts/*b1*origin*'
+      - '.github/workflows/b1-proxy-origin.yml'
 permissions:
   contents: read
 jobs:
   origin:
-    if: github.head_ref == 'feat/b1-auth-proxy-origin'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
