@@ -123,5 +123,100 @@
   "accepted": 42,
   "total": 44,
   "authGate05": "OPEN",
-  "runtime": "closedBackend"
+  "runtime": "closedBackend",
+  "recoveredCommits": [
+    {
+      "sha": "439ea60aff45f74bdf684f237f7d91341a43069c",
+      "message": "test(b1): guard canonical 42/44 acceptance and prevent synthetic CI from closing PO gates"
+    },
+    {
+      "sha": "3bd8190477843abd2ca0891c8c9264965967b764",
+      "message": "feat(b1): add read-only PR006/PR007 closure readiness check"
+    },
+    {
+      "sha": "4c150979f5d3ffaf675cc0028197f9c192eca656",
+      "message": "fix(b1): allow future legitimate PR006/PR007 closure states in readiness check"
+    },
+    {
+      "sha": "af5aff45b0909f54ccda60d58054a95125433e61",
+      "message": "test(b1): verify closure readiness CLI stays fail-closed at 42/44"
+    },
+    {
+      "sha": "550b20a36b58a7c4e4f59fedb6f6c148305b7fef",
+      "message": "fix(b1): restore valid Python newline in closure checker"
+    },
+    {
+      "sha": "9191069777a1243a2197567cb851a9196011aad9",
+      "message": "test(b1): add negative evidence tampering tests for closure readiness"
+    },
+    {
+      "sha": "bde2c8cdd8912d129f5897e40994422b5c89d5d7",
+      "message": "feat(b1): add private custody-scoped OpenBao and PostgreSQL backend composition"
+    },
+    {
+      "sha": "4470f0f3a16e34448790ccdf79053b91cfe7e693",
+      "message": "test(b1): verify private OpenBao PostgreSQL composition fail-closed boundaries"
+    },
+    {
+      "sha": "18a67090fa255ea6ab611beb49b45c70ba331fb7",
+      "message": "fix(b1): reject malformed key versions and non-32-byte custody buffers before database work"
+    },
+    {
+      "sha": "b8ecd8e7a934dd8695ae03b537b2fbaa3139afc8",
+      "message": "test(b1): cover custody key shape/version rejection before transaction"
+    },
+    {
+      "sha": "3ac1f75ffd053549590fcb43a22ddba57fb30020",
+      "message": "test(b1): cover failure sanitization and cross-purpose custody key rejection"
+    },
+    {
+      "sha": "135ee86b0955f29d03e1aaf27a6f264bd7c6d8c1",
+      "message": "test(b1): verify custody reacquisition and deny PG access on OpenBao failure"
+    },
+    {
+      "sha": "7bd4f9bcd40796284fd17e7ce66846e241463d5d",
+      "message": "test(b1): stage private custody integration import for synthetic harness"
+    },
+    {
+      "sha": "0eeea473143e1152b2287d503c5b307823b0bccf",
+      "message": "test(b1): route synthetic PostgreSQL OpenBao drill through custody composition"
+    },
+    {
+      "sha": "2bed9f4b5ef87e2c91321acf86581ec6183cd68c",
+      "message": "fix(b1): explicitly scope TOTP AEAD keys alongside HMAC custody in isolated backend"
+    },
+    {
+      "sha": "52affe663c8d01fedf85aa9c9e94b9824cd699d6",
+      "message": "fix(b1): preload both exact TOTP AEAD versions for synthetic PG OpenBao drill"
+    },
+    {
+      "sha": "9035e22ead46e82161d6b64741e919ecbdedffa2",
+      "message": "test(b1): deny duplicate and cross-tenant TOTP key preload"
+    },
+    {
+      "sha": "ea43e77264871495f01e2487d49d9a8102ed0f0f",
+      "message": "fix(b1): verify frozen OpenBao evidence hashes against recorded source commit"
+    },
+    {
+      "sha": "eb0696d8a5a5b4bedda2da2adc7d9ed1e63edd81",
+      "message": "ci(b1): fetch history for verifiable frozen OpenBao provenance"
+    },
+    {
+      "sha": "ff4e050b15675c6ce32f16586ef9cf4b44504833",
+      "message": "test(b1): pin private PG/OpenBao harness wiring and closed runtime boundary"
+    },
+    {
+      "sha": "ed526515d6f6277112fe97d070ee231f21c4bbb6",
+      "message": "test(b1): assert isolated OpenBao drill loads current private composition and fails closed"
+    },
+    {
+      "sha": "2639c365be21a21dcfb5e858380f3d61381e869a",
+      "message": "fix(b1): assert dynamic isolation worker imports selected integration module"
+    }
+  ],
+  "integrationRerun": {
+    "status": "REQUESTED_NOT_EXECUTED",
+    "scope": "Existing synthetic isolated SQL14 PG16/OpenBao harness, no modified SQL/ACL",
+    "triggerBefore": "fad0c5771e620710aa004bd84e28875f5e58a85d"
+  }
 }
