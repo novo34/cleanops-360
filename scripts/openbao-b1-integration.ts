@@ -42,9 +42,9 @@ async function role(h:Harness,workload:string){
 function client(h:Harness,state:State,credential:string){
  const p=h.input.pg,identity=pool(p.identityRole),keys=refs(p.tenant),vault=reader(p.tenant,credential)
  async function compose<T>(work:(backend:ReturnType<typeof createApprovedPrivateBackend>)=>Promise<T>){
-  return vault.withKeys(keys,30000,async borrow=>{
+  return withB1Custody({pool:identity,custody:vault,lifetimeMs:30000,references:{audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]},dependencies:borrow=>{
    const key=(i:number)=>borrow(keys[i],b=>b)
-   const backend=createApprovedPrivateBackend(identity,{
+   return {
     factors:{dummyPasswordHash:state.dummyHash,auditKey:key(2),otpKey:key(3),recoveryKey:key(4),
      async decryptTotp(bytes,version,record){
       assert.equal(record.binding.tenantId,p.tenant);assert.equal(record.binding.userId,p.user);assert.equal(record.binding.methodId,state.method)
@@ -52,8 +52,8 @@ function client(h:Harness,state:State,credential:string){
       return borrow(keys[version==='key-v1'?0:1],k=>openEnrollmentSecret(bytes,k,version,{tenantId:p.tenant,userId:p.user,methodId:state.method,initialMethodVersion:'1',algorithm:'SHA256'}))
      }},cursorKey:key(5),transport:()=>({network:Buffer.alloc(32,1),device:Buffer.alloc(32,2)}),normalizeEmail:s=>s.trim().toLowerCase(),maxEligibleTotpMethods:4,
     sessionLabels:()=>({device:'Synthetic OpenBao integration',browser:'Isolated API'})
-   });return work(backend)
-  })
+   }
+  }},work)
  }
  async function request(path:string,operation:string,body?:unknown,method?:string){
   return compose(async backend=>{
