@@ -1,0 +1,82 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { withB1Custody, type B1CustodyInputs } from '../../lib/b1/custody-composition.ts'
+import type { PrivateKeyReference } from '../../lib/b1/openbao-keys.ts'
+
+const tenantId = '11111111-1111-4111-8111-111111111111'
+const reference = (purpose: PrivateKeyReference['purpose']): PrivateKeyReference =>
+  ({ tenantId, purpose, keyId: 'key-v1', version: 1 })
+const references = {
+  audit: reference('audit-hmac'), otp: reference('otp-hmac'),
+  recovery: reference('recovery-hmac'), cursor: reference('cursor-hmac'),
+}
+function fixture() {
+  let connects = 0, invocations = 0, zeroed = false
+  const keys = new Map(Object.values(references).map((r,i) => [JSON.stringify(r), Buffer.alloc(32,i+1)]))
+  const input: B1CustodyInputs = {
+    pool: { async connect() { connects++; throw Error('No connection expected') } },
+    references, lifetimeMs: 1000,
+    custody: {
+      async withKeys(refs, _lifetime, work) {
+        invocations++
+        assert.equal(refs.length,4)
+        const borrow = <R>(r: PrivateKeyReference, fn: (key: Buffer) => R): R => {
+          const key = keys.get(JSON.stringify(r))
+          if (!key) throw Error('Not allowed')
+          return fn(key)
+        }
+        try { return await work(borrow) }
+        finally { for(const key of keys.values())key.fill(0);zeroed=true }
+      },
+    },
+    dependencies(borrow) {
+      return {
+        factors: {
+          dummyPasswordHash: 'synthetic-unused',
+          auditKey: borrow(references.audit,k=>k),
+          otpKey: borrow(references.otp,k=>k),
+          recoveryKey: borrow(references.recovery,k=>k),
+          async decryptTotp() { throw Error('No decrypt in test') },
+        },
+        cursorKey: borrow(references.cursor,k=>k),
+        transport() { return {network:Buffer.alloc(32),device:Buffer.alloc(32)} },
+        normalizeEmail(email) { return email.toLowerCase() },
+      }
+    },
+  }
+  return {input,stats:()=>({connects,invocations,zeroed})}
+}
+
+test('private B1 composition opens no connection until business operation and zeroes scope', async()=>{
+  const f=fixture()
+  const result=await withB1Custody(f.input,async backend=>{
+    assert.equal(typeof backend.transaction,'function')
+    assert.equal(typeof backend.bootstrap,'function')
+    return 'isolated'
+  })
+  assert.equal(result,'isolated')
+  assert.deepEqual(f.stats(),{connects:0,invocations:1,zeroed:true})
+})
+test('cross-tenant and wrong-purpose references deny before custody or PostgreSQL', async()=>{
+  for(const bad of [
+    {...references,otp:{...references.otp,tenantId:'22222222-2222-4222-8222-222222222222'}},
+    {...references,audit:reference('totp-aead')},
+  ]){
+    const f=fixture()
+    await assert.rejects(()=>withB1Custody({...f.input,references:bad},async()=>true),/AUTH_DEPENDENCY_UNAVAILABLE/)
+    assert.deepEqual(f.stats(),{connects:0,invocations:0,zeroed:false})
+  }
+})
+test('custody loss and mismatched key dependency cannot invoke backend',async()=>{
+  const f=fixture();let invoked=false
+  const bad={...f.input,dependencies:(borrow:Parameters<B1CustodyInputs['dependencies']>[0])=>{
+    const deps=f.input.dependencies(borrow)
+    return {...deps,cursorKey:Buffer.alloc(32,99)}
+  }}
+  await assert.rejects(()=>withB1Custody(bad,async()=>{invoked=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(invoked,false)
+  assert.equal(f.stats().zeroed,true)
+  const loss=fixture()
+  await assert.rejects(()=>withB1Custody({...loss.input,custody:{async withKeys(){throw Error('PRIVATE_VAULT_ERROR')}}},async()=>{invoked=true}),e=>!String(e).includes('PRIVATE_VAULT_ERROR'))
+  assert.equal(invoked,false)
+})
