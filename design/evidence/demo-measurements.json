@@ -1,0 +1,1336 @@
+{
+  "target": "https://cleanops.nuvurent.com/demo",
+  "viewports": [
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "route": "/demo",
+      "status": 200,
+      "measurements": {
+        "title": "Todo listo para un gran día.",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "EL PULSO DE TU OPERACIÓN",
+            "size": "10px"
+          },
+          {
+            "text": "LUNES, 19 OCTUBRE",
+            "size": "10px"
+          },
+          {
+            "text": "12:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio A · Planta 2",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "LE",
+            "size": "9px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "13:00",
+            "size": "11px"
+          },
+          {
+            "text": "Campus Aurore · Galería · Acceso norte",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "IE",
+            "size": "9px"
+          },
+          {
+            "text": "18:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio B · Recepción",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "HF",
+            "size": "9px"
+          },
+          {
+            "text": "Genève, CH",
+            "size": "10px"
+          },
+          {
+            "text": "ANTICÍPATE",
+            "size": "10px"
+          },
+          {
+            "text": "Preparación de espacios",
+            "size": "11px"
+          },
+          {
+            "text": "Cuidado de zonas comunes",
+            "size": "11px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 178,
+            "height": 20
+          },
+          {
+            "label": "Ver semana",
+            "width": 87,
+            "height": 18
+          },
+          {
+            "label": "Ver equipo",
+            "width": 82,
+            "height": 18
+          },
+          {
+            "label": "Conocer a tus clientes",
+            "width": 461,
+            "height": 18
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "route": "/demo/empresas",
+      "status": 200,
+      "measurements": {
+        "title": "Empresas",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPRESAS",
+            "size": "10px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Administración",
+            "size": "11px"
+          },
+          {
+            "text": "Prospecto",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 178,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "route": "/demo/clientes",
+      "status": 200,
+      "measurements": {
+        "title": "Clientes",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / CLIENTES",
+            "size": "10px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 178,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "route": "/demo/empleados",
+      "status": 200,
+      "measurements": {
+        "title": "Empleados",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPLEADOS",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Coordinación",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Cristales",
+            "size": "10px"
+          },
+          {
+            "text": "Maquinaria",
+            "size": "10px"
+          },
+          {
+            "text": "FR · PT",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Acabados",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "10px"
+          },
+          {
+            "text": "Maquinaria",
+            "size": "10px"
+          },
+          {
+            "text": "FR · EN",
+            "size": "10px"
+          },
+          {
+            "text": "Vacaciones",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "FR · IT",
+            "size": "10px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 178,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "desktop",
+      "width": 1440,
+      "route": "/demo/planning",
+      "status": 200,
+      "measurements": {
+        "title": "Planning Engine",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / PLANNING ENGINE",
+            "size": "10px"
+          },
+          {
+            "text": "SEMANA DE REFERENCIA · DATOS FICTICIOS",
+            "size": "10px"
+          },
+          {
+            "text": "Propuesta demo",
+            "size": "11px"
+          },
+          {
+            "text": "Publicación no disponible",
+            "size": "11px"
+          },
+          {
+            "text": "3",
+            "size": "11px"
+          },
+          {
+            "text": "08:00 — 12:00",
+            "size": "10px"
+          },
+          {
+            "text": "Maison des Rives",
+            "size": "10px"
+          },
+          {
+            "text": "Proyecto",
+            "size": "9px"
+          },
+          {
+            "text": "10:00 — 13:00",
+            "size": "10px"
+          },
+          {
+            "text": "Campus Aurore",
+            "size": "10px"
+          },
+          {
+            "text": "Recurrente",
+            "size": "9px"
+          },
+          {
+            "text": "15:00 — 18:00",
+            "size": "10px"
+          },
+          {
+            "text": "Maison des Rives",
+            "size": "10px"
+          },
+          {
+            "text": "Puntual",
+            "size": "9px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "08:00 — 10:00",
+            "size": "10px"
+          },
+          {
+            "text": "Campus Aurore",
+            "size": "10px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "9px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "09:00 — 12:00",
+            "size": "10px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 178,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "tablet",
+      "width": 834,
+      "route": "/demo",
+      "status": 200,
+      "measurements": {
+        "title": "Todo listo para un gran día.",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "EL PULSO DE TU OPERACIÓN",
+            "size": "10px"
+          },
+          {
+            "text": "LUNES, 19 OCTUBRE",
+            "size": "10px"
+          },
+          {
+            "text": "12:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio A · Planta 2",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "LE",
+            "size": "9px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "13:00",
+            "size": "11px"
+          },
+          {
+            "text": "Campus Aurore · Galería · Acceso norte",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "IE",
+            "size": "9px"
+          },
+          {
+            "text": "18:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio B · Recepción",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "HF",
+            "size": "9px"
+          },
+          {
+            "text": "Genève, CH",
+            "size": "10px"
+          },
+          {
+            "text": "ANTICÍPATE",
+            "size": "10px"
+          },
+          {
+            "text": "Preparación de espacios",
+            "size": "11px"
+          },
+          {
+            "text": "Cuidado de zonas comunes",
+            "size": "11px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 148,
+            "height": 20
+          },
+          {
+            "label": "Ver semana",
+            "width": 87,
+            "height": 18
+          },
+          {
+            "label": "Ver equipo",
+            "width": 82,
+            "height": 18
+          },
+          {
+            "label": "Conocer a tus clientes",
+            "width": 245,
+            "height": 18
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "tablet",
+      "width": 834,
+      "route": "/demo/empresas",
+      "status": 200,
+      "measurements": {
+        "title": "Empresas",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPRESAS",
+            "size": "10px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Administración",
+            "size": "11px"
+          },
+          {
+            "text": "Prospecto",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 148,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "tablet",
+      "width": 834,
+      "route": "/demo/clientes",
+      "status": 200,
+      "measurements": {
+        "title": "Clientes",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / CLIENTES",
+            "size": "10px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 148,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "tablet",
+      "width": 834,
+      "route": "/demo/empleados",
+      "status": 200,
+      "measurements": {
+        "title": "Empleados",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPLEADOS",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Coordinación",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Cristales",
+            "size": "10px"
+          },
+          {
+            "text": "Maquinaria",
+            "size": "10px"
+          },
+          {
+            "text": "FR · PT",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Acabados",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "10px"
+          },
+          {
+            "text": "Maquinaria",
+            "size": "10px"
+          },
+          {
+            "text": "FR · EN",
+            "size": "10px"
+          },
+          {
+            "text": "Vacaciones",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "FR · IT",
+            "size": "10px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 148,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "tablet",
+      "width": 834,
+      "route": "/demo/planning",
+      "status": 200,
+      "measurements": {
+        "title": "Planning Engine",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / PLANNING ENGINE",
+            "size": "10px"
+          },
+          {
+            "text": "SEMANA DE REFERENCIA · DATOS FICTICIOS",
+            "size": "10px"
+          },
+          {
+            "text": "Propuesta demo",
+            "size": "11px"
+          },
+          {
+            "text": "Publicación no disponible",
+            "size": "11px"
+          },
+          {
+            "text": "3",
+            "size": "11px"
+          },
+          {
+            "text": "08:00 — 12:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives",
+            "size": "10px"
+          },
+          {
+            "text": "Proyecto",
+            "size": "9px"
+          },
+          {
+            "text": "10:00 — 13:00",
+            "size": "11px"
+          },
+          {
+            "text": "Campus Aurore",
+            "size": "10px"
+          },
+          {
+            "text": "Recurrente",
+            "size": "9px"
+          },
+          {
+            "text": "15:00 — 18:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives",
+            "size": "10px"
+          },
+          {
+            "text": "Puntual",
+            "size": "9px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "08:00 — 10:00",
+            "size": "11px"
+          },
+          {
+            "text": "Campus Aurore",
+            "size": "10px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "9px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "09:00 — 12:00",
+            "size": "11px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Explorar Planning",
+            "width": 148,
+            "height": 20
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "route": "/demo",
+      "status": 200,
+      "measurements": {
+        "title": "Todo listo para un gran día.",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "EL PULSO DE TU OPERACIÓN",
+            "size": "10px"
+          },
+          {
+            "text": "Servicios del día",
+            "size": "11px"
+          },
+          {
+            "text": "Personas disponibles",
+            "size": "11px"
+          },
+          {
+            "text": "Ausencias y formación",
+            "size": "11px"
+          },
+          {
+            "text": "Requieren revisión",
+            "size": "11px"
+          },
+          {
+            "text": "LUNES, 19 OCTUBRE",
+            "size": "10px"
+          },
+          {
+            "text": "12:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio A · Planta 2",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "LE",
+            "size": "9px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "13:00",
+            "size": "11px"
+          },
+          {
+            "text": "Campus Aurore · Galería · Acceso norte",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "MF",
+            "size": "9px"
+          },
+          {
+            "text": "IE",
+            "size": "9px"
+          },
+          {
+            "text": "18:00",
+            "size": "11px"
+          },
+          {
+            "text": "Maison des Rives · Edificio B · Recepción",
+            "size": "10px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "HF",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          },
+          {
+            "label": "Ver semana",
+            "width": 87,
+            "height": 18
+          },
+          {
+            "label": "Ver equipo",
+            "width": 82,
+            "height": 18
+          },
+          {
+            "label": "Conocer a tus clientes",
+            "width": 312,
+            "height": 18
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "route": "/demo/empresas",
+      "status": 200,
+      "measurements": {
+        "title": "Empresas",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPRESAS",
+            "size": "10px"
+          },
+          {
+            "text": "Empresas y contactos del escenario ficticio seleccionado.",
+            "size": "11px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Administración",
+            "size": "11px"
+          },
+          {
+            "text": "Prospecto",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "route": "/demo/clientes",
+      "status": 200,
+      "measurements": {
+        "title": "Clientes",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / CLIENTES",
+            "size": "10px"
+          },
+          {
+            "text": "Vista de clientes del mismo directorio de empresas. Sin duplicar registros.",
+            "size": "11px"
+          },
+          {
+            "text": "Facility Manager",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "Objektleiter",
+            "size": "11px"
+          },
+          {
+            "text": "Cliente",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          },
+          {
+            "text": "DEMO / SIN DATOS REALES",
+            "size": "9px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "route": "/demo/empleados",
+      "status": 200,
+      "measurements": {
+        "title": "Empleados",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / EMPLEADOS",
+            "size": "10px"
+          },
+          {
+            "text": "6 personas",
+            "size": "11px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Responsable de equipo",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Coordinación",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Especialista de limpieza",
+            "size": "11px"
+          },
+          {
+            "text": "Cristales",
+            "size": "10px"
+          },
+          {
+            "text": "Maquinaria",
+            "size": "10px"
+          },
+          {
+            "text": "FR · PT",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Especialista de limpieza",
+            "size": "11px"
+          },
+          {
+            "text": "Oficinas",
+            "size": "10px"
+          },
+          {
+            "text": "Acabados",
+            "size": "10px"
+          },
+          {
+            "text": "FR · ES",
+            "size": "10px"
+          },
+          {
+            "text": "Disponible",
+            "size": "11px"
+          },
+          {
+            "text": "Técnico de mantenimiento",
+            "size": "11px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "10px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    },
+    {
+      "viewport": "mobile",
+      "width": 390,
+      "route": "/demo/planning",
+      "status": 200,
+      "measurements": {
+        "title": "Planning Engine",
+        "overflow": false,
+        "smallText": [
+          {
+            "text": "CLEANOPS / PLANNING ENGINE",
+            "size": "10px"
+          },
+          {
+            "text": "SEMANA DE REFERENCIA · DATOS FICTICIOS",
+            "size": "9px"
+          },
+          {
+            "text": "Propuesta demo",
+            "size": "11px"
+          },
+          {
+            "text": "7 servicios",
+            "size": "11px"
+          },
+          {
+            "text": "3 requieren revisión",
+            "size": "11px"
+          },
+          {
+            "text": "Publicación no disponible",
+            "size": "11px"
+          },
+          {
+            "text": "3",
+            "size": "11px"
+          },
+          {
+            "text": "Proyecto",
+            "size": "11px"
+          },
+          {
+            "text": "Recurrente",
+            "size": "11px"
+          },
+          {
+            "text": "Puntual",
+            "size": "11px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "Mantenimiento",
+            "size": "11px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "Recurrente",
+            "size": "11px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "Proyecto",
+            "size": "11px"
+          },
+          {
+            "text": "1",
+            "size": "11px"
+          },
+          {
+            "text": "Puntual",
+            "size": "11px"
+          },
+          {
+            "text": "Vista de propuestas ficticias del motor único. Los avisos solo explican cobertur",
+            "size": "11px"
+          },
+          {
+            "text": "·",
+            "size": "10px"
+          }
+        ],
+        "smallTargets": [
+          {
+            "label": "Saltar al contenido",
+            "width": 1,
+            "height": 1
+          }
+        ]
+      },
+      "pageErrors": [],
+      "cookiesCount": 0
+    }
+  ],
+  "scope": "Synthetic demo only; no login or private APIs"
+}

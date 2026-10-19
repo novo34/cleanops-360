@@ -1,0 +1,7 @@
+# Project-only. Requires this checkout to be trusted by the Codex client.
+[mcp_servers.cleanops_design_browser]
+command = "python3"
+args = ["design/scripts/run_mcp.py"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+enabled_tools = ["browser_navigate", "browser_snapshot", "browser_take_screenshot", "browser_resize", "browser_click", "browser_press_key", "browser_fill_form", "browser_select_option", "browser_console_messages", "browser_evaluate", "browser_close"]

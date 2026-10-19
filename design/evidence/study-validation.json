@@ -1,0 +1,56 @@
+[
+  {
+    "study": "a-ledger",
+    "viewport": "desktop",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "a-ledger",
+    "viewport": "tablet",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "a-ledger",
+    "viewport": "mobile",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "b-atelier",
+    "viewport": "desktop",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "b-atelier",
+    "viewport": "tablet",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "b-atelier",
+    "viewport": "mobile",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "c-dispatch",
+    "viewport": "desktop",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "c-dispatch",
+    "viewport": "tablet",
+    "overflow": false,
+    "headingCount": 1
+  },
+  {
+    "study": "c-dispatch",
+    "viewport": "mobile",
+    "overflow": false,
+    "headingCount": 1
+  }
+]

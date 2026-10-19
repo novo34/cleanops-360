@@ -1,0 +1,20 @@
+[
+  {
+    "url": "https://linear.app/features",
+    "status": 200,
+    "title": "Features \u2013 Linear",
+    "screenshot": "local-only; not redistributed"
+  },
+  {
+    "url": "https://sdx.swisscom.com/latest",
+    "status": 200,
+    "title": "About SDX | Welcome to SDX! | Made with Supernova",
+    "screenshot": "local-only; not redistributed"
+  },
+  {
+    "url": "https://www.vitsoe.com/rw/about/good-design",
+    "status": 200,
+    "title": "Good design | About us | Vits\u0153",
+    "screenshot": "local-only; not redistributed"
+  }
+]

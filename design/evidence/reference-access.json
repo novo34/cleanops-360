@@ -1,0 +1,20 @@
+[
+  {
+    "url": "https://sdx.swisscom.com/",
+    "status": 200,
+    "finalURL": "https://sdx.swisscom.com/latest"
+  },
+  {
+    "url": "https://design.sbb.ch/en",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "url": "https://www.vitsoe.com/rw/about/good-design",
+    "status": 200,
+    "finalURL": "https://www.vitsoe.com/rw/about/good-design"
+  },
+  {
+    "url": "https://carbondesignsystem.com/guidelines/typography/overview/",
+    "error": "HTTP Error 403: Forbidden"
+  }
+]

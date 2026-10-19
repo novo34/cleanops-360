@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "All committed-design JSON parses",
+    "Project MCP TOML parses",
+    "All design Markdown local links resolve",
+    "All standalone study local links resolve",
+    "Skill manifests and third-party licenses present (not runtime discovery)",
+    "No product/B1/API/DB/deploy/CI/root instructions/dependency changes"
+  ],
+  "discovery": "PENDING; see codex-skills.json",
+  "base": "646c9af496b2497a542ab58d96ae1e7b17b1ee81"
+}

@@ -1,0 +1,6 @@
+{
+  "status": "PENDING",
+  "error": "Codex app-server exited",
+  "reason": "Managed Codex installation_id path is read-only; no shared config changes authorized.",
+  "convention": ".agents/skills/<name>/SKILL.md"
+}
