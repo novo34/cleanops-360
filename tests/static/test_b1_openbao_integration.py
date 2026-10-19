@@ -1,5 +1,5 @@
 """Native B1/custody evidence must retain provenance and operational boundaries."""
-import hashlib,json,unittest
+import hashlib,json,subprocess,unittest
 from pathlib import Path
 R=Path(__file__).resolve().parents[2]
 class Integration(unittest.TestCase):
@@ -15,7 +15,11 @@ class Integration(unittest.TestCase):
   self.assertEqual(len(d['independentEncryptedBackups']),2)
   self.assertNotEqual(*d['independentEncryptedBackups'].values())
   self.assertGreater(d['freshCombinedRecoverySeconds'],d['openBaoAndPostRestoreCheckSeconds'])
-  for path,expected in d['codeSha256'].items():self.assertEqual(hashlib.sha256((R/path).read_bytes()).hexdigest(),expected,path)
+  for path,expected in d['codeSha256'].items():
+   # The frozen 144-check run belongs to its pinned source commit, not HEAD.
+   # Never rewrite historical evidence to match later implementation changes.
+   source=subprocess.run(['git','show',f'{d["source"]}:{path}'],cwd=R,capture_output=True,check=True).stdout
+   self.assertEqual(hashlib.sha256(source).hexdigest(),expected,path)
  def test_failures_and_unaccepted_real_custody_are_not_hidden(self):
   folder=R/'docs/implementation/b1/operational-acceptance/openbao/integration'
   for number in [1,2,3]:
