@@ -1,0 +1,92 @@
+{
+  "id": "B1-HOSTINGER-SYNTHETIC-01",
+  "version": 1,
+  "decisionSource": "PRODUCT_OWNER_STAGING_HOSTINGER_SYNTHETIC_2026_10_19",
+  "STAGING_SYNTHETIC": {
+    "provider": "Hostinger",
+    "country": "OUTSIDE_SWITZERLAND_EXACT_COUNTRY_UNCONFIRMED",
+    "hostType": "EXISTING_VPS_SHARED_WITH_OTHER_TEST_PROJECTS",
+    "domain": "cleanops.nuvurent.com",
+    "orchestrator": "Dokploy",
+    "project": "cleanops-360",
+    "environment": "staging",
+    "service": "cleanops-staging",
+    "branch": "staging",
+    "composePath": "deploy/staging/compose.yaml",
+    "state": "NOT_DEPLOYED",
+    "syntheticOnly": true,
+    "realPersonalData": false,
+    "productionDatabaseCopies": false,
+    "externalCommunications": false,
+    "incrementalCostAuthorized": false,
+    "deploymentAuthorized": false,
+    "deploymentApprovalReference": null,
+    "principalCustodian": "PROJECT_OWNER_CONFIRMED",
+    "productionQuorumApproved": false,
+    "workloadSecrets": "STAGING_ONLY_NOT_CREATED",
+    "capacity": {
+      "measuredAt": null,
+      "availableMemoryMiB": null,
+      "freeDiskMiB": null,
+      "availableMillicpus": null,
+      "architecture": null,
+      "subnetConflictChecked": false,
+      "otherProjectsIsolated": false
+    },
+    "budget": {
+      "webMiB": 768,
+      "postgresMiB": 1024,
+      "openbaoMiB": 512,
+      "hostReserveMiB": 768,
+      "buildReserveMiB": 1536,
+      "diskReserveMiB": 8192,
+      "millicpus": 2000
+    },
+    "privateNetwork": {
+      "subnet": null,
+      "openbaoIp": null
+    },
+    "openbaoInputsReference": null,
+    "traefik": {
+      "network": null,
+      "httpsEntrypoint": null,
+      "certificateResolver": null
+    },
+    "backup": {
+      "scope": "SYNTHETIC_ONLY",
+      "destinationReference": null,
+      "separateFromOtherProjects": true,
+      "productionRpoRtoAccepted": false
+    },
+    "manualAcceptance": {
+      "tester": null,
+      "date": null,
+      "build": null,
+      "result": "NOT_EXECUTED",
+      "evidence": null
+    },
+    "sql14FreshInstallAuthorized": false,
+    "backupAuthorized": false,
+    "imageMode": "HOST_BUILD",
+    "prebuiltImages": {
+      "web": null,
+      "openbao": null
+    }
+  },
+  "PRODUCTION_SWISS": {
+    "provider": null,
+    "resources": null,
+    "custodiansApproved": false,
+    "principalCustodian": "PROJECT_OWNER_CONFIRMED",
+    "quorum": null,
+    "residenceEvidence": null,
+    "backupRecoveryEvidence": null,
+    "operationalAcceptance": "PENDING",
+    "canonicalRecord": "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json",
+    "PR006": "OPEN",
+    "PR007": "OPEN",
+    "AUTH_GATE_05": "OPEN",
+    "accepted": 42,
+    "total": 44
+  }
+}

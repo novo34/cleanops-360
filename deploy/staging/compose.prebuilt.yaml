@@ -1,0 +1,10 @@
+# Alternative when the shared VPS cannot safely build images. No new infrastructure.
+# Requires Compose supporting !reset; verify the installed Dokploy Compose version.
+services:
+  web:
+    build: !reset null
+    image: ${CLEANOPS_STAGING_WEB_IMAGE:?Verified prebuilt web image with digest required}
+  openbao:
+    profiles: [synthetic-custody]
+    build: !reset null
+    image: ${CLEANOPS_STAGING_BAO_IMAGE:?Verified prebuilt synthetic Bao image with digest required}
