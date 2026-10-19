@@ -142,3 +142,13 @@ test('custody rejection cannot proceed to PostgreSQL even when a mock pool is av
   assert.equal(connected,0)
   assert.equal(executed,false)
 })
+
+test('TOTP AEAD versions must be explicit, tenant scoped and nonduplicated',async()=>{
+  const f=fixture()
+  const aead:PrivateKeyReference={...references.audit,purpose:'totp-aead'}
+  let executed=false
+  await assert.rejects(()=>withB1Custody({...f.input,totpKeys:[aead,aead]},async()=>{executed=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  await assert.rejects(()=>withB1Custody({...f.input,totpKeys:[{...aead,tenantId:'22222222-2222-4222-8222-222222222222'}]},async()=>{executed=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(executed,false)
+  assert.equal(f.stats().invocations,0)
+})
