@@ -26,7 +26,7 @@ class CustodyHarnessWiring(unittest.TestCase):
         self.assertIn("'./openbao-b1-integration.ts'", script)
         self.assertIn("INTEGRATION_WORKER_CHECK_FAILED", script)
         self.assertIn("INTEGRATION_WORKER_REDACTED_PROTOCOL_FAILURE", script)
-        self.assertIn("openbao-b1-integration", worker)
+        self.assertIn("await import(input.integrationModule)", worker)
 
     def test_runtime_stays_closed_and_never_imports_custody_harness(self):
         runtime = (ROOT / "lib/b1/runtime.ts").read_text(encoding="utf-8")
