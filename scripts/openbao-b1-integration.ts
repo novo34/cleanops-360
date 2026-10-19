@@ -42,7 +42,7 @@ async function role(h:Harness,workload:string){
 function client(h:Harness,state:State,credential:string){
  const p=h.input.pg,identity=pool(p.identityRole),keys=refs(p.tenant),vault=reader(p.tenant,credential)
  async function compose<T>(work:(backend:ReturnType<typeof createApprovedPrivateBackend>)=>Promise<T>){
-  return withB1Custody({pool:identity,custody:vault,lifetimeMs:30000,references:{audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]},dependencies:borrow=>{
+  return withB1Custody({pool:identity,custody:vault,lifetimeMs:30000,totpKeys:[keys[0],keys[1]],references:{audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]},dependencies:borrow=>{
    const key=(i:number)=>borrow(keys[i],b=>b)
    return {
     factors:{dummyPasswordHash:state.dummyHash,auditKey:key(2),otpKey:key(3),recoveryKey:key(4),
