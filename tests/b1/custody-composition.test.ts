@@ -80,3 +80,18 @@ test('custody loss and mismatched key dependency cannot invoke backend',async()=
   await assert.rejects(()=>withB1Custody({...loss.input,custody:{async withKeys(){throw Error('PRIVATE_VAULT_ERROR')}}},async()=>{invoked=true}),e=>!String(e).includes('PRIVATE_VAULT_ERROR'))
   assert.equal(invoked,false)
 })
+
+test('malformed version and invalid custody key length fail closed before database work',async()=>{
+  const f=fixture();let ran=false
+  await assert.rejects(()=>withB1Custody({...f.input,references:{...references,otp:{...references.otp,version:0}}},async()=>{ran=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(ran,false)
+  assert.equal(f.stats().invocations,0)
+  const short=fixture()
+  await assert.rejects(()=>withB1Custody({...short.input,dependencies:borrow=>{
+    const deps=short.input.dependencies(borrow)
+    const wrong=Buffer.alloc(12)
+    return {...deps, factors:{...deps.factors,otpKey:wrong}}
+  }},async()=>{ran=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(ran,false)
+  assert.equal(short.stats().zeroed,true)
+})
