@@ -22,6 +22,8 @@ export type B1CustodyInputs = Readonly<{
   pool: IdentityPool
   custody: PrivateCustody
   references: B1CustodyReferences
+  /** Explicit tenant-scoped TOTP encryption versions used by private factor verification. */
+  totpKeys?: readonly PrivateKeyReference[]
   lifetimeMs: number
   /** Caller implements trusted ingress/provisioning; no headers or request defaults. */
   dependencies: (borrow: Borrow) => ApprovedBackendDependencies
@@ -44,7 +46,11 @@ export async function withB1Custody<T>(
   if (!refs || refs.audit?.purpose !== 'audit-hmac' ||
       refs.otp?.purpose !== 'otp-hmac' || refs.recovery?.purpose !== 'recovery-hmac' ||
       refs.cursor?.purpose !== 'cursor-hmac') throw unavailable()
-  const list = [refs.audit, refs.otp, refs.recovery, refs.cursor]
+  const extra = input.totpKeys ?? []
+  if (!Array.isArray(extra) || extra.some(r => r?.purpose !== 'totp-aead') || extra.length > 8) throw unavailable()
+  const list = [refs.audit, refs.otp, refs.recovery, refs.cursor, ...extra]
+  const identities = list.map(r => JSON.stringify([r.tenantId.toLowerCase(), r.purpose, r.keyId, r.version]))
+  if (new Set(identities).size !== identities.length) throw unavailable()
   const tenants = new Set(list.map(r => r.tenantId.toLowerCase()))
   if (tenants.size !== 1 || list.some(r => !Number.isSafeInteger(r.version) || r.version < 1 || !r.keyId)) throw unavailable()
   try {
