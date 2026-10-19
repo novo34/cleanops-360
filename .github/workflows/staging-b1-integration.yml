@@ -5,6 +5,9 @@ on:
     paths:
       - 'lib/b1/**'
       - 'tests/b1/**'
+      - 'scripts/openbao-b1-integration.ts'
+      - 'tests/static/test_b1_openbao_integration.py'
+      - 'tests/static/test_b1_custody_harness_wiring.py'
       - '.github/workflows/staging-b1-integration.yml'
 permissions:
   contents: read
@@ -20,6 +23,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
@@ -27,4 +31,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:b1
+      - run: python3 -m unittest discover -s tests/static -p 'test_b1_openbao_integration.py' -v
+      - run: python3 -m unittest discover -s tests/static -p 'test_b1_custody_harness_wiring.py' -v
       - run: python3 scripts/staging-compose-check.py
