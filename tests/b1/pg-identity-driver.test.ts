@@ -81,3 +81,34 @@ test('begin failure is hidden, connection discarded, runtime remains closed', as
   assert.deepEqual(f.commands, ['BEGIN ISOLATION LEVEL READ COMMITTED'])
   await assert.rejects(closedBackend.transaction(async () => true), unavailable)
 })
+
+
+test('pool release failures are sanitized after commit and rollback without retrying effects', async () => {
+  for (const failWork of [false, true]) {
+    const commands: string[] = []
+    let releases = 0, effects = 0
+    const driver = createPgIdentityDriver({
+      async connect() {
+        return {
+          async query(sql: string) { commands.push(sql) },
+          release(discard: boolean) {
+            releases++
+            assert.equal(discard, failWork)
+            throw Error('PRIVATE_POOL_RELEASE_DIAGNOSTIC')
+          },
+        }
+      },
+    }, () => ({}) as Transaction, async () => {})
+    await assert.rejects(driver.transaction(async () => {
+      effects++
+      if (failWork) throw new AuthError(401, 'AUTH_INVALID')
+      return { secret: 'must not escape after release failure' }
+    }), failWork
+      ? (error: unknown) => error instanceof AuthError && error.code === 'AUTH_INVALID' && error.cause === undefined
+      : unavailable)
+    assert.equal(effects, 1)
+    assert.equal(releases, 1)
+    assert.deepEqual(commands, ['BEGIN ISOLATION LEVEL READ COMMITTED', failWork ? 'ROLLBACK' : 'COMMIT'])
+  }
+})
+

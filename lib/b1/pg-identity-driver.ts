@@ -45,15 +45,16 @@ export function createPgIdentityUnitOfWork(pool: IdentityPool) {
     let connection: IdentityConnection | undefined
     let begun = false
     let committed = false
+    let result: T
+    let releaseFailed = false
     try {
       connection = await pool.connect()
       if (!connection || typeof connection.query !== 'function' || typeof connection.release !== 'function') throw unavailable()
       await connection.query('BEGIN ISOLATION LEVEL READ COMMITTED')
       begun = true
-      const result = await operation(connection)
+      result = await operation(connection)
       await connection.query('COMMIT')
       committed = true
-      return result
     } catch (error) {
       if (connection && begun && !committed) {
         try { await connection.query('ROLLBACK') } catch { /* discard connection */ }
@@ -62,8 +63,14 @@ export function createPgIdentityUnitOfWork(pool: IdentityPool) {
       throw unavailable()
     } finally {
       // Never allow an uncertain transaction/session state back into the pool.
-      if (connection) connection.release(!committed)
+      if (connection) {
+        try { connection.release(!committed) }
+        catch { releaseFailed = true }
+      }
     }
+    if (releaseFailed) throw unavailable()
+    return result
   }
   return Object.freeze({ run })
 }
+

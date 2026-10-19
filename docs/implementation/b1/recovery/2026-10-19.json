@@ -1,0 +1,127 @@
+{
+  "source": "2639c365be21a21dcfb5e858380f3d61381e869a",
+  "historicalCI": {
+    "B1": {
+      "run": 39238392259,
+      "result": "PASS"
+    },
+    "E1": {
+      "run": 39238392252,
+      "result": "PASS"
+    }
+  },
+  "branches": {
+    "b1": "2639c365be21a21dcfb5e858380f3d61381e869a",
+    "staging": "c85b49870f31efd802216d778b1808c3cc4c4509",
+    "main": "d522e2edc95ac39af058522fecbcd9fd316667b3"
+  },
+  "recovery": {
+    "repository_full_name": "novo34/cleanops-360",
+    "base": "50c4418438f18adb39e0c382a571159bc38758eb",
+    "head": "2639c365be21a21dcfb5e858380f3d61381e869a",
+    "status": "ahead",
+    "ahead_by": 22,
+    "behind_by": 0,
+    "total_commits": 22,
+    "too_large": null,
+    "base_commit": {
+      "sha": "50c4418438f18adb39e0c382a571159bc38758eb",
+      "url": "https://api.github.com/repos/novo34/cleanops-360/commits/50c4418438f18adb39e0c382a571159bc38758eb",
+      "html_url": "https://github.com/novo34/cleanops-360/commit/50c4418438f18adb39e0c382a571159bc38758eb"
+    },
+    "merge_base_commit": {
+      "sha": "50c4418438f18adb39e0c382a571159bc38758eb",
+      "url": "https://api.github.com/repos/novo34/cleanops-360/commits/50c4418438f18adb39e0c382a571159bc38758eb",
+      "html_url": "https://github.com/novo34/cleanops-360/commit/50c4418438f18adb39e0c382a571159bc38758eb"
+    },
+    "files": [
+      {
+        "filename": ".github/workflows/b1-no-db.yml",
+        "status": "modified",
+        "additions": 2,
+        "deletions": 0,
+        "changes": 2,
+        "previous_filename": null
+      },
+      {
+        "filename": "lib/b1/custody-composition.ts",
+        "status": "added",
+        "additions": 70,
+        "deletions": 0,
+        "changes": 70,
+        "previous_filename": null
+      },
+      {
+        "filename": "scripts/b1-closure-readiness.py",
+        "status": "added",
+        "additions": 77,
+        "deletions": 0,
+        "changes": 77,
+        "previous_filename": null
+      },
+      {
+        "filename": "scripts/openbao-b1-integration.ts",
+        "status": "modified",
+        "additions": 5,
+        "deletions": 4,
+        "changes": 9,
+        "previous_filename": null
+      },
+      {
+        "filename": "tests/b1/custody-composition.test.ts",
+        "status": "added",
+        "additions": 154,
+        "deletions": 0,
+        "changes": 154,
+        "previous_filename": null
+      },
+      {
+        "filename": "tests/static/test_b1_closure_consistency.py",
+        "status": "added",
+        "additions": 65,
+        "deletions": 0,
+        "changes": 65,
+        "previous_filename": null
+      },
+      {
+        "filename": "tests/static/test_b1_closure_readiness.py",
+        "status": "added",
+        "additions": 69,
+        "deletions": 0,
+        "changes": 69,
+        "previous_filename": null
+      },
+      {
+        "filename": "tests/static/test_b1_custody_harness_wiring.py",
+        "status": "added",
+        "additions": 39,
+        "deletions": 0,
+        "changes": 39,
+        "previous_filename": null
+      },
+      {
+        "filename": "tests/static/test_b1_openbao_integration.py",
+        "status": "modified",
+        "additions": 6,
+        "deletions": 2,
+        "changes": 8,
+        "previous_filename": null
+      }
+    ]
+  },
+  "change": "Sanitize pool release exceptions; preserve primary transaction error on rollback; never retry committed effects.",
+  "local": {
+    "tests": 34,
+    "result": "PASS",
+    "command": "node --experimental-strip-types --test --test-isolation=none tests/b1/pg-identity-driver.test.ts tests/b1/private-adapter.test.ts tests/b1/service.test.ts tests/b1/v4-broker.test.ts"
+  },
+  "limitations": [
+    "Local source selectively recovered through GitHub connector; original checkout is stale.",
+    "Executor proxy connection refused; git fetch and dependency installation unavailable.",
+    "PostgreSQL/OpenBao/Chromium not rerun for this change; historical results are not relabeled."
+  ],
+  "accepted": 42,
+  "total": 44,
+  "authGate05": "OPEN",
+  "runtime": "closedBackend"
+}
