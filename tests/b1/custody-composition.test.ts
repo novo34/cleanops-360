@@ -95,3 +95,22 @@ test('malformed version and invalid custody key length fail closed before databa
   assert.equal(ran,false)
   assert.equal(short.stats().zeroed,true)
 })
+
+test('business failure never leaks private details and custody closes',async()=>{
+  const f=fixture()
+  await assert.rejects(
+    ()=>withB1Custody(f.input,async()=>{throw new Error('SYNTHETIC_PRIVATE_PG_DETAILS')}),
+    error=>error instanceof Error && error.message==='AUTH_DEPENDENCY_UNAVAILABLE' && !String(error).includes('SYNTHETIC_PRIVATE_PG_DETAILS'),
+  )
+  assert.deepEqual(f.stats(),{connects:0,invocations:1,zeroed:true})
+})
+test('private dependencies are not accepted when their HMAC buffers belong to wrong purposes',async()=>{
+  const f=fixture()
+  let ran=false
+  await assert.rejects(()=>withB1Custody({...f.input,dependencies:borrow=>{
+    const deps=f.input.dependencies(borrow)
+    return {...deps,factors:{...deps.factors,auditKey:deps.factors.otpKey}}
+  }},async()=>{ran=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(ran,false)
+  assert.equal(f.stats().zeroed,true)
+})
