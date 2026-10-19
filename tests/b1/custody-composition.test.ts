@@ -114,3 +114,31 @@ test('private dependencies are not accepted when their HMAC buffers belong to wr
   assert.equal(ran,false)
   assert.equal(f.stats().zeroed,true)
 })
+
+test('OpenBao custody is reacquired independently for each HTTP-facing operation',async()=>{
+  let acquisitions=0
+  const make=()=>fixture()
+  const first=make()
+  const custody=first.input.custody
+  const wrapped={...first.input,custody:{
+    async withKeys<T>(refs:readonly PrivateKeyReference[],lifetimeMs:number,work:Parameters<typeof custody.withKeys<T>>[2]):Promise<T>{
+      acquisitions++
+      return custody.withKeys(refs,lifetimeMs,work)
+    },
+  }}
+  await withB1Custody(wrapped,async backend=>{assert.equal(typeof backend.transaction,'function')})
+  await withB1Custody(wrapped,async backend=>{assert.equal(typeof backend.bootstrap,'function')})
+  assert.equal(acquisitions,2,'A second operation must reacquire custody, not cache a backend or key')
+  assert.equal(first.stats().connects,0)
+})
+test('custody rejection cannot proceed to PostgreSQL even when a mock pool is available',async()=>{
+  const f=fixture()
+  let connected=0, executed=false
+  const bad={...f.input,
+    pool:{async connect(){connected++;throw Error('synthetic PG endpoint')}},
+    custody:{async withKeys<T>():Promise<T>{throw Error('synthetic OpenBao unreachable')}},
+  }
+  await assert.rejects(()=>withB1Custody(bad,async()=>{executed=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(connected,0)
+  assert.equal(executed,false)
+})
