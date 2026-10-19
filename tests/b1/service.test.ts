@@ -143,8 +143,11 @@ test('backend token leakage or premature ACTIVE login aborts and never sets cook
 
 
 test('all effective HTTP operations dispatch validated requests and responses through a transaction', async () => {
-  for (const operation of operations) {
-    const { handler, f } = fixture()
+  const internalOrigins = ['http://0.0.0.0:3000', 'https://0.0.0.0:3000', 'http://127.0.0.1:3000']
+  for (const transport of [origin, ...internalOrigins]) for (const operation of operations) {
+    const { backend, f } = fixture()
+    const handler = createAuthHandler(backend, origin, clock, internalOrigins)
+    const transportedRequest = (path: string, method: string, body?: unknown) => new Request(transport + path, request(path, method, body, { Host: 'cleanops.test' }))
     const bodySchema = operation.requestBody?.content['application/json'].schema
     const body = bodySchema ? sample(bodySchema) : undefined
     if (operation.operationId === 'selectTotpMethod') (body as Input).grant_id = 'B1-SELF-05'
@@ -166,12 +169,12 @@ test('all effective HTTP operations dispatch validated requests and responses th
     if (operation.operationId === 'switchTenant') {
       f.effect = { data: pending(), transition: { kind: 'PREAUTH', token: token(), csrf: token(), expiresAt: clock()+600000 } }
     }
-    const response = await handler.handle(request(path, operation.method, body), operation.operationId)
+    const response = await handler.handle(transportedRequest(path, operation.method, body), operation.operationId)
     assert.equal(response.status,200,operation.operationId)
     assert.ok(valid(operation.responses['200'].content['application/json'].schema, await response.json()), operation.operationId)
     assert.equal(f.commits,1,operation.operationId)
     f.binding = null
-    await expectError(await handler.handle(request(path,operation.method,body),operation.operationId),401)
+    await expectError(await handler.handle(transportedRequest(path,operation.method,body),operation.operationId),401)
   }
 })
 
@@ -220,3 +223,12 @@ test('login and MFA verification never become replayable when a caller adds an i
   await expectError(await handler.handle(req(),'verifyMfa'),401,'AUTH_INVALID')
   assert.equal(f.calls,2);assert.equal(records.size,0)
 })
+
+test('internal HTTP preserves digest-bound CSRF denial before any business effect', async () => {
+  const { backend, f } = fixture()
+  const handler = createAuthHandler(backend, origin, clock, ['http://0.0.0.0:3000'])
+  const req = () => new Request('http://0.0.0.0:3000/me/sessions/revoke-other-own', request('/me/sessions/revoke-other-own', 'POST', { reason: 'self' }, { Host: 'cleanops.test', 'X-CSRF-Token': 'X'.repeat(43) }))
+  await expectError(await handler.handle(req(), 'revokeOtherOwnSessions'), 403, 'CSRF_INVALID')
+  assert.equal(f.calls, 0); assert.equal(f.commits, 1)
+})
+

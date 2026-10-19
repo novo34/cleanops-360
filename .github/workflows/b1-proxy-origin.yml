@@ -28,3 +28,10 @@ jobs:
           sed -n '1,200p' node_modules/next/dist/docs/01-app/03-api-reference/04-functions/next-request.md
       - name: Observe real production Next URL and proxy headers
         run: node scripts/probe-b1-origin.mjs
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:b1
+      - run: npm test
+      - run: npm run build
+      - name: Verify real B1 routes through production Next server
+        run: node --experimental-strip-types scripts/test-b1-proxy-origin.mjs
