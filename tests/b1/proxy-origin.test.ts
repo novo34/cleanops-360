@@ -48,7 +48,7 @@ test('unlisted URLs and forged Host/forwarding authorities cannot replace deploy
     { host: 'evil.example' }, { host: 'cleanops.nuvurent.com.evil.example' },
     { 'x-forwarded-host': 'evil.example' }, { 'x-forwarded-host': 'cleanops.nuvurent.com, evil.example' },
     { 'x-forwarded-proto': 'https,http' }, { 'x-forwarded-proto': 'ftp' },
-  ]) {
+  ] as Record<string, string>[]) {
     await expectError(await handler.handle(request('login', internal[0], headers), 'login'), 400, 'INVALID_ROUTE')
   }
   const missingHost = request(); missingHost.headers.delete('host')
@@ -62,7 +62,7 @@ test('Forwarded is inert and cannot authorize a foreign browser Origin or Refere
   for (const headers of [
     { origin: 'https://evil.example' }, { origin: 'http://cleanops.nuvurent.com' }, { origin: 'null' },
     { referer: 'https://evil.example/login' }, { 'sec-fetch-site': 'cross-site' },
-  ]) await expectError(await handler.handle(request('login', internal[0], { forwarded: `host=cleanops.nuvurent.com;proto=https`, ...headers }), 'login'), 403, 'CSRF_ORIGIN')
+  ] as Record<string, string>[]) await expectError(await handler.handle(request('login', internal[0], { forwarded: 'host=cleanops.nuvurent.com;proto=https', ...headers }), 'login'), 403, 'CSRF_ORIGIN')
   const noOrigin = request(); noOrigin.headers.delete('origin')
   await expectError(await handler.handle(noOrigin, 'login'), 403, 'CSRF_ORIGIN')
   await expectError(await handler.handle(request('getCurrentIdentity', internal[0], { origin: 'https://evil.example' }), 'getCurrentIdentity'), 403, 'CSRF_ORIGIN')
