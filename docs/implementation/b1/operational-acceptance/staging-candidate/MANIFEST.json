@@ -1,0 +1,93 @@
+{
+  "id": "B1-OPER-STAGING-01",
+  "status": "PREPARED_NOT_AUTHORIZED_NOT_EXECUTED",
+  "packageSha256": {
+    "docs/implementation/b1/operational-acceptance/staging-candidate/AUTHORIZATION_REQUEST.md": "9a51a3782e9b48a8f0751ab23a4d4f1f4e77950dca80e4167c070c332c8da323",
+    "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json": "5f3672bc5ab2eba8300428190dafb86f5ee4c78a6596489a3b49a0aa8cca79b3",
+    "docs/implementation/b1/operational-acceptance/staging-candidate/RUNBOOK.md": "8a48578fae381c66be2b5725cdaf3000368ff03ef226886f5e27c9840cc81dca",
+    "docs/implementation/b1/operational-acceptance/staging-candidate/PROXY_AND_VERIFICATION.md": "9a0dc06bfa3083fea170ea1188475f1456f1985ca09231800374267f092f13e7",
+    "deploy/staging/operational-plan.json": "429d829999bc9b57adac87163335e095cd3525707d2da23e7387cd96f945cd09"
+  },
+  "unchangedReferences": {
+    "docs/implementation/b1/operational-acceptance/openbao/server.template.json": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "2e4b521bab8feddf2bfa63fc133832e325c82321",
+      "sha256": "7699bffdb14feab991aa38f52096794b31a002999a8c733036f6b02cb0024666"
+    },
+    "docs/implementation/b1/operational-acceptance/openbao/release-pin.json": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "039c8e464e08bfb7f78f289de4ef710f264a8b84",
+      "sha256": "e7ae9e4bef373ffa8fd20e54fd11bee7382107b9fd42e76db75697a8184c5ddb"
+    },
+    "scripts/prepare-b1-openbao.py": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "9f91722cbb5d80b6ed85ccc02ee5d2f128f1d06c",
+      "sha256": "0c0bd8bb0792b8b09af44475c31aa526eb7761f7d3e799106d08bc0f452f464d"
+    },
+    "docs/implementation/b1/operational-acceptance/openbao/inputs.example.json": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "384ba26cac86e005cf46c7e486192757d9f8eb78",
+      "sha256": "c830278197e7ef6dd16bd567051c75868c37398d9752249b66f433d419e5e4d4"
+    },
+    "docs/implementation/b1/operational-acceptance/openbao/CUSTODY_AND_RECOVERY.md": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "cde8c2c8fcfe69e94a2972c7c7f46c88ef943873",
+      "sha256": "2bd031caaccb7234529b4d7c8289577bf164143df1625b2578146946fa212e00"
+    },
+    "docs/implementation/b1/operational-acceptance/openbao/ACCEPTANCE.md": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "8a568088f039804c352b591ada94eae60f48f492",
+      "sha256": "ca1058beae3576daf851e50ced7926a4c9ac2e9990573d1f236bfb8bd14c8ceb"
+    },
+    "docs/implementation/b1/operational-acceptance/openbao/QUORUM_OPTIONS.md": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "54e3e8ef528a230d1b6493385c8b0eb3a019cc15",
+      "sha256": "8131b7c3e374ace68acdc9d7f16acc3c718b677d966d2e23cd297e4eb1ec8931"
+    },
+    "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "b900cf92dab71076ecc86e6a78a9b41836c08163",
+      "sha256": "c922462dad7e7ff93cd3b2dac88db537b7c80a4c97086366c8de080a9345665e"
+    },
+    "docs/implementation/b1/remaining/PO_ACCEPTANCE_RECORD.json": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "e294c27d726b79e2eb277b28d42f0f79ed88a168",
+      "sha256": "c096a04eac698e74a7355ad6ad79e759355003b0904a008fee4773f84c4aade2"
+    },
+    "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql": {
+      "source": "B1@c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+      "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
+    },
+    "deploy/staging/compose.yaml": {
+      "source": "staging@c85b49870f31efd802216d778b1808c3cc4c4509",
+      "gitBlob": "1b8946311809c9ec764ace40df23a9eecf668e78",
+      "sha256": "86d5ebba00776b25ad6b69d4093cb4566fbe4afe815a1492d79efd46b61a3c7e"
+    },
+    "deploy/staging/Dockerfile": {
+      "source": "staging@c85b49870f31efd802216d778b1808c3cc4c4509",
+      "gitBlob": "ce53f077b0a011da3f38e4f6c6f5f832568dff21",
+      "sha256": "9033693bad107c66d0bacb32ae808bbf096a06fa00c55457a94f2abbc22fd2eb"
+    }
+  },
+  "validation": {
+    "existingOfflinePreparationTests": {
+      "PASS": 6,
+      "FAIL": 0
+    },
+    "composeConfigSyntax": "PASS_SYNTHETIC_OFFLINE_ONLY",
+    "jsonAndAuthorizationInvariants": "PASS",
+    "localGitProxy": "BLOCKED_CONNECTION_REFUSED",
+    "localDockerDaemon": "BLOCKED_SOCKET_PERMISSION",
+    "operationalExecution": "NOT_EXECUTED",
+    "B1": {
+      "accepted": 42,
+      "total": 44,
+      "AUTH-GATE-05": "OPEN",
+      "PR006": "OPEN",
+      "PR007": "OPEN",
+      "runtime": "closedBackend"
+    }
+  },
+  "manifestSelfHash": "Excluded to avoid recursive digest; review by immutable Git commit/blob"
+}
