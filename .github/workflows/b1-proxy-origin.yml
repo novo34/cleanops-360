@@ -25,6 +25,6 @@ jobs:
       - name: Read installed Next request documentation
         run: |
           find node_modules/next/dist/docs -iname '*request*' -o -iname '*route-handler*' | head -20
-          sed -n '1,200p' node_modules/next/dist/docs/01-app/03-api-reference/03-functions/next-request.mdx
+          sed -n '1,200p' node_modules/next/dist/docs/01-app/03-api-reference/04-functions/next-request.md
       - name: Observe real production Next URL and proxy headers
         run: node scripts/probe-b1-origin.mjs
