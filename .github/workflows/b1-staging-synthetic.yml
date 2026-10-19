@@ -22,6 +22,7 @@ jobs:
       - run: python3 -m unittest discover -s tests/static -p test_staging_synthetic.py -v
       - run: node --test --test-isolation=none scripts/test-staging-archive.mjs
       - run: python3 scripts/staging-sql14.py
+      - run: python3 scripts/test-staging-postgres.py
       - run: python3 scripts/test-staging-openbao-image.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

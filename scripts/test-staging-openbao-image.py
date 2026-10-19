@@ -94,9 +94,10 @@ def main():
             assert api("sys/health", client=False)["status"] == 0
             record("mtls-required-no-public-listener")
             assert docker("exec", cid, "node", "/opt/cleanops/staging-bao-health.mjs", check=False).returncode != 0
+            record("health-rejects-uninitialized")
             # Test-only single-harness shares; not an approved human or production quorum.
             initialization = api("sys/init", "PUT", {"secret_shares": 1, "secret_threshold": 1})["body"]
-            share, token = initialization["keys"][0], initialization["root_token"]
+            share, token = initialization["keys_base64"][0], initialization["root_token"]
             api("sys/unseal", "PUT", {"key": share})
             ready()
             assert api("sys/health")["status"] == 200

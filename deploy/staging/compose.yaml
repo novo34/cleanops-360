@@ -39,6 +39,8 @@ services:
 
   postgres:
     image: postgres:16-bookworm
+    # With cap_drop ALL, start as postgres: root entrypoint cannot use gosu/setuid.
+    user: postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: cleanops_staging
@@ -79,3 +81,4 @@ volumes:
 secrets:
   postgres_bootstrap_password:
     file: ${CLEANOPS_PG_PASSWORD_FILE:?Absolute path to private file outside repo}
+
