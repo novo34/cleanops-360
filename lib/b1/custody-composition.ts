@@ -46,7 +46,7 @@ export async function withB1Custody<T>(
       refs.cursor?.purpose !== 'cursor-hmac') throw unavailable()
   const list = [refs.audit, refs.otp, refs.recovery, refs.cursor]
   const tenants = new Set(list.map(r => r.tenantId.toLowerCase()))
-  if (tenants.size !== 1) throw unavailable()
+  if (tenants.size !== 1 || list.some(r => !Number.isSafeInteger(r.version) || r.version < 1 || !r.keyId)) throw unavailable()
   try {
     return await input.custody.withKeys(list, input.lifetimeMs, async borrow => {
       const deps = input.dependencies(borrow)
@@ -54,7 +54,8 @@ export async function withB1Custody<T>(
           deps.factors.auditKey !== borrow(refs.audit, key => key) ||
           deps.factors.otpKey !== borrow(refs.otp, key => key) ||
           deps.factors.recoveryKey !== borrow(refs.recovery, key => key) ||
-          deps.cursorKey !== borrow(refs.cursor, key => key)) throw unavailable()
+          deps.cursorKey !== borrow(refs.cursor, key => key) ||
+          [deps.factors.auditKey, deps.factors.otpKey, deps.factors.recoveryKey, deps.cursorKey].some(key => !Buffer.isBuffer(key) || key.length !== 32)) throw unavailable()
       return work(createApprovedPrivateBackend(input.pool, deps))
     })
   } catch {
