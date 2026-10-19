@@ -79,7 +79,7 @@ test('SQL authorization request pins unexecuted artifacts and does not alter run
   }
   assert.equal(matrix.sqlPackages[2].gitBlob, '6454a7551e61e5857ef39090b24b93fcbdb03bb1')
   assert.equal(matrix.sqlPackages[3].gitBlob, '50590047d35467b2473945731384ae3da5729f28')
-  assert.match(read('lib/b1/runtime.ts'), /createAuthHandler\(closedBackend, origin\)/)
+  assert.match(read('lib/b1/runtime.ts'), /createAuthHandler\(closedBackend, origin, undefined, internalOrigins\)/)
   const controls = matrix.operationalControls.map((control: { id: string }) => control.id)
   for (const gate of ['AUTH-GATE-01', 'AUTH-GATE-02', 'AUTH-GATE-03', 'AUTH-GATE-04', 'AUTH-GATE-05', 'D2', 'D3', 'D4', 'INFRA-AUTH']) assert.ok(controls.includes(gate))
 })

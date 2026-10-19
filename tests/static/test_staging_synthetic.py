@@ -90,7 +90,13 @@ class Synthetic(unittest.TestCase):
                            ("api_dns", "external.invalid"), ("workload_cidrs", ["10.0.0.0/8"])]:
             with self.assertRaises(ValueError):
                 prepare.render(r, {**i, key: value})
-        self.assertIsNone(json.loads((ROOT / "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json").read_text())["custody"]["chosenScheme"])
+        # Staging keeps its own unaccepted production boundary; do not import
+        # pending development-branch operational-acceptance records into staging.
+        production = json.loads((ROOT / "deploy/staging/RESOURCE_RECORD.json").read_text())["PRODUCTION_SWISS"]
+        self.assertFalse(production["custodiansApproved"])
+        self.assertIsNone(production["quorum"])
+        self.assertEqual(production["operationalAcceptance"], "PENDING")
+        self.assertEqual(production["AUTH_GATE_05"], "OPEN")
 
     def test_sql_verify_only_and_reject_unapproved_apply_before_docker(self):
         r, _ = fixture()
