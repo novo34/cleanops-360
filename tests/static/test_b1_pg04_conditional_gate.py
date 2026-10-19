@@ -22,4 +22,4 @@ class ConditionalPG04GateTests(unittest.TestCase):
 
     def test_production_runtime_remains_closed(self):
         runtime=(ROOT/'lib/b1/runtime.ts').read_text()
-        self.assertIn('createAuthHandler(closedBackend, origin)',runtime)
+        self.assertIn('createAuthHandler(closedBackend, origin, undefined, internalOrigins)',runtime)
