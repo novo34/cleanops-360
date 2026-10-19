@@ -1,29 +1,168 @@
-# CleanOps 360 — staging preparation (NOT DEPLOYED)
+# Hostinger synthetic staging — prepared, NOT DEPLOYED
 
-GitHub branch: `staging`; Dokploy project `cleanops-360`, environment `staging`, Compose service `cleanops-staging`, app name `cleanops360`. Compose path: `deploy/staging/compose.yaml`. Keep **Autodeploy OFF**. Nothing here authorizes a Hostinger change.
+PO decision 2026-10-19: reuse the existing shared test VPS, even outside Switzerland,
+only fictional data and staging-exclusive credentials. No customer/employee data,
+production DB copies, external mail, new costs or changes to other projects.
+This supersedes Swiss-location preconditions FOR SYNTHETIC STAGING ONLY.
+Production PR006/PR007/AUTH-GATE-05 requirements remain unchanged.
 
-## Current executable boundary
-The Next.js server and isolated PostgreSQL 16 are described by Compose. **B1 runtime is still `closedBackend`**, so auth APIs intentionally return safe unavailable responses. There is no approved production PostgreSQL bootstrap/identity adapter, no active Redis/BullMQ worker, no general-purpose API container, and no approved operational OpenBao unseal/quorum. These are not disguised as working services. Do not expose the app to real customer data or mark B1/PR006/PR007 complete.
+## Real components and current boundary
 
-The entire Compose network is internal and no host ports are published. **External Traefik routing is deliberately absent**. Dokploy needs a separately reviewed ingress-network attachment + TLS domain configuration before any public entrypoint can work. A 200 healthcheck on `/login` proves the UI responds, not that backend authentication works.
+Base compose.yaml is the existing web + PG16 packaging from staging c85b4987.
+The optional compose.openbao.yaml adds native pinned OpenBao2.7.1 on the SAME VPS,
+not a new VM: read-only/non-root image, verified binary checksum, 512MiB/0.5CPU
+trial limits, private mTLS, persistent project-specific Raft and audit volumes.
+These are configurable trial limits, not production sizing or proof of capacity.
+Only amd64 is currently packaged; confirm the VPS architecture before use.
 
-## Before any authorized deployment
-1. Confirm a suitable Swiss staging region and data processing boundary, primary/backup disks and support location. Inventory other projects and available capacity without altering them.
-2. Obtain explicit approval to modify Dokploy and allocate staging resources. Do not enable Autodeploy, install SQL/ACL, initialize a real secret store or expose routes under this preparation authorization.
-3. Set `CLEANOPS_AUTH_ORIGIN` to the exact approved HTTPS origin and `CLEANOPS_PG_PASSWORD_FILE` to an absolute, root-controlled private file on the target (never in Git or Dokploy logs). The file must exist before `docker compose config`.
-4. Run `docker compose --env-file /private/path/staging.env -f deploy/staging/compose.yaml config -q`. Validate image build, memory headroom, storage/backup and absence of conflicts before provisioning.
-5. Keep PostgreSQL closed on the internal network. The initialized bootstrap superuser is **not an app runtime identity**. No automatic SQL migration, role grants, database restore or synthetic fixture data are run by Compose.
-6. Supply separately approved TLS ingress and route configuration only after identity backend, custodians, isolation and operational security review are approved. The present Compose does not publish port 3000.
-7. OpenBao 2.7.1: use the pinned candidate and existing reviewed template under `docs/implementation/b1/operational-acceptance/openbao/`. This package does not initialize/unseal an operational OpenBao, and cannot pretend the isolated 144 checks establish Swiss custody. Real workload certificates, Raft durability, audit sink and recovery require owner-approved specific resources and secondary custodian/quorum.
-8. Execute owner-authorized isolated DB SQL14 and migrations using approved artifacts only; perform witnessed encrypted backup/restore, independent review, ten manual PO steps and formal signoff. Require measured operational RPO <=15 min / RTO <=4h; frozen CI restore duration is not that proof.
+Readiness checks require initialized AND unsealed OpenBao; sealed/uninitialized,
+wrong CA/client and transport failure stay unhealthy. No automatic init/unseal,
+tokens in environment/build args, hidden key fallback or production quorum.
+Audit raw=false, accessors HMACed; existing exact ACL renderer reused unchanged.
+The base web remains closedBackend, with no key mounts or privileged SQL login.
+No new incomplete worker/Redis/broker service is claimed as operational.
+The existing private PG/OpenBao composition remains the validated test consumer.
+It cannot be exposed online by repurposing its Docker/IPC fixture endpoints.
 
-## Promotion and portability
-Never point Dokploy to `feat/*`. Create `staging` once from the latest B1 feature head to preserve all history. Subsequent approved modules land on `staging` only through reviewed integration, without switching the Dokploy branch. `main` remains untouched until separate merge authorization. No force push.
+## Files and offline preparation
 
-This compose uses project-scoped named volumes/network and no provider-specific binds, making relocation possible to owned Swiss home hardware, VPS or dedicated hosts. Export independently encrypted database+roles and approved OpenBao Raft snapshots, confirm hashes and restoration on **new** targets, then re-point approved DNS/ingress after testing. Host metadata, users, backups and keys must never be assumed portable without migration checks.
+RESOURCE_RECORD.json separates STAGING_SYNTHETIC and PRODUCTION_SWISS. The original
+formal docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json
+is preserved unchanged; it is not reinterpreted as non-Swiss production evidence.
+Production quorum2-of-3 is only an unapproved alternative; principal owner confirmed.
 
-## Resource envelope (planning only)
-Web: up to 0.65 vCPU/768MiB; PostgreSQL: up to 0.6 vCPU/1GiB; Docker, backups, OpenBao and any future Redis/workers require additional measured headroom. Existing VPS figures dated 18 October 2026 are historical, not a current capacity check. Storage consumption and startup behavior not yet measured.
+1. After separate permission to access the VPS, measure memory AVAILABLE after
+   other projects, disk free, CPU headroom, architecture and network conflicts.
+   Record UTC timestamp and project-isolation verification. No host access occurred.
+   Unknown/low/stale (>24h) metrics BLOCK capacity approval. No Swiss-country check
+   is imposed on this synthetic record.
+2. Use scripts/prepare-staging-synthetic.py --record /private/resource.json.
+   Exit2 means BLOCKED, not a deployment error to ignore. Default build-inclusive
+   headroom is4608MiB available,2000millicpus and8192MiB free storage; these are
+   conservative rehearsal budgets, not extra resources being contracted.
+3. If in-host builds do not fit, use verified prebuilt image digests and
+   compose.prebuilt.yaml (Compose !reset support required); PREBUILT mode removes
+   only build headroom, requiring3072MiB runtime/reserve available. Build/export
+   elsewhere within existing authorization, then review exact digests. No registry,
+   new VM or paid resource is provisioned automatically. If runtime still does
+   not fit, leave OpenBao profile OFF and retain isolated CI as the alternative.
+4. Complete the private subnet/IP after checking conflicts. Supply existing
+   renderer inputs with environment=staging-synthetic, api_dns=openbao, exact
+   one-tenant scopes and workload_cidrs equal to the custody /24. No wildcard
+   policy or new SQL/ACL contract.
+5. Render offline:
+   python3 scripts/prepare-staging-synthetic.py --record /private/resource.json --inputs /private/bao-inputs.json --out /private/new-bao-package
+   Output includes server/ACL/AppRole JSON and hashes; no server or keys created.
+   Even BLOCKED capacity may render review artifacts, never authorize applying.
+6. Keep the permanent Dokploy branch staging, compose path deploy/staging/compose.yaml,
+   project cleanops-360/environment staging/service cleanops-staging and Autodeploy OFF.
+   Changes exist on the B1 development branch only until reviewed staging integration.
+   Do not repoint Dokploy at the feature branch.
 
-## Evidence boundaries
-Configuration files are published and require Compose syntax validation, isolated build and a real preflight before declaring **STAGING READY FOR DEPLOYMENT**. No staging deployment, live TLS, operational PostgreSQL integration or OpenBao readiness is claimed.
+To preserve the fixed Compose Path without changing Dokploy's file-list settings,
+the same tool can build a NEW consolidated artifact offline:
+python3 scripts/prepare-staging-synthetic.py --record /private/resource.json --compose-out /private/new-compose.yaml --include-ingress
+Variables remain unexpanded and build context stays relative to deploy/staging.
+Review it and, only after authorized integration, place it at the permanent
+deploy/staging/compose.yaml path. No existing file is overwritten by the generator.
+Keep COMPOSE_PROFILES blank until synthetic-custody is explicitly authorized.
+
+## Future synthetic secret ceremony — not executed
+
+Generate a STAGING-ONLY CA, server certificate with SAN DNS:openbao and separate
+client certificates, including the health client. Use OpenSSL/private files under
+an owned staging directory outside Git; no public/production CA private material.
+Mount workload-ca.pem, server-chain.pem, server-key.pem, health-client.pem and
+health-client-key.pem read-only. Give image UID/GID1000 read permission without
+world-readable keys, no private CA signing key in the container. Verify expiry/SAN.
+Backup/decryption key files are32 raw random bytes, mode0600, independently stored.
+PG bootstrap password file remains unobserved on the VPS and must be created ONLY
+after explicit authorization, outside repository/logs.
+
+Initialize test-only unseal material through secure local CLI with output redirected
+to a private mode0600 file; a single-harness1-of-1 initialization is used in CI solely
+to test persistence, NOT an approved human/production quorum. Do not copy these
+shares or keys into production. Root is temporary: enable exact KVv2/CAS and existing
+reviewed AppRole policies, create staging-only32-byte keys and single-use wrapped
+SecretIDs out-of-band, verify denials and revoke root. Snapshot identity is distinct.
+Do not expose OpenBao to Traefik; no host8200/8201 or database port publishing.
+
+## Exact future Dokploy sequence (requires explicit deployment authorization)
+
+Confirm current capacity and fill record approval reference; integrate reviewed
+B1 preparation to staging preserving its history and existing projects. Confirm
+actual Traefik network, HTTPS entrypoint and certificate resolver names; none are
+guessed. Domain cleanops.nuvurent.com is fixed, DNS remains unchanged.
+compose.ingress.yaml attaches ONLY web to existing ingress; PG and Bao remain
+internal. Compose overrides require a separately approved Dokploy file-list setting
+or a reviewed consolidation into the fixed compose path; no such change was made.
+
+With a private env file containing paths only:
+docker compose --env-file /private/staging.env -f deploy/staging/compose.yaml -f deploy/staging/compose.openbao.yaml -f deploy/staging/compose.ingress.yaml --profile synthetic-custody config -q
+
+After approval, deploy these exact files (plus prebuilt overlay only if chosen)
+and inspect owned-service health. Install SQL ONLY with separately recorded
+sql14FreshInstallAuthorized=true on a NEW empty owned PG16:
+python3 scripts/staging-sql14.py --record /private/resource.json --apply
+No fixtures, extra grants or runtime activation occur in that installer.
+
+The SQL14 verification-only command is safe now: python3 scripts/staging-sql14.py.
+It hashes the unchanged approved artifact. Runtime ordinary identity provisioning,
+approved synthetic fixture setup and the public authentication gate are separate;
+SQL installation alone must never be reported as functional login.
+
+## Acceptance tracks and browser checks
+
+After explicit permission for the online target:
+CLEANOPS_STAGING_BROWSER_AUTHORIZED=yes node scripts/staging-online-check.mjs https://cleanops.nuvurent.com
+CLEANOPS_STAGING_BROWSER_AUTHORIZED=yes npx playwright test --config=playwright.staging.config.ts
+
+These assert HTTPS/login UI and auth503/no-store while closedBackend remains.
+PASS is boundary/readiness evidence, NOT full B1 acceptance. No public functional
+auth bypass or fixture API is added. Full online B1 login/MFA/PG/Bao E2E and PO
+steps remain BLOCKED until the corresponding AUTH-GATE-05 decision and explicit
+controlled activation authorization; this constraint cannot be removed by a
+synthetic label. Reuse existing private SQL14 browser suite for isolated coverage,
+not as a claimed online PO result.
+
+PO_STAGING_RECORD.json reuses the ten canonical manual steps with PASS/FAIL/
+BLOCKED/NOT_EXECUTED results and actual owner observations. Functional staging
+approval does not rewrite canonical PR006/PR007 or Swiss-production records.
+Production still needs residence, approved custodians/quorum, independent review
+and coherent independent recovery/RPO/RTO evidence. No44/44 inference.
+
+## Synthetic backup, restore and rollback
+
+Before any future stateful test changes, stop/deny new synthetic writes at the
+approved boundary and record the checkpoint. With backupAuthorized=true and a
+snapshot-read-only token FILE (not root/workload token):
+python3 scripts/staging-maintenance.py --record /private/resource.json --snapshot-token-file /private/snapshot-token --key-file /private/staging-backup-key --out /private/backups/new-checkpoint.enc
+
+The record must name that dedicated backup destinationDirectory; the tool rejects
+an output outside it, including another project's directory.
+
+This encrypts PG dump+roles(no passwords)+Raft snapshot in an authenticated
+STAGING_SYNTHETIC archive. Add the frozen renderer manifest, public TLS trust,
+exact image digests/config and private custody references to the checkpoint
+inventory; store required TLS private material separately under staging custody.
+This tool is not WAL/PITR, automatic scheduling or production-coherent recovery.
+Keep backup location separate from other projects; same-VPS copies are NOT
+independent disaster recovery. No production retention/RPO claim is made.
+
+Restore transport (only to a new private output file):
+node scripts/staging-archive.mjs decrypt checkpoint.enc new-checkpoint.tar /private/staging-backup-key STAGING_SYNTHETIC
+Wrong key/tag/truncation must leave no output. Never extract an untrusted tar or
+overwrite an existing target. Inspect known member names and manifest first.
+PG restore is to a NEW isolated staging target with its own project/volumes;
+restore roles (excluding target bootstrap conflicts), then pg_restore with
+--exit-on-error. OpenBao normal restore needs compatible seal; fresh-target force
+restore requires explicit target/hash/original-test-share authorization and is
+NOT executed by these tools. Keep restored sessions/OTP/trust/outbox quarantined;
+no stale authority is revived. Validate exact versions and ordinary-role denials.
+
+Rollback pins the previously verified application image/source, keeps existing
+stateful volumes, and disables owned ingress/profile only if separately authorized.
+Never docker compose down -v, prune, reset, force-push or replace shared networks.
+For data rollback, recover into NEW owned targets, validate first, then separately
+approve cutover. Capture redacted receipts; delete only inventoried temporary
+resources. Backups and audit volumes are never removed as application rollback.

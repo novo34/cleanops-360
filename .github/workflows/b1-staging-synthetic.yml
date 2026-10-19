@@ -1,0 +1,32 @@
+name: B1 synthetic staging preparation
+on:
+  pull_request:
+    paths:
+      - 'deploy/staging/**'
+      - 'scripts/*staging*'
+      - 'tests/static/test_staging_synthetic.py'
+      - '.github/workflows/b1-staging-synthetic.yml'
+permissions:
+  contents: read
+jobs:
+  preparation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: python3 -m unittest discover -s tests/static -p test_staging_synthetic.py -v
+      - run: node --test --test-isolation=none scripts/test-staging-archive.mjs
+      - run: python3 scripts/staging-sql14.py
+      - run: python3 scripts/test-staging-postgres.py
+      - run: python3 scripts/test-staging-openbao-image.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: staging-synthetic-image-redacted
+          path: artifacts/staging-synthetic/
+          retention-days: 7
