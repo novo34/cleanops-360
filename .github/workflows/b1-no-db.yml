@@ -3,6 +3,7 @@ on:
   pull_request:
 permissions:
   contents: read
+  pull-requests: read # Gitleaks reads PR commit metadata; no write permission
 jobs:
   b1:
     if: startsWith(github.head_ref, 'feat/b1-')
