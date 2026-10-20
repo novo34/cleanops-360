@@ -17,6 +17,7 @@ const backend=createApprovedPrivateBackend(pool,{
 const handler=createAuthHandler(backend,'https://127.0.0.1:3443')
 const allowed=new Set(['listAdministrationUsers','getAdministrationUser','getAdministrationSession','getUserAccess'])
 if(process.env.B2_ACCESS_TEST==='1')for(const name of ['checkUserEffectiveAccess','listAssignableRoles','changeAccess','checkEffectiveAccess'])allowed.add(name)
+if(process.env.B2_USER_CHANGES_TEST==='1')allowed.add('changeAdministrationUser')
 process.stdout.write(JSON.stringify({ready:true})+'\n')
 try{
  for await(const line of input){

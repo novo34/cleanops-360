@@ -18,6 +18,7 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
   const [accessOpen,setAccessOpen]=useState(false)
+  const [directoryRefresh,setDirectoryRefresh]=useState(0)
   const [accessView,setAccessView]=useState<{target:string;detail:AccessDetail}|null>(null)
   const [trustedDevices,setTrustedDevices]=useState<{id:string;created_at:string;expires_at:string}[]>([])
   const [trustedCursor,setTrustedCursor]=useState<string|null>(null)
@@ -98,6 +99,11 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
       if (requestGeneration !== generation.current) return null
       // Authentication loss is authoritative even if the error body is malformed.
       if (response.status === 401) { endCeremony('La sesión ha caducado. Vuelve a iniciar el acceso.', true); return null }
+      if (operation === 'changeAdministrationUser' && response.status === 409) {
+        const error = await response.json()
+        if (!valid(contract.components.schemas.Error,error)) throw new Error('INVALID_ERROR')
+        lastFailure.current='USER_CHANGE_CONFLICT';setMessage('No se pudo confirmar el cambio. Actualiza la ficha antes de guardar de nuevo.');return null
+      }
       // Ceremony/authorization failure is not evidence that the ACTIVE session was revoked.
       if ([403, 409, 410].includes(response.status)) {
         if(response.status===403){try{const error=await response.json();if(valid(contract.components.schemas.Error,error)&&error.error.code==='STEP_UP_REQUIRED')lastFailure.current='STEP_UP_REQUIRED'}catch{ /* Safe generic failure; never infer authorization. */ }}
@@ -185,6 +191,7 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
         if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
         else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
         else if(result && action.operation==='changeAccess' && action.accessTarget){await loadUserAccess(action.accessTarget);setMessage('Permisos actualizados.')}
+        else if(result && action.operation==='changeAdministrationUser')receiveUserChange(result)
         else if(result && action.operation.includes('Trusted')){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(action.operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.')}
         else if(result&&action.operation==='adminResetMfa')setMessage('MFA restablecido. El usuario debe configurar y verificar un nuevo factor.')
         else if (result?.state && result.state !== 'REVOKED') accept(result)
@@ -235,6 +242,19 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
     if(lastFailure.current!=='STEP_UP_REQUIRED')return
     const step=await call('startStepUp',{grant_id:'B1-SELF-06'})
     if(step){setPendingAction({operation:'changeAccess',body,accessTarget:target});prepare(step,{grant_id:'B1-SELF-06'})}
+  }
+  function receiveUserChange(result:{session_ended:boolean}){
+    if(result.session_ended){clearCeremony();setView(emptyView);setMessage('Tu acceso a esta empresa se ha desactivado.');return}
+    setDirectoryRefresh(value=>value+1);setAccessOpen(true);setAccessView(null);setMessage('Usuario actualizado.')
+  }
+  async function changeAdministrationUser(body:object):Promise<boolean|'STEP_UP'>{
+    const result=await call('changeAdministrationUser',body)
+    if(result){receiveUserChange(result);return true}
+    if(lastFailure.current==='STEP_UP_REQUIRED'){
+      const step=await call('startStepUp',{grant_id:'B1-SELF-06'})
+      if(step){setPendingAction({operation:'changeAdministrationUser',body});prepare(step,{grant_id:'B1-SELF-06'});return 'STEP_UP'}
+    }
+    return false
   }
   async function enroll() {
     const result = await call('enrollTotp')
@@ -323,7 +343,7 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
         <section aria-labelledby="administration-heading"><h3 id="administration-heading">Administración</h3>
           <button type="button" onClick={()=>{setAccessOpen(v=>!v);setAccessView(null)}}>Usuarios y permisos</button>
-          {accessOpen && <UsersDirectory onManageAccess={loadUserAccess} />}
+          {accessOpen && <UsersDirectory onManageAccess={loadUserAccess} onChangeUser={changeAdministrationUser} refresh={directoryRefresh} />}
           {accessOpen&&<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void loadUserAccess(String(d.get('access_target')))}}>
             <label>Usuario para Manage Access <input name="access_target" minLength={36} maxLength={36} required /></label>
             <button type="submit">Abrir Manage Access</button>

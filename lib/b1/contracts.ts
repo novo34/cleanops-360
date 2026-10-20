@@ -7,9 +7,10 @@ import accessExtension from './access-http.json' with { type: 'json' }
 import recoveryExtension from './recovery-http.json' with { type: 'json' }
 import usersExtension from '../b2/users-http.json' with { type: 'json' }
 import b2AccessExtension from '../b2/access-http.json' with { type: 'json' }
+import userChangesExtension from '../b2/user-changes-http.json' with { type: 'json' }
 // Additive E1 EMAIL endpoints; canonical V4 bytes and existing operations unchanged.
-const specification = { ...canonicalSpecification, paths: { ...canonicalSpecification.paths, ...emailExtension.paths, ...recoveryExtension.paths, ...resetExtension.paths, ...trustedExtension.paths, ...accessExtension.paths, ...mfaAdminExtension.paths, ...usersExtension.paths, ...b2AccessExtension.paths },
-  components: { ...canonicalSpecification.components, schemas: { ...canonicalSpecification.components.schemas, ...emailExtension.schemas, ...recoveryExtension.schemas, ...resetExtension.schemas, ...trustedExtension.schemas, ...accessExtension.schemas, ...mfaAdminExtension.schemas, ...usersExtension.schemas, ...b2AccessExtension.schemas } } }
+const specification = { ...canonicalSpecification, paths: { ...canonicalSpecification.paths, ...emailExtension.paths, ...recoveryExtension.paths, ...resetExtension.paths, ...trustedExtension.paths, ...accessExtension.paths, ...mfaAdminExtension.paths, ...usersExtension.paths, ...b2AccessExtension.paths, ...userChangesExtension.paths },
+  components: { ...canonicalSpecification.components, schemas: { ...canonicalSpecification.components.schemas, ...emailExtension.schemas, ...recoveryExtension.schemas, ...resetExtension.schemas, ...trustedExtension.schemas, ...accessExtension.schemas, ...mfaAdminExtension.schemas, ...usersExtension.schemas, ...b2AccessExtension.schemas, ...userChangesExtension.schemas } } }
 
 export interface Schema {
   $ref?: string; type?: string; const?: unknown; enum?: unknown[]; properties?: Record<string, Schema>

@@ -60,6 +60,9 @@ button, input, select { font: inherit; }
 .users-detail dl div { padding: 12px 0; border-bottom: 1px solid var(--users-border); }
 .users-detail dt { color: var(--users-muted); font-size: 13px; }
 .users-detail dd { margin: 6px 0; }
+.users-detail fieldset { border: 1px solid var(--users-border); border-radius: 10px; padding: 14px; margin: 16px 0; }
+.users-detail label { display: grid; gap: 6px; }
+.users-detail input { background: var(--users-surface); color: var(--users-text); border: 1px solid var(--users-border); border-radius: 7px; }
 @media (prefers-color-scheme: dark) { .users-directory { --users-surface: #142638; --users-text: #edf5f8; --users-muted: #afc2d2; --users-border: #355065; color-scheme: dark; } }
 @media (max-width: 600px) { .users-heading, .users-filters, .users-pagination { display: grid; } .users-directory td, .users-directory th { padding: 10px 8px; } }
 .auth-panel :focus-visible { outline: 3px solid #1b977a; outline-offset: 3px; }

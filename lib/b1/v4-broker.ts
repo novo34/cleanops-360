@@ -5,6 +5,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  changeUserOwned: {sql:'SELECT auth_api.change_user_owned($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'json'},
   userEffectiveAccess: {sql:'SELECT auth_api.user_effective_access($1::uuid,$2::text,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   assignableRoleCatalogue: {sql:'SELECT auth_api.assignable_role_catalogue($1::uuid,$2::uuid) AS value',arity:2,kind:'json'},
   administrationUsers: {sql:'SELECT auth_api.administration_users($1::text,$2::text,$3::uuid,$4::integer) AS value',arity:4,kind:'json'},
@@ -211,6 +212,7 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  changeUserOwned: [payload:string,keyHash:Buffer,requestHash:Buffer,correlation:string]
   userEffectiveAccess: [target:string,action:AccessAction,kind:string,resource:string|null]
   assignableRoleCatalogue: [target:string,after:string|null]
   administrationUsers: [search:string,state:'ACTIVE'|'DISABLED'|null,after:string|null,limit:number]
@@ -303,6 +305,8 @@ const object = (value: unknown): value is Row => !!value && typeof value === 'ob
 function safeError(error: unknown): AuthError {
   // Match only stable, known broker messages; never surface server diagnostics or SQL.
   if (object(error)) {
+    // Exact new B2 lock-conflict message only; the poisoned unit still rolls back.
+    if (error.code === '55P03' && error.message === 'USER_CHANGE_BUSY') return new AuthError(409, 'USER_CHANGE_CONFLICT')
     const codes: Record<string, [number, string]> = {
       RATE_LIMITED: [429, 'RATE_LIMITED'], RECOVERY_CONTEXT_REQUIRED: [409, 'CEREMONY_UNAVAILABLE'],
       AUTH_INVALID: [401, 'AUTH_INVALID'], CREDENTIAL_CHANGED: [401, 'AUTH_INVALID'],

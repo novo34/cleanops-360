@@ -454,6 +454,15 @@
                   "maxLength": 120
                 }
               }
+            },
+            "can_edit": {
+              "type": "boolean"
+            },
+            "resource_version": {
+              "type": "string",
+              "minLength": 64,
+              "maxLength": 64,
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },

@@ -98,6 +98,12 @@ Only commit:path:rule:line fingerprints are added to .gitleaksignore. No path/ru
 The earlier one-shot experiment paragraph records the initial ec5bc165 follow-up. Final P1 custody/SQL integration is executed at df6a52b0, with all reports and source guards in PROXY_DEADLINE_EXECUTION.json; the unchanged dashboard remains pinned to its initial successful source.
 
 
+The B2 user-profile write adds a fixed broker dispatch alongside the existing
+owned transaction operations. The already reviewed random-key fallback snippet
+is unchanged and now starts at line620 of approved-backend.ts. Only that exact
+location and whole-file context checksum are refreshed; no finding, rule, source
+snippet or exemption is added.
+
 ### Corrected history coverage
 
 The phrase full-history above described the PR #7 action's broader range compared with PR #11, but was too broad: inspection of pinned gitleaks-action/src/gitleaks.js shows an unpaginated GitHub PR commits request and a first-parent range limited to30 returned commits. Logs39485356802 and39486006161 each explicitly scanned30 commits. They do not prove full-history coverage.
