@@ -13,7 +13,8 @@ permissions:
   contents: read
 jobs:
   private-integration:
-    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows'
+    # One-shot affected integration already executed at this exact immutable source.
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows' && github.event.pull_request.head.sha == 'ec5bc165b8a8b346cc8a1927fe752940c539a793'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -97,12 +98,18 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - run: python -m pip install --disable-pip-version-check semgrep==1.177.0
+      - name: Verify retained integration source is still byte-identical
+        run: git diff --exit-code ec5bc165b8a8b346cc8a1927fe752940c539a793 HEAD -- lib/b1 app components e2e package.json package-lock.json 'playwright*.ts' 'scripts/pg*' scripts/b1-real-browser-server.mjs scripts/openbao-b1-integration.ts 'scripts/test-b1-openbao*' docs/proposals/b1-consolidated-sql
+      - name: Validate inherited security guard against adversarial regressions
+        run: python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
       - name: All B1 production library and connected authentication/access panels
-        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --disable-nosem --metrics=off lib/b1 components/auth-panel.tsx components/manage-access-panel.tsx
+        run: python scripts/check-semgrep-reviewed.py
   dashboard-regression:
-    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows'
+    # The pinned staging snapshot and B1 source were tested together at this source.
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows' && github.event.pull_request.head.sha == 'ec5bc165b8a8b346cc8a1927fe752940c539a793'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
