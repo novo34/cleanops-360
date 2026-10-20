@@ -1,0 +1,54 @@
+{
+  "status": "PROPOSED_CANONICAL_CONSOLIDATION_REVIEW_ONLY",
+  "sourceHead": "b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99",
+  "sources": [
+    {
+      "name": "V4",
+      "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "sha256": "79f8c7a1a4165e2c1f08448ab12cadd43ff46a53d928970d77d261a878303b70"
+    },
+    {
+      "name": "B1-X",
+      "path": "docs/proposals/b1-v4-extension/review-only.sql",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "sha256": "49fcce0b89a1da59639dd0ee6d0c71206af5935ce28743fe70843783137df90f"
+    },
+    {
+      "name": "D1",
+      "path": "docs/proposals/b1-ceremony-material/review-only.sql",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "sha256": "446aa1513c9b413bf3bc9007206b5705f730d7d64a91f1c1f19b5b7a9783321b"
+    },
+    {
+      "name": "D1-ACL",
+      "path": "docs/proposals/b1-ceremony-material/approval-matrix.json",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "sha256": "abb97c7895983fbd061af6137d93a26f56bdf2eb9b954d01ea1984bf6b895ef3"
+    }
+  ],
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/02/schema.review.sql",
+    "gitBlob": "d723ff9f615caafa701418dbaea60dec43479bba",
+    "sha256": "a1c524b9821319d830f4a753fb8691dde218e291341d90bd1d3ea14254c1e3fd"
+  },
+  "transformations": [
+    "V4: parenthesize exactly two issue_active_session CASE operands (PATCH-01 authorized/tested).",
+    "B1-X: parenthesize exactly one totp_material_locked CASE operand (new REVIEW ONLY).",
+    "B1-X/D1: remove exact unconditional REVIEW_ONLY guard; consolidate outer transaction wrappers.",
+    "Replace V4 COMMIT and overlay ROLLBACK wrappers with one BEGIN/COMMIT across all three sources.",
+    "Remove source header comments and the now-inaccurate unreachable-transaction comment only.",
+    "D1 replacement of totp_material_locked: parenthesize the same CASE operand; both definitions regression-checked. No ACL/signature/predicate changes."
+  ],
+  "acl": "Exactly the combined V4/B1-X/D1 statements; no extra grants or role mapping.",
+  "sqlCompiled": false,
+  "installationAuthorized": false,
+  "installed": false,
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "revision": "02",
+  "supersedes": {
+    "gitBlob": "7507a29dc58c27fa4b9ab7f3b6dd628397485c9a",
+    "failedRun": 39036655470
+  }
+}

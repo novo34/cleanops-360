@@ -1,0 +1,19 @@
+--- authorized-SQL09
++++ REVIEW-ONLY-SQL10
+@@ -1780,13 +1780,14 @@
+ 
+ CREATE FUNCTION auth_api.register_trusted_device(token_hash bytea,corr uuid) RETURNS uuid
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+-DECLARE c identity_private.tx_context;s app.sessions;k uuid:=gen_random_uuid();
++DECLARE c identity_private.tx_context;s app.sessions;k uuid:=gen_random_uuid();registered_at timestamptz;
+ BEGIN
+  c:=identity_private.guard('B1-SELF-06',true);
+  IF (SELECT trusted_devices_enabled FROM app.auth_preferences WHERE tenant_id=c.tenant_id) IS DISTINCT FROM true THEN RAISE EXCEPTION 'ACCESS_DENIED';END IF;
+  SELECT * INTO s FROM app.sessions WHERE tenant_id=c.tenant_id AND id=c.session_id;
+  IF token_hash IS NULL OR octet_length(token_hash)<>32 OR corr IS NULL THEN RAISE EXCEPTION 'AUTH_INVALID';END IF;
+- INSERT INTO app.trusted_devices VALUES(c.tenant_id,k,c.user_id,s.principal_id,token_hash,s.credential_version,clock_timestamp(),clock_timestamp()+interval '30 days',NULL);
++ registered_at:=clock_timestamp();
++ INSERT INTO app.trusted_devices VALUES(c.tenant_id,k,c.user_id,s.principal_id,token_hash,s.credential_version,registered_at,registered_at+interval '30 days',NULL);
+  PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.device.register',k,1,corr);RETURN k;
+ END $fn$;
+ CREATE FUNCTION auth_api.trusted_device_valid(token_hash bytea) RETURNS boolean

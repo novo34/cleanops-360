@@ -1,0 +1,160 @@
+{
+  "status": "PROPOSED_REQUIRES_OWNER_APPROVAL",
+  "reviewOnly": true,
+  "implementationUnblocked": false,
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "baseCommit": "e6f7d1d9490684d38982959696d73b6c38215af6",
+  "canonical": {
+    "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+    "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0"
+  },
+  "decisions": [
+    {
+      "id": "B1-X-CREDENTIAL",
+      "approval": "REQUIRED",
+      "change": "Locked credential material; hash/version CAS for cost-only rehash; version-bound preauth; restrict old issuer entry points",
+      "compatible": "Argon2id and logical credential generations retained; no new factor or password policy"
+    },
+    {
+      "id": "B1-X-TOTP",
+      "approval": "REQUIRED",
+      "change": "Method version/explicit algorithm, locked context-complete material and expected-version/counter consumption",
+      "compatible": "V4 period/digits/window and global per-method monotonic counter retained"
+    },
+    {
+      "id": "B1-X-BINDING",
+      "approval": "REQUIRED",
+      "change": "Full private Binding, same eight rules and policy-version-bound step-up, transaction-owned idempotency reservations/discard",
+      "compatible": "No new business role/grant, tenant isolation/default deny preserved"
+    }
+  ],
+  "lockOrder": [
+    "principal",
+    "credential",
+    "subject sessions (principal already serialized; additional sets ordered tenant/id)",
+    "preauth/bootstrap",
+    "organizations/users ordered by tenant/id",
+    "policy_versions ordered by full source/target set",
+    "idempotency reservation when required",
+    "method",
+    "challenge"
+  ],
+  "errors": {
+    "invalid": "401 AUTH_INVALID",
+    "denied": "403 POLICY_DENIED",
+    "stepUp": "403 STEP_UP_REQUIRED",
+    "staleCAS": "false; no success; failed proof counters commit when changed",
+    "reservation": "409; never delete COMPLETED or another transaction reservation",
+    "infrastructure": "503; rollback/discard connection; no automatic retry"
+  },
+  "evidence": "Static/contract tests only; SQL compilation, RLS, locks and concurrency remain unverified",
+  "approvalDoesNotAuthorize": [
+    "SQL execution",
+    "migration/grants/seeds",
+    "runtime wiring",
+    "gate closure",
+    "production activation",
+    "merge",
+    "deployment"
+  ],
+  "functions": [
+    {
+      "signature": "identity_private.version_totp_method()",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.lock_principal(uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.lock_memberships(uuid,uuid[])",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.context()",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "identity_private.checked_preauth(text)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.credential_material_locked(text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.rehash_credential_cas(uuid,bigint,text,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.new_preauth_verified(uuid,uuid,bigint,text,bytea,bytea)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.resolve_binding(text,text,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.binding_authorization(text,text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "identity_private.guard(text,boolean,uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.totp_material_locked(text,uuid,text)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.verify_challenge(text,uuid,bytea,bigint,uuid)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.consume_totp_cas(text,uuid,text,bigint,bigint,bigint,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.consume_enrollment_cas(text,uuid,bigint,bigint,bigint,bytea[],uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.reserve_owned(text,text,bytea,bytea,boolean)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "identity_private.finish_owned(text,text,bytea,bytea,jsonb,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.discard_owned(text,text,bytea,bytea)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.complete_owned(text,text,bytea,bytea,jsonb)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.reserve_idempotency(text,bytea,bytea,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.reserve_ceremony(text,text,bytea,bytea,boolean)",
+      "caller": "broker_only"
+    },
+    {
+      "signature": "auth_api.begin_totp_enrollment_explicit(text,bytea,text,text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.email_otp_material(text,uuid)",
+      "caller": "identity_service_only"
+    },
+    {
+      "signature": "auth_api.consume_email_otp(text,uuid,bytea,uuid)",
+      "caller": "identity_service_only"
+    }
+  ],
+  "patch": "docs/proposals/b1-v4-extension/review-only.sql"
+}

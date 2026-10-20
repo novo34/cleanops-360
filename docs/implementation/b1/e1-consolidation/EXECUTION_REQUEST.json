@@ -1,0 +1,20 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-06",
+  "ownerApproved": false,
+  "status": "REQUEST_AFTER_OFFLINE_CI_ONLY",
+  "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/06/schema.review.sql",
+  "candidate": {
+    "gitBlob": "939a521911e34296e055eb05c57264cbeee6d785",
+    "sha256": "aade4ed7aeb065899c086f0ee02e11aef024d2cb84f2d9e4a13155a273ab0962",
+    "bytes": 185199
+  },
+  "exactDiff": "docs/proposals/b1-consolidated-sql/revisions/06/APPROVED_05_TO_06.diff",
+  "exactAcl": "docs/proposals/b1-consolidated-sql/revisions/06/ACL.sql",
+  "signatures": "docs/proposals/b1-consolidated-sql/revisions/06/manifest.json",
+  "scope": "Approve the new reviewed design contracts/ACL and install only this exact complete candidate in a NEW isolated synthetic PostgreSQL16 Docker container for native validation; never shared/staging/production. No grants beyond candidate. No runtime activation.",
+  "requiredTests": "docs/implementation/b1/e1-consolidation/NATIVE-ACCEPTANCE.md",
+  "additionalPatchesAuthorized": false,
+  "externalSMTPAuthorized": false,
+  "productionAuthorized": false,
+  "mergeAuthorized": false
+}

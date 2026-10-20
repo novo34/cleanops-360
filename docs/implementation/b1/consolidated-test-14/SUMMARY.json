@@ -1,0 +1,62 @@
+{
+  "result": "PASS",
+  "candidate": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
+  },
+  "passedCheckExecutionsIncludingRepeatedGuards": 822,
+  "distinctCheckNames": 144,
+  "realChromiumExecutions": 26,
+  "nativeCases": 20,
+  "additionalScenarioGroups": 8,
+  "batteries": [
+    {
+      "report": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022,
+      "checks": 117,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "report": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183,
+      "checks": 180,
+      "result": "FAIL",
+      "cleanup": "PASS"
+    },
+    {
+      "report": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010,
+      "checks": 176,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "report": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164,
+      "checks": 180,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "report": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829,
+      "checks": 171,
+      "result": "PASS",
+      "cleanup": "PASS"
+    }
+  ],
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "authGate05": "OPEN"
+}

@@ -51,3 +51,10 @@ Referencias: [índice previo, commit 9f13c78](https://github.com/novo34/cleanops
 - [v4/static-tests.log](v4/static-tests.log)
 - [v4/validate_package.py](v4/validate_package.py)
 - [v4/validation-report.json](v4/validation-report.json)
+
+## Resolución E1 aprobada — 17-10-2026
+
+[Adenda acumulativa del propietario](E1-OWNER-RESOLUTION-2026-10-17.md):
+D2 OpenBao suizo, D3 SHA256/32bytes/issuer, D4 destinatarios verificados/outbox/cuarentena,
+C-SCOPE completo y C-LOGIN MFA obligatorio. Sustituye únicamente el estado pendiente
+histórico de esas decisiones, sin borrar fuentes ni aprobar SQL/ACL/infraestructura nueva.

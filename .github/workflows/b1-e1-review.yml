@@ -1,0 +1,23 @@
+name: B1 E1 offline contract validation
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    if: startsWith(github.head_ref, 'feat/b1-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python3 scripts/consolidate-b1-e1.py --check
+      - run: python3 -m unittest discover -s tests/static -p 'test_b1_e1*.py' -v
+      - run: python3 scripts/install-pg16-parser.py
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/06/schema.review.sql
+      - run: python3 scripts/consolidate-b1-e1.py --revision 07 --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql

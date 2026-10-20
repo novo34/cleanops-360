@@ -1,0 +1,30 @@
+{
+  "ui": false,
+  "api_addr": "https://@API_DNS@:8200",
+  "cluster_addr": "https://@PRIVATE_IPV4@:8201",
+  "storage": {"raft": {"path": "/var/lib/openbao/raft", "node_id": "@NODE_ID@"}},
+  "listener": [{"tcp": {
+    "address": "@PRIVATE_IPV4@:8200",
+    "cluster_address": "@PRIVATE_IPV4@:8201",
+    "tls_disable": false,
+    "tls_min_version": "tls12",
+    "tls_cert_file": "/run/openbao-tls/server-chain.pem",
+    "tls_key_file": "/run/openbao-tls/server-key.pem",
+    "tls_client_ca_file": "/run/openbao-tls/workload-ca.pem",
+    "tls_require_and_verify_client_cert": true
+  }}],
+  "disable_mlock": true,
+  "raw_storage_endpoint": false,
+  "introspection_endpoint": false,
+  "unsafe_allow_api_audit_creation": false,
+  "plugin_auto_download": false,
+  "plugin_auto_register": false,
+  "log_level": "info",
+  "log_format": "json",
+  "audit": [{"file": {"b1-private": {
+    "description": "Private Swiss audit sink; never stdout or CI",
+    "options": {"file_path": "/var/log/openbao/audit.json", "log_raw": "false", "hmac_accessor": "true"}
+  }}}],
+  "default_lease_ttl": "@TOKEN_TTL@s",
+  "max_lease_ttl": "@TOKEN_MAX_TTL@s"
+}

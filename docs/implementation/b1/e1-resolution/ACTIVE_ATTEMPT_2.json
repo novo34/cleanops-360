@@ -1,0 +1,228 @@
+{
+  "scope": "B1-REAL-BROWSER-PG05",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized-consolidated-blob-sha256-diff-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "function-bodies-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated",
+      "status": "PASS"
+    },
+    {
+      "name": "all-broker-contracts-persisted",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_BACKEND",
+          "LOGIN",
+          "TOTP",
+          "IDENTITY",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "REVOKE_INDIVIDUAL",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "STEPUP",
+          "BULK_RESULT",
+          "LOGOUT",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_ENROLLMENT",
+          "LOGIN_NO_METHOD",
+          "ENROLL_PENDING",
+          "INVALID_FIRST_CODE",
+          "CONFIRM_FIRST_CODE",
+          "ONE_TIME_REPLAY_DENIED",
+          "LOGIN_AFTER_LOGOUT",
+          "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real ACTIVE additional enrollment requires both grants then supports explicit multi-method login",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [
+          "INIT_ADDITIONAL_ENROLLMENT",
+          "STEPUP_ENROLL_05",
+          "DENY_WITHOUT_CONFIRM_GRANT",
+          "STEPUP_CONFIRM_06",
+          "WAIT_COUNTER_WINDOW",
+          "CONFIRM_ADDITIONAL_METHOD",
+          "EXPLICIT_MULTI_METHOD_LOGIN",
+          "WAIT_RESEND_COOLDOWN",
+          "SELECT_STATUS_200",
+          "VERIFY_STATUS_429",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "real-browser-process",
+      "status": "FAIL",
+      "detail": "No mocked responses; raw traces and output suppressed."
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "prior294": {
+    "source": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+    "run": 39068144839,
+    "status": "PASS",
+    "reexecuted": false
+  },
+  "b1RequirementsAccepted": 0,
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-05",
+    "ownerApproved": true,
+    "sourceHead": "ef386d985d8a1c3331d7dd2d4cdf66468bf6f3d5",
+    "candidate": {
+      "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql",
+      "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+      "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c"
+    },
+    "fullDiff": {
+      "path": "docs/proposals/b1-consolidated-sql/revisions/05/PARENT_04_TO_05.diff",
+      "sha256": "53d14a06842edc9c66be097e3cbadb53143f1a6ebdb9d8d4a4fa977d26586e9a"
+    },
+    "originalSources": [
+      {
+        "name": "V4",
+        "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+        "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+        "sha256": "79f8c7a1a4165e2c1f08448ab12cadd43ff46a53d928970d77d261a878303b70"
+      },
+      {
+        "name": "B1-X",
+        "path": "docs/proposals/b1-v4-extension/review-only.sql",
+        "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+        "sha256": "49fcce0b89a1da59639dd0ee6d0c71206af5935ce28743fe70843783137df90f"
+      },
+      {
+        "name": "D1",
+        "path": "docs/proposals/b1-ceremony-material/review-only.sql",
+        "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+        "sha256": "446aa1513c9b413bf3bc9007206b5705f730d7d64a91f1c1f19b5b7a9783321b"
+      },
+      {
+        "name": "D1-ACL",
+        "path": "docs/proposals/b1-ceremony-material/approval-matrix.json",
+        "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+        "sha256": "abb97c7895983fbd061af6137d93a26f56bdf2eb9b954d01ea1984bf6b895ef3"
+      }
+    ],
+    "scope": {
+      "postgresMajor": 16,
+      "docker": "NEW_EPHEMERAL_OWN_LABEL",
+      "network": "none",
+      "publicPorts": false,
+      "sharedVolumes": false,
+      "data": "SYNTHETIC_ONLY",
+      "preexistingResources": "READ_ONLY_INVENTORY_NEVER_MUTATE"
+    },
+    "constraints": [
+      "Any changed SQL hash or extra privileges",
+      "Existing/shared/staging/production database changes",
+      "Production keys or data",
+      "External SMTP",
+      "Deployment",
+      "Merge",
+      "Backend runtime activation",
+      "B1 or AUTH-GATE-05 closure"
+    ],
+    "authority": "Explicit owner authorization of exact consolidated 05 in this session; isolated PG16 synthetic validation only.",
+    "runtime": "closedBackend",
+    "b1": "OPEN",
+    "authGate05": "OPEN",
+    "automaticClosureAuthorized": false
+  },
+  "candidate": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875
+  },
+  "submittedSqlSha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+  "result": "FAIL",
+  "provenance": {
+    "head": "9c183c2015f4eb51903752d69c11089da287d2b9",
+    "run": 39072974572,
+    "job": 117514230994
+  }
+}

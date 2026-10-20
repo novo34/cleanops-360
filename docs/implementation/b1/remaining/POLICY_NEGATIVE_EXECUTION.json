@@ -1,0 +1,550 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-11",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact11-blob-sha256-full-reviewed-diff-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated11",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_rules",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_roles",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_role_memberships",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_resources",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_access_role(uuid,text,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-revoke_access_assignment(text,uuid,uuid,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-access_detail(uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-effective_access(text,text,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-exact-new-owner-definer-searchpath-public",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-service-not-owner-or-bypass",
+      "status": "PASS"
+    },
+    {
+      "name": "Browser-PG-CIPHER real PostgreSQL tampering rejects GCM authentication without leaking secret or issuing session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "PASS",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output."
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "REMAINING_B1_OTP_ABUSE_ANTIENUM",
+  "authorization": {
+    "ownerApproved": true,
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql",
+    "candidate": {
+      "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+      "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e"
+    },
+    "scope": "Exact SQL11 contract/ACL and fresh isolated PostgreSQL16 Docker with synthetic data. No additional SQL/ACL, production, SMTP, deployment, merge or runtime activation.",
+    "runtime": "closedBackend",
+    "B1": "OPEN",
+    "AUTH-GATE-05": "OPEN"
+  },
+  "candidate": {
+    "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e"
+  },
+  "submittedSqlSha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
+  "newUIE2E": "EXECUTED_SQL11_POLICY_NEGATIVE_REAL_BROWSER",
+  "b1RequirementsAccepted": 0,
+  "result": "PASS",
+  "fullB1Result": "OPEN_NOT_ACCEPTED",
+  "source": "ca685cb873057409f0f5846109e2c1d88cc256a0",
+  "run": 39131578372,
+  "job": 117687670359
+}

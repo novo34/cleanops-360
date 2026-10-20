@@ -1,0 +1,493 @@
+{
+  "status": "APPROVED_VALUES_PLUS_EXPLICIT_PROPOSALS",
+  "values": [
+    {
+      "key": "email_otp_ttl",
+      "value": 300,
+      "unit": "seconds",
+      "status": "APPROVED",
+      "source": "REQ-AUTH-011",
+      "verification": "Security regression; no reapproval"
+    },
+    {
+      "key": "idle_sensitive",
+      "value": 1800,
+      "unit": "seconds",
+      "status": "APPROVED",
+      "source": "REQ-AUTH-044",
+      "verification": "Security regression; no reapproval"
+    },
+    {
+      "key": "idle_operational",
+      "value": 28800,
+      "unit": "seconds",
+      "status": "APPROVED",
+      "source": "REQ-AUTH-044",
+      "verification": "Security regression; no reapproval"
+    },
+    {
+      "key": "trusted_device_max",
+      "value": 2592000,
+      "unit": "seconds (DEFERRED B1)",
+      "status": "APPROVED",
+      "source": "REQ-AUTH-046",
+      "verification": "Security regression; no reapproval"
+    },
+    {
+      "key": "password_hash",
+      "value": "Argon2id",
+      "unit": "algorithm",
+      "status": "APPROVED",
+      "source": "OWNER 6195913199",
+      "verification": "Library maturity/security tests"
+    },
+    {
+      "key": "absolute_sensitive",
+      "value": 28800,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Clock/role policy/load"
+    },
+    {
+      "key": "absolute_operational",
+      "value": 86400,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Clock/role policy/load"
+    },
+    {
+      "key": "step_up_ttl",
+      "value": 300,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Replay/resource binding"
+    },
+    {
+      "key": "preauth_ttl",
+      "value": 600,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Expiry/enumeration"
+    },
+    {
+      "key": "enrollment_ttl",
+      "value": 600,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Single-use enrollment"
+    },
+    {
+      "key": "argon_memory",
+      "value": 65536,
+      "unit": "KiB",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Concurrent memory/DoS benchmark"
+    },
+    {
+      "key": "argon_iterations",
+      "value": 3,
+      "unit": "passes",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Latency/load"
+    },
+    {
+      "key": "argon_parallelism",
+      "value": 1,
+      "unit": "lane",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "CPU/load"
+    },
+    {
+      "key": "argon_salt",
+      "value": 16,
+      "unit": "bytes",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Library CSPRNG"
+    },
+    {
+      "key": "otp_digits",
+      "value": 6,
+      "unit": "decimal digits",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Entropy/abuse"
+    },
+    {
+      "key": "otp_attempts",
+      "value": 5,
+      "unit": "per challenge",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Parallel exhaustion"
+    },
+    {
+      "key": "otp_resend_cooldown",
+      "value": 60,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Concurrent resend"
+    },
+    {
+      "key": "login_user_limit",
+      "value": 5,
+      "unit": "failures per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Distributed spraying/false lockout"
+    },
+    {
+      "key": "login_ip_limit",
+      "value": 30,
+      "unit": "failures per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "NAT false positives"
+    },
+    {
+      "key": "login_device_limit",
+      "value": 10,
+      "unit": "failures per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Device reset attacks"
+    },
+    {
+      "key": "progressive_backoff",
+      "value": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        60
+      ],
+      "unit": "seconds, cap60, reset after 900s",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "No permanent lockout/DoS"
+    },
+    {
+      "key": "otp_issue_user_limit",
+      "value": 5,
+      "unit": "issues per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Mail abuse"
+    },
+    {
+      "key": "otp_issue_ip_limit",
+      "value": 30,
+      "unit": "issues per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Mail abuse"
+    },
+    {
+      "key": "otp_issue_device_limit",
+      "value": 10,
+      "unit": "issues per 900 seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Mail abuse"
+    },
+    {
+      "key": "totp_period",
+      "value": 30,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "RFC-compatible library drift"
+    },
+    {
+      "key": "totp_digits",
+      "value": 6,
+      "unit": "digits",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Library compatibility"
+    },
+    {
+      "key": "totp_window",
+      "value": 1,
+      "unit": "counter each side",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Replay/drift/concurrency"
+    },
+    {
+      "key": "session_token_entropy",
+      "value": 32,
+      "unit": "random bytes, base64url43",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "CSPRNG/no tokens in logs"
+    },
+    {
+      "key": "csrf_entropy",
+      "value": 32,
+      "unit": "random bytes, base64url43",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Login CSRF/cookie binding"
+    },
+    {
+      "key": "preauth_entropy",
+      "value": 32,
+      "unit": "random bytes, base64url43",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Binding/replay"
+    },
+    {
+      "key": "recovery_count",
+      "value": 10,
+      "unit": "codes per batch",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "One-time display/parallel consume"
+    },
+    {
+      "key": "recovery_entropy",
+      "value": 16,
+      "unit": "random bytes per code, base32 length26",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Atomic consume/no plaintext"
+    },
+    {
+      "key": "json_body_max",
+      "value": 16384,
+      "unit": "bytes",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Request boundary/413"
+    },
+    {
+      "key": "password_min",
+      "value": 12,
+      "unit": "Unicode code points",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "UX/compromised corpus"
+    },
+    {
+      "key": "password_max",
+      "value": 128,
+      "unit": "Unicode code points",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Hash DoS/Unicode"
+    },
+    {
+      "key": "email_max",
+      "value": 254,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Normalization/index consistency"
+    },
+    {
+      "key": "display_name_max",
+      "value": 120,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "UX/schema"
+    },
+    {
+      "key": "reason_max",
+      "value": 500,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Audit minimization"
+    },
+    {
+      "key": "page_default",
+      "value": 50,
+      "unit": "rows",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Pagination performance"
+    },
+    {
+      "key": "page_max",
+      "value": 100,
+      "unit": "rows",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Query load"
+    },
+    {
+      "key": "cursor_max",
+      "value": 512,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Tamper/tenant binding"
+    },
+    {
+      "key": "idempotency_ttl",
+      "value": 86400,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Concurrent replay/isolation"
+    },
+    {
+      "key": "outbox_max_attempts",
+      "value": 5,
+      "unit": "attempts",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "SMTP outage"
+    },
+    {
+      "key": "outbox_claim_lease",
+      "value": 60,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Worker crash/redelivery"
+    },
+    {
+      "key": "context_gc_age",
+      "value": 3600,
+      "unit": "seconds (only finished xids)",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Pool/GC locks"
+    },
+    {
+      "key": "preauth_security_log_retention",
+      "value": 604800,
+      "unit": "seconds synthetic staging proposal",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal, NOT OWNER approval",
+      "verification": "Privacy/abuse analysis"
+    },
+    {
+      "key": "membership_max",
+      "value": 100,
+      "unit": "memberships per principal B1",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 engineering proposal",
+      "verification": "Bounded broker lookup/pagination"
+    },
+    {
+      "key": "rate_window",
+      "value": 900,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "rate_bucket_retention",
+      "value": 86400,
+      "unit": "seconds synthetic staging",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "outbox_retry_delay",
+      "value": 60,
+      "unit": "seconds",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "idempotency_key_min",
+      "value": 16,
+      "unit": "ASCII characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "idempotency_key_max",
+      "value": 128,
+      "unit": "ASCII characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "organization_hint_max",
+      "value": 128,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "provisioning_uri_max",
+      "value": 2048,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "set_cookie_header_max",
+      "value": 2048,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "error_code_max",
+      "value": 64,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "error_field_max",
+      "value": 80,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "error_message_max",
+      "value": 300,
+      "unit": "characters",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "error_details_max",
+      "value": 16,
+      "unit": "items",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "V4 technical contract proposal",
+      "verification": "Boundary/abuse/privacy tests"
+    },
+    {
+      "key": "compromised_password_check",
+      "value": "local versioned corpus; fail safely on unavailable checker",
+      "unit": "deployment proposal",
+      "status": "PROPOSED_BENCHMARK_REQUIRED",
+      "source": "OWNER approves detection, implementation proposed",
+      "verification": "No external password disclosure; corpus update/correctness"
+    }
+  ]
+}

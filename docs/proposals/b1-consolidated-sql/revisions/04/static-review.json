@@ -1,0 +1,28 @@
+{
+  "status": "REVIEW_ONLY_OWNER_APPROVAL_REQUIRED_NOT_INSTALLED",
+  "candidate": {
+    "gitBlob": "f2c3c7c1f0859b9a6e0e2ed2c701f3c5d060774c",
+    "sha256": "81538c713e7e031a5acdc0b374f36a55e34ded733d9d08c99bc363c606d61083"
+  },
+  "parent": {
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
+  },
+  "changedFunctionBodies": 0,
+  "signatureChanges": 0,
+  "aclChanges": 1,
+  "policyChanges": 0,
+  "schemaChanges": 0,
+  "newPrivilege": "GRANT SELECT(expires_at) ON identity_private.security_log TO cleanops_auth_broker;",
+  "sqlCompiled": false,
+  "installed": false,
+  "runtime": "closedBackend",
+  "authGate05": "OPEN",
+  "nativeFailure": {
+    "run": 39046545296,
+    "function": "auth_api.gc_ephemeral()",
+    "sqlstate": "42501",
+    "table": "identity_private.security_log"
+  },
+  "securityImpact": "Existing NOLOGIN/NOBYPASSRLS broker can read expiration timestamps, solely the column referenced by its existing DELETE predicate. No service table grant, new membership, ownership, RLS or SECURITY DEFINER change."
+}

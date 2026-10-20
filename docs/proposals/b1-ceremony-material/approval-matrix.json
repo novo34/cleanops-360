@@ -1,0 +1,92 @@
+{
+  "status": "PROPOSED_REQUIRES_OWNER_APPROVAL",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "databaseExecuted": false,
+  "functions": [
+    {
+      "name": "trusted_mfa_material",
+      "types": [
+        "text",
+        "text",
+        "text",
+        "uuid"
+      ],
+      "returns": "jsonb",
+      "change": "NEW"
+    },
+    {
+      "name": "issue_bound_challenge",
+      "types": [
+        "text",
+        "text",
+        "uuid",
+        "bigint",
+        "bytea",
+        "bytea",
+        "text",
+        "text",
+        "uuid",
+        "uuid"
+      ],
+      "returns": "uuid",
+      "change": "NEW"
+    },
+    {
+      "name": "begin_totp_enrollment_assigned",
+      "types": [
+        "text",
+        "uuid",
+        "uuid",
+        "uuid",
+        "bigint",
+        "bytea",
+        "text",
+        "text",
+        "uuid"
+      ],
+      "returns": "jsonb",
+      "change": "NEW"
+    },
+    {
+      "name": "totp_material_locked",
+      "types": [
+        "text",
+        "uuid",
+        "text"
+      ],
+      "returns": "jsonb",
+      "change": "REPLACE"
+    },
+    {
+      "name": "consume_email_otp",
+      "types": [
+        "text",
+        "uuid",
+        "bytea",
+        "uuid"
+      ],
+      "returns": "boolean",
+      "change": "REPLACE"
+    }
+  ],
+  "owner": "cleanops_auth_broker",
+  "executeRole": "cleanops_identity_service",
+  "revokeDirect": [
+    "auth_api.issue_challenge(text,text,uuid,bytea,bytea,text,text,uuid)",
+    "auth_api.begin_totp_enrollment_explicit(text,bytea,text,text,uuid)"
+  ],
+  "brokerColumnUpdates": [
+    "identity_private.principals(id)",
+    "app.organizations(id)",
+    "app.users(id)",
+    "app.policy_versions(tenant_id)"
+  ],
+  "schemaChange": "app.mfa_challenges.method_version bigint NULL CHECK(method_version>0); no legacy backfill",
+  "decisionIds": [
+    "D1-CONTRACT-ACL",
+    "D2-ENVELOPE-KEYS",
+    "D3-TOTP-POLICY",
+    "D4-EMAIL-DELIVERY"
+  ]
+}

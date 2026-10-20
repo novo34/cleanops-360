@@ -1,0 +1,13 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-08",
+  "ownerApproved": true,
+  "referenceHead": "98e6faf40397eeb55e21b5a372794121d195e43d",
+  "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql",
+  "candidate": {
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2"
+  },
+  "approvalSource": "Explicit owner authorization SQL08 Y ACELERACION DE B1 in this conversation, 2026-10-18",
+  "scope": "Exact SQL08 including previously reviewed reset-material reader; new isolated PG16 Docker, synthetic only. No additional SQL/ACL, SMTP, production, deployment, merge or runtime activation.",
+  "requiredSecurityGate": "Service logins cannot directly SELECT/INSERT/DELETE recovery bindings or assume broker; real recovery browser takeover regression must pass."
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "B1 + OpenBao + PostgreSQL synthetic isolated integration and independent backup recovery",
+  "ownerApproved": true,
+  "referenceHead": "ab7886e22f2b732cf9c332b338ac6e48a4474d6e",
+  "sql": {"revision": "14", "blob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256", "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa", "additionalSqlAcl": false},
+  "principalCustodian": "Project owner — expressly confirmed by latest instruction",
+  "additionalCustodians": "PENDING",
+  "productiveQuorum": "NOT_APPROVED",
+  "productiveSecrets": false,
+  "realInfrastructureProvisioning": false,
+  "swissResidenceAccepted": false,
+  "independentReviewAccepted": false,
+  "PR006": "OPEN", "PR007": "OPEN", "AUTH-GATE-05": "OPEN", "runtime": "closedBackend"
+}

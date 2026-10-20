@@ -1,0 +1,91 @@
+--- originals/V4+B1-X+D1.raw.sql
++++ proposal/schema.review.sql
+@@ -1,8 +1,10 @@
+--- CLEANOPS 360 B1 V4 — REVIEW ONLY. DO NOT EXECUTE.
+--- Full proposed fresh-schema contract, NOT the migration of existing staging data.
+--- No application identities, rule bindings, configuration rows or secrets are seeded.
++-- CleanOps 360: PROPOSED CANONICAL CONSOLIDATION, REVIEW ONLY. DO NOT EXECUTE.
++-- Fresh empty PostgreSQL 16 only AFTER separate owner approval of this exact hash.
++-- Not approved, not SQL-compiled, not a migration. B1/AUTH-GATE-05 OPEN; closedBackend.
+ BEGIN;
++
++-- BEGIN SOURCE V4 a06dc23cbc889382b30924a1edc4cead66eeb3e0
+ CREATE ROLE cleanops_ddl_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+ CREATE ROLE cleanops_auth_broker NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+ CREATE ROLE cleanops_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+ CREATE ROLE cleanops_identity_service NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+@@ -383,10 +385,10 @@
+  q:=identity_private.checked_preauth(raw_preauth);
+  IF q.state<>'VERIFIED' OR q.factor_verified_at IS NULL OR q.tenant_id IS NULL THEN RAISE EXCEPTION 'MFA_REQUIRED' USING ERRCODE='42501'; END IF;
+  IF absolute_seconds NOT IN(identity_private.cfg('absolute_sensitive'),identity_private.cfg('absolute_operational')) OR idle_seconds NOT IN(1800,28800) OR octet_length(new_token_hash)<>32 OR octet_length(new_csrf_hash)<>32 THEN RAISE EXCEPTION 'INVALID_SESSION_POLICY'; END IF;
+  SELECT risk_class INTO risk FROM app.users WHERE tenant_id=q.tenant_id AND id=q.user_id;
+- IF absolute_seconds<>CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END
+- OR idle_seconds<>CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END THEN RAISE EXCEPTION 'RISK_POLICY_MISMATCH'; END IF;
++ IF absolute_seconds<>(CASE WHEN risk='SENSITIVE' THEN identity_private.cfg('absolute_sensitive') ELSE identity_private.cfg('absolute_operational') END)
++ OR idle_seconds<>(CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END) THEN RAISE EXCEPTION 'RISK_POLICY_MISMATCH'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM app.users u JOIN app.organizations o ON o.id=u.tenant_id WHERE u.tenant_id=q.tenant_id AND u.id=q.user_id AND u.state='ACTIVE' AND o.state='ACTIVE') THEN RAISE EXCEPTION 'INVALID_SUBJECT'; END IF;
+  IF q.origin_session_id IS NOT NULL THEN
+   SELECT user_id INTO origin_user FROM app.sessions WHERE tenant_id=q.origin_tenant_id AND id=q.origin_session_id FOR UPDATE;
+   IF NOT identity_private.valid_session(q.origin_tenant_id,q.origin_session_id,origin_user) OR NOT identity_private.rule_allowed(q.tenant_id,'B1-SELF-08') THEN RAISE EXCEPTION 'INVALID_SWITCH'; END IF;
+@@ -734,18 +736,12 @@
+ GRANT EXECUTE ON FUNCTION identity_private.verified_tenant() TO cleanops_runtime;
+ -- consume_recovery_internal intentionally has NO caller grant in B1.
+ -- No INSERT into configuration/self_service_rules/principals/credentials/users:
+ -- an applied definition alone remains disabled and has no operational identity.
+-COMMIT;
+--- CLEANOPS 360 B1 V4 EXTENSION — REVIEW ONLY. DO NOT EXECUTE.
+--- PROPOSED_REQUIRES_OWNER_APPROVAL. AUTH-GATE-05 OPEN. Runtime closedBackend.
+--- Derived proposal; canonical V4 untouched. Not a migration, not SQL-compiled.
+-BEGIN;
+-DO $review_only$ BEGIN
+- RAISE EXCEPTION 'REVIEW_ONLY_OWNER_APPROVAL_AND_EXECUTION_AUTHORIZATION_REQUIRED';
+-END $review_only$;
+-
+--- All statements below are a review artifact, unreachable in this transaction.
++-- END SOURCE V4
++
++-- BEGIN SOURCE B1-X 1499e90389b6e7c4d94b1dd17ed35cd4b539d436
++
+ ALTER TABLE app.mfa_methods ADD COLUMN method_version bigint NOT NULL DEFAULT 1 CHECK(method_version>0);
+ ALTER TABLE app.mfa_methods ADD COLUMN algorithm text CHECK(algorithm IN('SHA1','SHA256','SHA512'));
+ -- No algorithm backfill/default: unknown legacy ciphertext fails closed.
+ ALTER TABLE app.step_up_evidence ADD COLUMN policy_version bigint;
+@@ -975,9 +971,9 @@
+   mid:=x.method_id;
+  END IF;
+  SELECT * INTO m FROM app.mfa_methods WHERE tenant_id=t AND id=mid AND user_id=u FOR UPDATE;
+  IF NOT FOUND OR m.kind<>'TOTP' OR m.algorithm IS NULL OR m.secret_ciphertext IS NULL
+- OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END
++ OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)
+  THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  IF purpose='ENROLLMENT' THEN
+   IF (raw_preauth IS NOT NULL AND m.enrollment_preauth_id IS DISTINCT FROM q.id)
+   OR (raw_preauth IS NULL AND m.enrollment_session_id IS DISTINCT FROM sid) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+@@ -1305,15 +1301,11 @@
+ ALTER FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid) OWNER TO cleanops_auth_broker;
+ REVOKE ALL ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid) FROM PUBLIC;
+ GRANT EXECUTE ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid) TO cleanops_identity_service;
+ -- No role membership, table access for callers, configuration seed or activation.
+-ROLLBACK;
+--- REVIEW ONLY. PROPOSED_REQUIRES_OWNER_APPROVAL. NOT A MIGRATION.
+--- AUTH-GATE-05 OPEN; closedBackend unchanged. Never executed/compiled.
+-BEGIN;
+-DO $review_only$ BEGIN
+- RAISE EXCEPTION 'REVIEW_ONLY_OWNER_APPROVAL_AND_EXECUTION_AUTHORIZATION_REQUIRED';
+-END $review_only$;
++-- END SOURCE B1-X
++
++-- BEGIN SOURCE D1 6454a7551e61e5857ef39090b24b93fcbdb03bb1
+ 
+ -- Depends on the separately reviewed B1-X overlay, not canonical V4 alone.
+ -- Minimal lifecycle snapshot: NULL legacy challenges MUST fail closed; no backfill.
+ ALTER TABLE app.mfa_challenges ADD COLUMN method_version bigint CHECK(method_version>0);
+@@ -1516,5 +1508,7 @@
+  auth_api.consume_email_otp(text,uuid,bytea,uuid) FROM PUBLIC;
+ GRANT EXECUTE ON FUNCTION auth_api.totp_material_locked(text,uuid,text),
+  auth_api.consume_email_otp(text,uuid,bytea,uuid) TO cleanops_identity_service;
+ -- Existing issue_active_session + factor CAS reused; no alternate issuer/grant.
+-ROLLBACK;
++-- END SOURCE D1
++
++COMMIT;

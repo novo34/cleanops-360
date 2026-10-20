@@ -1,0 +1,17 @@
+--- approved/7507a29.sql
++++ review-only/revision-02.sql
+@@ -1433,13 +1433,13 @@
+   SELECT * INTO x FROM app.mfa_challenges WHERE tenant_id=t AND id=ceremony AND user_id=u;
+   IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+   mid:=x.method_id;
+  END IF;
+  SELECT * INTO m FROM app.mfa_methods WHERE tenant_id=t AND id=mid AND user_id=u FOR UPDATE;
+  IF NOT FOUND OR m.kind<>'TOTP' OR m.algorithm IS NULL OR m.secret_ciphertext IS NULL
+- OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END
++ OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)
+  THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  IF purpose='ENROLLMENT' THEN
+   IF (raw_preauth IS NOT NULL AND m.enrollment_preauth_id IS DISTINCT FROM q.id)
+   OR (raw_preauth IS NULL AND m.enrollment_session_id IS DISTINCT FROM sid) THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+   until_at:=LEAST(until_at,m.created_at+make_interval(secs=>identity_private.cfg('enrollment_ttl')));
+  ELSE

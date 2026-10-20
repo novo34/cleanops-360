@@ -1,0 +1,477 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-09",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact09-blob-sha256-full-diff-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated09",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-forced-RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-SELECT-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-DELETE-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-direct-INSERT-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-no-role-escalation-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-fixed-definer-register_trusted_device(bytea,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-register_trusted_device(bytea,uuid)-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-no-unbound-call-register_trusted_device(bytea,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-fixed-definer-trusted_device_valid(bytea)",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-trusted_device_valid(bytea)-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-no-unbound-call-trusted_device_valid(bytea)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-fixed-definer-revoke_trusted_device(uuid,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-revoke_trusted_device(uuid,uuid)-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-no-unbound-call-revoke_trusted_device(uuid,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "trusted-fixed-definer-admin_revoke_trusted_devices(uuid,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-execute-admin_revoke_trusted_devices(uuid,uuid)-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "trusted-no-unbound-call-admin_revoke_trusted_devices(uuid,uuid)",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "Browser-PG-trusted UI registers digest-only 30-day metadata with post-COMMIT HttpOnly cookie and cannot bypass MFA",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [
+          "LOGIN"
+        ],
+        "testLineNumbers": [
+          17,
+          27
+        ]
+      }
+    },
+    {
+      "name": "Browser-PG-trusted expiration and enterprise disable deny metadata without destroying ACTIVE or extending session",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [],
+        "testLineNumbers": [
+          47
+        ]
+      }
+    },
+    {
+      "name": "Browser-PG-trusted same-key concurrent registration is one-time and foreign device cannot be revoked or listed",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [],
+        "testLineNumbers": [
+          61
+        ]
+      }
+    },
+    {
+      "name": "Browser-PG-trusted UI revokes individual and every remaining device atomically with audit",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [],
+        "testLineNumbers": [
+          75
+        ]
+      }
+    },
+    {
+      "name": "Browser-PG-trusted failed COMMIT releases no cookie and rolls back device and audit before safe retry",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [],
+        "testLineNumbers": [
+          89
+        ]
+      }
+    },
+    {
+      "name": "Browser-PG-trusted operator UI revokes another user only with current effective edit users and fresh MFA",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-actual password reset invalidates registered trust and all old sessions without granting access",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-actual recovery MFA reset invalidates trust before mandatory enrollment and never issues ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "FAIL",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output."
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "TRUSTED_DEVICE_REAL_VERTICAL",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-09",
+    "ownerApproved": true,
+    "referenceHead": "e2d8dfcc05711d39d647a703085999ba704ada81",
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql",
+    "candidate": {
+      "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+      "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+    },
+    "approvalSource": "Explicit owner SQL09 Y CONTINUACION B1 authorization in this conversation,2026-10-18",
+    "scope": "Only exact SQL09, new isolated synthetic PG16 Docker; no additional SQL/ACL, production, SMTP, deployment, merge or runtime activation."
+  },
+  "candidate": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+  },
+  "prior08": {
+    "run": 39111607391,
+    "PASS": 134,
+    "realE2E": 23,
+    "reexecuted": false
+  },
+  "submittedSqlSha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
+  "newUIE2E": "EXECUTED_SQL09_TRUSTED_DEVICE_REAL_BROWSER",
+  "b1RequirementsAccepted": 0,
+  "result": "FAIL",
+  "fullB1Result": "OPEN_NOT_ACCEPTED",
+  "source": "0a5dd920fcde33b851181eda2e7d4ee85d0d0700",
+  "run": 39116963791,
+  "job": 117644600590
+}

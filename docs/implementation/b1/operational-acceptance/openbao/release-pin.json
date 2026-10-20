@@ -1,0 +1,39 @@
+{
+  "tag": "v2.7.1",
+  "release": "https://github.com/openbao/openbao/releases/tag/v2.7.1",
+  "published": "2026-10-01T14:03:19Z",
+  "observed": "2026-10-18",
+  "candidateOnly": true,
+  "downloaded": false,
+  "signatureVerified": false,
+  "assets": [
+    {
+      "name": "checksums.txt",
+      "githubApiDigest": "sha256:95ad62d532df64dea20463ce513f0a56f792530bbefeb4e89525bc1eb773b750",
+      "url": "https://github.com/openbao/openbao/releases/download/v2.7.1/checksums.txt"
+    },
+    {
+      "name": "checksums.txt.gpgsig",
+      "githubApiDigest": "sha256:593d040b1820a0ec624af8827f878a0f0fd1cdce6f4c447c08deef1d92c6bef6",
+      "url": "https://github.com/openbao/openbao/releases/download/v2.7.1/checksums.txt.gpgsig"
+    },
+    {
+      "name": "openbao-gpg-pub-20240618.asc",
+      "githubApiDigest": "sha256:1862a196422947124282e026ea4e09d6f7c5d383b628d90c17906936e6e5a8e0",
+      "url": "https://github.com/openbao/openbao/releases/download/v2.7.1/openbao-gpg-pub-20240618.asc"
+    },
+    {
+      "name": "openbao_2.7.1_linux_amd64.tar.gz",
+      "githubApiDigest": "sha256:0e2f1ce10d124e03112b50dd2fbec6b78003783253bc3a91587938f39d1e2243",
+      "url": "https://github.com/openbao/openbao/releases/download/v2.7.1/openbao_2.7.1_linux_amd64.tar.gz"
+    },
+    {
+      "name": "openbao_2.7.1_linux_arm64.tar.gz",
+      "githubApiDigest": "sha256:2b3807d90f224df05d4fe1fdede7f052d2227596c648a56bd291381f8fd01840",
+      "url": "https://github.com/openbao/openbao/releases/download/v2.7.1/openbao_2.7.1_linux_arm64.tar.gz"
+    }
+  ],
+  "referenceConfiguration": "https://github.com/openbao/openbao/blob/v2.7.1/website/content/docs/configuration/index.mdx",
+  "referenceAudit": "https://github.com/openbao/openbao/blob/v2.7.1/website/content/docs/configuration/audit.mdx",
+  "referenceTls": "https://github.com/openbao/openbao/blob/v2.7.1/website/content/docs/configuration/listener/tcp.mdx"
+}

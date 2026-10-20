@@ -1,0 +1,14 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-10",
+  "ownerApproved": true,
+  "referenceHead": "4448cec0933295a526bc318b6f829f8d2ad8a2bd",
+  "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/10/schema.review.sql",
+  "candidate": {
+    "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
+    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b"
+  },
+  "scope": "Fresh PostgreSQL16 Docker, synthetic data, no public ports/shared volumes; exact SQL10 only. No production/deployment/merge/SMTP/runtime activation.",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend"
+}

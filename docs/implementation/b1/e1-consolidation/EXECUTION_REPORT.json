@@ -1,0 +1,53 @@
+{
+  "native06": {
+    "source": "496ad213fbc72173edc076ca2dbdcd74355fda09",
+    "run": 39101669219,
+    "job": 117599029856,
+    "installation": "PASS",
+    "result": "FAIL",
+    "checks": {
+      "PASS": 210,
+      "FAIL": 19
+    },
+    "productRootCauses": 5,
+    "dependentFailuresNotIndependentBugs": true,
+    "cleanup": "PASS",
+    "preexistingContainerNetworkVolumeInventories": "UNCHANGED",
+    "backupRestore30Tables": "PASS",
+    "productUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
+  },
+  "proposal07": {
+    "source": "b9bb6af3e845f96595f4bdf7ff217fc6e4aea5dc",
+    "blob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+    "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
+    "installed": false,
+    "ownerApproved": false,
+    "offlineRun": 39102039439,
+    "offlineStatus": "SUCCESS",
+    "PG16FunctionDeclarations": 104,
+    "grammarErrors": [],
+    "nativeCompiled": false
+  },
+  "noDbCi": {
+    "run": 39102039442,
+    "status": "SUCCESS",
+    "b1": {
+      "PASS": 182,
+      "FAIL": 0
+    },
+    "vitest": {
+      "PASS": 13,
+      "SKIP": 3
+    },
+    "chromium": {
+      "PASS": 57,
+      "FAIL": 0,
+      "mode": "FIXTURE"
+    }
+  },
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "accepted": 0,
+  "total": 44
+}

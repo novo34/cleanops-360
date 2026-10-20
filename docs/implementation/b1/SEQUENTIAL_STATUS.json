@@ -1,0 +1,485 @@
+{
+  "referenceHead": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+  "activeWork": "B1_AUTHENTICATION_MFA_BASE_DEPENDENCY",
+  "state": "OPEN",
+  "roadmapOrder": [
+    "Foundation",
+    "Authentication + MFA",
+    "Users + Roles + Permissions",
+    "Companies + Contacts"
+  ],
+  "foundationAcceptance": "NOT_EVIDENCED_NOT_INFERRED",
+  "reason": "Continue already owner-authorized B1 work to resolve secure-access dependency; do not infer Foundation acceptance or open another module.",
+  "verifiedEndToEnd": {
+    "numerator": 42,
+    "denominator": 44,
+    "percent": 95.45454545454545,
+    "verifiedRequirementIds": [
+      "REQ-AUTHZ-001",
+      "REQ-AUTHZ-002",
+      "REQ-AUTHZ-003",
+      "REQ-AUTHZ-004",
+      "REQ-AUTHZ-005",
+      "REQ-AUTHZ-006",
+      "REQ-AUTHZ-007",
+      "REQ-AUTH-001",
+      "REQ-AUTH-002",
+      "REQ-AUTH-003",
+      "REQ-AUTH-004",
+      "REQ-AUTH-010",
+      "REQ-AUTH-011",
+      "REQ-AUTH-012",
+      "REQ-AUTH-013",
+      "REQ-AUTH-014",
+      "REQ-AUTH-015",
+      "REQ-AUTH-016",
+      "REQ-AUTH-017",
+      "REQ-AUTH-020",
+      "REQ-AUTH-021",
+      "REQ-AUTH-022",
+      "REQ-AUTH-030",
+      "REQ-AUTH-031",
+      "REQ-AUTH-032",
+      "REQ-AUTH-033",
+      "REQ-AUTH-034",
+      "REQ-AUTH-040",
+      "REQ-AUTH-041",
+      "REQ-AUTH-042",
+      "REQ-AUTH-043",
+      "REQ-AUTH-044",
+      "REQ-AUTH-045",
+      "REQ-AUTH-046",
+      "REQ-AUTH-047",
+      "REQ-TEN-001",
+      "REQ-TEN-002",
+      "REQ-TEN-003",
+      "REQ-TEN-004",
+      "REQ-SEC-020",
+      "REQ-SEC-021",
+      "REQ-AUD-001"
+    ],
+    "definition": "Complete real integration and accepted mandatory B1 rows, not code coverage or test-count percentage."
+  },
+  "demo": "UI IMPLEMENTED",
+  "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
+  "nextBlocker": "STAGING_RESOURCE_CONFIGURATION_MANUAL_PO_AND_SEPARATE_ACTIVATION",
+  "candidate": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+    "bytes": 211988,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"
+  },
+  "fullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/14/SQL13_TO_SQL14.diff",
+    "sha256": "afa1bf690c9f6accf910f4ca865ae857563c6f305e499bb9b51f91bf9ace2645"
+  },
+  "runtime": "closedBackend",
+  "authGate05": "OPEN",
+  "pgTest01": "SQL14_20_NATIVE_8_SCENARIO_GROUPS_PASS_FULL_B1_OPEN",
+  "lastPostgresExecution": {
+    "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+    "run": 39141604860,
+    "scope": "SQL14_NATIVE_REAL_LOCKS_CAS_RLS_ACL_BACKUP",
+    "checks": {
+      "PASS": 117,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "cleanup": "PASS"
+  },
+  "proposedCandidate": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+    "bytes": 211988,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
+    "status": "OWNER_APPROVED_EXACT_INSTALLED_ISOLATION_PASS",
+    "installed": true
+  },
+  "nextAuthorization": {
+    "current": "No new authorization needed for isolated synthetic code/tests/commits/PRs. Staging backend activation, persistent staging SQL/ACL and Hostinger OpenBao installation require separate exact authorization after applicable controls pass.",
+    "finalSwiss": "Explicitly deferred by owner; no Swiss resource/quorum approval requested during current development."
+  },
+  "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
+  "pgTest01Scope": "Only exact authorized SQL14 installed in isolated fresh PG16; directed proofs retained individually.",
+  "lastRealBrowserExecution": {
+    "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+    "run": 39142700719,
+    "scope": "EXECUTED_SQL14_DIRECTED_COMPOSITE_REAL_BROWSER",
+    "cases": 26,
+    "result": "PASS",
+    "report": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json"
+  },
+  "architectureDecisions": {
+    "D2": "APPROVED_BY_OWNER_2026_10_17",
+    "D3": "APPROVED_BY_OWNER_2026_10_17",
+    "D4": "APPROVED_BY_OWNER_2026_10_17",
+    "C-SCOPE": "APPROVED_BY_OWNER_2026_10_17",
+    "C-LOGIN": "APPROVED_BY_OWNER_2026_10_17"
+  },
+  "latestE1Assessment": "docs/implementation/b1/e1-consolidation/REQUIREMENTS.json",
+  "lastE1Execution": {
+    "head": "9ee13418890ad92635b67f0e89eb450f6d1e4ea5",
+    "run": 39073390845,
+    "job": 117515471663,
+    "status": "PASS",
+    "realBrowserFlows": 4,
+    "checks": 14,
+    "cleanup": "PASS",
+    "runtime": "closedBackend",
+    "requirementsAccepted": 0,
+    "newPartialEvidenceRows": 18
+  },
+  "latestE1ConsolidationAssessment": "docs/implementation/b1/e1-consolidation/REQUIREMENTS.json",
+  "lastE1NativeExecution": {
+    "source": "59855dd719712b80f11d953558cf6ba956af45f4",
+    "run": 39102962461,
+    "installation": "PASS",
+    "checks": {
+      "PASS": 253,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "cleanup": "PASS",
+    "newProductUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED"
+  },
+  "lastEmailRealBrowserExecution": {
+    "source": "ef27ca0a53dce659bd4598c60e4269b187348793",
+    "run": 39107192800,
+    "report": "docs/implementation/b1/email/EXECUTION.json",
+    "result": "PASS",
+    "cases": [
+      "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
+      "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+      "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+      "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+      "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+      "Browser-PG-EMAIL expired database challenge never creates a session",
+      "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+      "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+      "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+      "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+      "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner"
+    ],
+    "scope": "ISOLATED_REAL_UI_API_POSTGRES_WITH_SYNTHETIC_EXTERNAL_TRANSPORT",
+    "productionAcceptance": false
+  },
+  "historicalCandidate": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql"
+  },
+  "historicalFullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
+    "sha256": "20501ce3609b8c3b8a5fb190055a62e68bd7d11c00aff3a51cbc73ad7d007397"
+  },
+  "historicalCandidateSQL08": {
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+    "path": "docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql",
+    "bytes": 193163
+  },
+  "historicalFullDiffSQL08": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/08/APPROVED_07_TO_08.diff",
+    "sha256": "2481f6439c562955a9e256f20034eae3efc852e67ef26e281397d366a065bd18"
+  },
+  "latestResetSecuritySupplement": {
+    "source": "32933c028ba2c82a3acc01a29e80a2d00f7dfe55",
+    "run": 39115092825,
+    "report": "docs/implementation/b1/consolidated-test-09/FINAL_NEGATIVES.json",
+    "result": "PASS"
+  },
+  "reset": "COMPLETE_ISOLATED_NOT_PRODUCTION",
+  "trustedDevice": {
+    "status": "COMPLETE_ISOLATED_NOT_PRODUCTION",
+    "acceptedRequirement": "REQ-AUTH-046",
+    "evidence": "docs/implementation/b1/consolidated-test-10/TRUSTED_ACCEPTANCE.json",
+    "distinctRealBrowserCases": 9,
+    "ownerAuthorization": "PG-TEST-01-CONSOLIDATED-10"
+  },
+  "authz": {
+    "status": "COMPLETE_ISOLATED_FUNCTIONAL_SCOPE",
+    "evidence": {
+      "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+      "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+      "run": 39124915880,
+      "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+      "cases": [
+        "SQL11-reactivation-no-overdelegation",
+        "SQL11-legitimate-reactivation-allowed",
+        "SQL11-denial-audit-durable-private-server-actor",
+        "SQL11-success-audit-server-derived-before-after",
+        "SQL11-concurrency-real-row-lock-observed",
+        "SQL11-concurrent-CAS-exactly-one-winner",
+        "SQL11-concurrent-success-and-denial-both-durable",
+        "SQL11-old-role-entrypoint-execution-denied",
+        "SQL11-hierarchy-project-grant-applies-to-document",
+        "SQL11-hierarchy-move-removes-prior-authority",
+        "SQL11-hierarchy-cross-tenant-parent-rejected",
+        "SQL11-hierarchy-cycle-fails-closed",
+        "SQL11-other-backend-xid-marker-denied",
+        "SQL11-expired-marker-denied",
+        "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+        "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+        "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+        "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+        "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+        "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+        "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+        "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+        "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+      ],
+      "productionAcceptance": false
+    },
+    "productiveRoleGrants": "NOT_CREATED",
+    "productionAcceptance": false,
+    "SQL11": "PASS"
+  },
+  "latestTrustedDeviceExecution": {
+    "source": "5197c46c99a06cf864042057d5d74ac1dcda6232",
+    "run": 39117274360,
+    "pass": 59,
+    "fail": 1,
+    "blocked": 1,
+    "cleanup": "PASS"
+  },
+  "historicalSQL10NextBlocker": "EXACT_SQL11_CONTRACT_ACL_APPROVAL_FOR_AUDITED_AUTHZ_AND_NO_OVERDELEGATION",
+  "candidateStatus": "OWNER_APPROVED_EXACT_INSTALLED_ISOLATED",
+  "latestSQL11Evidence": {
+    "report": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "uiScope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": [
+      "SQL11-reactivation-no-overdelegation",
+      "SQL11-legitimate-reactivation-allowed",
+      "SQL11-denial-audit-durable-private-server-actor",
+      "SQL11-success-audit-server-derived-before-after",
+      "SQL11-concurrency-real-row-lock-observed",
+      "SQL11-concurrent-CAS-exactly-one-winner",
+      "SQL11-concurrent-success-and-denial-both-durable",
+      "SQL11-old-role-entrypoint-execution-denied",
+      "SQL11-hierarchy-project-grant-applies-to-document",
+      "SQL11-hierarchy-move-removes-prior-authority",
+      "SQL11-hierarchy-cross-tenant-parent-rejected",
+      "SQL11-hierarchy-cycle-fails-closed",
+      "SQL11-other-backend-xid-marker-denied",
+      "SQL11-expired-marker-denied",
+      "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+      "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+      "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+      "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+      "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+      "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+      "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+      "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+      "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout"
+    ],
+    "productionAcceptance": false
+  },
+  "latestRemainingEvidence": {
+    "REQ-AUTH-010": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-015": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-016": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-017": {
+      "report": "docs/implementation/b1/remaining/ABUSE_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_ABUSE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ABUSE real login USER ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login IP ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real login DEVICE ceiling persists and spoofed transport headers do not bypass it",
+        "Browser-PG-ABUSE real known unknown and disabled accounts have the same safe denial and no session",
+        "Browser-PG-OTP real TOTP invalid proofs persist attempts and rate ceiling blocks a later valid code",
+        "Browser-PG-OTP real TOTP concurrent browsers consume a global counter once and replay cannot issue another session",
+        "Browser-PG-OTP real expired TOTP challenge denies a correct code without consuming it or issuing a session",
+        "Browser-PG-ABUSE valid PREAUTH cannot evade durable OTP rate limits by guessing challenge UUIDs"
+      ],
+      "productionAcceptance": false
+    },
+    "REQ-AUTH-034": {
+      "report": "docs/implementation/b1/remaining/ADMIN_MFA_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ADMIN MFA real UI step-up resets only the attested target and persists actor target reason and outcome",
+        "Browser-PG-ADMIN MFA password PREAUTH cannot reset or expose privileged target state",
+        "Browser-PG-ADMIN MFA real expired attestation and forged authority fail closed without revoking factors",
+        "Browser-PG-ADMIN MFA actual failed COMMIT restores factors receipt and audit before a safe retry"
+      ],
+      "productionAcceptance": false
+    }
+  },
+  "remainingFunctionalBlockers": [
+    {
+      "operation": "Most-restrictive risk across active roles and existing-session ceilings",
+      "code": "docs/proposals/b1-consolidated-sql/revisions/14/APPROVAL.md",
+      "failure": "SQL13 only exposes app.users.risk_class; SQL14 private read-only role-risk catalogue/helper requires exact approval and real tests."
+    }
+  ],
+  "adminMfaReset": {
+    "status": "COMPLETE_ISOLATED_FUNCTIONAL_SCOPE",
+    "evidence": {
+      "report": "docs/implementation/b1/remaining/ADMIN_MFA_EXECUTION.json",
+      "source": "6456d28fcb7fca81ff09c2acf7b8b26d987880b4",
+      "run": 39129522063,
+      "uiScope": "EXECUTED_SQL11_MFA_ADMIN_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-ADMIN MFA real UI step-up resets only the attested target and persists actor target reason and outcome",
+        "Browser-PG-ADMIN MFA password PREAUTH cannot reset or expose privileged target state",
+        "Browser-PG-ADMIN MFA real expired attestation and forged authority fail closed without revoking factors",
+        "Browser-PG-ADMIN MFA actual failed COMMIT restores factors receipt and audit before a safe retry"
+      ],
+      "productionAcceptance": false
+    },
+    "externalIdentityAuthority": "SYNTHETIC_ONLY_NOT_PRODUCTIVE"
+  },
+  "latestRemainingAssessment": "docs/implementation/b1/remaining/STATUS.json",
+  "authenticatorEvidence": {
+    "report": "docs/implementation/b1/remaining/AUTHENTICATOR_EXECUTION.json",
+    "source": "824a3b353a08d72a62390b6cfa9a46a6dbfdc1fc",
+    "run": 39133840573,
+    "uiScope": "EXECUTED_SQL11_COMPAT_REAL_BROWSER",
+    "cases": [
+      "COMPAT-real-application-availability",
+      "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session"
+    ],
+    "productionAcceptance": false
+  },
+  "currentEvidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+  "remainingStatus": "docs/implementation/b1/remaining/STATUS.json",
+  "historicalLastPostgresExecutionSQL11": {
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "SQL11_AUTHZ_AND_DIRECTED_AUTHENTICATION_REGRESSION",
+    "checks": {
+      "PASS": 333,
+      "FAIL": 0,
+      "BLOCKED": 0,
+      "SKIP": 0
+    },
+    "cleanup": "PASS"
+  },
+  "historicalLastRealBrowserExecutionSQL11": {
+    "source": "38e385e9cbf33d2030d8b924d747eaf057bb92c2",
+    "run": 39124915880,
+    "scope": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+    "cases": 9,
+    "result": "PASS"
+  },
+  "remainingEvidence": {
+    "REQ-AUD-001": {
+      "report": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json",
+      "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+      "run": 39137308745,
+      "uiScope": "EXECUTED_SQL13_DIRECTED_COMPOSITE_REAL_BROWSER",
+      "cases": [
+        "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+        "Browser-PG-SQL13 AUD04 real terminated denial journal transaction rolls back then persists trusted denial separately",
+        "Browser-PG-SQL13 AUD05 real concurrent protected challenge mutation and policy denial have independent durable outcomes",
+        "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor"
+      ],
+      "productionAcceptance": false
+    }
+  },
+  "latestSQL14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json",
+  "ownerExecutionDecision": {
+    "date": "2026-10-20",
+    "source": "Product Owner: CLEANOPS 360 — CIERRE EJECUTIVO B1 SIN MIGRACIÓN AL VPS SUIZO",
+    "development": "Existing Hostinger; synthetic data only",
+    "finalInfrastructure": "Swiss migration only after complete system testing and owner approval",
+    "successorException": "REQ-PR-007 explicit-owner exception: isolated synthetic B2/B3 development/preparation may proceed without final Swiss migration; no phase acceptance inferred",
+    "stagingActivationAuthorized": false,
+    "stagingDatabaseChangesAuthorized": false,
+    "hostingerOpenBaoInstallationAuthorized": false,
+    "swissProvisioningAuthorized": false
+  },
+  "historicalNextAuthorization": {
+    "operational": "Owner must designate actual Swiss OpenBao resources and custodians, independent reviewer and PO tester; authorize the exact operational resource/custody/recovery/manual scope in operational-acceptance/PLAN.md. No SQL14 reapproval needed; production/SMTP/deployment remain unauthorized."
+  },
+  "historicalNextBlocker": "PR006_REAL_OPERATING_INDEPENDENT_MANUAL_AND_PR007_FORMAL_ACCEPTANCE",
+  "technicalReadiness": {
+    "status": "B1-TECH-READY",
+    "scope": "Complete B1 functional implementation and applicable isolated synthetic validation; not formal phase acceptance",
+    "source": "df6a52b0d1db45cd2173150fdc1152866b7ddc5e",
+    "evidence": "docs/implementation/b1/operational-acceptance/openbao/integration/PROXY_DEADLINE_EXECUTION.json",
+    "requirementsImplementedAndIsolatedValidated": 42,
+    "requirementsTotal": 44,
+    "remainingRequirementIds": [
+      "REQ-PR-006",
+      "REQ-PR-007"
+    ],
+    "fixedSecurityFinding": "P1_CUSTODY_DEADLINE_BEFORE_COMMIT"
+  },
+  "stagingReadiness": {
+    "status": "NOT_APPROVED",
+    "pending": [
+      "Observed Hostinger capacity/network/TLS/workload identity and synthetic secret-path configuration",
+      "Authorized private integration without weakening tenant/key/verified-recipient/recovery controls",
+      "Actual manual PO demonstration",
+      "Separate explicit activation authorization; closedBackend stays active"
+    ],
+    "longLivedKeys": "Persisted rekey/HMAC migration is not implemented or accepted; do not deploy a profile that needs it."
+  },
+  "finalAcceptance": {
+    "status": "NOT_ACCEPTED",
+    "pending": [
+      "Final Swiss residence and resources",
+      "Additional independent custodians and approved operating quorum",
+      "Witnessed final custody/lifecycle/recovery and representative WAL/PITR/RPO/RTO",
+      "Formal PO phase/final acceptance"
+    ]
+  }
+}
