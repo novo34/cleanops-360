@@ -1,3 +1,5 @@
+> Actualización: autorización exclusiva de CI y revisión de seguridad en [CI_ISOLATION_REVIEW.md](CI_ISOLATION_REVIEW.md). Los bloqueos de autorización descritos más abajo son históricos.
+
 # Dashboard v0 → staging: integración selectiva
 
 **Preparado y probado localmente. NO apto todavía para merge: PR/CI bloqueados.**
