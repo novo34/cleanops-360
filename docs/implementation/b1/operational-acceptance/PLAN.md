@@ -1,3 +1,71 @@
+# Current execution decision — Product Owner, 2026-10-20
+
+Development and validation use existing Hostinger with synthetic data only. Swiss
+migration is a separate final operation after the full system is developed, tested
+and approved. This supersedes the sequencing statements below, not the SRS,
+Swiss final residence/custody/security controls or historical evidence.
+
+- **A — current blockers:** validate the proxy-origin correction on the B1 branch;
+  applicable automated and independent security review; review exact private
+  identity/key/ingress integration before controlled staging use; actual manual
+  PO observations. Staging capacity/TLS/secret paths remain unverified. No current
+  security control is deferred because Hostinger is outside Switzerland.
+- **B — isolated validation:** retain the 42 accepted functional criteria, exact
+  SQL14 and 144 real B1/PG/OpenBao checks. The proxy change affects HTTP validation,
+  so existing service/origin and production Next regressions must run on the new
+  commit. Unaffected custody/SQL evidence is retained, not rerun or called final
+  acceptance. The 22 local service/origin cases passed after completing the local
+  source retrieval; the first invocation lacked config.ts and executed no cases.
+  Remote CI results must be read from the actual run, not inferred from this text.
+- **C — final Swiss operation:** actual compute/storage/backup/access residence,
+  additional independent custodians and approved operating quorum, witnessed
+  custody/lifecycle/recovery and representative WAL/PITR/RPO/RTO remain OPEN.
+  There is no authorization to provision or migrate any Swiss resource now.
+
+PR006 remains OPEN for current integration/review/manual obligations and final
+operational obligations. PR007 remains OPEN for formal PO acceptance. Its existing
+explicit-owner exception permits isolated synthetic B2/B3 work per this instruction.
+AUTH-GATE-05 remains OPEN and closedBackend remains connected.
+B1-TECH-READY is not declared while the current correction/review is pending;
+B1-STAGING-READY is not declared before current staging controls pass;
+B1-FINAL-ACCEPTED is not declared. These labels do not replace canonical gates.
+
+## Reuse for B2 and B3
+
+B1 already implements AUTHZ-001..007: seven actions, role/user rules, temporary
+windows, deny precedence, tenant/resource scopes and audited CAS changes.
+Reuse components/manage-access-panel.tsx, lib/b1/access-http.json,
+lib/b1/approved-backend.ts and the approved SQL14 broker/effective-access
+capabilities. Existing /auth/access/user, /auth/access/effective and /auth/access
+are the consumer boundary; role labels never grant permission. SQL11 browser and
+RBAC evidence is retained in closure/requirements.json. Do not create another
+permission engine or parallel role catalogue.
+
+B2 can begin an isolated synthetic Users/Manage Access slice by checking the
+existing UI/API against its remaining user-management requirements and reusing
+that broker. It must preserve fresh context, step-up, deny, CAS and audit controls.
+B3 can prepare a separate Companies/Contacts slice with synthetic tenant-owned
+records, company/contact distinction, search and No contactar/suppression;
+server-derived tenant, API permissions and audit must use the same B1 contracts.
+CRM company records must not become tenant identities. No real contact import,
+external email or shared staging mutation is implied. Neither successor is
+implemented in the B1 correction branch.
+
+No further approval is needed for the authorized isolated engineering work.
+Persistent staging SQL/ACL, Hostinger OpenBao installation, merge and real backend
+activation each still need their expressly required, concrete authorization.
+Manual observations and independent review must be performed by the actual
+responsible people; engineering must not self-sign them.
+
+---
+
+# Historical operating acceptance plan and evidence
+
+The following records earlier scopes and constraints. References to beginning no
+successor or to Swiss provisioning as the immediate next operation are superseded
+only by the explicit owner decision above. Historical PASS/FAIL and formal OPEN
+states remain intact.
+
 # B1 PR006 / PR007 — executable operating acceptance plan
 
 State PREPARED, NOT EXECUTED. No real infrastructure, custody, production, deployment,

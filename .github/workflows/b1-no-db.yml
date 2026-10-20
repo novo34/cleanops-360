@@ -25,6 +25,16 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci --ignore-scripts
+      - name: Dependency security audit
+        run: npm audit --audit-level=high
+      - name: Install pinned Semgrep
+        run: python -m pip install --disable-pip-version-check semgrep==1.177.0
+      - name: Scan changed production authentication boundary with unchanged rules
+        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --disable-nosem --metrics=off lib/b1/service.ts lib/b1/runtime.ts
+      - name: Secret scanning (existing pinned Gitleaks action)
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm run lint
       - run: npm run typecheck
       - run: python3 scripts/consolidate-b1-sql.py --check
