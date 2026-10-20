@@ -107,11 +107,21 @@ function resourceFor(operation: string, input: Input): string | undefined {
   if (['startStepUp', 'selectTotpMethod'].includes(operation) && input.resource_id) return String(input.resource_id)
   return undefined
 }
-export function createAuthHandler(backend: Backend, origin: string, now = () => Date.now()) {
+export function createAuthHandler(backend: Backend, origin: string, now = () => Date.now(), internalOrigins: readonly string[] = []) {
   // This is a trusted deployment value, never Host/X-Forwarded-Host from the request.
   let trusted: URL
   try { trusted = new URL(origin) } catch { throw new Error('AUTH_ORIGIN_REQUIRED') }
   if (trusted.protocol !== 'https:' || trusted.origin !== origin) throw new Error('AUTH_HTTPS_ORIGIN_REQUIRED')
+  // Exact deployment configuration, never inferred from Host or forwarding headers.
+  // Next start uses its listen address in Request.url and may reflect forwarded proto.
+  if (!Array.isArray(internalOrigins) || internalOrigins.length > 8) throw new Error('AUTH_INTERNAL_ORIGINS_INVALID')
+  const transports = new Set([origin]), authorities = new Set([trusted.host])
+  for (const value of internalOrigins) {
+    let internal: URL
+    try { internal = new URL(value) } catch { throw new Error('AUTH_INTERNAL_ORIGINS_INVALID') }
+    if (typeof value !== 'string' || !['http:', 'https:'].includes(internal.protocol) || internal.origin !== value) throw new Error('AUTH_INTERNAL_ORIGINS_INVALID')
+    transports.add(internal.origin); authorities.add(internal.host)
+  }
   const response = (data: unknown, status: number, correlation: string, extra: Headers = new Headers()) => {
     extra.set('Cache-Control', 'no-store'); extra.set('Vary', 'Cookie'); extra.set('Content-Type', 'application/json; charset=utf-8')
     return new Response(JSON.stringify(status === 200 ? { data, meta: { correlation_id: correlation } } : data), { status, headers: extra })
@@ -141,7 +151,13 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
         if (!operation) throw new AuthError(404, 'NOT_FOUND')
         const url = new URL(request.url)
         const route = operation.path === '/me/sessions/{session_id}' ? /^\/me\/sessions\/([^/]+)$/.exec(url.pathname) : null
-        if (url.origin !== origin || request.method !== operation.method || (!route && url.pathname !== operation.path)) throw new AuthError(400, 'INVALID_ROUTE')
+        if (!transports.has(url.origin) || request.method !== operation.method || (!route && url.pathname !== operation.path)) throw new AuthError(400, 'INVALID_ROUTE')
+        const host = request.headers.get('host'), forwardedHost = request.headers.get('x-forwarded-host'), forwardedProto = request.headers.get('x-forwarded-proto')
+        if ((url.origin !== origin && !host) || (host !== null && !authorities.has(host.toLowerCase())) ||
+            (forwardedHost !== null && !authorities.has(forwardedHost.toLowerCase())) ||
+            (forwardedProto !== null && !['http', 'https'].includes(forwardedProto))) throw new AuthError(400, 'INVALID_ROUTE')
+        // RFC 7239 Forwarded is deliberately not consumed: it cannot change either
+        // allowlist or the public origin used by CSRF, cookies and redirects.
         if (request.headers.has('content-encoding')) throw new AuthError(415, 'UNSUPPORTED_ENCODING')
         const query = Object.fromEntries(url.searchParams)
         for (const key of url.searchParams.keys()) if (url.searchParams.getAll(key).length !== 1 || !operation.parameters.some(p => p.in === 'query' && p.name === key)) throw new AuthError(400, 'INVALID_QUERY')
@@ -166,6 +182,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           Object.assign(input, parsed)
         } else if (raw.length) throw new AuthError(400, 'BODY_NOT_ALLOWED')
         const received = cookies(request)
+        if (request.method === 'GET' && request.headers.has('origin') && request.headers.get('origin') !== origin) throw new AuthError(403, 'CSRF_ORIGIN')
         if (request.method !== 'GET') {
           const referer = request.headers.get('referer')
           if (request.headers.get('origin') !== origin || request.headers.get('sec-fetch-site') !== 'same-origin' || (referer && new URL(referer).origin !== origin)) throw new AuthError(403, 'CSRF_ORIGIN')
@@ -266,3 +283,4 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
     profile,
   }
 }
+

@@ -30,7 +30,7 @@ class CustodyHarnessWiring(unittest.TestCase):
 
     def test_runtime_stays_closed_and_never_imports_custody_harness(self):
         runtime = (ROOT / "lib/b1/runtime.ts").read_text(encoding="utf-8")
-        self.assertIn("createAuthHandler(closedBackend, origin)", runtime)
+        self.assertIn("createAuthHandler(closedBackend, origin, undefined, internalOrigins)", runtime)
         self.assertNotIn("custody-composition", runtime)
         self.assertNotIn("openbao-b1-integration", runtime)
 

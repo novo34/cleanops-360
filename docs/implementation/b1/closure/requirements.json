@@ -13,7 +13,7 @@
       "id": "REQ-PR-006",
       "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
       "implementation": "ISOLATED_TECHNICAL_EVIDENCE_COMPLETE_OPERATING_ACCEPTANCE_OPEN",
-      "pending": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (144 checks, final source08ecbab3). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
+      "pending": "Current development/staging: proxy-origin port validation, applicable security/independent review, controlled private staging integration and witnessed manual PO demonstration remain required. Final Swiss resource residence/custody/quorum and operational recovery remain open final-release obligations, not prerequisites for isolated synthetic successor development. Historical 144-check integration retained; no operational acceptance inferred.",
       "tests": [
         "E2E-01",
         "CI-01"
@@ -31,20 +31,38 @@
       "testsExecuted": "REAL_ISOLATED_PASS_OPERATING_MANUAL_NOT_EXECUTED",
       "acceptance": "OPEN",
       "historicalPendingBeforeSQL07": "Completar toda esta matriz con integración real y staging autorizado, revisión independiente y prueba manual PO. La aceptación del selector simulado no acepta B1 ni AUTH-GATE-05.",
-      "pendingClass": "REAL_OPERATIONAL_DEPENDENCY",
+      "pendingClass": "CURRENT_TECHNICAL_AND_MANUAL_PLUS_FINAL_SWISS_OPERATIONS",
       "historicalBeforeSQL14": {
         "implementation": "FRONTEND_SIMULATED_ACCEPTED_B1_OPEN",
         "realIntegration": "NOT_VERIFIED",
         "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
         "pending": "Private initial multi-company UI→API→PG rotation, security journal and directed regression now PASS. Remaining: most-restrictive role-risk integration, actual operational custody/Swiss infrastructure evidence, independent review and manual Product Owner acceptance. No deployment is authorized."
       },
-      "historicalBeforeOpenBaoIntegration": "SQL14 completes most-restrictive session aggregation; all42 isolated functional criteria have real evidence. Still required: designated actual Swiss OpenBao/custodians, real custody adapter/lifecycle/rotation-recovery evidence, independent review, authorized manual demonstration and actual PO observations. See operational-acceptance/PLAN.md; no productive or formal acceptance inferred."
+      "historicalBeforeOpenBaoIntegration": "SQL14 completes most-restrictive session aggregation; all42 isolated functional criteria have real evidence. Still required: designated actual Swiss OpenBao/custodians, real custody adapter/lifecycle/rotation-recovery evidence, independent review, authorized manual demonstration and actual PO observations. See operational-acceptance/PLAN.md; no productive or formal acceptance inferred.",
+      "historicalBeforeOwnerExecutionDecision": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (144 checks, final source08ecbab3). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
+      "pendingByStage": {
+        "A": [
+          "Validate proxy-origin port on B1 branch and applicable security review",
+          "Review exact staging identity/key/ingress configuration before real backend activation; no installation or persistent DB mutation authorized",
+          "Independent review and actual manual PO observations remain current PR006 obligations"
+        ],
+        "B": [
+          "42 isolated criteria and historical 144 real PG/OpenBao checks retained",
+          "Run affected HTTP regression; no unaffected PG/OpenBao rerun merely to increase counts"
+        ],
+        "C": [
+          "Actual final Swiss compute/storage/backup/access residence",
+          "Named independent additional custodians and approved operational quorum",
+          "Witnessed final custody/key lifecycle/recovery, WAL/PITR and representative RPO/RTO",
+          "Formal final operational acceptance"
+        ]
+      }
     },
     {
       "id": "REQ-PR-007",
       "requirement": "No se iniciará una fase dependiente hasta que la fase anterior esté `ACCEPTED`, salvo autorización explícita del Product Owner.",
       "implementation": "FORMAL_PHASE_ACCEPTANCE_PENDING",
-      "pending": "Product Owner must sign formal phase acceptance after PR006 operating/independent/manual evidence. B1/AUTH-GATE-05 OPEN; no next module, merge, deployment or production activation is authorized.",
+      "pending": "Formal PO phase acceptance remains OPEN. The explicit owner instruction of 2026-10-20 permits isolated synthetic preparation/development of B2/B3 without waiting for final Swiss migration; this uses the requirement's existing exception and does not close PR006, PR007 or AUTH-GATE-05. No merge or staging activation authorized.",
       "tests": [
         "E2E-01",
         "CI-01"
@@ -57,7 +75,8 @@
       "testsExecuted": "SIMULATED_ONLY_NOT_PRODUCT_ACCEPTANCE",
       "acceptance": "OPEN",
       "historicalPendingBeforeSQL07": "Completar toda esta matriz con integración real y staging autorizado, revisión independiente y prueba manual PO. La aceptación del selector simulado no acepta B1 ni AUTH-GATE-05.",
-      "pendingClass": "FORMAL_ACCEPTANCE_PENDING"
+      "pendingClass": "FORMAL_ACCEPTANCE_PENDING",
+      "historicalBeforeOwnerExecutionDecision": "Product Owner must sign formal phase acceptance after PR006 operating/independent/manual evidence. B1/AUTH-GATE-05 OPEN; no next module, merge, deployment or production activation is authorized."
     },
     {
       "id": "REQ-AUTHZ-001",
@@ -3297,5 +3316,16 @@
     "modifiedSqlAcl": false,
     "authorizedAclDelta": true,
     "production": false
+  },
+  "ownerExecutionDecision": {
+    "date": "2026-10-20",
+    "source": "Product Owner: CLEANOPS 360 — CIERRE EJECUTIVO B1 SIN MIGRACIÓN AL VPS SUIZO",
+    "development": "Existing Hostinger; synthetic data only",
+    "finalInfrastructure": "Swiss migration only after complete system testing and owner approval",
+    "successorException": "REQ-PR-007 explicit-owner exception: isolated synthetic B2/B3 development/preparation may proceed without final Swiss migration; no phase acceptance inferred",
+    "stagingActivationAuthorized": false,
+    "stagingDatabaseChangesAuthorized": false,
+    "hostingerOpenBaoInstallationAuthorized": false,
+    "swissProvisioningAuthorized": false
   }
 }

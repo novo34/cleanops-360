@@ -62,7 +62,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "PR006_REAL_OPERATING_INDEPENDENT_MANUAL_AND_PR007_FORMAL_ACCEPTANCE",
+  "nextBlocker": "CURRENT_TECHNICAL_SECURITY_INTEGRATION_AND_MANUAL_VALIDATION",
   "candidate": {
     "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
     "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
@@ -97,7 +97,8 @@
     "installed": true
   },
   "nextAuthorization": {
-    "operational": "Owner must designate actual Swiss OpenBao resources and custodians, independent reviewer and PO tester; authorize the exact operational resource/custody/recovery/manual scope in operational-acceptance/PLAN.md. No SQL14 reapproval needed; production/SMTP/deployment remain unauthorized."
+    "current": "No new authorization needed for isolated synthetic code/tests/commits/PRs. Staging backend activation, persistent staging SQL/ACL and Hostinger OpenBao installation require separate exact authorization after applicable controls pass.",
+    "finalSwiss": "Explicitly deferred by owner; no Swiss resource/quorum approval requested during current development."
   },
   "latestPrecheck": "docs/implementation/b1/consolidated-test-07/PRECHECK.json",
   "pgTest01Scope": "Only exact authorized SQL14 installed in isolated fresh PG16; directed proofs retained individually.",
@@ -433,5 +434,20 @@
       "productionAcceptance": false
     }
   },
-  "latestSQL14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json"
+  "latestSQL14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json",
+  "ownerExecutionDecision": {
+    "date": "2026-10-20",
+    "source": "Product Owner: CLEANOPS 360 — CIERRE EJECUTIVO B1 SIN MIGRACIÓN AL VPS SUIZO",
+    "development": "Existing Hostinger; synthetic data only",
+    "finalInfrastructure": "Swiss migration only after complete system testing and owner approval",
+    "successorException": "REQ-PR-007 explicit-owner exception: isolated synthetic B2/B3 development/preparation may proceed without final Swiss migration; no phase acceptance inferred",
+    "stagingActivationAuthorized": false,
+    "stagingDatabaseChangesAuthorized": false,
+    "hostingerOpenBaoInstallationAuthorized": false,
+    "swissProvisioningAuthorized": false
+  },
+  "historicalNextAuthorization": {
+    "operational": "Owner must designate actual Swiss OpenBao resources and custodians, independent reviewer and PO tester; authorize the exact operational resource/custody/recovery/manual scope in operational-acceptance/PLAN.md. No SQL14 reapproval needed; production/SMTP/deployment remain unauthorized."
+  },
+  "historicalNextBlocker": "PR006_REAL_OPERATING_INDEPENDENT_MANUAL_AND_PR007_FORMAL_ACCEPTANCE"
 }
