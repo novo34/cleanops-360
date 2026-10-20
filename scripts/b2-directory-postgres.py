@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import subprocess
 import sys
 import time
 
@@ -49,7 +50,36 @@ def preflight():
     blob = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
     if approval.get('ownerApproved') is not True or approval['candidate']['sha256'] != BASE_SHA or approval['candidate']['gitBlob'] != BASE_BLOB or hashlib.sha256(raw).hexdigest() != BASE_SHA or blob != BASE_BLOB:
         raise RuntimeError('EXACT_AUTHORIZED_SQL14_MISMATCH')
+    session = json.loads((ROOT / 'docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json').read_text())
+    if session.get('ownerApproved') is not True or session['sessionPolicy']['sensitiveAbsoluteSeconds'] != 43200 or session['sessionPolicy']['operationalAbsoluteSeconds'] != 86400:
+        raise RuntimeError('PRIOR_B1_SESSION_FIXTURE_AUTHORIZATION_REQUIRED')
     return raw.decode()
+
+
+def browser(b):
+    load('b2_existing_runtime_copy','scripts/pg-http-integration.py').copy_runtime(b,('scripts/b2-browser-backend.ts',))
+    fixture = {'container':b.CID,'run':b.RUN,'foreign':b.W,'otherTenant':b.B}
+    result = subprocess.run(['npx','--no-install','playwright','test','--config=playwright.b2-postgres.config.ts'],cwd=ROOT,
+                            env=dict(b.ENV,B2_BROWSER_FIXTURE=json.dumps(fixture)),text=True,capture_output=True,timeout=180)
+    path = ROOT / 'artifacts/b2-directory/playwright.json'
+    count = 0
+    if path.exists():
+        try:
+            data = json.loads(path.read_text())
+            def collect(suite):
+                nonlocal count
+                for spec in suite.get('specs',[]):
+                    statuses = [r['status'] for test in spec['tests'] for r in test['results']]
+                    b.record('B2-browser-'+spec['title'],'PASS' if statuses == ['passed'] else 'FAIL',{'attemptStatuses':statuses})
+                    count += 1
+                for nested in suite.get('suites',[]):
+                    collect(nested)
+            for suite in data.get('suites',[]):
+                collect(suite)
+        finally:
+            path.unlink()  # Never preserve raw browser errors, request headers or tokens.
+    b.REPORT['functionalBrowser'] = 'PASS' if result.returncode == 0 and count == 2 else 'FAIL'
+    b.record('B2-real-browser-process',b.REPORT['functionalBrowser'],'Real private backend and persisted PostgreSQL; raw output suppressed.')
 
 
 def main():
@@ -63,9 +93,9 @@ def main():
         b.REPORT = report
         b.record('exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings','PASS')
         before = b.footprint()
-        if b.docker('pull','postgres:16-alpine',timeout=180).returncode:
+        if b.docker('pull','postgres:16-bookworm',timeout=180).returncode:
             raise RuntimeError('OFFICIAL_PG16_PULL_FAILED')
-        image = b.docker('image','inspect','postgres:16-alpine','--format','{{index .RepoDigests 0}}').stdout.strip()
+        image = b.docker('image','inspect','postgres:16-bookworm','--format','{{index .RepoDigests 0}}').stdout.strip()
         if not re.fullmatch(r'postgres@sha256:[0-9a-f]{64}',image):
             raise RuntimeError('OFFICIAL_PG16_DIGEST_REQUIRED')
         report['image'] = image
@@ -98,6 +128,17 @@ def main():
             raise RuntimeError('B2_INSTALLATION_FAILED_NO_REPLACEMENT_SQL')
         if not b.fixtures():
             raise RuntimeError('BASELINE_SYNTHETIC_FIXTURES_FAILED')
+        # Byte-for-byte SQL from the already authorized B1 SQL13 session fixture.
+        # Applies the existing owner-approved profile; no B2 policy/ACL is added.
+        if not b.check('B1-approved-12h24h-existing-session-fixture',"UPDATE identity_private.configuration SET values_json=jsonb_set(jsonb_set(values_json,'{absolute_sensitive}','43200'::jsonb),'{absolute_operational}','86400'::jsonb);"):
+            raise RuntimeError('AUTHORIZED_B1_SESSION_FIXTURE_FAILED')
+        original_check = b.check
+        def with_browser(name, text, expected=None, role='postgres', failure=None):
+            passed = original_check(name,text,expected,role,failure)
+            if name == 'B2-synthetic-global-view' and passed:
+                browser(b)
+            return passed
+        b.check = with_browser
         load('b2_exact_authorized_assertions','docs/proposals/b2-users/directory-tests.review.py').run(b)
     except Exception as error:
         item = {'name':'harness','status':'FAIL','detail':str(error) if isinstance(error,RuntimeError) else type(error).__name__}
@@ -116,7 +157,7 @@ def main():
             except Exception:
                 b.record('preexisting-resource-inventory','FAIL')
         report['result'] = 'PASS' if report['cleanup'] == 'PASS' and report['checks'] and all(c['status']=='PASS' for c in report['checks']) else 'FAIL'
-        report['functionalBrowser'] = 'SKIP_NOT_PART_OF_THIS_NATIVE_RUN'
+        report.setdefault('functionalBrowser','SKIP_PREREQUISITE_NOT_REACHED')
         report['b2TechReady'] = False
         target.parent.mkdir(parents=True,exist_ok=True)
         target.write_text(json.dumps(report,indent=2)+'\n')

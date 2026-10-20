@@ -12,7 +12,7 @@ const page={items:[user],next_after:null}
 function backend(result:unknown=page, commitFailure=false){
  let calls=0
  const value:Backend={bootstrap:async()=>{},async transaction(work){
-  const tx={resolve:async()=>actor,rateLimit:async()=>null,execute:async()=>{calls++;return {data:result}}} as unknown as Transaction
+  const tx={resolve:async()=>actor,authorize:async()=>true,rateLimit:async()=>null,execute:async()=>{calls++;return {data:result}}} as unknown as Transaction
   const response=await work(tx);if(commitFailure)throw Error('private connection diagnostic');return response
  }}
  return {value,calls:()=>calls}
@@ -53,4 +53,14 @@ test('B2 detail validates the organization against the trusted binding; foreign 
  await assert.rejects(repository.transaction(broker=>readAdministrationUsers(broker,'getAdministrationUser',{target_user_id:id},actor,id)),{code:'INVALID_BACKEND_RESPONSE'})
  assert.equal(calls.at(-1),'ROLLBACK');assert.equal(released,true)
  await assert.rejects(repository.transaction(broker=>readAdministrationUsers(broker,'listAdministrationUsers',{}, {...actor,kind:'PREAUTH'},id)),{status:401})
+})
+test('B2 resume reads only the current active session without issuing a cookie or accepting a foreign identity or extended lifetime',async()=>{
+ const active={state:'ACTIVE',session_id:id,tenant_id:tenant,absolute_expires_at:new Date(now+30000).toISOString()}
+ const resumed=()=>new Request('https://cleanops.test/auth/users/session',{headers:request().headers})
+ const response=await createAuthHandler(backend(active).value,'https://cleanops.test').handle(resumed(),'getAdministrationSession')
+ assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+ for(const invalid of [{...active,tenant_id:id},{...active,session_id:tenant},{...active,absolute_expires_at:new Date(now+120000).toISOString()},{...active,absolute_expires_at:new Date(now-1000).toISOString()}]){
+  const rejected=await createAuthHandler(backend(invalid).value,'https://cleanops.test').handle(resumed(),'getAdministrationSession')
+  assert.equal(rejected.status,503);assert.equal(rejected.headers.get('set-cookie'),null)
+ }
 })

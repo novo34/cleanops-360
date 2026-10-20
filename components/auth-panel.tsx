@@ -13,7 +13,7 @@ type StepContext = { grant_id: string; resource_id?: string }
 function expired(expiresAt: string) { return Date.parse(expiresAt) <= Date.now() }
 type Tenant = { id: string; name: string }
 type Session = { id: string; device_label: string; browser_label: string; is_current: boolean; created_at: string; last_activity_at: string; absolute_expires_at: string }
-export function AuthPanel() {
+export function AuthPanel({administration=false}: {administration?:boolean}) {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
@@ -149,6 +149,7 @@ export function AuthPanel() {
     if (auth.state === 'TOTP_SELECTION_REQUIRED') { setView(emptyView); prepare(auth, null); return }
     setSelection(null); setSelected(''); selectionKeys.current.clear()
     setView(previous => receiveAuth(previous, auth)); setEnrollment(null); setChallenge(null)
+    if (administration && auth.state === 'ACTIVE') setAccessOpen(true)
     if (auth.state === 'PENDING_MFA') setChallenge(auth)
   }
   async function login(form: HTMLFormElement) {
@@ -239,10 +240,12 @@ export function AuthPanel() {
     const result = await call('enrollTotp')
     if (result) setEnrollment(result)
   }
-  return <main className="auth-panel" style={{ maxWidth: 640, margin: '3rem auto', padding: 24 }}>
-    <h1>CleanOps 360 · Acceso</h1>
+  return <main className="auth-panel" style={{ maxWidth: administration?1120:640, margin: '3rem auto', padding: 24 }}>
+    {administration && <nav aria-label="Administración"><a href="/">Inicio</a> → Administración → Usuarios</nav>}
+    <h1>{administration?'Administración · Usuarios':'CleanOps 360 · Acceso'}</h1>
     <p role="status" aria-live="polite">{busy ? 'Procesando…' : message}</p>
     <fieldset disabled={busy} aria-busy={busy} style={{ border: 0, padding: 0 }}>
+      {administration && !view.auth && !challenge && !selection && !resetting && !resetDone && <button type="button" onClick={async()=>{const result=await call('getAdministrationSession');if(result)accept(result)}}>Continuar con mi sesión</button>}
       {!view.auth && !challenge && !selection && !resetting && !resetDone && <form onSubmit={event => { event.preventDefault(); void login(event.currentTarget) }}>
         <p><label>Email <input name="email" type="email" autoComplete="username" required maxLength={254} /></label></p>
         <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label></p>

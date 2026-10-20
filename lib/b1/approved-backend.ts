@@ -315,6 +315,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
+          if (operation === 'getAdministrationSession') return {data:await activeSummary(binding)}
           if (operation === 'listAdministrationUsers' || operation === 'getAdministrationUser') {
             return readAdministrationUsers(broker, operation, input, binding, correlation)
           }

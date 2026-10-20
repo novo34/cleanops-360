@@ -17,6 +17,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
       - name: Verify authorization and run exact SQL14 plus B2 bundle in owned networkless PG16
         run: python scripts/b2-directory-postgres.py
       - name: Preserve sanitized PASS FAIL SKIP and cleanup evidence
@@ -24,6 +31,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: b2-directory-pg16-sanitized
-          path: artifacts/b2-directory/report.json
+          path: |
+            artifacts/b2-directory/report.json
+            artifacts/b2-directory/directory-empty.png
           if-no-files-found: error
           retention-days: 7

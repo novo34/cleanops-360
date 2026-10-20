@@ -5,7 +5,7 @@
   "reviewed_commit": "5e7d73530dd70d55edc1f3db7b9377f2c08db41a",
   "context_sha256": {
     ".semgrep/cleanops-foundation.yml": "30ed5e227fafb8b53a794ec2ebb808447bee752679779fadf82aaa7a44ecd681",
-    "lib/b1/approved-backend.ts": "d2fe7a426067d343410b5cb70991b0c8291747b7207192ac50b216b8a05d7ad1",
+    "lib/b1/approved-backend.ts": "847d40c4c1666356b7045a57b01d0f7c5b3ea9c0e1b9255fb48e479c8c5bda88",
     "lib/b1/password.ts": "396436d97d91c13dd832945a966bd035f1e270284dea1ca949e705d841ff1007",
     "lib/b1/totp.ts": "d3d361c93ff078dccb5ccc84e2fb15efa5facd354457b015a272817ffe42c6b9",
     "lib/b1/runtime.ts": "1ee57f2f960c6d86d22bf5e1c0056a67f099f5ead53fed5ee8754005bef54e02",
@@ -17,11 +17,11 @@
       "check_id": "semgrep.cleanops-code-execution-import",
       "path": "lib/b1/approved-backend.ts",
       "start": {
-        "line": 609,
+        "line": 610,
         "col": 38
       },
       "end": {
-        "line": 609,
+        "line": 610,
         "col": 55
       },
       "source_sha256": "74159db132aab1c51b13ec9afb7c36992680d3ab56a45cc77d9863d99ecb90e5",

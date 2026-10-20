@@ -230,7 +230,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'recoverMfa' && ((effect.data as Input).state !== 'ENROLLMENT_REQUIRED' || effect.transition?.kind !== 'PREAUTH')) throw new AuthError(503, 'MFA_REQUIRED')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
-          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId.includes('Trusted') && effect.transition) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId==='registerTrustedDevice') {
             const t=effect.trustedCookie, device=(effect.data as Input).device as Input
@@ -241,9 +241,9 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
               (effect.transition || (binding.kind === 'PREAUTH' ? authData.state !== 'PENDING_MFA' : authData.state !== undefined)))
             throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
           const authState = authData.state ?? (authData.auth as Input | undefined)?.state
-          if (binding.kind === 'ACTIVE' && ['verifyMfa','confirmTotp'].includes(operationId)) {
+          if (binding.kind === 'ACTIVE' && ['verifyMfa','confirmTotp','getAdministrationSession'].includes(operationId)) {
             const auth = operationId === 'confirmTotp' ? authData.auth as Input : authData
-            if (effect.transition || auth.session_id !== binding.sessionId || auth.tenant_id !== binding.tenantId || Date.parse(String(auth.absolute_expires_at)) > (binding.absoluteExpiresAt ?? binding.expiresAt)) throw new AuthError(503, 'INVALID_STEP_UP_TRANSITION')
+            if (effect.transition || auth.session_id !== binding.sessionId || auth.tenant_id !== binding.tenantId || Date.parse(String(auth.absolute_expires_at)) > (binding.absoluteExpiresAt ?? binding.expiresAt) || (operationId === 'getAdministrationSession' && Date.parse(String(auth.absolute_expires_at)) <= now())) throw new AuthError(503, 'INVALID_STEP_UP_TRANSITION')
           }
           if (operationId === 'getCurrentIdentity' && (authData.id !== binding.userId || authData.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')
           if (operationId === 'listSelfSessions' && (authData.items as Input[]).some(s => s.user_id !== binding.userId || s.tenant_id !== binding.tenantId)) throw new AuthError(503, 'INVALID_SUBJECT_RESPONSE')

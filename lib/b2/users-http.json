@@ -229,6 +229,92 @@
           }
         }
       }
+    },
+    "/auth/users/session": {
+      "get": {
+        "operationId": "getAdministrationSession",
+        "summary": "Resume the existing authenticated session for user administration; no login, rotation or new session",
+        "x-authentication-state": "ACTIVE",
+        "x-requirements": [
+          "REQ-AUTHZ-005",
+          "REQ-AUTHZ-006",
+          "REQ-AUTHZ-007"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Committed tenant-scoped read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/B2AdministrationSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no identity or SQL diagnostics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-rule": "B1-SELF-01"
+      }
     }
   },
   "schemas": {
@@ -370,6 +456,34 @@
               }
             }
           }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          }
+        }
+      }
+    },
+    "B2AdministrationSessionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/Active"
         },
         "meta": {
           "type": "object",

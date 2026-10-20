@@ -2,6 +2,8 @@
 
 ## B2 shared-boundary context refresh (2026-10-20)
 
+The administrative session-resume read adds one fixed activeSummary dispatch, moving the same FP-09 snippet to line 610 without changing its snippet digest. It reuses the approved SQL14 function and original B1 self-service authorization. It cannot issue/rotate cookies, change tenant/session, or extend the active session lifetime. This additive compatibility is required to open user administration with an existing authenticated session; it does not activate the closed production backend. The exact-reviewed context hash and coordinates are refreshed again with no added exception.
+
 PR #12 adds only a fixed B2 reader import and an explicit two-operation dispatch after B1's owns/resolveAgain checks. No authorization, credential, session, custody, or cookie behavior changes. FP-09 moves from line 605 to 609; its exact source-line SHA-256 is unchanged. Refresh only its coordinates and the full approved-backend context hash. All four inherited exact findings, classifications, snippet hashes, scanner engine, rules, and fail-closed guard remain unchanged; no exception is added. Quality run 39504589951 at 9870ec7 reports the same 17 inherited raw findings and remains FAIL. B2's dedicated scan additionally covers its reader/UI/routes and runs the existing full shared-boundary reviewed scanner; new or changed findings still fail.
 
 Fecha: 2026-10-20. Base: staging `646c9af496b2497a542ab58d96ae1e7b17b1ee81`. Integración: `c639403eeb195cc5cd0f96893d8503f2aa4ae4f7`.
