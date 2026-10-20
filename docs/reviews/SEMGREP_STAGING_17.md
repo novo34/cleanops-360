@@ -47,3 +47,9 @@ El propietario autoriza resolver el bloqueo con supresiones específicas. Se apl
 La única limitación de parser ya existente se registra separadamente: warning de sintaxis del worker upstream minificado, con ruta y hash exactos, tipo/nivel/código fijados. Cualquier otro warning/error de parsing falla. No se excluye la carpeta public ni código nuevo.
 
 14 pruebas de regresión del guard verifican nuevas coincidencias, modificación de código/contextos, reglas distintas, excepciones caducadas/duplicadas, scanner incompleto/versionado y parser desconocido. Las pruebas positivas/negativas de las ocho reglas existentes siguen ejecutándose sin estas excepciones, para comprobar que conservan detección.
+
+### Gitleaks posterior a la resolución de Semgrep
+
+Quality #286 pasó Semgrep/fixtures y detectó `generic-api-key` en `.semgrep/reviewed-findings.json:12`, commit `04b8925cff9333e7f02116618e0df3deb322d598`. El supuesto secreto es `396436d97d91c13dd832945a966bd035f1e270284dea1ca949e705d841ff1007`, checksum SHA-256 del archivo fuente `lib/b1/password.ts`, verificado mediante sha256sum, no password, token ni hash de contraseña de un usuario. Clasificación: falso positivo confirmado, informativo.
+
+`.gitleaksignore` contiene exclusivamente la huella completa `commit:archivo:regla:línea` de ese objeto Git inmutable. No hay allowlist por regex, regla o archivo; cualquier coincidencia de otro commit/código nuevo permanece activa. Se mantiene el escaneo del historial completo del PR y no se reescriben commits para borrar el resultado.
