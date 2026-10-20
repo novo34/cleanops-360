@@ -13,8 +13,7 @@ permissions:
   contents: read
 jobs:
   private-integration:
-    # One-shot affected integration already executed at this exact immutable source.
-    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows' && github.event.before == 'de23bfa388f3c3bc3bc83ee3f24f96e95be71dd6'
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-final-validation' && github.base_ref == 'feat/b1-http-flows'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:

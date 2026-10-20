@@ -110,8 +110,8 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
         for (const r of references) { const id = identity(r); if (keys.has(id)) throw unavailable(); keys.set(id, await read(r)) }
         const deadline = performance.now() + lifetimeMs
         const remainingMs = () => {
-          const remaining = Math.floor(deadline - performance.now())
-          if (!active || remaining < 1) throw unavailable()
+          const remaining = deadline - performance.now()
+          if (!active || remaining <= 0) throw unavailable()
           return remaining
         }
         const lease = Object.freeze({ remainingMs, acknowledgeCommit() { commitObserved = true } })

@@ -54,7 +54,7 @@ test('OpenBao scope and provider failures fail closed before any network/transac
 test('OpenBao scope deadline denies late key borrow and cleans up after callback failure',async()=>{
  const mocked=transport(200,response());let held:Buffer|undefined
  try{
-  await assert.rejects(()=>createOpenBaoKeys(options()).withKeys([ref],1,async borrow=>{held=borrow(ref,b=>b);await new Promise(r=>setTimeout(r,10));borrow(ref,b=>b)}))
+  await assert.rejects(()=>createOpenBaoKeys(options()).withKeys([ref],20,async borrow=>{held=borrow(ref,b=>b);await new Promise(r=>setTimeout(r,50));borrow(ref,b=>b)}))
   assert.ok(held?.every(v=>v===0))
  }finally{mocked.mock.restore()}
 })

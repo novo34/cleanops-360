@@ -14,7 +14,7 @@ export function createCustodyDeadlinePool(pool: IdentityPool, lease: PrivateKeyL
   if (!pool || typeof pool.connect !== 'function' || !lease ||
       typeof lease.remainingMs !== 'function' || typeof lease.acknowledgeCommit !== 'function') throw unavailable()
   const budget = () => {
-    const value = lease.remainingMs()
+    const value = Math.floor(lease.remainingMs())
     if (!Number.isSafeInteger(value) || value < 1 || value > 30000) throw unavailable()
     return value
   }
