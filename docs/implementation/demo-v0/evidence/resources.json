@@ -1,0 +1,194 @@
+[
+  {
+    "route": "/demo",
+    "resources": [
+      {
+        "path": "/_next/static/chunks/1s1u_f0cva_it.css",
+        "decodedBytes": 3005,
+        "transferBytes": 1383,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/409sl_o3hib_f.css",
+        "decodedBytes": 39849,
+        "transferBytes": 7738,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/1x6obpmlu1_c2.js",
+        "decodedBytes": 5361,
+        "transferBytes": 2275,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/3cubu4qf_i7py.js",
+        "decodedBytes": 28284,
+        "transferBytes": 7820,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/3dmm3v_fq28gc.js",
+        "decodedBytes": 229820,
+        "transferBytes": 72269,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+        "decodedBytes": 11255,
+        "transferBytes": 4690,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/0umf92h1sb77c.js",
+        "decodedBytes": 13822,
+        "transferBytes": 3814,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/2jm4djjz1we-v.js",
+        "decodedBytes": 6294,
+        "transferBytes": 3065,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/38g6xio-dyrkg.js",
+        "decodedBytes": 168623,
+        "transferBytes": 46671,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/3wqk7v-v8_y2w.js",
+        "decodedBytes": 40476,
+        "transferBytes": 12291,
+        "type": "script"
+      },
+      {
+        "path": "/demo-fonts/dmsans.woff2",
+        "decodedBytes": 36932,
+        "transferBytes": 37232,
+        "type": "css"
+      },
+      {
+        "path": "/demo-fonts/manrope.woff2",
+        "decodedBytes": 24836,
+        "transferBytes": 25136,
+        "type": "css"
+      },
+      {
+        "path": "/demo-map/icon.svg",
+        "decodedBytes": 278,
+        "transferBytes": 578,
+        "type": "other"
+      },
+      {
+        "path": "/_next/static/chunks/2ddmrojwgxvfe.css",
+        "decodedBytes": 71339,
+        "transferBytes": 10419,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/0v08-yp29vs04.js",
+        "decodedBytes": 9284,
+        "transferBytes": 3713,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/129dosu-bogdt.js",
+        "decodedBytes": 1085092,
+        "transferBytes": 294260,
+        "type": "script"
+      },
+      {
+        "path": "/demo-map/maplibre-gl-worker.mjs",
+        "decodedBytes": 518806,
+        "transferBytes": 148479,
+        "type": "other"
+      }
+    ],
+    "fontStatus": "loaded"
+  },
+  {
+    "route": "/demo/empresas",
+    "resources": [
+      {
+        "path": "/_next/static/chunks/1s1u_f0cva_it.css",
+        "decodedBytes": 3005,
+        "transferBytes": 1383,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/409sl_o3hib_f.css",
+        "decodedBytes": 39849,
+        "transferBytes": 7738,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/1x6obpmlu1_c2.js",
+        "decodedBytes": 5361,
+        "transferBytes": 2275,
+        "type": "link"
+      },
+      {
+        "path": "/_next/static/chunks/3cubu4qf_i7py.js",
+        "decodedBytes": 28284,
+        "transferBytes": 7820,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+        "decodedBytes": 11255,
+        "transferBytes": 4690,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/3dmm3v_fq28gc.js",
+        "decodedBytes": 229820,
+        "transferBytes": 72269,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/38g6xio-dyrkg.js",
+        "decodedBytes": 168623,
+        "transferBytes": 46671,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/0umf92h1sb77c.js",
+        "decodedBytes": 13822,
+        "transferBytes": 3814,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/3wqk7v-v8_y2w.js",
+        "decodedBytes": 40476,
+        "transferBytes": 12291,
+        "type": "script"
+      },
+      {
+        "path": "/_next/static/chunks/2jm4djjz1we-v.js",
+        "decodedBytes": 6294,
+        "transferBytes": 3065,
+        "type": "script"
+      },
+      {
+        "path": "/demo-fonts/dmsans.woff2",
+        "decodedBytes": 36932,
+        "transferBytes": 37232,
+        "type": "css"
+      },
+      {
+        "path": "/demo-fonts/manrope.woff2",
+        "decodedBytes": 24836,
+        "transferBytes": 25136,
+        "type": "css"
+      },
+      {
+        "path": "/demo-map/icon.svg",
+        "decodedBytes": 278,
+        "transferBytes": 578,
+        "type": "other"
+      }
+    ],
+    "fontStatus": "loaded"
+  }
+]

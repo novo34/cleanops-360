@@ -1,0 +1,134 @@
+{
+  "engine": "axe-core 4.11.0 + Chromium software WebGL",
+  "checks": [
+    {
+      "theme": "dark",
+      "route": "/demo",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 2
+        }
+      ],
+      "passes": 26
+    },
+    {
+      "theme": "dark",
+      "route": "/demo/empresas",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "dark",
+      "route": "/demo/clientes",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "dark",
+      "route": "/demo/empleados",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "dark",
+      "route": "/demo/planning",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "light",
+      "route": "/demo",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 2
+        }
+      ],
+      "passes": 26
+    },
+    {
+      "theme": "light",
+      "route": "/demo/empresas",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "light",
+      "route": "/demo/clientes",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "light",
+      "route": "/demo/empleados",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    },
+    {
+      "theme": "light",
+      "route": "/demo/planning",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "nodes": 1
+        }
+      ],
+      "passes": 25
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,62 @@
+{
+  "assets": {
+    "public/demo-map/NOTICE.md": {
+      "bytes": 1145,
+      "sha256": "255212479af7abb9b82b65891167214ac44ec0825e8a1c97da4822e4306f7f65"
+    },
+    "public/demo-map/region.geojson": {
+      "bytes": 54500,
+      "sha256": "450926d53eee31a591e9d23fc3bd9562ac3104f58534078ded6779bb03d89d71"
+    },
+    "public/demo-map/maplibre-gl-worker.mjs": {
+      "bytes": 518806,
+      "sha256": "1c69066368331aae63967ed24a9affcf962cf55fcc6d8f532a8b040f736dbcfa"
+    },
+    "public/demo-map/maplibre-gl-shared.mjs": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "public/demo-map/MAPLIBRE-LICENSE.txt": {
+      "bytes": 5984,
+      "sha256": "ee5fc05a0677eaf69601d2c7db0d9ecd6cc27c3abc1d0733bc9ed34707cf8ef2"
+    },
+    "public/demo-map/icon.svg": {
+      "bytes": 278,
+      "sha256": "8d4045b77bbf463177e05aab1e95ff57270c2e2880e48f26c6e19ede6f0d180e"
+    },
+    "public/demo-fonts/dmsans-OFL.txt": {
+      "bytes": 4482,
+      "sha256": "9af36190332437f5ecd09974de43c1f7c77a310a996cdd8ceb25628b458840e1"
+    },
+    "public/demo-fonts/NOTICE.md": {
+      "bytes": 612,
+      "sha256": "8671a3224e992c0284a014735e6afa9f73a48d2b7530a59939551c6bb925d00a"
+    },
+    "public/demo-fonts/manrope-OFL.txt": {
+      "bytes": 4387,
+      "sha256": "58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b"
+    },
+    "public/demo-fonts/manrope.woff2": {
+      "bytes": 24836,
+      "sha256": "a30ddcd349703aff7464c34bef3fffdff405ee50c113440d7c8693c02d210972"
+    },
+    "public/demo-fonts/dmsans.woff2": {
+      "bytes": 36932,
+      "sha256": "9fea608a947e67020c33cad9a6fe3d60c54119dfb8cff87768a8117a15ed7543"
+    }
+  },
+  "restoredOriginalLibcMetadata": 30,
+  "maplibreVersion": "6.15.0",
+  "maplibreRejectedHistoricalVersion": "5.13.0",
+  "advisory": "https://github.com/advisories/GHSA-jrc7-96c5-q579",
+  "fontsSource": "https://fonts.google.com/ (DM Sans and Manrope; local variable latin WOFF2 with OFL)",
+  "geographySource": "https://github.com/nvkelso/natural-earth-vector/tree/master/geojson",
+  "geographySourceFiles": {
+    "countries.json": "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb",
+    "lakes.json": "2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9"
+  },
+  "fontsUrls": [
+    "https://fonts.gstatic.com/s/dmsans/v17/rP2Yp2ywxg089UriI5-g4vlH9VoD8Cmcqbu0-K4.woff2",
+    "https://fonts.gstatic.com/s/manrope/v20/xn7gYHE41ni1AdIRggexSg.woff2"
+  ]
+}

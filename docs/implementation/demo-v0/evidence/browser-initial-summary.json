@@ -1,0 +1,12 @@
+{
+  "status": "FAIL",
+  "stats": {
+    "startTime": "2026-10-20T07:26:18.069Z",
+    "duration": 102702.284,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 17,
+    "flaky": 0
+  },
+  "cause": "Preexisting missing /favicon.ico generated a browser console 404; map interactions and 16 other cases passed. Fixed with demo-scoped icon metadata; rerun recorded separately."
+}

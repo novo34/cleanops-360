@@ -1,0 +1,35 @@
+{
+  "base": "646c9af496b2497a542ab58d96ae1e7b17b1ee81",
+  "branch": "feat/demo-v0-map-themes",
+  "buildId": "QFy2aXjxgfrBz_gnU0mdo",
+  "protectedPathsUnchanged": [
+    "proxy.ts",
+    "lib/b1",
+    "app/auth",
+    "app/login",
+    "app/me",
+    "app/mfa",
+    "components/auth-panel.tsx",
+    "lib/security-headers.ts",
+    ".github",
+    "deploy",
+    "AGENTS.md"
+  ],
+  "originalCheckoutClean": true,
+  "designPreparationCheckout": "36d3b67922db9c89a8f527a6c469b11d1ffd3bbe",
+  "remoteRefs": [
+    "9f13c78d6c49194db1bd422db19128460f93f5fc\trefs/heads/feat/b1-auth-rbac-rls",
+    "b46c2f0abe61415beccf5c73be676c2f08ca6521\trefs/heads/feat/b1-http-flows",
+    "d522e2edc95ac39af058522fecbcd9fd316667b3\trefs/heads/main",
+    "646c9af496b2497a542ab58d96ae1e7b17b1ee81\trefs/heads/staging"
+  ],
+  "validation": {
+    "lint": "exit 0; one preexisting auth warning",
+    "typecheck": "exit 0",
+    "build": "exit 0",
+    "unitTests": 2,
+    "browserTests": 18,
+    "axeChecks": 10,
+    "knownDependencyAdvisories": 0
+  }
+}

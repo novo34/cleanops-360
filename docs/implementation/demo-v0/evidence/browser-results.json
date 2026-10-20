@@ -1,0 +1,699 @@
+{
+  "config": {
+    "configFile": "/workspace/cleanops-v0-map/playwright.demo-v0.config.ts",
+    "rootDir": "/workspace/cleanops-v0-map/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/demo-v0-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/workspace/cleanops-v0-map/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-demo",
+        "name": "chromium-demo",
+        "testDir": "/workspace/cleanops-v0-map/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "demo-workspace.spec.ts",
+          "demo-v0-map.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "demo-v0-map.spec.ts",
+      "file": "demo-v0-map.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "local geographic map renders under unchanged CSP and interacts with existing details",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7550,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:24.079Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-f464e3e09ef5adb073e2",
+          "file": "demo-v0-map.spec.ts",
+          "line": 4,
+          "column": 5
+        },
+        {
+          "title": "map and theme follow the shared scenario across navigation without cookies or storage",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5526,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:31.968Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-3af7b71fb4edaf26ef6a",
+          "file": "demo-v0-map.spec.ts",
+          "line": 44,
+          "column": 5
+        },
+        {
+          "title": "dashboard map dark desktop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3914,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:37.514Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-fd4bcef2085725f1f43d",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "dashboard map dark tablet",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3217,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:41.510Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-ae624a1e70184f7f682e",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "dashboard map dark mobile",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1668,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:44.765Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-d4bc6b943de0d943999c",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "dashboard map light desktop",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2881,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:46.452Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-c71ad246edca01cc7abc",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "dashboard map light tablet",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2520,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:49.349Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-fa40be3fa8282e75fe6e",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "dashboard map light mobile",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1971,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:51.904Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-3d9152ce88b4d51bf80f",
+          "file": "demo-v0-map.spec.ts",
+          "line": 62,
+          "column": 9
+        },
+        {
+          "title": "service selection remains usable when WebGL is unavailable",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1667,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:53.902Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "4c7b827313ae62687523-dfa86d42fcb54c2e1bfd",
+          "file": "demo-v0-map.spec.ts",
+          "line": 75,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "demo-workspace.spec.ts",
+      "file": "demo-workspace.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "dashboard opens without auth, private APIs, browser storage or production cookies",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1601,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:55.588Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-245741d31e70e42ea34d",
+          "file": "demo-workspace.spec.ts",
+          "line": 4,
+          "column": 5
+        },
+        {
+          "title": "navigation, company search, shared customer view and empty state work",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2094,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:57.214Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-7b87d0e89f4aec80d80d",
+          "file": "demo-workspace.spec.ts",
+          "line": 20,
+          "column": 5
+        },
+        {
+          "title": "employee filters, accent-insensitive search and details are keyboard accessible",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:34:59.323Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-e7e0cd7a0f0602fdcd55",
+          "file": "demo-workspace.spec.ts",
+          "line": 41,
+          "column": 5
+        },
+        {
+          "title": "scenario switching resets filters and never mixes synthetic company references",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1525,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:01.183Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-7bdf6a197632b58e9fb7",
+          "file": "demo-workspace.spec.ts",
+          "line": 56,
+          "column": 5
+        },
+        {
+          "title": "one Planning view shows all four service types, gaps and overlap explanations without publication",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1756,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:02.734Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-0276132766bb12e32f10",
+          "file": "demo-workspace.spec.ts",
+          "line": 71,
+          "column": 5
+        },
+        {
+          "title": "unlisted demo routes return 404 instead of privileged or fabricated screens",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 958,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:04.509Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-25a58221edda53205b45",
+          "file": "demo-workspace.spec.ts",
+          "line": 84,
+          "column": 5
+        },
+        {
+          "title": "responsive navigation and zero horizontal overflow at 390",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3132,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:05.481Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-59690facd7fc5e31b8c8",
+          "file": "demo-workspace.spec.ts",
+          "line": 89,
+          "column": 7
+        },
+        {
+          "title": "responsive navigation and zero horizontal overflow at 768",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2340,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:08.626Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-943c94c0a000701d1bb9",
+          "file": "demo-workspace.spec.ts",
+          "line": 89,
+          "column": 7
+        },
+        {
+          "title": "responsive navigation and zero horizontal overflow at 1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-demo",
+              "projectName": "chromium-demo",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5146,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-20T07:35:11.017Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "eecb1f1be612fb96b0c3-0e801b5946d4df571e31",
+          "file": "demo-workspace.spec.ts",
+          "line": 89,
+          "column": 7
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-20T07:34:23.359Z",
+    "duration": 52991.337,
+    "expected": 18,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

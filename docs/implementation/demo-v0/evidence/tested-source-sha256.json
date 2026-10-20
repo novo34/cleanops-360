@@ -1,0 +1,15 @@
+{
+  ".gitignore": "dc4f860ed6eba1116de6c0b69e651d6abe983a8f927646f6f65c3e527abefa6c",
+  "package.json": "aab92ecbe4930f05167d22260afc404806401ba8e34823c92a654421535eabb3",
+  "package-lock.json": "938130ec03da009b7f492ce3e7edf42c488bb59925bf8e14de376110e8b85f2e",
+  "eslint.config.mjs": "36c7e595154e14ec723d3295fd44e1becbcaf74850ab5d822e391b2d0ea7a3a4",
+  "playwright.demo-v0.config.ts": "74d2ae34e2598f04a041e02e07903c2b086ae43458027ad186a9fb2bb8e3b8d6",
+  "components/demo/workspace.tsx": "a15634de2c2d1e17a56fedeac12fb4568746062bfd81ff2e9c931a3d46797233",
+  "components/demo/operations-map.tsx": "fbf0fd6ae0f5177bf86d77e54f2d81a7cb43179f4e5f48fcb4da381f33a1dba7",
+  "lib/demo/map-model.ts": "b9d9cc04744ff1f9f3869717cb5ddc767905e71c1d3af1243b45850f8c2cf6a3",
+  "app/demo/demo.css": "121a0eaf554f27d23e6781f80980aeab06433ec33a0cda47dc79cb6e41c23cbd",
+  "app/demo/themes.css": "fa60045e1ac6a659bb0da3b100ef3d01d23d5617863592b95b0848bb7f374db1",
+  "app/demo/[[...section]]/page.tsx": "4b281a19fe0a598faddfd9c8351b1d69d432735794256343e79ea057928375e1",
+  "e2e/demo-v0-map.spec.ts": "1bf1a958d1318c542156c36124c608db0c0bd2404c37e79cdecf40965ff6c391",
+  "tests/demo-map.test.ts": "e20d19e5156309f3849f71476a57fe1badba7f7ee02a2073879dc4f0d98b42fd"
+}
