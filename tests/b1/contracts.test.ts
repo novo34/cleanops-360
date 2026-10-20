@@ -23,8 +23,9 @@ test('missing, duplicated, altered approved and unreviewed trial values fail clo
   assert.throws(() => securityProfile(values.values.slice(1)))
   assert.throws(() => numeric('missing'))
 })
-test('14 unchanged canonical operations plus additive EMAIL and recovery operations; all inputs and success/error schemas validate and reject unknown fields', () => {
-  assert.equal(operations.length, 31); assert.equal(new Set(operations.map(o => o.operationId)).size, 31)
+test('31 existing B1 operations plus two B2 directory reads; all inputs and success/error schemas validate and reject unknown fields', () => {
+  assert.equal(operations.length, 33); assert.equal(new Set(operations.map(o => o.operationId)).size, 33)
+  assert.deepEqual(operations.filter(o => o.path.startsWith('/auth/users')).map(o => o.operationId).sort(), ['getAdministrationUser', 'listAdministrationUsers'])
   for (const op of operations) {
     if (op.requestBody) { const s = op.requestBody.content['application/json'].schema, value = sample(s); assert.ok(valid(s, value), op.operationId); assert.ok(!valid(s, { ...value as object, user_id: id }), op.operationId) }
     for (const response of Object.values(op.responses)) { const s = response.content['application/json'].schema; assert.ok(valid(s, sample(s)), op.operationId) }

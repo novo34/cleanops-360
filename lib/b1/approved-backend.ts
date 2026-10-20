@@ -10,6 +10,7 @@ import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleT
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
+import { readAdministrationUsers } from '../b2/users.ts'
 
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
 const invalid = () => new AuthError(401, 'AUTH_INVALID')
@@ -314,6 +315,9 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
+          if (operation === 'listAdministrationUsers' || operation === 'getAdministrationUser') {
+            return readAdministrationUsers(broker, operation, input, binding, correlation)
+          }
           if (['changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','adminResetMfa','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
               ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess'].includes(operation) || r.oneTime))) throw unavailable()
           if(operation==='getUserAccess'){
