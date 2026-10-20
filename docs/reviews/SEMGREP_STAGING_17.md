@@ -73,3 +73,18 @@ The full production files and scanner rules match staging a217cfeda byte for byt
 
 
 The SQL14/OpenBao/dashboard jobs are single-source experiments pinned to ec5bc165; their successful individual jobs and artifacts remain the execution evidence. Follow-up security-only commits do not rerun them. The production-security job checks the complete production/frontend/SQL/browser/harness scope byte-for-byte against that source before accepting retained evidence. Any difference fails and requires a new affected experiment; a SKIP is never counted as a new PASS.
+
+
+## Full B1 history Gitleaks follow-up (after merge99b874bb)
+
+The PR #7 scan covers B1 history beyond the narrower PR #11 diff. Actions39485356802/job118844236551 is retained as FAIL, not relabelled. Three additional exact historical findings were inspected at their original commits:
+
+| Introducing commit / source | Classification and evidence |
+|---|---|
+| e6f7d1d9490684d38982959696d73b6c38215af6, tests/b1/private-operations.test.ts:15 | Constant request idempotency identifier in a local IdentityConnection mock. It is neither a session/cookie nor a service credential; no real endpoint/identity or secret provider consumes it. |
+| a4fe5df2fef91c6551d6011dd5dc036514db120f, docs/proposals/b1-ceremony-material/APPROVAL.md:146 | English design-decision prose describing future email controls. No literal credential or cryptographic bytes occur on that line. |
+| 71e5521a228f5ae03961bde16d3b3346610089ab, tests/b1/approved-backend.test.ts:93 | Fixed idempotency header for a synthetic request explicitly expected to fail403 in a mocked private backend; not an authentication key. |
+
+Only commit:path:rule:line fingerprints are added to .gitleaksignore. No path/rule/content regex exemption or scanner change. New code, values or rewritten history cannot inherit those fingerprints. Merge commits retain the exact introducing history; a future squash/rebase needs its own scan and review before that separately authorized integration.
+
+The earlier one-shot experiment paragraph records the initial ec5bc165 follow-up. Final P1 custody/SQL integration is executed at df6a52b0, with all reports and source guards in PROXY_DEADLINE_EXECUTION.json; the unchanged dashboard remains pinned to its initial successful source.

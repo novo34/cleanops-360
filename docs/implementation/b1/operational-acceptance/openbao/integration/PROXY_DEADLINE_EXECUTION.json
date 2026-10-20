@@ -3264,6 +3264,13 @@
       "source": "92fb4197bd8ada6cbe01dbf21ee36168b673f97b",
       "status": "FAIL",
       "reason": "Partial checkout lacked OTPAuth, and truncating a valid1ms key lifetime to zero invalidated initial borrow. Fractional key lifetime fixed; SQL budgets remain conservatively floored. Final remote243 cases include real installed lock dependencies."
+    },
+    {
+      "source": "99b874bb3ceb6e92684c3a58263aee5254a17316",
+      "run": 39485356802,
+      "job": 118844236551,
+      "status": "FAIL",
+      "reason": "Full PR #7 history surfaced three historical non-credentials outside the PR #11 diff: two fixed synthetic idempotency request identifiers and one line of design-decision prose. Reviewed at introducing commits; only exact commit:path:rule:line fingerprints excepted."
     }
   ],
   "limitations": [
@@ -3283,5 +3290,14 @@
   },
   "technicalReadiness": "B1-TECH-READY",
   "stagingReadiness": "NOT_APPROVED",
-  "finalAcceptance": "NOT_ACCEPTED"
+  "finalAcceptance": "NOT_ACCEPTED",
+  "historyVerification": {
+    "mergedPR10": "6a65a89a173190fe4911542a7d3d9c28448e205c",
+    "mergedPR11": "99b874bb3ceb6e92684c3a58263aee5254a17316",
+    "testedPR11TreeIdentical": true,
+    "sourceChecksumCommitStillAncestor": true,
+    "stagingUnchanged": "a217cfeda74431b77ffa30d117febb62695c70d0",
+    "mainUnchanged": "d522e2edc95ac39af058522fecbcd9fd316667b3",
+    "currentFullHistoryFollowup": "PENDING_NEW_SCAN_NOT_A_PASS"
+  }
 }
