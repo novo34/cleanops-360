@@ -7,3 +7,5 @@ e6f7d1d9490684d38982959696d73b6c38215af6:tests/b1/private-operations.test.ts:gen
 a4fe5df2fef91c6551d6011dd5dc036514db120f:docs/proposals/b1-ceremony-material/APPROVAL.md:generic-api-key:146
 # Historical fixed HTTP idempotency identifier in a denied-request unit test.
 71e5521a228f5ae03961bde16d3b3346610089ab:tests/b1/approved-backend.test.ts:generic-api-key:93
+# Historical Git-blob checksum assertion for canonical OpenAPI/HTTP-contract fixtures, not a credential.
+442f06d791e7955bf3a3e4a9713bbe23c4facbee:tests/b1/totp-selection-contract.test.ts:generic-api-key:47

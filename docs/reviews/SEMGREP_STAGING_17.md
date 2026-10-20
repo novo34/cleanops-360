@@ -88,3 +88,12 @@ The PR #7 scan covers B1 history beyond the narrower PR #11 diff. Actions3948535
 Only commit:path:rule:line fingerprints are added to .gitleaksignore. No path/rule/content regex exemption or scanner change. New code, values or rewritten history cannot inherit those fingerprints. Merge commits retain the exact introducing history; a future squash/rebase needs its own scan and review before that separately authorized integration.
 
 The earlier one-shot experiment paragraph records the initial ec5bc165 follow-up. Final P1 custody/SQL integration is executed at df6a52b0, with all reports and source guards in PROXY_DEADLINE_EXECUTION.json; the unchanged dashboard remains pinned to its initial successful source.
+
+
+### Corrected history coverage
+
+The phrase full-history above described the PR #7 action's broader range compared with PR #11, but was too broad: inspection of pinned gitleaks-action/src/gitleaks.js shows an unpaginated GitHub PR commits request and a first-parent range limited to30 returned commits. Logs39485356802 and39486006161 each explicitly scanned30 commits. They do not prove full-history coverage.
+
+The existing action remains mandatory. B1 now also executes pinned Gitleaks8.24.3 explicitly over all history reachable from HEAD, rejects a shallow checkout, runs even if the paginated action fails, and preserves only finding metadata (no Secret/Match/Entropy/raw source) in a sanitized artifact. Scanner errors/incomplete reports remain FAIL. This strengthens coverage rather than changing detection rules.
+
+Actions39486006161 retained FAIL for a Git-blob checksum assertion at introducing commit442f06d791e7955bf3a3e4a9713bbe23c4facbee, tests/b1/totp-selection-contract.test.ts:47. The fixture compares the committed canonical OpenAPI/HTTP-contract assets to expected Git blob IDs; neither value is an authentication credential. Only that immutable fingerprint is excepted, and the full scan must still report all other findings.
