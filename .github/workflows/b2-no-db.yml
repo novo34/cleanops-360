@@ -45,6 +45,9 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npx playwright install --with-deps chromium
         if: ${{ !cancelled() }}
+      - name: B1 production Next proxy regression including B2 reads
+        if: ${{ !cancelled() }}
+        run: node --experimental-strip-types scripts/test-b1-proxy-origin.mjs
       - name: Chromium real closed boundary and dashboard regression
         if: ${{ !cancelled() }}
         run: npx playwright test --config=playwright.b2-boundary.config.ts

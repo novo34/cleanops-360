@@ -3,10 +3,11 @@ import { test, expect } from '@playwright/test'
 test('B2 directory routes stay closed and never issue session cookies', async ({request}) => {
  for (const path of ['/auth/users','/auth/users/detail?target_user_id=11111111-1111-4111-8111-111111111111']) {
   const response=await request.get(path)
-  expect(response.status()).toBe(503)
+  const body=await response.json()
+  expect(response.status(),JSON.stringify({path,code:body.error?.code})).toBe(503)
   expect(response.headers()['cache-control']).toBe('no-store')
   expect(response.headers()['set-cookie']).toBeUndefined()
-  expect((await response.json()).error.code).toBe('AUTH_DEPENDENCY_UNAVAILABLE')
+  expect(body.error.code).toBe('AUTH_DEPENDENCY_UNAVAILABLE')
  }
 })
 test('B2 rejects tenant claims and malformed selectors before closed backend access', async ({request}) => {
