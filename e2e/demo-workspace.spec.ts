@@ -9,7 +9,7 @@ test('dashboard opens without auth, private APIs, browser storage or production 
   expect(response?.status()).toBe(200)
   expect(response?.headers()['content-security-policy']).toContain("script-src 'self' 'nonce-")
   await expect(page.getByRole('heading', { name: 'Todo listo para un gran día.' })).toBeVisible()
-  await expect(page.getByText('Datos ficticios · Sin autenticación real · Sin cambios persistentes')).toBeVisible()
+  await expect(page.getByText('Datos ficticios · Sin autenticación real · Solo se guarda la preferencia visual')).toBeVisible()
   await page.getByRole('button', { name: 'Información de la demostración' }).click()
   await expect(page.getByText('Esta demo no consulta APIs privadas', { exact: false })).toBeVisible()
   expect(privateRequests).toEqual([])

@@ -12,7 +12,7 @@ const jsxA11yRules = jsxA11y.configs.recommended.rules
 
 export default [
   {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "public/demo-map/maplibre-gl-worker.mjs", "public/demo-map/maplibre-gl-shared.mjs"],
   },
   {
     files: ["scripts/**/*.mjs"],

@@ -1,0 +1,15 @@
+{
+  "pull_request": "NOT CREATED; automatic SQL execution prohibited by current authorization",
+  "quality_trigger": "pull_request, all branches",
+  "job_condition": "!startsWith(github.head_ref, 'feat/b1-')",
+  "integration_branch_matches_job": true,
+  "migration_step": {
+    "name": "Migrate isolated PostgreSQL",
+    "run": "npm run db:migrate"
+  },
+  "migration_script": "scripts/migrate-postgres.mjs: loads trusted migrations and executes SQL in PostgreSQL transaction",
+  "database": "ephemeral CI service, not staging; still outside current migration authorization",
+  "workflow_modified": false,
+  "ci_executed": false,
+  "merge_authorized": false
+}
