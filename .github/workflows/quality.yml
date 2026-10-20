@@ -110,6 +110,11 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npm run typecheck
+      - name: B1 closed-runtime offline regression
+        env:
+          DATABASE_URL: ''
+          CLEANOPS_TEST_DATABASE_URL: ''
+        run: npm run test:b1
       - name: Migrate isolated PostgreSQL
         run: npm run db:migrate
       - name: Unit and PostgreSQL integration tests
@@ -120,14 +125,28 @@ jobs:
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Browser matrix CSP smoke (production server)
         run: |
-          npm run start -- --hostname 127.0.0.1 > /tmp/cleanops-next.log 2>&1 &
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/cleanops-next.log 2>&1 &
           NEXT_PID=$!
           trap 'kill "$NEXT_PID" 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do
             if curl --silent --fail http://127.0.0.1:3000/ > /dev/null; then break; fi
             sleep 1
           done
-          npx playwright test
+          npx playwright test e2e/csp.spec.ts
+      - name: Dashboard demo browser regression (synthetic data only)
+        env:
+          CLEANOPS_DEMO_URL: http://127.0.0.1:3117
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3117 > /tmp/cleanops-demo-next.log 2>&1 &
+          DEMO_NEXT_PID=$!
+          trap 'kill "$DEMO_NEXT_PID" 2>/dev/null || true' EXIT
+          ready=no
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3117/demo > /dev/null; then ready=yes; break; fi
+            sleep 1
+          done
+          test "$ready" = yes
+          npx playwright test --config=playwright.demo-v0.config.ts
       - name: Upload browser test traces on failure
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
