@@ -1,5 +1,9 @@
 # Revisión independiente de 17 hallazgos Semgrep preexistentes
 
+## B2 shared-boundary context refresh (2026-10-20)
+
+PR #12 adds only a fixed B2 reader import and an explicit two-operation dispatch after B1's owns/resolveAgain checks. No authorization, credential, session, custody, or cookie behavior changes. FP-09 moves from line 605 to 609; its exact source-line SHA-256 is unchanged. Refresh only its coordinates and the full approved-backend context hash. All four inherited exact findings, classifications, snippet hashes, scanner engine, rules, and fail-closed guard remain unchanged; no exception is added. Quality run 39504589951 at 9870ec7 reports the same 17 inherited raw findings and remains FAIL. B2's dedicated scan additionally covers its reader/UI/routes and runs the existing full shared-boundary reviewed scanner; new or changed findings still fail.
+
 Fecha: 2026-10-20. Base: staging `646c9af496b2497a542ab58d96ae1e7b17b1ee81`. Integración: `c639403eeb195cc5cd0f96893d8503f2aa4ae4f7`.
 
 Alcance: revisión estática de los 17 resultados de Semgrep 1.177.0, reglas locales sin modificar. No ejecuta los harnesses de PostgreSQL/OpenBao ni activa B1. Los 10 archivos afectados son byte a byte iguales a staging; comparación y localizaciones originales en `../implementation/demo-staging/evidence/semgrep-comparison.json`.

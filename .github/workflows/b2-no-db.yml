@@ -50,7 +50,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check semgrep==1.177.0
       - name: Semgrep on B2 and shared HTTP contracts
         if: ${{ !cancelled() }}
-        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --disable-nosem --metrics=off lib/b2 lib/b1/contracts.ts lib/b1/v4-broker.ts
+        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --disable-nosem --metrics=off lib/b2 lib/b1/contracts.ts lib/b1/v4-broker.ts components/users-directory.tsx app/auth/users
+      - name: Full shared B1 boundary scan with existing exact finding reviews
+        if: ${{ !cancelled() }}
+        run: python scripts/check-semgrep-reviewed.py
       - name: Gitleaks
         if: ${{ !cancelled() }}
         uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc

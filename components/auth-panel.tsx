@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {ManageAccessPanel,type AccessDetail} from './manage-access-panel'
+import { UsersDirectory } from './users-directory'
 import { TotpEnrollmentQr } from './totp-enrollment-qr'
 import { contract, operations, valid } from '@/lib/b1/contracts'
 import { UiRequestKeys } from '@/lib/b1/ui-request-keys'
@@ -319,6 +320,7 @@ export function AuthPanel() {
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
         <section aria-labelledby="administration-heading"><h3 id="administration-heading">Administración</h3>
           <button type="button" onClick={()=>{setAccessOpen(v=>!v);setAccessView(null)}}>Usuarios y permisos</button>
+          {accessOpen && <UsersDirectory onManageAccess={loadUserAccess} />}
           {accessOpen&&<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void loadUserAccess(String(d.get('access_target')))}}>
             <label>Usuario para Manage Access <input name="access_target" minLength={36} maxLength={36} required /></label>
             <button type="submit">Abrir Manage Access</button>

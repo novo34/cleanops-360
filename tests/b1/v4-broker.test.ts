@@ -64,11 +64,12 @@ test('broker uses canonical functions and placeholders; no SQL value interpolati
   // Static drift check for every literal statement, not SQL execution.
   const source = readFileSync(new URL('../../lib/b1/v4-broker.ts', import.meta.url), 'utf8')
   const functions = [...source.matchAll(/SELECT (?:\* FROM )?auth_api\.([a-z_]+)\(/g)].map(match => match[1])
-  assert.equal(functions.length, 70)
+  assert.equal(functions.length, 72)
   const sql07 = readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql', import.meta.url), 'utf8')
   const extension = readFileSync(new URL('../../docs/proposals/b1-v4-extension/review-only.sql', import.meta.url), 'utf8')
   const d1 = readFileSync(new URL('../../docs/proposals/b1-ceremony-material/review-only.sql', import.meta.url), 'utf8')
-  for (const name of functions) assert.ok(sql07.includes('CREATE FUNCTION auth_api.' + name + '(') || sql07.includes('CREATE OR REPLACE FUNCTION auth_api.' + name + '(') || d1.includes('CREATE FUNCTION auth_api.' + name + '(') || ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '('), name)
+  const b2 = readFileSync(new URL('../../docs/proposals/b2-users/001-directory.review.sql', import.meta.url), 'utf8')
+  for (const name of functions) assert.ok(sql07.includes('CREATE FUNCTION auth_api.' + name + '(') || sql07.includes('CREATE OR REPLACE FUNCTION auth_api.' + name + '(') || d1.includes('CREATE FUNCTION auth_api.' + name + '(') || ddl.includes('CREATE FUNCTION auth_api.' + name + '(') || extension.includes('CREATE FUNCTION auth_api.' + name + '(') || b2.includes('CREATE FUNCTION auth_api.' + name + '('), name)
 })
 
 test('database error poisons the transaction even if the consumer catches it', async () => {
