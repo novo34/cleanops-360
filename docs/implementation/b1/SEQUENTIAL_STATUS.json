@@ -62,7 +62,7 @@
   },
   "demo": "UI IMPLEMENTED",
   "demoFurtherDevelopment": "SUSPENDED_UNTIL_CURRENT_MODULE_CLOSURE",
-  "nextBlocker": "CURRENT_TECHNICAL_SECURITY_INTEGRATION_AND_MANUAL_VALIDATION",
+  "nextBlocker": "STAGING_RESOURCE_CONFIGURATION_MANUAL_PO_AND_SEPARATE_ACTIVATION",
   "candidate": {
     "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
     "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
@@ -449,5 +449,37 @@
   "historicalNextAuthorization": {
     "operational": "Owner must designate actual Swiss OpenBao resources and custodians, independent reviewer and PO tester; authorize the exact operational resource/custody/recovery/manual scope in operational-acceptance/PLAN.md. No SQL14 reapproval needed; production/SMTP/deployment remain unauthorized."
   },
-  "historicalNextBlocker": "PR006_REAL_OPERATING_INDEPENDENT_MANUAL_AND_PR007_FORMAL_ACCEPTANCE"
+  "historicalNextBlocker": "PR006_REAL_OPERATING_INDEPENDENT_MANUAL_AND_PR007_FORMAL_ACCEPTANCE",
+  "technicalReadiness": {
+    "status": "B1-TECH-READY",
+    "scope": "Complete B1 functional implementation and applicable isolated synthetic validation; not formal phase acceptance",
+    "source": "df6a52b0d1db45cd2173150fdc1152866b7ddc5e",
+    "evidence": "docs/implementation/b1/operational-acceptance/openbao/integration/PROXY_DEADLINE_EXECUTION.json",
+    "requirementsImplementedAndIsolatedValidated": 42,
+    "requirementsTotal": 44,
+    "remainingRequirementIds": [
+      "REQ-PR-006",
+      "REQ-PR-007"
+    ],
+    "fixedSecurityFinding": "P1_CUSTODY_DEADLINE_BEFORE_COMMIT"
+  },
+  "stagingReadiness": {
+    "status": "NOT_APPROVED",
+    "pending": [
+      "Observed Hostinger capacity/network/TLS/workload identity and synthetic secret-path configuration",
+      "Authorized private integration without weakening tenant/key/verified-recipient/recovery controls",
+      "Actual manual PO demonstration",
+      "Separate explicit activation authorization; closedBackend stays active"
+    ],
+    "longLivedKeys": "Persisted rekey/HMAC migration is not implemented or accepted; do not deploy a profile that needs it."
+  },
+  "finalAcceptance": {
+    "status": "NOT_ACCEPTED",
+    "pending": [
+      "Final Swiss residence and resources",
+      "Additional independent custodians and approved operating quorum",
+      "Witnessed final custody/lifecycle/recovery and representative WAL/PITR/RPO/RTO",
+      "Formal PO phase/final acceptance"
+    ]
+  }
 }

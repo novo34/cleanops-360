@@ -39,10 +39,13 @@ async function role(h:Harness,workload:string){
  const auth=await h.api('auth/b1-approle/login',{role_id:id.data.role_id,secret_id:sid.data.secret_id},undefined) as {auth:{client_token:string}}
  return auth.auth.client_token
 }
-function client(h:Harness,state:State,credential:string){
+const internalOrigins = ['http://0.0.0.0:3000', 'https://0.0.0.0:3000'] as const
+function client(h:Harness,state:State,credential:string,transport:typeof internalOrigins[number]='http://0.0.0.0:3000'){
  const p=h.input.pg,identity=pool(p.identityRole),keys=refs(p.tenant),vault=reader(p.tenant,credential)
- async function compose<T>(work:(backend:ReturnType<typeof createApprovedPrivateBackend>)=>Promise<T>){
-  return withB1Custody({pool:identity,custody:vault,lifetimeMs:30000,totpKeys:[keys[0],keys[1]],references:{audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]},dependencies:borrow=>{
+ const deadlineDiagnostics={statementTimeouts:0,commits:0}
+ const guardedPool={async connect(){const connection=await identity.connect();return{async query(sql:string,values?:unknown[]){try{const result=await connection.query(sql,values);if(sql==='COMMIT')deadlineDiagnostics.commits++;return result}catch(error){if((error as {code?:string}).code==='57014')deadlineDiagnostics.statementTimeouts++;throw error}},release(discard?:boolean){connection.release(discard)}}}}
+ async function compose<T>(work:(backend:ReturnType<typeof createApprovedPrivateBackend>)=>Promise<T>,lifetimeMs=30000){
+  return withB1Custody({pool:guardedPool,custody:vault,lifetimeMs,totpKeys:[keys[0],keys[1]],references:{audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]},dependencies:borrow=>{
    const key=(i:number)=>borrow(keys[i],b=>b)
    return {
     factors:{dummyPasswordHash:state.dummyHash,auditKey:key(2),otpKey:key(3),recoveryKey:key(4),
@@ -57,7 +60,7 @@ function client(h:Harness,state:State,credential:string){
  }
  async function request(path:string,operation:string,body?:unknown,method?:string){
   return compose(async backend=>{
-   const response=await createAuthHandler(backend,origin).handle(new Request(origin+path,{method:method??(body===undefined?'GET':'POST'),headers:{cookie:Object.entries(state.jar).map(([k,v])=>`${k}=${v}`).join('; '),origin,'sec-fetch-site':'same-origin','x-csrf-token':state.jar[names.csrf]??'','content-type':'application/json','idempotency-key':randomUUID()},body:body===undefined?undefined:JSON.stringify(body)}),operation)
+   const response=await createAuthHandler(backend,origin,undefined,internalOrigins).handle(new Request(transport+path,{method:method??(body===undefined?'GET':'POST'),headers:{host:new URL(origin).host,'x-forwarded-host':new URL(origin).host,'x-forwarded-proto':'https',cookie:Object.entries(state.jar).map(([k,v])=>`${k}=${v}`).join('; '),origin,'sec-fetch-site':'same-origin','x-csrf-token':state.jar[names.csrf]??'','content-type':'application/json','idempotency-key':randomUUID()},body:body===undefined?undefined:JSON.stringify(body)}),operation)
    const data=await response.json()
    for(const cookie of response.headers.getSetCookie()){const[k,v]=cookie.split(';')[0].split('=');if(v)state.jar[k]=v;else delete state.jar[k]}
    // Actual HTTP projection must not contain any private crypto material.
@@ -66,7 +69,7 @@ function client(h:Harness,state:State,credential:string){
    return{response,data}
   })
  }
- return{compose,request,end:()=>identity.end(),vault,keys}
+ return{compose,request,end:()=>identity.end(),vault,keys,deadlineDiagnostics}
 }
 export async function beforeSnapshot(h:Harness){
  const p=h.input.pg,admin=pool('postgres'),method=randomUUID(),secret=h.secret!
@@ -122,13 +125,35 @@ export async function beforeSnapshot(h:Harness){
    }
    assert.equal(ran,false);assert.equal((await admin.query('SELECT count(*)::int AS n FROM app.sessions')).rows[0].n,before)
   })
+  await h.check('B1-custody-expiry-real-PG-lock-times-out-rolls-back-no-bootstrap',async()=>{
+   const before=Number((await admin.query('SELECT count(*) FROM identity_private.csrf_bootstrap')).rows[0].count)
+   const lock=await admin.connect(),commits=c.deadlineDiagnostics.commits,timeouts=c.deadlineDiagnostics.statementTimeouts
+   try{
+    await lock.query('BEGIN');await lock.query('LOCK TABLE identity_private.csrf_bootstrap IN ACCESS EXCLUSIVE MODE')
+    await assert.rejects(()=>c.compose(backend=>backend.bootstrap(digest(token()),digest(token()),Date.now()+numeric('preauth_ttl')*1000-1000),200),/AUTH_DEPENDENCY_UNAVAILABLE/)
+    assert.ok(c.deadlineDiagnostics.statementTimeouts>timeouts,'actual server statement_timeout SQLSTATE57014 required')
+    assert.equal(c.deadlineDiagnostics.commits,commits,'no COMMIT after failed custody-bound statement')
+   }finally{await lock.query('ROLLBACK');lock.release()}
+   assert.equal(Number((await admin.query('SELECT count(*) FROM identity_private.csrf_bootstrap')).rows[0].count),before)
+  })
+  await h.check('B1-confirmed-bootstrap-commit-keeps-cookies-after-custody-expiry',async()=>{
+   const before=c.deadlineDiagnostics.commits
+   const result=await c.compose(async backend=>{
+    const result=await createAuthHandler(backend,origin).bootstrap()
+    assert.ok(!(result instanceof Response))
+    await new Promise(resolve=>setTimeout(resolve,300))
+    return result
+   },200)
+   assert.ok(!(result instanceof Response));assert.equal(result.headers.getSetCookie().length,2)
+   assert.equal(c.deadlineDiagnostics.commits,before+1)
+  })
   state.auditCount=Number((await admin.query('SELECT count(*) FROM identity_private.security_log')).rows[0].count)
   assert.ok(state.auditCount>0)
   return state
  }finally{await c.end();await admin.end();envelope.fill(0);rotated.fill(0);mailEnvelope.fill(0)}
 }
 export async function afterRestore(h:Harness){
- const p=h.input.pg,state=h.state!,admin=pool('postgres'),credential=await role(h,'identity-verifier'),mailCredential=await role(h,'mail-worker'),c=client(h,state,credential)
+ const p=h.input.pg,state=h.state!,admin=pool('postgres'),credential=await role(h,'identity-verifier'),mailCredential=await role(h,'mail-worker'),c=client(h,state,credential,'https://0.0.0.0:3000')
  try{
   await h.check('B1-restored-PG-MFA-ciphertext-old-new-OpenBao-versions',async()=>{
    const row=(await admin.query('SELECT secret_ciphertext,key_version,last_totp_counter FROM app.mfa_methods WHERE tenant_id=$1 AND id=$2',[p.tenant,state.method])).rows[0]

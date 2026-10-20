@@ -12,8 +12,8 @@
     {
       "id": "REQ-PR-006",
       "requirement": "Cada feature deberá desarrollarse de extremo a extremo: DB → backend → API → permisos → UI → seguridad → pruebas → staging → validación Codex → prueba manual Product Owner.",
-      "implementation": "ISOLATED_TECHNICAL_EVIDENCE_COMPLETE_OPERATING_ACCEPTANCE_OPEN",
-      "pending": "Current development/staging: proxy-origin port validation, applicable security/independent review, controlled private staging integration and witnessed manual PO demonstration remain required. Final Swiss resource residence/custody/quorum and operational recovery remain open final-release obligations, not prerequisites for isolated synthetic successor development. Historical 144-check integration retained; no operational acceptance inferred.",
+      "implementation": "TECHNICAL_IMPLEMENTATION_AND_ISOLATED_VALIDATION_COMPLETE_DELIVERY_ACCEPTANCE_OPEN",
+      "pending": "B1 technical implementation and affected isolated tests complete, including P1 custody deadline fix and independent code revalidation. PR006 remains OPEN for observed secure private staging integration/configuration, actual manual PO observations and final Swiss operating/residence/custody/recovery obligations. No long-lived rekey capability, staging activation or formal acceptance is inferred.",
       "tests": [
         "E2E-01",
         "CI-01"
@@ -42,13 +42,15 @@
       "historicalBeforeOwnerExecutionDecision": "Native OpenBao + actual private B1 HTTP/API + SQL14 PostgreSQL integration and independent fresh-target recovery now PASS (144 checks, final source08ecbab3). Owner confirmed as principal custodian. Still required: actual Swiss host/storage/access residence, additional custodians and approved operational quorum, real custody/recovery and recovery-target evidence, independent review, authorized witnessed manual PO demonstration. No productive or formal acceptance inferred.",
       "pendingByStage": {
         "A": [
-          "Validate proxy-origin port on B1 branch and applicable security review",
-          "Review exact staging identity/key/ingress configuration before real backend activation; no installation or persistent DB mutation authorized",
-          "Independent review and actual manual PO observations remain current PR006 obligations"
+          "Observed secure private staging workload/ingress/custody configuration and controls before any activation",
+          "Actual manual PO demonstration; formal acceptance remains separate",
+          "Any long-lived key profile requiring persisted TOTP recipher/HMAC multiversion migration remains blocked until implemented/validated; the authorized ephemeral synthetic profile does not use that capability"
         ],
         "B": [
-          "42 isolated criteria and historical 144 real PG/OpenBao checks retained",
-          "Run affected HTTP regression; no unaffected PG/OpenBao rerun merely to increase counts"
+          "42 functional rows and exact SQL14 evidence retained",
+          "Current source: real PG browser10/180 checks, RBAC/tenant-switch10/180 checks, OpenBao146 checks all PASS; cleanup PASS",
+          "243 unit/service,97 static,57 fixture Chromium and31 real production Next operations PASS;13 Vitest PASS/3 explicit DB SKIP",
+          "Independent P1 code revalidation: no major issues; unchanged-dashboard36 Chromium retained with exact source comparison"
         ],
         "C": [
           "Actual final Swiss compute/storage/backup/access residence",
@@ -56,7 +58,8 @@
           "Witnessed final custody/key lifecycle/recovery, WAL/PITR and representative RPO/RTO",
           "Formal final operational acceptance"
         ]
-      }
+      },
+      "historicalBeforeTechnicalCloseout": "Current development/staging: proxy-origin port validation, applicable security/independent review, controlled private staging integration and witnessed manual PO demonstration remain required. Final Swiss resource residence/custody/quorum and operational recovery remain open final-release obligations, not prerequisites for isolated synthetic successor development. Historical 144-check integration retained; no operational acceptance inferred."
     },
     {
       "id": "REQ-PR-007",
@@ -3327,5 +3330,24 @@
     "stagingDatabaseChangesAuthorized": false,
     "hostingerOpenBaoInstallationAuthorized": false,
     "swissProvisioningAuthorized": false
+  },
+  "technicalReadiness": {
+    "status": "B1-TECH-READY",
+    "scope": "Complete B1 functional implementation and applicable isolated synthetic validation; not formal phase acceptance",
+    "source": "df6a52b0d1db45cd2173150fdc1152866b7ddc5e",
+    "evidence": "docs/implementation/b1/operational-acceptance/openbao/integration/PROXY_DEADLINE_EXECUTION.json",
+    "requirementsImplementedAndIsolatedValidated": 42,
+    "requirementsTotal": 44,
+    "remainingRequirementIds": [
+      "REQ-PR-006",
+      "REQ-PR-007"
+    ],
+    "fixedSecurityFinding": "P1_CUSTODY_DEADLINE_BEFORE_COMMIT"
+  },
+  "currentCrossCuttingSecurityEvidence": {
+    "finding": "https://github.com/novo34/cleanops-360/pull/7#discussion_r4329120606",
+    "status": "FIXED_AND_REVIEWED_IN_ISOLATION",
+    "source": "df6a52b0d1db45cd2173150fdc1152866b7ddc5e",
+    "evidence": "docs/implementation/b1/operational-acceptance/openbao/integration/PROXY_DEADLINE_EXECUTION.json"
   }
 }

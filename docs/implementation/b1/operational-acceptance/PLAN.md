@@ -5,8 +5,7 @@ migration is a separate final operation after the full system is developed, test
 and approved. This supersedes the sequencing statements below, not the SRS,
 Swiss final residence/custody/security controls or historical evidence.
 
-- **A — current blockers:** validate the proxy-origin correction on the B1 branch;
-  applicable automated and independent security review; review exact private
+- **A — current staging blockers:** review exact private
   identity/key/ingress integration before controlled staging use; actual manual
   PO observations. Staging capacity/TLS/secret paths remain unverified. No current
   security control is deferred because Hostinger is outside Switzerland.
@@ -16,7 +15,8 @@ Swiss final residence/custody/security controls or historical evidence.
   commit. Unaffected custody/SQL evidence is retained, not rerun or called final
   acceptance. The 22 local service/origin cases passed after completing the local
   source retrieval; the first invocation lacked config.ts and executed no cases.
-  Remote CI results must be read from the actual run, not inferred from this text.
+  Current remote results and retained failures are linked in the execution report.
+  No SKIP is counted as PASS; no completed phase or production operation is inferred.
 - **C — final Swiss operation:** actual compute/storage/backup/access residence,
   additional independent custodians and approved operating quorum, witnessed
   custody/lifecycle/recovery and representative WAL/PITR/RPO/RTO remain OPEN.
@@ -26,7 +26,10 @@ PR006 remains OPEN for current integration/review/manual obligations and final
 operational obligations. PR007 remains OPEN for formal PO acceptance. Its existing
 explicit-owner exception permits isolated synthetic B2/B3 work per this instruction.
 AUTH-GATE-05 remains OPEN and closedBackend remains connected.
-B1-TECH-READY is not declared while the current correction/review is pending;
+B1-TECH-READY is evidenced for the authorized isolated synthetic scope: the proxy
+correction, P1 custody/COMMIT defect, independent revalidation and applicable CI
+are complete. [Executed source/run/job reports](openbao/integration/PROXY_DEADLINE_EXECUTION.json).
+The44-row module remains OPEN with42 accepted functional rows and PR006/PR007 OPEN;
 B1-STAGING-READY is not declared before current staging controls pass;
 B1-FINAL-ACCEPTED is not declared. These labels do not replace canonical gates.
 
@@ -50,6 +53,22 @@ server-derived tenant, API permissions and audit must use the same B1 contracts.
 CRM company records must not become tenant identities. No real contact import,
 external email or shared staging mutation is implied. Neither successor is
 implemented in the B1 correction branch.
+
+### Minimum B3 contract preparation (no B3 implementation here)
+
+Canonical COM-07 is POST /contacts/{id}/suppression, with effective
+contacts.suppress, tenant-owned contact_compliance/suppression_list, audit and
+401/403/404/409/422 errors (API_SPEC.md, RBAC_PERMISSIONS.md). Bind that permission
+through the existing B1 broker in the B3 slice, never a parallel engine or role-name
+shortcut. DATA_MODEL.md already specifies data_source, source_url, first_seen_at,
+last_verified_at, communication_basis, do_not_contact, do_not_contact_at,
+privacy_request_status and retention_review_at. Company is a CRM record with
+multiple contacts, not a tenant identity. Suppression prevails in API and workers;
+synthetic tests must include foreign-tenant denial, stale/concurrent mutation,
+durable audit and no external communication. Concrete CRUD DTO/routes are not
+invented as approved contracts by this B1 closeout; B3 defines them in its own
+vertical slice against these canonical constraints. B2 reuses Manage Access and
+AUTHZ-001..007 rather than recreating them.
 
 No further approval is needed for the authorized isolated engineering work.
 Persistent staging SQL/ACL, Hostinger OpenBao installation, merge and real backend
