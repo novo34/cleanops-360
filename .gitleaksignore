@@ -9,3 +9,21 @@ a4fe5df2fef91c6551d6011dd5dc036514db120f:docs/proposals/b1-ceremony-material/APP
 71e5521a228f5ae03961bde16d3b3346610089ab:tests/b1/approved-backend.test.ts:generic-api-key:93
 # Historical Git-blob checksum assertion for canonical OpenAPI/HTTP-contract fixtures, not a credential.
 442f06d791e7955bf3a3e4a9713bbe23c4facbee:tests/b1/totp-selection-contract.test.ts:generic-api-key:47
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+50c4418438f18adb39e0c382a571159bc38758eb:docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json:generic-api-key:775
+# Reviewed historical non-credential: DESIGN_PROSE_NO_CREDENTIAL.
+63765d252e71ae1d0806b306ce4e1ec0c1918b14:docs/implementation/b1/operational-acceptance/openbao/README.md:generic-api-key:7
+# Reviewed historical non-credential: SYNTHETIC_DELIVERY_CONTROL_FLOW_NO_LITERAL_SECRET.
+aa59837da2d1cddface0caf1857061a79aa99504:scripts/pg05-browser-backend.ts:generic-api-key:143
+# Reviewed historical non-credential: FIXED_SYNTHETIC_IDEMPOTENCY_IDENTIFIER.
+92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8:tests/b1/enrollment-backend.test.ts:generic-api-key:36
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+5426ff83daabb9a96fee1a2e5ebccc59f3b5f4b6:docs/canonical/auth-review/v4/H1_H3_APPROVAL.md:generic-api-key:7
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+ec2f9e05cfc92c498b1d2e819f0308779d6453a5:lib/b1/provenance.json:generic-api-key:2
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:16
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:22
+# Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
+796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:23

@@ -3271,6 +3271,20 @@
       "job": 118844236551,
       "status": "FAIL",
       "reason": "Full PR #7 history surfaced three historical non-credentials outside the PR #11 diff: two fixed synthetic idempotency request identifiers and one line of design-decision prose. Reviewed at introducing commits; only exact commit:path:rule:line fingerprints excepted."
+    },
+    {
+      "source": "07f71a91623174599755c351f6022f9aa388fca4",
+      "run": 39486006161,
+      "job": 118846473596,
+      "status": "FAIL",
+      "reason": "Paginated action30-commit subset surfaced canonical Git-blob checksum assertion, reviewed as non-credential."
+    },
+    {
+      "source": "1e0b6519f1b5ab9f57951d310baadf85a7e69487",
+      "run": 39486601226,
+      "job": 118848514239,
+      "status": "FAIL",
+      "reason": "First actual complete scan303 reachable commits; nine additional non-credential metadata/prose/test findings reviewed individually. Raw FAIL preserved; not relabelled."
     }
   ],
   "limitations": [
@@ -3298,6 +3312,164 @@
     "sourceChecksumCommitStillAncestor": true,
     "stagingUnchanged": "a217cfeda74431b77ffa30d117febb62695c70d0",
     "mainUnchanged": "d522e2edc95ac39af058522fecbcd9fd316667b3",
-    "currentFullHistoryFollowup": "PENDING_NEW_SCAN_NOT_A_PASS"
+    "currentFullHistoryFollowup": "PENDING_RESCAN_AT_PUBLICATION_NOT_A_PASS",
+    "paginatedActionCoverage": "Only30 PR API commits; prior full-history wording corrected.",
+    "completeReachableScanInitial": {
+      "scope": "ALL_HISTORY_REACHABLE_FROM_HEAD",
+      "status": "FAIL",
+      "scanner": "8.24.3",
+      "exitCode": 2,
+      "source": "ea5afa0cbc6a91a3eb38da0a2ab8b246da28175a",
+      "branchSource": "1e0b6519f1b5ab9f57951d310baadf85a7e69487",
+      "reachableCommits": 303,
+      "findings": [
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json",
+          "StartLine": 775,
+          "EndLine": 775,
+          "Commit": "50c4418438f18adb39e0c382a571159bc38758eb",
+          "Fingerprint": "50c4418438f18adb39e0c382a571159bc38758eb:docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json:generic-api-key:775"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/implementation/b1/operational-acceptance/openbao/README.md",
+          "StartLine": 7,
+          "EndLine": 7,
+          "Commit": "63765d252e71ae1d0806b306ce4e1ec0c1918b14",
+          "Fingerprint": "63765d252e71ae1d0806b306ce4e1ec0c1918b14:docs/implementation/b1/operational-acceptance/openbao/README.md:generic-api-key:7"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "scripts/pg05-browser-backend.ts",
+          "StartLine": 143,
+          "EndLine": 143,
+          "Commit": "aa59837da2d1cddface0caf1857061a79aa99504",
+          "Fingerprint": "aa59837da2d1cddface0caf1857061a79aa99504:scripts/pg05-browser-backend.ts:generic-api-key:143"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "tests/b1/enrollment-backend.test.ts",
+          "StartLine": 36,
+          "EndLine": 36,
+          "Commit": "92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8",
+          "Fingerprint": "92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8:tests/b1/enrollment-backend.test.ts:generic-api-key:36"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/canonical/auth-review/v4/H1_H3_APPROVAL.md",
+          "StartLine": 7,
+          "EndLine": 7,
+          "Commit": "5426ff83daabb9a96fee1a2e5ebccc59f3b5f4b6",
+          "Fingerprint": "5426ff83daabb9a96fee1a2e5ebccc59f3b5f4b6:docs/canonical/auth-review/v4/H1_H3_APPROVAL.md:generic-api-key:7"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "lib/b1/provenance.json",
+          "StartLine": 2,
+          "EndLine": 2,
+          "Commit": "ec2f9e05cfc92c498b1d2e819f0308779d6453a5",
+          "Fingerprint": "ec2f9e05cfc92c498b1d2e819f0308779d6453a5:lib/b1/provenance.json:generic-api-key:2"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/canonical/auth-review/v4/artifact-manifest.json",
+          "StartLine": 16,
+          "EndLine": 16,
+          "Commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+          "Fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:16"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/canonical/auth-review/v4/artifact-manifest.json",
+          "StartLine": 22,
+          "EndLine": 22,
+          "Commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+          "Fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:22"
+        },
+        {
+          "RuleID": "generic-api-key",
+          "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+          "File": "docs/canonical/auth-review/v4/artifact-manifest.json",
+          "StartLine": 23,
+          "EndLine": 23,
+          "Commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+          "Fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:23"
+        }
+      ]
+    },
+    "completeReachableFindingReviews": [
+      {
+        "fingerprint": "50c4418438f18adb39e0c382a571159bc38758eb:docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json:generic-api-key:775",
+        "path": "docs/implementation/b1/operational-acceptance/openbao/integration/EXECUTION.json",
+        "line": 775,
+        "commit": "50c4418438f18adb39e0c382a571159bc38758eb",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      },
+      {
+        "fingerprint": "63765d252e71ae1d0806b306ce4e1ec0c1918b14:docs/implementation/b1/operational-acceptance/openbao/README.md:generic-api-key:7",
+        "path": "docs/implementation/b1/operational-acceptance/openbao/README.md",
+        "line": 7,
+        "commit": "63765d252e71ae1d0806b306ce4e1ec0c1918b14",
+        "classification": "DESIGN_PROSE_NO_CREDENTIAL"
+      },
+      {
+        "fingerprint": "aa59837da2d1cddface0caf1857061a79aa99504:scripts/pg05-browser-backend.ts:generic-api-key:143",
+        "path": "scripts/pg05-browser-backend.ts",
+        "line": 143,
+        "commit": "aa59837da2d1cddface0caf1857061a79aa99504",
+        "classification": "SYNTHETIC_DELIVERY_CONTROL_FLOW_NO_LITERAL_SECRET"
+      },
+      {
+        "fingerprint": "92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8:tests/b1/enrollment-backend.test.ts:generic-api-key:36",
+        "path": "tests/b1/enrollment-backend.test.ts",
+        "line": 36,
+        "commit": "92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8",
+        "classification": "FIXED_SYNTHETIC_IDEMPOTENCY_IDENTIFIER"
+      },
+      {
+        "fingerprint": "5426ff83daabb9a96fee1a2e5ebccc59f3b5f4b6:docs/canonical/auth-review/v4/H1_H3_APPROVAL.md:generic-api-key:7",
+        "path": "docs/canonical/auth-review/v4/H1_H3_APPROVAL.md",
+        "line": 7,
+        "commit": "5426ff83daabb9a96fee1a2e5ebccc59f3b5f4b6",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      },
+      {
+        "fingerprint": "ec2f9e05cfc92c498b1d2e819f0308779d6453a5:lib/b1/provenance.json:generic-api-key:2",
+        "path": "lib/b1/provenance.json",
+        "line": 2,
+        "commit": "ec2f9e05cfc92c498b1d2e819f0308779d6453a5",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      },
+      {
+        "fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:16",
+        "path": "docs/canonical/auth-review/v4/artifact-manifest.json",
+        "line": 16,
+        "commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      },
+      {
+        "fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:22",
+        "path": "docs/canonical/auth-review/v4/artifact-manifest.json",
+        "line": 22,
+        "commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      },
+      {
+        "fingerprint": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:23",
+        "path": "docs/canonical/auth-review/v4/artifact-manifest.json",
+        "line": 23,
+        "commit": "796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b",
+        "classification": "SOURCE_INTEGRITY_DIGEST"
+      }
+    ]
   }
 }
