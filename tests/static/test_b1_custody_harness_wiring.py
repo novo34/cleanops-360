@@ -11,7 +11,9 @@ ROOT = Path(__file__).resolve().parents[2]
 class CustodyHarnessWiring(unittest.TestCase):
     def test_synthetic_harness_uses_scoped_private_composition(self):
         source = (ROOT / "scripts/openbao-b1-integration.ts").read_text(encoding="utf-8")
-        self.assertIn("withB1Custody({pool:identity,custody:vault", source)
+        self.assertIn("withB1Custody({pool:guardedPool,custody:vault", source)
+        self.assertIn("const connection=await identity.connect()", source)
+        self.assertIn("deadlineDiagnostics.statementTimeouts++", source)
         self.assertIn("totpKeys:[keys[0],keys[1]]", source)
         self.assertIn("audit:keys[2],otp:keys[3],recovery:keys[4],cursor:keys[5]", source)
         self.assertNotIn("createApprovedPrivateBackend(identity,", source)
