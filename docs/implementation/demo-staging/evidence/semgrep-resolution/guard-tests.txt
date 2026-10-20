@@ -1,0 +1,19 @@
+test_duplicate_manifest_or_report_match_is_rejected (test_semgrep_reviewed.ReviewGuardTests.test_duplicate_manifest_or_report_match_is_rejected) ... ok
+test_engine_change_or_incomplete_report_is_rejected (test_semgrep_reviewed.ReviewGuardTests.test_engine_change_or_incomplete_report_is_rejected) ... ok
+test_exact_review_is_visible_in_audit_result (test_semgrep_reviewed.ReviewGuardTests.test_exact_review_is_visible_in_audit_result) ... ok
+test_exception_cannot_omit_file_guard_or_source_digest (test_semgrep_reviewed.ReviewGuardTests.test_exception_cannot_omit_file_guard_or_source_digest) ... ok
+test_finding_in_new_code_is_not_suppressed (test_semgrep_reviewed.ReviewGuardTests.test_finding_in_new_code_is_not_suppressed) ... ok
+test_missing_match_requires_review_cleanup (test_semgrep_reviewed.ReviewGuardTests.test_missing_match_requires_review_cleanup) ... ok
+test_new_finding_in_existing_file_is_not_suppressed (test_semgrep_reviewed.ReviewGuardTests.test_new_finding_in_existing_file_is_not_suppressed) ... ok
+test_other_rule_at_same_location_cannot_reuse_exception (test_semgrep_reviewed.ReviewGuardTests.test_other_rule_at_same_location_cannot_reuse_exception) ... ok
+test_path_escape_is_rejected (test_semgrep_reviewed.ReviewGuardTests.test_path_escape_is_rejected) ... ok
+test_real_registry_has_exactly_the_seventeen_reviewed_exceptions (test_semgrep_reviewed.ReviewGuardTests.test_real_registry_has_exactly_the_seventeen_reviewed_exceptions) ... ok
+test_source_change_expires_exception_even_if_position_is_identical (test_semgrep_reviewed.ReviewGuardTests.test_source_change_expires_exception_even_if_position_is_identical) ... ok
+test_trust_boundary_change_in_caller_expires_exception (test_semgrep_reviewed.ReviewGuardTests.test_trust_boundary_change_in_caller_expires_exception) ... ok
+test_unreviewed_scan_error_is_not_turned_into_pass (test_semgrep_reviewed.ReviewGuardTests.test_unreviewed_scan_error_is_not_turned_into_pass) ... ok
+test_vendor_warning_requires_exact_reviewed_bytes (test_semgrep_reviewed.ReviewGuardTests.test_vendor_warning_requires_exact_reviewed_bytes) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.006s
+
+OK

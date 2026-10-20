@@ -1,0 +1,115 @@
+{
+  "engine": "semgrep 1.177.0",
+  "rules": ".semgrep/cleanops-foundation.yml unchanged",
+  "full_scan": "FAIL: 17 existing findings",
+  "current_count": 17,
+  "baseline_count": 17,
+  "introduced": [],
+  "findings": [
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-real-postgres.spec.ts",
+      116
+    ],
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-real-postgres.spec.ts",
+      250
+    ],
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-recovery-postgres.spec.ts",
+      39
+    ],
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-recovery-postgres.spec.ts",
+      121
+    ],
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-recovery-postgres.spec.ts",
+      142
+    ],
+    [
+      "cleanops-code-execution-import",
+      "e2e/b1-recovery-postgres.spec.ts",
+      187
+    ],
+    [
+      "cleanops-code-execution-import",
+      "lib/b1/approved-backend.ts",
+      605
+    ],
+    [
+      "cleanops-code-execution-import",
+      "lib/b1/password.ts",
+      29
+    ],
+    [
+      "cleanops-code-execution-import",
+      "lib/b1/password.ts",
+      66
+    ],
+    [
+      "cleanops-code-execution-import",
+      "lib/b1/totp.ts",
+      61
+    ],
+    [
+      "cleanops-code-execution-import",
+      "scripts/openbao-isolated-worker.mjs",
+      26
+    ],
+    [
+      "cleanops-code-execution-import",
+      "scripts/pg05-browser-backend.ts",
+      108
+    ],
+    [
+      "cleanops-hardcoded-secret",
+      "scripts/openbao-b1-integration.ts",
+      79
+    ],
+    [
+      "cleanops-hardcoded-secret",
+      "scripts/pg05-browser-backend.ts",
+      33
+    ],
+    [
+      "cleanops-hardcoded-secret",
+      "scripts/pg05-http-real.ts",
+      19
+    ],
+    [
+      "cleanops-ssrf-user-url",
+      "e2e/b1-reset-postgres.spec.ts",
+      95
+    ],
+    [
+      "cleanops-ssrf-user-url",
+      "e2e/b1-reset-postgres.spec.ts",
+      116
+    ]
+  ],
+  "baseline_files_byte_identical": {
+    "e2e/b1-recovery-postgres.spec.ts": true,
+    "e2e/b1-real-postgres.spec.ts": true,
+    "scripts/openbao-b1-integration.ts": true,
+    "lib/b1/password.ts": true,
+    "lib/b1/totp.ts": true,
+    "e2e/b1-reset-postgres.spec.ts": true,
+    "scripts/pg05-browser-backend.ts": true,
+    "scripts/pg05-http-real.ts": true,
+    "lib/b1/approved-backend.ts": true,
+    "scripts/openbao-isolated-worker.mjs": true
+  },
+  "parser_warnings": [
+    {
+      "path": "public/demo-map/maplibre-gl-worker.mjs",
+      "type": "Syntax error",
+      "level": "warn",
+      "message": "Syntax error at line public/demo-map/maplibre-gl-worker.mjs:1:\n `/**\n* MapLibre GL JS\n* @license 3-Clause BSD. Full text of license: https://github.com/maplibre/maplibre-gl-js/blob"
+    }
+  ]
+}

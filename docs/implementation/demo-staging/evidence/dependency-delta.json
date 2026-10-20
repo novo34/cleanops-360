@@ -1,0 +1,29 @@
+{
+  "removed": [],
+  "existing_version_changes": [],
+  "added": [
+    "node_modules/@mapbox/jsonlint-lines-primitives",
+    "node_modules/@mapbox/point-geometry",
+    "node_modules/@mapbox/tiny-sdf",
+    "node_modules/@mapbox/unitbezier",
+    "node_modules/@mapbox/vector-tile",
+    "node_modules/@maplibre/geojson-vt",
+    "node_modules/@maplibre/maplibre-gl-style-spec",
+    "node_modules/@maplibre/mlt",
+    "node_modules/@maplibre/vt-pbf",
+    "node_modules/@types/geojson",
+    "node_modules/bidi-js",
+    "node_modules/earcut",
+    "node_modules/gl-matrix",
+    "node_modules/json-stringify-pretty-compact",
+    "node_modules/kdbush",
+    "node_modules/maplibre-gl",
+    "node_modules/murmurhash-js",
+    "node_modules/pbf",
+    "node_modules/potpack",
+    "node_modules/protocol-buffers-schema",
+    "node_modules/quickselect",
+    "node_modules/resolve-protobuf-schema",
+    "node_modules/tinyqueue"
+  ]
+}

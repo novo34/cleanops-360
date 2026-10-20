@@ -1,0 +1,50 @@
+
+Running 36 tests using 1 worker
+
+(node:23797) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23797) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium-demo] › e2e/csp.spec.ts:7:7 › System Status gate, CSP and browser render — desktop (3.3s)
+  ✓   2 [chromium-demo] › e2e/csp.spec.ts:7:7 › System Status gate, CSP and browser render — mobile (1.8s)
+  ✓   3 [chromium-demo] › e2e/csp.spec.ts:35:5 › CSP nonce changes between responses (175ms)
+  ✓   4 [chromium-demo] › e2e/csp.spec.ts:43:5 › CSP blocks an inline script without a nonce (1.6s)
+  ✓   5 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status health denies unauthenticated access (214ms)
+  ✓   6 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status config denies unauthenticated access (52ms)
+  ✓   7 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status version denies unauthenticated access (44ms)
+  ✓   8 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status audit denies unauthenticated access (91ms)
+  ✓   9 [chromium-demo] › e2e/csp.spec.ts:87:5 › System Status shows a transport error without inferring service health (1.1s)
+  ✓  10 [chromium-demo] › e2e/demo-security-boundary.spec.ts:3:5 › demo preference does not create an authenticated session or change closed private routes (3.8s)
+  ✓  11 [chromium-demo] › e2e/demo-v0-map.spec.ts:4:5 › local geographic map renders under unchanged CSP and interacts with existing details (6.0s)
+  ✓  12 [chromium-demo] › e2e/demo-v0-map.spec.ts:45:5 › map and theme follow the shared scenario across navigation with only a non-sensitive visual preference (4.6s)
+  ✓  13 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark desktop (3.0s)
+  ✓  14 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark tablet (2.5s)
+  ✓  15 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark mobile (2.8s)
+  ✓  16 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light desktop (4.6s)
+  ✓  17 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light tablet (3.9s)
+  ✓  18 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light mobile (2.8s)
+  ✓  19 [chromium-demo] › e2e/demo-v0-map.spec.ts:78:5 › service selection remains usable when WebGL is unavailable (1.6s)
+  ✓  20 [chromium-demo] › e2e/demo-v0-map.spec.ts:96:5 › theme follows the OS until explicit preference and persists reload/navigation (4.0s)
+  ✓  21 [chromium-demo] › e2e/demo-v0-map.spec.ts:112:5 › filters retain visible selection, clear hidden services, reset, and provide accessible empty state (3.7s)
+  ✓  22 [chromium-demo] › e2e/demo-v0-map.spec.ts:139:5 › zoom and drag actually move cartography and selected nearby services remain identifiable (5.0s)
+  ✓  23 [chromium-demo] › e2e/demo-v0-map.spec.ts:163:5 › stored theme is applied before hydration, using the existing CSP nonce (949ms)
+  ✓  24 [chromium-demo] › e2e/demo-v0-map.spec.ts:171:5 › blocked visual storage does not disable theme control and landscape stays usable (1.7s)
+  ✓  25 [chromium-demo] › e2e/demo-v0-map.spec.ts:185:5 › agenda selection restores map context even after filtering out that service (2.3s)
+  ✓  26 [chromium-demo] › e2e/demo-v0-map.spec.ts:197:5 › mobile navigation opens with keyboard focus and Escape returns to the trigger (2.0s)
+  ✓  27 [chromium-demo] › e2e/demo-v0-map.spec.ts:207:5 › touch emulation selects and closes services with sufficiently sized map controls (2.5s)
+  ✓  28 [chromium-demo] › e2e/demo-workspace.spec.ts:4:5 › dashboard opens without auth, private APIs, browser storage or production cookies (1.8s)
+  ✓  29 [chromium-demo] › e2e/demo-workspace.spec.ts:20:5 › navigation, company search, shared customer view and empty state work (2.0s)
+  ✓  30 [chromium-demo] › e2e/demo-workspace.spec.ts:41:5 › employee filters, accent-insensitive search and details are keyboard accessible (1.8s)
+  ✓  31 [chromium-demo] › e2e/demo-workspace.spec.ts:56:5 › scenario switching resets filters and never mixes synthetic company references (2.1s)
+  ✓  32 [chromium-demo] › e2e/demo-workspace.spec.ts:71:5 › one Planning view shows all four service types, gaps and overlap explanations without publication (2.4s)
+  ✓  33 [chromium-demo] › e2e/demo-workspace.spec.ts:84:5 › unlisted demo routes return 404 instead of privileged or fabricated screens (1.8s)
+  ✓  34 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 390 (4.0s)
+  ✓  35 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 768 (3.1s)
+  ✓  36 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 1440 (5.9s)
+
+  36 passed (1.6m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

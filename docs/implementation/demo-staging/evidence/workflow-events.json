@@ -1,0 +1,334 @@
+{
+  "integration_branch_push_triggers": [],
+  "workflows": [
+    {
+      "path": ".github/workflows/b1-access-native.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == '9f479c975468c3a2e11f440b9544f143cfa3d103' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-access-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == 'c27dbc68e23867d20a552da14c589d2d1f572568' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-consolidated08-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == '9997024be7583f6b9bf06d45afb330f13f288dd3' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-consolidated09-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == '9f73907fdfe506619444201deac6655a54fe4462' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-e1-review.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "offline": "startsWith(github.head_ref, 'feat/b1-')"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-email-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "email-pg": "github.event.pull_request.number == 7 && github.event.before == 'a36c8197d2c3fb7724977b6c17499efe2a15caa8' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-no-db.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "b1": "startsWith(github.head_ref, 'feat/b1-')"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-openbao-integration.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "isolated-integration": "github.event.pull_request.number == 7 && github.event.before == 'cd6c4f6c0a10b5d57b885dde7b7f7b64e3d8a906' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-openbao-isolated.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "synthetic-custody": "github.event.pull_request.number == 7 && github.event.before == '4ca8ff93f0dfedfdf864996dcf5c8b7c3fc0f957' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-proxy-origin.yml",
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "push": {
+        "branches": [
+          "staging"
+        ],
+        "paths": [
+          "lib/b1/**",
+          "tests/b1/**",
+          "deploy/staging/**",
+          "scripts/*b1*origin*",
+          ".github/workflows/b1-proxy-origin.yml"
+        ]
+      },
+      "job_conditions": {
+        "origin": null
+      }
+    },
+    {
+      "path": ".github/workflows/b1-qr-dependency.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "lock": "github.event.pull_request.number == 7 && github.event.before == '92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-real-browser.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "browser-pg": "github.event.pull_request.number == 7 && github.event.before == '9c183c2015f4eb51903752d69c11089da287d2b9' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-recovery-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == '595bf4a6d8dab2da0ccea5bcf9624e8bb53ffd41' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-remaining-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == '4b8c43a9c1e1df51b85b39bcbc2ea06bdd75372b' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-sql11-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == 'a6ab3a851fffa729b97ceedf868857b93c44d105' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-sql13-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-pg": "github.event.pull_request.number == 7 && github.event.before == '8733d5bcf380b1fa3814f105bb7b5627372d99ea' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-sql14-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-pg": "github.event.pull_request.number == 7 && github.event.before == 'd07664258893486497eec54fc9bed6135b0705de' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/b1-staging-synthetic.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "preparation": null
+      }
+    },
+    {
+      "path": ".github/workflows/b1-trusted-postgres.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "recovery-pg": "github.event.pull_request.number == 7 && github.event.before == 'd39220ce8474601cfa1a72d1f3d907c5c865b0c9' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-01.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-consolidated": "github.event.pull_request.number == 7 && github.event.before == '29d23f0ec109e157a4d4db71182f38a01cef4c04' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-02.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-consolidated": "github.event.pull_request.number == 7 && github.event.before == 'b838c019075a3297cbcccd2e0cb20c2524c0fb77' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-03.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-consolidated": "github.event.pull_request.number == 7 && github.event.before == '9ec5e63bfd93bd51a75b13feb49566e3d01c7a04' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-05.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "authorized-consolidated": "github.event.pull_request.number == 7 && github.event.before == 'ee5e4ffdca19c312c0b6bd9679b9c1ba707681ac' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-06.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "pg06": "github.event.pull_request.number == 7 && github.event.before == '8db9af388cabe28e6d8a973d1ffbea61668191e8' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-consolidated-07.yml",
+      "events": [
+        "pull_request"
+      ],
+      "push": null,
+      "job_conditions": {
+        "pg07": "github.event.pull_request.number == 7 && github.event.before == 'ac0a068467cdc2d0de812684655c5d72a3a46ebe' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'"
+      }
+    },
+    {
+      "path": ".github/workflows/pg-test-01.yml",
+      "events": [
+        "workflow_dispatch"
+      ],
+      "push": null,
+      "job_conditions": {
+        "pg-test-01": "github.ref == 'refs/heads/feat/b1-http-flows' && inputs.authorization == 'PG-TEST-01-PATCH-01'"
+      }
+    },
+    {
+      "path": ".github/workflows/quality.yml",
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "push": {
+        "branches": [
+          "main"
+        ]
+      },
+      "job_conditions": {
+        "quality": "${{ !startsWith(github.head_ref, 'feat/b1-') }}"
+      }
+    },
+    {
+      "path": ".github/workflows/staging-b1-integration.yml",
+      "events": [
+        "push"
+      ],
+      "push": {
+        "branches": [
+          "staging"
+        ],
+        "paths": [
+          "lib/b1/**",
+          "tests/b1/**",
+          "scripts/openbao-b1-integration.ts",
+          "tests/static/test_b1_openbao_integration.py",
+          "tests/static/test_b1_custody_harness_wiring.py",
+          ".github/workflows/staging-b1-integration.yml"
+        ]
+      },
+      "job_conditions": {
+        "isolated-b1": null
+      }
+    },
+    {
+      "path": ".github/workflows/staging-preflight.yml",
+      "events": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "push": {
+        "branches": [
+          "staging"
+        ],
+        "paths": [
+          "deploy/staging/**",
+          ".dockerignore",
+          ".github/workflows/staging-preflight.yml"
+        ]
+      },
+      "job_conditions": {
+        "compose-and-build": null
+      }
+    }
+  ]
+}

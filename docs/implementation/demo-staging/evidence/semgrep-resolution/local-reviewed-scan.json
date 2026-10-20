@@ -1,0 +1,117 @@
+{
+  "status": "PASS",
+  "raw_findings": 17,
+  "reviewed_false_positives": [
+    {
+      "review_id": "FP-01",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-real-postgres.spec.ts",
+      "line": 116
+    },
+    {
+      "review_id": "FP-02",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-real-postgres.spec.ts",
+      "line": 250
+    },
+    {
+      "review_id": "FP-03",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "line": 39
+    },
+    {
+      "review_id": "FP-04",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "line": 121
+    },
+    {
+      "review_id": "FP-05",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "line": 142
+    },
+    {
+      "review_id": "FP-06",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "line": 187
+    },
+    {
+      "review_id": "FP-07",
+      "rule": "semgrep.cleanops-ssrf-user-url",
+      "path": "e2e/b1-reset-postgres.spec.ts",
+      "line": 95
+    },
+    {
+      "review_id": "FP-08",
+      "rule": "semgrep.cleanops-ssrf-user-url",
+      "path": "e2e/b1-reset-postgres.spec.ts",
+      "line": 116
+    },
+    {
+      "review_id": "FP-09",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/approved-backend.ts",
+      "line": 605
+    },
+    {
+      "review_id": "FP-10",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/password.ts",
+      "line": 29
+    },
+    {
+      "review_id": "FP-11",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/password.ts",
+      "line": 66
+    },
+    {
+      "review_id": "FP-12",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/totp.ts",
+      "line": 61
+    },
+    {
+      "review_id": "FP-13",
+      "rule": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/openbao-b1-integration.ts",
+      "line": 79
+    },
+    {
+      "review_id": "FP-14",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "scripts/openbao-isolated-worker.mjs",
+      "line": 26
+    },
+    {
+      "review_id": "FP-15",
+      "rule": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/pg05-browser-backend.ts",
+      "line": 33
+    },
+    {
+      "review_id": "FP-16",
+      "rule": "semgrep.cleanops-code-execution-import",
+      "path": "scripts/pg05-browser-backend.ts",
+      "line": 108
+    },
+    {
+      "review_id": "FP-17",
+      "rule": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/pg05-http-real.ts",
+      "line": 19
+    }
+  ],
+  "unreviewed_findings": [],
+  "parser_limitations": [
+    {
+      "path": "public/demo-map/maplibre-gl-worker.mjs",
+      "reason": "Existing warning on minified upstream MapLibre 6.15.0 worker, byte-identical to pinned npm package; not an ignored source directory or security finding."
+    }
+  ],
+  "rules_disabled": [],
+  "inline_suppressions_enabled": false
+}

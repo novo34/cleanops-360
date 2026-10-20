@@ -1,0 +1,6 @@
+{
+  "maplibre": "6.15.0",
+  "worker_matches_installed_package": true,
+  "worker_sha256": "1c69066368331aae63967ed24a9affcf962cf55fcc6d8f532a8b040f736dbcfa",
+  "license_files": "preserved byte-for-byte from validated design branch, including upstream whitespace"
+}

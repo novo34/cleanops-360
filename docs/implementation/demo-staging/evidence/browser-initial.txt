@@ -1,0 +1,90 @@
+
+Running 36 tests using 1 worker
+
+(node:20402) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20402) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium-demo] › e2e/csp.spec.ts:7:7 › System Status gate, CSP and browser render — desktop (2.8s)
+  ✓   2 [chromium-demo] › e2e/csp.spec.ts:7:7 › System Status gate, CSP and browser render — mobile (4.8s)
+  ✓   3 [chromium-demo] › e2e/csp.spec.ts:35:5 › CSP nonce changes between responses (261ms)
+  ✓   4 [chromium-demo] › e2e/csp.spec.ts:43:5 › CSP blocks an inline script without a nonce (2.3s)
+  ✓   5 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status health denies unauthenticated access (301ms)
+  ✓   6 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status config denies unauthenticated access (115ms)
+  ✓   7 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status version denies unauthenticated access (157ms)
+  ✓   8 [chromium-demo] › e2e/csp.spec.ts:59:7 › System Status audit denies unauthenticated access (151ms)
+  ✓   9 [chromium-demo] › e2e/csp.spec.ts:87:5 › System Status shows a transport error without inferring service health (2.0s)
+  ✓  10 [chromium-demo] › e2e/demo-security-boundary.spec.ts:3:5 › demo preference does not create an authenticated session or change closed private routes (6.2s)
+  ✓  11 [chromium-demo] › e2e/demo-v0-map.spec.ts:4:5 › local geographic map renders under unchanged CSP and interacts with existing details (9.5s)
+  ✓  12 [chromium-demo] › e2e/demo-v0-map.spec.ts:45:5 › map and theme follow the shared scenario across navigation with only a non-sensitive visual preference (6.8s)
+  ✓  13 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark desktop (5.1s)
+  ✓  14 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark tablet (2.9s)
+  ✓  15 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark mobile (2.0s)
+  ✓  16 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light desktop (3.0s)
+  ✓  17 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light tablet (2.4s)
+  ✓  18 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light mobile (2.1s)
+  ✓  19 [chromium-demo] › e2e/demo-v0-map.spec.ts:78:5 › service selection remains usable when WebGL is unavailable (1.6s)
+  ✓  20 [chromium-demo] › e2e/demo-v0-map.spec.ts:96:5 › theme follows the OS until explicit preference and persists reload/navigation (3.1s)
+  ✓  21 [chromium-demo] › e2e/demo-v0-map.spec.ts:112:5 › filters retain visible selection, clear hidden services, reset, and provide accessible empty state (4.3s)
+  ✓  22 [chromium-demo] › e2e/demo-v0-map.spec.ts:139:5 › zoom and drag actually move cartography and selected nearby services remain identifiable (5.2s)
+  ✓  23 [chromium-demo] › e2e/demo-v0-map.spec.ts:163:5 › stored theme is applied before hydration, using the existing CSP nonce (945ms)
+  ✓  24 [chromium-demo] › e2e/demo-v0-map.spec.ts:171:5 › blocked visual storage does not disable theme control and landscape stays usable (2.0s)
+  ✓  25 [chromium-demo] › e2e/demo-v0-map.spec.ts:185:5 › agenda selection restores map context even after filtering out that service (3.3s)
+  ✓  26 [chromium-demo] › e2e/demo-v0-map.spec.ts:197:5 › mobile navigation opens with keyboard focus and Escape returns to the trigger (1.4s)
+  ✘  27 [chromium-demo] › e2e/demo-v0-map.spec.ts:207:5 › touch emulation selects and closes services with sufficiently sized map controls (5.6s)
+(node:21532) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21532) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  28 [chromium-demo] › e2e/demo-workspace.spec.ts:4:5 › dashboard opens without auth, private APIs, browser storage or production cookies (2.3s)
+  ✓  29 [chromium-demo] › e2e/demo-workspace.spec.ts:20:5 › navigation, company search, shared customer view and empty state work (2.3s)
+  ✓  30 [chromium-demo] › e2e/demo-workspace.spec.ts:41:5 › employee filters, accent-insensitive search and details are keyboard accessible (2.3s)
+  ✓  31 [chromium-demo] › e2e/demo-workspace.spec.ts:56:5 › scenario switching resets filters and never mixes synthetic company references (1.6s)
+  ✓  32 [chromium-demo] › e2e/demo-workspace.spec.ts:71:5 › one Planning view shows all four service types, gaps and overlap explanations without publication (1.8s)
+  ✓  33 [chromium-demo] › e2e/demo-workspace.spec.ts:84:5 › unlisted demo routes return 404 instead of privileged or fabricated screens (1.0s)
+  ✓  34 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 390 (4.2s)
+  ✓  35 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 768 (2.5s)
+  ✓  36 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 1440 (6.1s)
+
+
+  1) [chromium-demo] › e2e/demo-v0-map.spec.ts:207:5 › touch emulation selects and closes services with sufficiently sized map controls
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.demo-map-marker')
+    Expected: 3
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('.demo-map-marker')
+        9 × locator resolved to 0 elements
+          - unexpected value "0"
+
+
+      210 |     const page = await context.newPage()
+      211 |     await page.goto(process.env.CLEANOPS_DEMO_URL || 'http://127.0.0.1:3107/demo')
+    > 212 |     await expect(page.locator('.demo-map-marker')).toHaveCount(3)
+          |                                                    ^
+      213 |     await page.locator('.demo-map-services > button').first().tap()
+      214 |     await expect(page.getByRole('region', { name: 'Servicio seleccionado' })).toBeVisible()
+      215 |     for (const control of await page.locator('.demo-map-zoom button, .demo-map-toolbar select, .demo-theme-toggle').all()) {
+        at /workspace/cleanops-demo-integration/e2e/demo-v0-map.spec.ts:212:52
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/demo-v0-map-touch-emulatio-5985f-iciently-sized-map-controls-chromium-demo/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/demo-v0-map-touch-emulatio-5985f-iciently-sized-map-controls-chromium-demo/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium-demo] › e2e/demo-v0-map.spec.ts:207:5 › touch emulation selects and closes services with sufficiently sized map controls
+  35 passed (1.8m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
