@@ -78,7 +78,11 @@ BEGIN
     -- back the entire transaction; do not catch it and continue business effects.
     PERFORM identity_private.lock_pair_nowait(actor_principal,subject_principal);
    END IF;
-   PERFORM identity_private.lock_memberships(subject_principal,ARRAY[c.tenant_id]);
+   -- B1 lock_memberships intentionally rejects DISABLED subjects and therefore
+   -- cannot be used to reactivate one. Keep its organization-before-membership
+   -- ordering, with the caller still validated ACTIVE by the existing context.
+   PERFORM 1 FROM app.organizations WHERE id=c.tenant_id AND state='ACTIVE' FOR SHARE;
+   IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
    -- Non-key profile updates remain compatible with FK KEY SHARE locks held by
    -- existing permission writers; no SHARE-to-exclusive policy upgrade is needed.
    SELECT * INTO before_user FROM app.users WHERE tenant_id=c.tenant_id AND id=target FOR NO KEY UPDATE;

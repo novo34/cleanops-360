@@ -1,11 +1,14 @@
 # B2 profile and membership-state changes — exact execution request
 
-Prepared, not executed. Independent approval is required for this new SQL/ACL and
+Prepared, not executed. Supersedes the unexecuted SQL3 candidate in a0be110: its use of the B1
+active-membership helper prevented reactivation. This version retains principal
+locks and organization-before-membership ordering while allowing an authorized
+reactivation of a disabled target. Independent approval is required for this new SQL/ACL and
 synthetic fixture package. The previously authorized directory files are unchanged.
 
 | Artifact | SHA-256 |
 |---|---|
-| `003-user-changes.review.sql` | `961837f5f50ef3a5484927776c3343e8491018c9cc93b985e2dddb8aacbf49dc` |
+| `003-user-changes.review.sql` | `77c3d298602d1e2a273db104b5ee28d7d4db2c8824558c9b7d1775440bf8df4b` |
 | `user-change-tests.review.py` | `dcf477a07b324b7ea2aa5d68cf4356a195116a4322e1bd0b088fb5da1fcc234c` |
 
 ## Concrete scope
