@@ -1,0 +1,29 @@
+name: B2 exact authorized directory PostgreSQL
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  exact-bundle:
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b2-users-access'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify authorization and run exact SQL14 plus B2 bundle in owned networkless PG16
+        run: python scripts/b2-directory-postgres.py
+      - name: Preserve sanitized PASS FAIL SKIP and cleanup evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b2-directory-pg16-sanitized
+          path: artifacts/b2-directory/report.json
+          if-no-files-found: error
+          retention-days: 7
