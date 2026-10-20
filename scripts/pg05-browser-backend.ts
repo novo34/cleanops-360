@@ -30,6 +30,9 @@ const policyRoles:string[]=[]
 const admin = new Pool({ host: '/var/run/postgresql', database: 'core', user: 'postgres', max: sql14?2:1, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const identity = new Pool({ host: '/var/run/postgresql', database: 'core', user: input.identityRole, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 8000, query_timeout: 10000 })
 const origin = 'https://127.0.0.1:3000'
+const internalOrigins = ['http://0.0.0.0:3000', 'https://0.0.0.0:3000']
+if (input.proxyTransport !== undefined && !internalOrigins.includes(input.proxyTransport)) throw Error('INVALID_TEST_TRANSPORT')
+const requestOrigin: string = input.proxyTransport ?? origin
 const password = 'PG05 synthetic passphrase!'
 const recoveryKey = randomBytes(32)
 const recoverySecret = new Secret({size:numeric('recovery_entropy')})
@@ -185,7 +188,7 @@ try {
     normalizeEmail: email => email.trim().toLowerCase(), maxEligibleTotpMethods: 4,
     sessionLabels: () => ({ device: 'Synthetic PG05', browser: 'Synthetic PG05' }),
   })
-  const handler = createAuthHandler(backend, origin,()=>fixtureNow??Date.now())
+  const handler = createAuthHandler(backend, origin,()=>fixtureNow??Date.now(), internalOrigins)
   let previousDeliveryKey: string | undefined
   let controlId = input.rpcId
   const reply = (value: object, rpcId = controlId) => process.stdout.write(JSON.stringify({ ...value, rpcId }) + '\n')
@@ -469,7 +472,7 @@ try {
       const requestId = message.rpcId
       const task = (async () => {
         try {
-          const response = await handler.handle(new Request(origin + message.path, { method: message.method, headers: message.headers, body: message.body || undefined }), message.operation)
+          const response = await handler.handle(new Request(requestOrigin + message.path, { method: message.method, headers: message.headers, body: message.body || undefined }), message.operation)
           reply({ status: response.status, headers: [...response.headers].filter(([k]) => k !== 'set-cookie'), cookies: response.headers.getSetCookie(), body: await response.text() }, requestId)
         } catch { reply({ status: 503, transportFailure: true }, requestId) }
       })()

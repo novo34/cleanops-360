@@ -22,6 +22,11 @@ export async function startRealBrowserServer(scenario = 'existing') {
   if (!/^[a-f0-9]{64}$/.test(input.container || '')) throw Error('OWNED_CONTAINER_REQUIRED')
   if (!['abuse','existing','enrollment','additional','multiple','email','email-enrollment','email-additional','email-multiple','recovery','reset','reset-admin','trusted','trusted-admin','authz','authz-readonly'].includes(scenario)) throw Error('UNKNOWN_TEST_SCENARIO')
   input.scenario = scenario
+  const proxyTransport = process.env.B1_TEST_INTERNAL_TRANSPORT
+  if (proxyTransport !== undefined) {
+    if (!['http://0.0.0.0:3000', 'https://0.0.0.0:3000'].includes(proxyTransport)) throw Error('INVALID_TEST_TRANSPORT')
+    input.proxyTransport = proxyTransport
+  }
   if(process.env.B1_SQL14_APPROVED_BLOB==='1971a9fdc5c1f3fd1fcb5f6706459678e5399256')input.sql14ApprovedBlob=process.env.B1_SQL14_APPROVED_BLOB
   const environment = { ...process.env }
   for (const name of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH']) delete environment[name]
