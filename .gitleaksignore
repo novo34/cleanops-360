@@ -1,0 +1,3 @@
+# Confirmed SHA256(lib/b1/password.ts), never key material. Exact immutable location only.
+# Same literal checksum reviewed in docs/reviews/SEMGREP_STAGING_17.md.
+de23bfa388f3c3bc3bc83ee3f24f96e95be71dd6:.semgrep/reviewed-findings.json:generic-api-key:9

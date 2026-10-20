@@ -5,12 +5,13 @@
 import { AuthError } from './service.ts'
 import { createApprovedPrivateBackend, type ApprovedBackendDependencies } from './approved-backend.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
-import type { PrivateKeyReference } from './openbao-keys.ts'
+import type { PrivateKeyReference, PrivateKeyLease } from './openbao-keys.ts'
+import { createCustodyDeadlinePool } from './custody-deadline.ts'
 
 type Borrow = <R>(ref: PrivateKeyReference, fn: (key: Buffer) => R) => R
 export type PrivateCustody = {
   withKeys<T>(refs: readonly PrivateKeyReference[], lifetimeMs: number,
-    work: (borrow: Borrow) => Promise<T>): Promise<T>
+    work: (borrow: Borrow, lease: PrivateKeyLease) => Promise<T>): Promise<T>
 }
 export type B1CustodyReferences = Readonly<{
   audit: PrivateKeyReference
@@ -54,7 +55,8 @@ export async function withB1Custody<T>(
   const tenants = new Set(list.map(r => r.tenantId.toLowerCase()))
   if (tenants.size !== 1 || list.some(r => !Number.isSafeInteger(r.version) || r.version < 1 || !r.keyId)) throw unavailable()
   try {
-    return await input.custody.withKeys(list, input.lifetimeMs, async borrow => {
+    return await input.custody.withKeys(list, input.lifetimeMs, async (borrow, lease) => {
+      if (!lease || typeof lease.remainingMs !== 'function' || typeof lease.acknowledgeCommit !== 'function') throw unavailable()
       const deps = input.dependencies(borrow)
       if (!deps || !deps.factors ||
           deps.factors.auditKey !== borrow(refs.audit, key => key) ||
@@ -62,7 +64,7 @@ export async function withB1Custody<T>(
           deps.factors.recoveryKey !== borrow(refs.recovery, key => key) ||
           deps.cursorKey !== borrow(refs.cursor, key => key) ||
           [deps.factors.auditKey, deps.factors.otpKey, deps.factors.recoveryKey, deps.cursorKey].some(key => !Buffer.isBuffer(key) || key.length !== 32)) throw unavailable()
-      return work(createApprovedPrivateBackend(input.pool, deps))
+      return work(createApprovedPrivateBackend(createCustodyDeadlinePool(input.pool, lease), deps))
     })
   } catch {
     throw unavailable()

@@ -8,6 +8,12 @@ export type PrivateKeyReference = Readonly<{
   keyId: string
   version: number
 }>
+export type PrivateKeyLease = Readonly<{
+  /** Positive remaining server-statement budget. Throws when key access expires. */
+  remainingMs(): number
+  /** Only the guarded SQL transport calls this after observing successful COMMIT. */
+  acknowledgeCommit(): void
+}>
 export interface OpenBaoKeyOptions {
   /** Trusted composition only. Never request headers, URLs or client selectors. */
   origin: string
@@ -32,8 +38,10 @@ function identity(r: PrivateKeyReference): string {
 /** Private KV-v2 client; not wired into runtime. Exact allowlisted versions only.
  * Fetch before opening a B1 transaction. No stale cache, latest-version fallback,
  * redirect, remote error bodies, plaintext logging or network in decryptTotp.
- * Work must finish before its explicitly configured deadline; owned buffers are
- * zeroed on success and failure. Callers must not retain borrowed buffers.
+ * Key access expires at the configured deadline, including while work is pending.
+ * SQL composition must enforce the same lease before effects/COMMIT. A confirmed
+ * COMMIT receipt can outlive the lease; it cannot authorize further key/SQL use.
+ * Owned buffers are zeroed on expiry, success and failure; never retain them.
  */
 export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   let origin: URL
@@ -91,24 +99,36 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   }
   return Object.freeze({
     async withKeys<T>(references: readonly PrivateKeyReference[], lifetimeMs: number,
-      work: (borrow: <R>(r: PrivateKeyReference, fn: (key: Buffer) => R) => R) => Promise<T>): Promise<T> {
+      work: (borrow: <R>(r: PrivateKeyReference, fn: (key: Buffer) => R) => R, lease: PrivateKeyLease) => Promise<T>): Promise<T> {
       const keys = new Map<string, Buffer>()
-      let active = true
+      let active = true, commitObserved = false
+      let expiryTimer: ReturnType<typeof setTimeout> | undefined
+      const expire = () => { active = false; for (const key of keys.values()) key.fill(0) }
       if (!Number.isSafeInteger(lifetimeMs) || lifetimeMs < 1 || lifetimeMs > 30000 || !references.length) throw unavailable()
       try {
         // Sequential reads avoid orphaned successful secret buffers after a failure.
         for (const r of references) { const id = identity(r); if (keys.has(id)) throw unavailable(); keys.set(id, await read(r)) }
         const deadline = performance.now() + lifetimeMs
+        const remainingMs = () => {
+          const remaining = Math.floor(deadline - performance.now())
+          if (!active || remaining < 1) throw unavailable()
+          return remaining
+        }
+        const lease = Object.freeze({ remainingMs, acknowledgeCommit() { commitObserved = true } })
+        expiryTimer = setTimeout(expire, lifetimeMs)
         const borrow = <R>(r: PrivateKeyReference, fn: (key: Buffer) => R): R => {
-          if (!active || performance.now() >= deadline) throw unavailable()
+          remainingMs()
           const key = keys.get(identity(r)); if (!key) throw unavailable()
           return fn(key)
         }
-        const result = await work(borrow)
-        if (performance.now() >= deadline) throw unavailable()
+        const result = await work(borrow, lease)
+        // A confirmed COMMIT must not become a false 503 solely because its
+        // acknowledgement or response projection arrives after key expiration.
+        // Further borrowing/SQL remains forbidden; keys have already been wiped.
+        if (!commitObserved) remainingMs()
         return result
       } catch { throw unavailable() }
-      finally { active = false; for (const b of keys.values()) b.fill(0); keys.clear() }
+      finally { if (expiryTimer) clearTimeout(expiryTimer); expire(); keys.clear() }
     },
     [inspect.custom]() { return '[OpenBao private key provider]' },
     toJSON() { return { type: 'OpenBao private key provider' } },
