@@ -1,0 +1,10 @@
+✔ private preview denies unauthenticated/private/write requests and strips session headers (60.561242ms)
+✔ preview refuses missing strength and returns unavailable rather than leaking upstream failures (8.356289ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 165.545853

@@ -1,6 +1,6 @@
-import { jobIssues, type DemoSnapshot, type Job } from './model'
+import { jobIssues, type DemoSnapshot, type Job, type EngagementType } from './model'
 
-export type DemoMapFilter = 'all' | 'issues'
+export type DemoMapFilter = 'all' | 'issues' | EngagementType
 export type DemoMapPeriod = 'today' | 'week'
 export type OperationPoint = { job: Job; coordinates: [number, number]; city: string; company: string; issues: string[] }
 
@@ -15,6 +15,7 @@ export function operationPoints(snapshot: DemoSnapshot, period: DemoMapPeriod, f
     if (!company || (period === 'today' && job.day !== 0)) return []
     const issues = jobIssues(job, snapshot)
     if (filter === 'issues' && !issues.length) return []
+    if (filter !== 'all' && filter !== 'issues' && job.type !== filter) return []
     const center = locations[company.city]
     if (!center) return []
     return [{ job, issues, company: company.name, city: company.city, coordinates: [center[0] + (index % 3 - 1) * 0.024, center[1] + Math.floor(index / 3) * 0.016] as [number, number] }]

@@ -9,6 +9,14 @@ describe('synthetic operations map shares the demo source', () => {
     expect(operationPoints(snapshot, 'week', 'all')).toHaveLength(7)
     expect(operationPoints(snapshot, 'week', 'issues')).toHaveLength(3)
   })
+  it('combines period and service type filters without changing the source data', () => {
+    const snapshot = demoSnapshot('leman')
+    expect(operationPoints(snapshot, 'today', 'MAINTENANCE_CONTRACT')).toHaveLength(0)
+    const weekly = operationPoints(snapshot, 'week', 'MAINTENANCE_CONTRACT')
+    expect(weekly.length).toBeGreaterThan(0)
+    expect(weekly.every(p => p.job.type === 'MAINTENANCE_CONTRACT')).toBe(true)
+    expect(snapshot.jobs).toHaveLength(7)
+  })
   it('never mixes scenarios and uses fictional coordinates around each scenario city', () => {
     const leman = operationPoints(demoSnapshot('leman'), 'today', 'all')
     const alpes = operationPoints(demoSnapshot('alpes'), 'today', 'all')

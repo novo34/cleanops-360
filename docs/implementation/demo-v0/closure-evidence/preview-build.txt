@@ -1,0 +1,129 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 922B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim
+#2 DONE 0.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 214B done
+#3 DONE 0.0s
+
+#4 [build  1/10] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 57.12kB 0.0s done
+#5 DONE 0.0s
+
+#6 [build  2/10] WORKDIR /app
+#6 CACHED
+
+#7 [build  3/10] COPY package.json package-lock.json ./
+#7 CACHED
+
+#8 [build  4/10] RUN --mount=type=secret,id=proxy_ca     if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi;     npm ci --ignore-scripts --strict-ssl=true
+#8 CACHED
+
+#9 [build  5/10] COPY app ./app
+#9 DONE 13.7s
+
+#10 [build  6/10] COPY components ./components
+#10 DONE 3.1s
+
+#11 [build  7/10] COPY lib ./lib
+#11 DONE 4.4s
+
+#12 [build  8/10] COPY public ./public
+#12 DONE 2.2s
+
+#13 [build  9/10] COPY next.config.ts proxy.ts tsconfig.json ./
+#13 DONE 2.0s
+
+#14 [build 10/10] RUN npm run build && npm prune --omit=dev --ignore-scripts
+#14 2.113
+#14 2.113 > cleanops-360@0.1.0 build
+#14 2.113 > next build
+#14 2.113
+#14 2.487 ▲ Next.js 16.4.0 (Turbopack)
+#14 2.512 ✓ Running next.config.ts took 23ms
+#14 2.528
+#14 2.553   Creating an optimized production build ...
+#14 10.33 ✓ Compiled successfully in 7.8s
+#14 10.34   Running TypeScript ...
+#14 15.61   Finished TypeScript in 5.3s ...
+#14 15.62   Collecting page data using 2 workers ...
+#14 16.26   Generating static pages using 2 workers (0/36) ...
+#14 16.29   Generating static pages using 2 workers (9/36)
+#14 16.31   Generating static pages using 2 workers (18/36)
+#14 16.42   Generating static pages using 2 workers (27/36)
+#14 16.42 ✓ Generating static pages using 2 workers (36/36) in 159ms
+#14 16.42   Finalizing page optimization ...
+#14 16.44
+#14 16.44 Route (app)
+#14 16.44 ┌ ƒ /
+#14 16.44 ├ ○ /_not-found
+#14 16.44 ├ ƒ /api/system-status/audit
+#14 16.44 ├ ƒ /api/system-status/config
+#14 16.44 ├ ƒ /api/system-status/health
+#14 16.44 ├ ƒ /api/system-status/version
+#14 16.44 ├ ƒ /auth/access
+#14 16.44 ├ ƒ /auth/access/effective
+#14 16.44 ├ ƒ /auth/access/user
+#14 16.44 ├ ƒ /auth/login
+#14 16.44 ├ ƒ /auth/logout
+#14 16.44 ├ ƒ /auth/me
+#14 16.44 ├ ƒ /auth/mfa/email/resend
+#14 16.44 ├ ƒ /auth/mfa/reset
+#14 16.44 ├ ƒ /auth/mfa/totp/select
+#14 16.44 ├ ƒ /auth/mfa/verify
+#14 16.44 ├ ƒ /auth/otp/resend
+#14 16.44 ├ ƒ /auth/password/reset
+#14 16.44 ├ ƒ /auth/password/reset/authorize
+#14 16.44 ├ ƒ /auth/recovery/consume
+#14 16.44 ├ ƒ /auth/step-up
+#14 16.44 ├ ƒ /auth/tenant-switch
+#14 16.44 ├ ƒ /auth/tenants
+#14 16.44 ├ ƒ /auth/trusted-devices/revoke-user
+#14 16.44 ├ ƒ /demo/[[...section]]
+#14 16.44 ├ ƒ /login
+#14 16.44 ├ ƒ /me/sessions
+#14 16.44 ├ ƒ /me/sessions/[session_id]
+#14 16.44 ├ ƒ /me/sessions/revoke-other-own
+#14 16.44 ├ ƒ /me/trusted-devices
+#14 16.44 ├ ƒ /me/trusted-devices/revoke
+#14 16.44 ├ ƒ /me/trusted-devices/revoke-all
+#14 16.44 ├ ƒ /me/trusted-devices/status
+#14 16.44 ├ ƒ /mfa/email/confirm
+#14 16.44 ├ ƒ /mfa/email/enroll
+#14 16.44 ├ ƒ /mfa/email/resend
+#14 16.44 ├ ƒ /mfa/totp/confirm
+#14 16.44 └ ƒ /mfa/totp/enroll
+#14 16.44
+#14 16.44
+#14 16.44 ƒ Proxy (Middleware)
+#14 16.44
+#14 16.44 ○  (Static)   prerendered as static content
+#14 16.44 ƒ  (Dynamic)  server-rendered on demand
+#14 16.44
+#14 17.60
+#14 17.60 removed 453 packages in 1s
+#14 17.60
+#14 17.60 11 packages are looking for funding
+#14 17.60   run `npm fund` for details
+#14 DONE 17.6s
+
+#6 [build  2/10] WORKDIR /app
+#6 CACHED
+
+#15 [app 3/3] COPY --from=build --chown=node:node /app /app
+#15 DONE 3.6s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 2.4s done
+#16 writing image sha256:43d0f55941547505bbdff1c13c4848519f3c76763927f70b331fadaa7f596886 done
+#16 naming to docker.io/library/cleanops-demo-preview-qa:closure done
+#16 DONE 2.4s

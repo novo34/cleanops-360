@@ -1,0 +1,15 @@
+{
+  "app/demo/layout.tsx": "63c4330fc71cc1efae2314b54d5a5c4dbfaf5ed1026cf38760bf2f0ea36d414a",
+  "app/demo/themes.css": "f6e3b0ff0207fc044e6c3f2ceaa1b5375f91cd79e4954a89c39ee0fc41972391",
+  "components/demo/operations-map.tsx": "02a996e4a2a5beab528d9f15a2e0bb6d67c00947d4f570dc93d2705e9184f98f",
+  "components/demo/workspace.tsx": "e8d85684dcca69c6a150ce7a88457350f2a2bb954bf4ae1b382fb61cc65fda44",
+  "e2e/demo-v0-map.spec.ts": "0abe5ae175b9e6c4c9b2ed3aed646db50c9c2c8e3085c730fc6063c9730707dc",
+  "e2e/demo-workspace.spec.ts": "1cd978a7c7e05e13387d8f7dd911b606421618efda1b6d83bd429c2cf8ec6f9f",
+  "lib/demo/map-model.ts": "e7a3f557e84f53af253ef0b26ef7f9cd736a82c523b150a37aa49330a85964a0",
+  "scripts/audit-demo-v0.py": "4e678c6edfb62be673c71b18a3606f4bffda0c2084ade6b287a0abfc34de40bb",
+  "tests/demo-map.test.ts": "0f7862b665df3e67f6cac5659b8991f986158342d92dca263ccf1d8e844ea7bf",
+  "lib/demo/theme.ts": "c595441f39a512c2d8c051a5aa758e32ed25769646e45dd36b8e0d26131777da",
+  "deploy/demo-preview/Dockerfile": "9ec8095df8e92567e6914b722726f524049d66386851849374d54e5c9c2934f7",
+  "deploy/demo-preview/compose.yaml": "6b532cdf0f1734ece77e2ff39922fdc0ebad209a9d3730ce2ab8acc54c4df755",
+  "deploy/demo-preview/gateway.mjs": "a5b38593804abf2fd8b061d4b4dfa9c38934981938a0b9cc39b1494c34ca6b32"
+}

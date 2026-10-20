@@ -1,12 +1,12 @@
 """Optional local accessibility evidence; requires Playwright Python and a reviewed axe source file.
 Usage: python scripts/audit-demo-v0.py --axe /path/to/axe.min.js --url http://127.0.0.1:3108
-Does not test auth or write cookies/storage; no requests to a deployed environment.
+Does not test auth; only the visual preference may be stored; no requests to a deployed environment.
 """
 import argparse,json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-parser=argparse.ArgumentParser();parser.add_argument('--axe',required=True);parser.add_argument('--url',default='http://127.0.0.1:3108');args=parser.parse_args()
-out=Path('docs/implementation/demo-v0/evidence');results=[];errors=[]
+parser=argparse.ArgumentParser();parser.add_argument('--axe',required=True);parser.add_argument('--out',default='docs/implementation/demo-v0/closure-evidence');parser.add_argument('--url',default='http://127.0.0.1:3108');args=parser.parse_args()
+out=Path(args.out);out.mkdir(parents=True,exist_ok=True);results=[];errors=[]
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
  page=browser.new_page(viewport={'width':1440,'height':1000})

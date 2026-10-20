@@ -1,3 +1,5 @@
+> Registro histórico de 827f751. Estado actualizado: [CLOSURE.md](CLOSURE.md).
+
 # Validación del incremento v0 / mapa / temas
 
 Fecha: 2026-10-20. Base: `646c9af496b2497a542ab58d96ae1e7b17b1ee81`. Rama `feat/demo-v0-map-themes`. Los hashes de los archivos probados están en [tested-source-sha256.json](evidence/tested-source-sha256.json), junto al BUILD_ID en [boundary-and-validation.json](evidence/boundary-and-validation.json).

@@ -1,0 +1,15 @@
+
+> cleanops-360@0.1.0 lint
+> eslint .
+
+
+/workspace/cleanops-v0-map/components/auth-panel.tsx
+  66:6  warning  React Hook useEffect has a missing dependency: 'endCeremony'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 1 problem (0 errors, 1 warning)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

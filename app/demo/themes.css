@@ -10,7 +10,7 @@
   --shadow-color:#00000026; --focus:#63dfba; --radius:12px;
   color-scheme:dark; background:var(--bg); font-family:'DM Sans',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
-.demo-workspace[data-theme="light"] {
+#demo-theme-root[data-demo-theme="light"] .demo-workspace {
   --bg:#f1f5f7; --paper:#ffffff; --surface-2:#e8eff3; --ink:#142c3e;
   --muted:#4b6174; --line:#bacbd6; --green:#086d55; --mint:#def4eb;
   --orange:#85500b; --warning-surface:#fff2d9; --info:#275e9b; --info-surface:#e2edfb;
@@ -138,3 +138,5 @@
 @media(max-width:760px) { .demo-sidebar { width:232px; }.demo-sidebar.demo-sidebar-open { background:var(--sidebar); }.demo-content { margin-left:0; }.demo-topbar { height:64px; padding-inline:12px; gap:8px; }.demo-main { padding:22px 16px; }.demo-notice { padding-inline:16px; }.demo-page-heading h1 { font-size:26px; }.demo-kpis { gap:10px; }.demo-metric { padding:14px 12px; }.demo-metric > div { font-size:12px; }.demo-metric > strong { font-size:30px; }.demo-metric p { font-size:12px; }.demo-attention { display:block; }.demo-map-heading { padding:18px 16px 12px; }.demo-map-toolbar { padding-inline:16px; }.demo-map-toolbar label { flex:1; min-width:0; }.demo-map-toolbar label > span,.demo-map-toolbar svg { display:none; }.demo-map-toolbar select { width:100%; }.demo-map-viewport { height:310px; }.demo-map-caption,.demo-map-footnote { padding-inline:16px; }.demo-map-services > button { padding-inline:16px; }.demo-map-detail { padding:16px; }.demo-map-region { left:35%; }.demo-team-preview strong { font-size:13px; }.demo-team-preview small { font-size:12px; }.demo-agenda-footer { font-size:11px; }.demo-notice p { font-size:12px; }.demo-agenda-title > strong { font-size:14px; }.demo-agenda-title > small { font-size:12px; } }
 
 .demo-map-marker:hover small,.demo-map-marker:focus-visible small { display:block; }
+
+.demo-map-marker[aria-pressed="true"] { z-index:2; }

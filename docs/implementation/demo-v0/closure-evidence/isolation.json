@@ -1,0 +1,23 @@
+{
+  "base": "827f75168434c8d630a5bf81aae7ea36d92c1127",
+  "protected_paths_checked": [
+    "proxy.ts",
+    "app/layout.tsx",
+    "lib/security-headers.ts",
+    "lib/auth",
+    "app/auth",
+    "app/login",
+    "app/me",
+    "app/mfa",
+    "db",
+    "deploy/staging",
+    "docs/IMPLEMENTATION_GATES.md",
+    "package.json",
+    "package-lock.json"
+  ],
+  "protected_changes": [],
+  "main": "d522e2edc95ac39af058522fecbcd9fd316667b3",
+  "staging": "646c9af496b2497a542ab58d96ae1e7b17b1ee81",
+  "b1_gate": "AUTH-GATE-05 remains open",
+  "preview_online": false
+}

@@ -1,0 +1,70 @@
+
+> cleanops-360@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+✓ Running next.config.ts took 40ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1760ms
+  Running TypeScript ...
+  Finished TypeScript in 6.4s ...
+  Collecting page data using 2 workers ...
+  Generating static pages using 2 workers (0/36) ...
+  Generating static pages using 2 workers (9/36)
+  Generating static pages using 2 workers (18/36)
+  Generating static pages using 2 workers (27/36)
+✓ Generating static pages using 2 workers (36/36) in 228ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /api/system-status/audit
+├ ƒ /api/system-status/config
+├ ƒ /api/system-status/health
+├ ƒ /api/system-status/version
+├ ƒ /auth/access
+├ ƒ /auth/access/effective
+├ ƒ /auth/access/user
+├ ƒ /auth/login
+├ ƒ /auth/logout
+├ ƒ /auth/me
+├ ƒ /auth/mfa/email/resend
+├ ƒ /auth/mfa/reset
+├ ƒ /auth/mfa/totp/select
+├ ƒ /auth/mfa/verify
+├ ƒ /auth/otp/resend
+├ ƒ /auth/password/reset
+├ ƒ /auth/password/reset/authorize
+├ ƒ /auth/recovery/consume
+├ ƒ /auth/step-up
+├ ƒ /auth/tenant-switch
+├ ƒ /auth/tenants
+├ ƒ /auth/trusted-devices/revoke-user
+├ ƒ /demo/[[...section]]
+├ ƒ /login
+├ ƒ /me/sessions
+├ ƒ /me/sessions/[session_id]
+├ ƒ /me/sessions/revoke-other-own
+├ ƒ /me/trusted-devices
+├ ƒ /me/trusted-devices/revoke
+├ ƒ /me/trusted-devices/revoke-all
+├ ƒ /me/trusted-devices/status
+├ ƒ /mfa/email/confirm
+├ ƒ /mfa/email/enroll
+├ ƒ /mfa/email/resend
+├ ƒ /mfa/totp/confirm
+└ ƒ /mfa/totp/enroll
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -1,0 +1,141 @@
+
+Running 21 tests using 1 worker
+
+(node:11823) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:11823) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium-demo] › e2e/demo-v0-map.spec.ts:4:5 › local geographic map renders under unchanged CSP and interacts with existing details (8.3s)
+  ✓   2 [chromium-demo] › e2e/demo-v0-map.spec.ts:45:5 › map and theme follow the shared scenario across navigation with only a non-sensitive visual preference (4.3s)
+  ✓   3 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark desktop (4.0s)
+  ✓   4 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark tablet (4.0s)
+  ✓   5 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map dark mobile (2.1s)
+  ✓   6 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light desktop (3.5s)
+  ✓   7 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light tablet (2.7s)
+  ✓   8 [chromium-demo] › e2e/demo-v0-map.spec.ts:64:9 › dashboard map light mobile (2.3s)
+  ✓   9 [chromium-demo] › e2e/demo-v0-map.spec.ts:78:5 › service selection remains usable when WebGL is unavailable (1.7s)
+  ✘  10 [chromium-demo] › e2e/demo-v0-map.spec.ts:96:5 › theme follows the OS until explicit preference and persists reload/navigation (30.2s)
+(node:12533) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12533) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [chromium-demo] › e2e/demo-v0-map.spec.ts:112:5 › filters retain visible selection, clear hidden services, reset, and provide accessible empty state (4.7s)
+  ✘  12 [chromium-demo] › e2e/demo-v0-map.spec.ts:139:5 › zoom and drag actually move cartography and selected nearby services remain identifiable (6.3s)
+(node:12707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 [chromium-demo] › e2e/demo-workspace.spec.ts:4:5 › dashboard opens without auth, private APIs, browser storage or production cookies (6.2s)
+(node:12838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:12838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 [chromium-demo] › e2e/demo-workspace.spec.ts:20:5 › navigation, company search, shared customer view and empty state work (1.9s)
+  ✓  15 [chromium-demo] › e2e/demo-workspace.spec.ts:41:5 › employee filters, accent-insensitive search and details are keyboard accessible (1.9s)
+  ✓  16 [chromium-demo] › e2e/demo-workspace.spec.ts:56:5 › scenario switching resets filters and never mixes synthetic company references (2.4s)
+  ✓  17 [chromium-demo] › e2e/demo-workspace.spec.ts:71:5 › one Planning view shows all four service types, gaps and overlap explanations without publication (2.1s)
+  ✓  18 [chromium-demo] › e2e/demo-workspace.spec.ts:84:5 › unlisted demo routes return 404 instead of privileged or fabricated screens (1.0s)
+  ✓  19 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 390 (3.4s)
+  ✓  20 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 768 (2.3s)
+  ✓  21 [chromium-demo] › e2e/demo-workspace.spec.ts:89:7 › responsive navigation and zero horizontal overflow at 1440 (4.8s)
+
+
+  1) [chromium-demo] › e2e/demo-v0-map.spec.ts:96:5 › theme follows the OS until explicit preference and persists reload/navigation
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('navigation').getByRole('link', { name: 'Planning', exact: true })
+
+
+      106 |   await expect(page.locator('#demo-theme-root')).toHaveAttribute('data-demo-theme', 'light')
+      107 |   expect(await page.evaluate(() => Object.entries(localStorage))).toEqual([['cleanops.demo.theme', 'light']])
+    > 108 |   await page.getByRole('navigation').getByRole('link', { name: 'Planning', exact: true }).click()
+          |                                                                                           ^
+      109 |   await expect(page.locator('.demo-workspace')).toHaveAttribute('data-theme', 'light')
+      110 | })
+      111 |
+        at /workspace/cleanops-v0-map/e2e/demo-v0-map.spec.ts:108:91
+
+    Error Context: test-results/demo-v0-map-theme-follows--12b66--persists-reload-navigation-chromium-demo/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/demo-v0-map-theme-follows--12b66--persists-reload-navigation-chromium-demo/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/demo-v0-map-theme-follows--12b66--persists-reload-navigation-chromium-demo/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium-demo] › e2e/demo-v0-map.spec.ts:139:5 › zoom and drag actually move cartography and selected nearby services remain identifiable
+
+    Error: expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not 490
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      145 |   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      146 |   await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 + 30, { steps: 12 }); await page.mouse.up()
+    > 147 |   await expect.poll(async () => (await page.locator('.demo-map-marker').first().boundingBox())?.x).not.toBe(before?.x)
+          |   ^
+      148 |   await page.getByRole('button', { name: 'Centrar servicios' }).click()
+      149 |   const centered = await page.locator('.demo-map-marker').first().boundingBox()
+      150 |   await page.getByRole('button', { name: 'Acercar mapa' }).click()
+        at /workspace/cleanops-v0-map/e2e/demo-v0-map.spec.ts:147:3
+
+    Error Context: test-results/demo-v0-map-zoom-and-drag--9e2be-ervices-remain-identifiable-chromium-demo/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/demo-v0-map-zoom-and-drag--9e2be-ervices-remain-identifiable-chromium-demo/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/demo-v0-map-zoom-and-drag--9e2be-ervices-remain-identifiable-chromium-demo/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium-demo] › e2e/demo-workspace.spec.ts:4:5 › dashboard opens without auth, private APIs, browser storage or production cookies
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Datos ficticios · Sin autenticación real · Sin cambios persistentes')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Datos ficticios · Sin autenticación real · Sin cambios persistentes')
+
+
+      10 |   expect(response?.headers()['content-security-policy']).toContain("script-src 'self' 'nonce-")
+      11 |   await expect(page.getByRole('heading', { name: 'Todo listo para un gran día.' })).toBeVisible()
+    > 12 |   await expect(page.getByText('Datos ficticios · Sin autenticación real · Sin cambios persistentes')).toBeVisible()
+         |                                                                                                       ^
+      13 |   await page.getByRole('button', { name: 'Información de la demostración' }).click()
+      14 |   await expect(page.getByText('Esta demo no consulta APIs privadas', { exact: false })).toBeVisible()
+      15 |   expect(privateRequests).toEqual([])
+        at /workspace/cleanops-v0-map/e2e/demo-workspace.spec.ts:12:103
+
+    Error Context: test-results/demo-workspace-dashboard-o-51eb9-orage-or-production-cookies-chromium-demo/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/demo-workspace-dashboard-o-51eb9-orage-or-production-cookies-chromium-demo/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/demo-workspace-dashboard-o-51eb9-orage-or-production-cookies-chromium-demo/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium-demo] › e2e/demo-v0-map.spec.ts:96:5 › theme follows the OS until explicit preference and persists reload/navigation
+    [chromium-demo] › e2e/demo-v0-map.spec.ts:139:5 › zoom and drag actually move cartography and selected nearby services remain identifiable
+    [chromium-demo] › e2e/demo-workspace.spec.ts:4:5 › dashboard opens without auth, private APIs, browser storage or production cookies
+  18 passed (1.8m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

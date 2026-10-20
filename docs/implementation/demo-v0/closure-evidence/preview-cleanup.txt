@@ -1,0 +1,14 @@
+ Container cleanops-demo-preview-gateway-1  Stopping
+ Container cleanops-demo-preview-gateway-1  Stopped
+ Container cleanops-demo-preview-gateway-1  Removing
+ Container cleanops-demo-preview-gateway-1  Removed
+ Container cleanops-demo-preview-app-1  Stopping
+ Container cleanops-demo-preview-app-1  Stopped
+ Container cleanops-demo-preview-app-1  Removing
+ Container cleanops-demo-preview-app-1  Removed
+ Network cleanops-demo-preview_demo_ingress  Removing
+ Network cleanops-demo-preview_demo_private  Removing
+ Network cleanops-demo-preview_demo_private  Removed
+ Network cleanops-demo-preview_demo_ingress  Removed
+cleanops-demo-preview-qa-app
+cleanops-demo-preview-qa-final

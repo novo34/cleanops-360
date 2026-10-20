@@ -1,0 +1,7 @@
+ Container cleanops-demo-preview-app-1  Running
+ Container cleanops-demo-preview-gateway-1  Recreate
+ Container cleanops-demo-preview-gateway-1  Recreated
+ Container cleanops-demo-preview-app-1  Waiting
+ Container cleanops-demo-preview-app-1  Healthy
+ Container cleanops-demo-preview-gateway-1  Starting
+ Container cleanops-demo-preview-gateway-1  Started

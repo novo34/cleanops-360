@@ -1,7 +1,8 @@
 'use client'
 
-import { createContext, useContext, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import Link from 'next/link'
+import { useDemoTheme, type DemoTheme } from '../../lib/demo/theme'
 import dynamic from 'next/dynamic'
 import { ArrowDownLeft, ArrowRight, Building2, CalendarDays, Check, ChevronDown, ChevronRight, CircleHelp, Clock3, LayoutDashboard, MapPin, Menu, Search, Shield, SlidersHorizontal, Sparkles, Users, X, AlertTriangle, BriefcaseBusiness, ArrowUpRight, Moon, Sun } from 'lucide-react'
 import { companyJobs, days, demoSnapshot, engagementLabels, jobIssues, matches, modules, money, scenarios, time, type Company, type DemoModule, type DemoSnapshot, type Employee, type Job, type ScenarioId } from '../../lib/demo/model'
@@ -18,10 +19,10 @@ function Badge({ children, warning = false }: { children: React.ReactNode; warni
 function Avatar({ name, small = false }: { name: string; small?: boolean }) { return <span className={'demo-avatar' + (small ? ' demo-avatar-small' : '')} aria-hidden="true">{name.split(' ').slice(0,2).map(word => word[0]).join('')}</span> }
 function Empty({ reset }: { reset: () => void }) { return <div className="demo-empty" role="status"><Search aria-hidden="true" /><h3>No hay coincidencias</h3><p>Prueba otro nombre o elimina los filtros de esta vista.</p><button className="demo-button" onClick={reset}>Limpiar filtros</button></div> }
 
-const ScenarioContext = createContext<{ theme: 'light' | 'dark'; setTheme: Dispatch<SetStateAction<'light' | 'dark'>>; scenario: ScenarioId; setScenario: Dispatch<SetStateAction<ScenarioId>> } | null>(null)
+const ScenarioContext = createContext<{ theme: DemoTheme; setTheme: (value: DemoTheme) => void; scenario: ScenarioId; setScenario: Dispatch<SetStateAction<ScenarioId>> } | null>(null)
 export function DemoScenarioProvider({ children }: { children: React.ReactNode }) {
   const [scenario, setScenario] = useState<ScenarioId>('leman')
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  const { theme, setTheme } = useDemoTheme()
   return <ScenarioContext.Provider value={{ scenario, setScenario, theme, setTheme }}>{children}</ScenarioContext.Provider>
 }
 function useDemoScenario() {
@@ -39,6 +40,16 @@ export function DemoWorkspace({ module }: { module: DemoModule }) {
   const [mobileNav, setMobileNav] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [help, setHelp] = useState(false)
+  const menuButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!mobileNav) return
+    document.querySelector<HTMLAnchorElement>('#demo-navigation nav a')?.focus()
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setMobileNav(false); menuButton.current?.focus() }
+    }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [mobileNav])
   const dialog = useRef<HTMLDialogElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const snapshot = useMemo(() => demoSnapshot(scenario), [scenario])
@@ -69,8 +80,8 @@ export function DemoWorkspace({ module }: { module: DemoModule }) {
       <div className="demo-sidebar-footer"><span className="demo-footer-icon"><Shield aria-hidden="true" /></span><div>Entorno de demostración<small>Sin conexión a datos reales</small></div></div>
     </aside>
     <div className="demo-content">
-      <header className="demo-topbar"><div className="demo-breadcrumb"><button className="demo-icon-button demo-menu" aria-label={mobileNav ? "Cerrar navegación" : "Abrir navegación"} aria-controls="demo-navigation" aria-expanded={mobileNav} onClick={() => setMobileNav(!mobileNav)}><Menu aria-hidden="true" /></button><span>Workspace</span><ChevronRight aria-hidden="true" /><strong>{current.label}</strong></div><div className="demo-topbar-right"><button className="demo-icon-button demo-theme-toggle" aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</button><span className="demo-date">19 OCT 2026 · SEMANA DEMO</span><button className="demo-icon-button" aria-label="Información de la demostración" aria-expanded={help} onClick={() => setHelp(!help)}><CircleHelp aria-hidden="true" /></button><span className="demo-profile" aria-label="Vista de operaciones, sin sesión autenticada">CO</span></div></header>
-      <div className="demo-notice"><span><span className="demo-live-dot" />DEMO INTERACTIVA</span><p>Datos ficticios · Sin autenticación real · Sin cambios persistentes</p></div>
+      <header className="demo-topbar"><div className="demo-breadcrumb"><button ref={menuButton} className="demo-icon-button demo-menu" aria-label={mobileNav ? "Cerrar navegación" : "Abrir navegación"} aria-controls="demo-navigation" aria-expanded={mobileNav} onClick={() => setMobileNav(!mobileNav)}><Menu aria-hidden="true" /></button><span>Workspace</span><ChevronRight aria-hidden="true" /><strong>{current.label}</strong></div><div className="demo-topbar-right"><button className="demo-icon-button demo-theme-toggle" aria-label={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</button><span className="demo-date">19 OCT 2026 · SEMANA DEMO</span><button className="demo-icon-button" aria-label="Información de la demostración" aria-expanded={help} onClick={() => setHelp(!help)}><CircleHelp aria-hidden="true" /></button><span className="demo-profile" aria-label="Vista de operaciones, sin sesión autenticada">CO</span></div></header>
+      <div className="demo-notice"><span><span className="demo-live-dot" />DEMO INTERACTIVA</span><p>Datos ficticios · Sin autenticación real · Solo se guarda la preferencia visual</p></div>
       {help && <div className="demo-help" role="status"><strong>Un recorrido seguro por el producto.</strong> Todas las empresas, personas y cifras son ficticias. Esta demo no consulta APIs privadas, no crea sesiones y no valida permisos ni cumplimiento laboral. Al recargar se restablece el escenario. La publicación de Planning permanece deshabilitada.</div>}
       <main id="demo-main" className="demo-main">
         <div className="demo-page-heading"><div><span className="demo-eyebrow">{module === 'dashboard' ? 'EL PULSO DE TU OPERACIÓN' : 'CLEANOPS / ' + current.label.toUpperCase()}</span><h1>{module === 'dashboard' ? 'Todo listo para un gran día.' : current.label}</h1><p>{descriptions[module]}</p></div>{module === 'dashboard' ? <Link className="demo-button demo-primary" href="/demo/planning" prefetch={false}><CalendarDays aria-hidden="true" />Abrir Planning<ArrowUpRight aria-hidden="true" /></Link> : <span className="demo-heading-note"><span className="demo-live-dot" />{snapshot.label}</span>}</div>
