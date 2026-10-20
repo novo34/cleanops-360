@@ -43,6 +43,11 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run build
         if: ${{ !cancelled() }}
+      - run: npx playwright install --with-deps chromium
+        if: ${{ !cancelled() }}
+      - name: Chromium real closed boundary and dashboard regression
+        if: ${{ !cancelled() }}
+        run: npx playwright test --config=playwright.b2-boundary.config.ts
       - run: npm audit --audit-level=high
         if: ${{ !cancelled() }}
       - name: Install pinned Semgrep
