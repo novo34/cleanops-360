@@ -48,7 +48,9 @@ jobs:
       - name: Install Semgrep (v1.177.0)
         run: python -m pip install --disable-pip-version-check semgrep==1.177.0
       - name: Static security analysis (Semgrep v1.177.0, local ruleset 1.2.0)
-        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --metrics=off . --exclude .semgrep/cleanops-foundation --exclude .semgrep/cleanops-foundation.ts --exclude .semgrep/fixtures
+        run: |
+          python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
+          python scripts/check-semgrep-reviewed.py
       - name: Verify Semgrep findings on unsafe and safe fixtures
         run: |
           semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-unsafe.json .semgrep/cleanops-foundation/unsafe.ts
