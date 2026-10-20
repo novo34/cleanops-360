@@ -16,15 +16,16 @@ const backend=createApprovedPrivateBackend(pool,{
 })
 const handler=createAuthHandler(backend,'https://127.0.0.1:3443')
 const allowed=new Set(['listAdministrationUsers','getAdministrationUser','getAdministrationSession','getUserAccess'])
+if(process.env.B2_ACCESS_TEST==='1')for(const name of ['checkUserEffectiveAccess','listAssignableRoles','changeAccess','checkEffectiveAccess'])allowed.add(name)
 process.stdout.write(JSON.stringify({ready:true})+'\n')
 try{
  for await(const line of input){
   const value=JSON.parse(line)
   try{
    const url=new URL(value.path,'https://127.0.0.1:3443')
-   const op=operations.find(op=>op.path===url.pathname&&op.method==='GET'&&allowed.has(op.operationId))
+   const op=operations.find(op=>op.path===url.pathname&&op.method===(value.method??'GET')&&allowed.has(op.operationId))
    if(!op||url.origin!=='https://127.0.0.1:3443')throw Error('READ_ONLY_ROUTE_REQUIRED')
-   const response=await handler.handle(new Request(url,{headers:value.headers}),op.operationId)
+   const response=await handler.handle(new Request(url,{method:op.method,headers:value.headers,...(op.method==='POST'?{body:value.body}: {})}),op.operationId)
    process.stdout.write(JSON.stringify({id:value.id,status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()})+'\n')
   }catch{process.stdout.write(JSON.stringify({id:value.id,status:503,headers:{'content-type':'application/json','cache-control':'no-store'},body:JSON.stringify({error:{code:'TEST_DEPENDENCY_UNAVAILABLE'}})})+'\n')}
  }

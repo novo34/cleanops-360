@@ -5,6 +5,8 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  userEffectiveAccess: {sql:'SELECT auth_api.user_effective_access($1::uuid,$2::text,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
+  assignableRoleCatalogue: {sql:'SELECT auth_api.assignable_role_catalogue($1::uuid,$2::uuid) AS value',arity:2,kind:'json'},
   administrationUsers: {sql:'SELECT auth_api.administration_users($1::text,$2::text,$3::uuid,$4::integer) AS value',arity:4,kind:'json'},
   administrationUser: {sql:'SELECT auth_api.administration_user($1::uuid) AS value',arity:1,kind:'json'},
   selectTenantRotatedOwned:{sql:'SELECT auth_api.select_tenant_rotated_owned($1::text,$2::bytea,$3::bytea,$4::uuid,$5::bytea,$6::bytea,$7::uuid) AS value',arity:7,kind:'json'},
@@ -209,6 +211,8 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  userEffectiveAccess: [target:string,action:AccessAction,kind:string,resource:string|null]
+  assignableRoleCatalogue: [target:string,after:string|null]
   administrationUsers: [search:string,state:'ACTIVE'|'DISABLED'|null,after:string|null,limit:number]
   administrationUser: [targetUser:string]
   selectTenantRotatedOwned:[preauth:string,cookie:Buffer,csrf:Buffer,target:string,key:Buffer,request:Buffer,correlation:string]

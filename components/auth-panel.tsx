@@ -328,7 +328,7 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
             <label>Usuario para Manage Access <input name="access_target" minLength={36} maxLength={36} required /></label>
             <button type="submit">Abrir Manage Access</button>
           </form>}
-          {accessView&&<ManageAccessPanel key={accessView.target+':'+accessView.detail.policy_version} target={accessView.target} detail={accessView.detail} onReload={()=>loadUserAccess(accessView.target)} onChange={body=>changeAccess(body,accessView.target)} onCheck={async query=>{const r=await call('checkEffectiveAccess',undefined,undefined,undefined,query);return r?r.allowed:null}} />}
+          {accessView&&<ManageAccessPanel key={accessView.target+':'+accessView.detail.policy_version} target={accessView.target} detail={accessView.detail} onReload={()=>loadUserAccess(accessView.target)} onChange={body=>changeAccess(body,accessView.target)} onCheck={async query=>{const r=await call('checkEffectiveAccess',undefined,undefined,undefined,query);return r?r.allowed:null}} onTargetCheck={async query=>{const r=await call('checkUserEffectiveAccess',undefined,undefined,undefined,{...query,target_user_id:accessView.target});return r?r.allowed:null}} onRoles={async after=>call('listAssignableRoles',undefined,undefined,undefined,{target_user_id:accessView.target,...(after?{after}:{})})} />}
         </section>
         <section aria-labelledby="trusted-heading"><h3 id="trusted-heading">Dispositivos de confianza</h3>
           <p>Confianza válida hasta 30 días. No sustituye MFA ni prolonga tu sesión. No registres dispositivos compartidos.</p>

@@ -230,7 +230,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'recoverMfa' && ((effect.data as Input).state !== 'ENROLLMENT_REQUIRED' || effect.transition?.kind !== 'PREAUTH')) throw new AuthError(503, 'MFA_REQUIRED')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
-          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession','checkUserEffectiveAccess','listAssignableRoles'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId.includes('Trusted') && effect.transition) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId==='registerTrustedDevice') {
             const t=effect.trustedCookie, device=(effect.data as Input).device as Input

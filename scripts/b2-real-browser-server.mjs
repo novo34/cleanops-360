@@ -18,14 +18,14 @@ if(meta.Config.Labels?.['cleanops.b2']!==fixture.run||meta.HostConfig.NetworkMod
 const directory=mkdtempSync(join(tmpdir(),'cleanops-b2-browser-'))
 const pending=new Map()
 let sequence=0,server,next
-const child=spawn('docker',[...docker,'exec','-i',fixture.container,'/opt/b1-pg05/node','--experimental-strip-types','/opt/b1-pg05/scripts/b2-browser-backend.ts'],{env:environment,stdio:['pipe','pipe','ignore']})
+const child=spawn('docker',[...docker,'exec',...(fixture.access?['-e','B2_ACCESS_TEST=1']:[]),'-i',fixture.container,'/opt/b1-pg05/node','--experimental-strip-types','/opt/b1-pg05/scripts/b2-browser-backend.ts'],{env:environment,stdio:['pipe','pipe','ignore']})
 const lines=createInterface({input:child.stdout})
 const ready=new Promise((resolve,reject)=>{
  const timer=setTimeout(()=>reject(Error('PRIVATE_BACKEND_START_TIMEOUT')),20000)
  lines.on('line',line=>{try{const result=JSON.parse(line);if(result.ready){clearTimeout(timer);resolve()}else{const item=pending.get(result.id);if(item){pending.delete(result.id);clearTimeout(item.timer);item.resolve(result)}}}catch{reject(Error('INVALID_PRIVATE_REPLY'))}})
  child.on('exit',()=>{clearTimeout(timer);reject(Error('PRIVATE_BACKEND_EXIT'));for(const item of pending.values()){clearTimeout(item.timer);item.reject(Error('PRIVATE_BACKEND_EXIT'))}pending.clear()})
 })
-function rpc(path,headers){return new Promise((resolve,reject)=>{const id=++sequence,timer=setTimeout(()=>{pending.delete(id);reject(Error('PRIVATE_TIMEOUT'))},20000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,path,headers})+'\n')})}
+function rpc(path,headers,method,body){return new Promise((resolve,reject)=>{const id=++sequence,timer=setTimeout(()=>{pending.delete(id);reject(Error('PRIVATE_TIMEOUT'))},20000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,path,headers,method,body})+'\n')})}
 async function cleanup(){
  if(server)await new Promise(resolve=>{server.close(resolve);server.closeAllConnections()})
  child.stdin.end();child.kill('SIGTERM');if(next&&next.exitCode===null){next.kill('SIGTERM');await once(next,'exit')}
@@ -43,9 +43,14 @@ try{
  if(!nextReady)throw Error('NEXT_START_TIMEOUT')
  server=createServer({key:readFileSync(join(directory,'key.pem')),cert:readFileSync(join(directory,'cert.pem'))},async(incoming,outgoing)=>{
   try{
-   if(incoming.url.startsWith('/auth/users')||incoming.url.startsWith('/auth/access/user')){
+   if(incoming.url.startsWith('/auth/users')||incoming.url.startsWith('/auth/access/')){
     if(incoming.method!=='GET'){outgoing.writeHead(405);outgoing.end();return}
-    const response=await rpc(incoming.url,incoming.headers);outgoing.writeHead(response.status,response.headers);outgoing.end(response.body);return
+    const response=await rpc(incoming.url,incoming.headers,'GET');outgoing.writeHead(response.status,response.headers);outgoing.end(response.body);return
+   }
+   if(fixture.access&&incoming.url==='/auth/access'&&incoming.method==='POST'){
+    const chunks=[];let size=0
+    for await(const chunk of incoming){size+=chunk.length;if(size>16384){outgoing.writeHead(413);outgoing.end();return}chunks.push(chunk)}
+    const response=await rpc(incoming.url,incoming.headers,'POST',Buffer.concat(chunks).toString('utf8'));outgoing.writeHead(response.status,response.headers);outgoing.end(response.body);return
    }
    const upstream=request({hostname:'127.0.0.1',port:3001,path:incoming.url,method:incoming.method,headers:incoming.headers},response=>{outgoing.writeHead(response.statusCode??502,response.headers);response.pipe(outgoing)})
    upstream.on('error',()=>{outgoing.writeHead(503);outgoing.end()});incoming.pipe(upstream)

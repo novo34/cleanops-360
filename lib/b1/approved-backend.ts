@@ -11,6 +11,7 @@ import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
 import { readAdministrationUsers } from '../b2/users.ts'
+import { readUserAccess } from '../b2/access.ts'
 
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
 const invalid = () => new AuthError(401, 'AUTH_INVALID')
@@ -316,6 +317,9 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
           if (operation === 'getAdministrationSession') return {data:await activeSummary(binding)}
+          if (operation === 'checkUserEffectiveAccess' || operation === 'listAssignableRoles') {
+            return readUserAccess(broker, operation, input, binding, correlation)
+          }
           if (operation === 'listAdministrationUsers' || operation === 'getAdministrationUser') {
             return readAdministrationUsers(broker, operation, input, binding, correlation)
           }
