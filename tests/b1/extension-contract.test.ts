@@ -20,7 +20,7 @@ test('canonical V4 SQL remains byte-for-byte unchanged at the reviewed base', ()
 })
 test('proposal preserves closed runtime, transaction ordering and no execution authority', () => {
   const runtime = read('lib/b1/runtime.ts').toString()
-  assert.match(runtime, /createAuthHandler\(closedBackend, origin\)/)
+  assert.match(runtime, /createAuthHandler\(closedBackend, origin, undefined, internalOrigins\)/)
   assert.deepEqual(contract.lockOrder.slice(0, 2), ['principal', 'credential'])
   assert.ok(contract.approvalDoesNotAuthorize.includes('SQL execution'))
   assert.ok(contract.approvalDoesNotAuthorize.includes('runtime wiring'))
