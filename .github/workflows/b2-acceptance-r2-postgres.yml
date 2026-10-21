@@ -20,6 +20,7 @@ jobs:
     env:
       DATABASE_URL: ''
       CLEANOPS_TEST_DATABASE_URL: ''
+      REVIEW_HEAD_REF: ${{ github.event.pull_request.head.ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -30,9 +31,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify exact approved dependencies and hosted scope without SQL
-        run: python scripts/prepare-b2-composition-approval.py
+        run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/prepare-b2-composition-approval.py
       - name: Verify exact SQL5-R2 approval before isolated PG16 execution
-        run: python scripts/b2-acceptance-r2-postgres.review.py
+        run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/b2-acceptance-r2-postgres.review.py
       - name: Preserve actual sanitized SQL5-R2 evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
