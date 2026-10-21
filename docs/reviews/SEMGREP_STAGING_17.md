@@ -1,5 +1,39 @@
 # Revisión independiente de 17 hallazgos Semgrep preexistentes
 
+## B2 Quality restoration — 2026-10-21
+
+Quality on d16f79f ran a raw whole-repository scan while the inherited B1
+registry/runner deliberately covered only production (FP-09..FP-12). It therefore
+reported the original17, without applying the full-scope review already approved
+and used at staging a217cfeda74431b77ffa30d117febb62695c70d0. This is a scope and
+workflow mismatch, not17 new findings.
+
+The full original registry is restored separately in
+`.semgrep/quality-reviewed-findings.json`; B1's four-entry registry is preserved.
+All17 IDs, rule names, source-line hashes, classifications and justifications are
+reused. FP-09 uses its existing B2-reviewed coordinates. FP-13 moves79→82 and
+FP-15/16 move33→36/108→111 with identical source hashes. The three affected test
+context files were compared completely: their differences add the closed two-origin
+test transport and custody deadline assertions already present byte-for-byte in
+the verified B1 base569975aa. No harness code is changed here. The fixture value
+and fixed module imports are unchanged. Runtime/rules remain unchanged. Current
+lockfile and production contexts use the already reviewed B1/B2 hashes; argon2 and
+otpauth package records also match the original staging lockfile exactly.
+
+The existing evaluator now has an explicit `--quality` mode to scan the complete
+repository with exactly the original three deliberate unsafe-fixture exclusions,
+all eight rules and `--disable-nosem`. Any new/stale/changed finding, context,
+scanner error or parser warning still fails. Its full-scope registry is covered by
+a new regression alongside the existing14 adversarial tests. No rule, severity,
+inline suppression, broad path exemption or new finding exception is introduced.
+
+Quality reuses the already reviewed staging runner repairs: Node24, scoped CSP
+matrix and separate synthetic dashboard suite. Existing foundation migration
+allowlist contains only0001_system_status.sql; neither proposed B2 package is
+added or executed. PostgreSQL integration is the existing disposable Quality
+service, with synthetic credentials only. B2's authorized networkless SQL14/SQL1
+workflow and its evidence remain separate and unchanged.
+
 ## B2 shared-boundary context refresh (2026-10-20)
 
 The subsequent two fixed Manage Access read dispatches add one static import and three lines, moving FP-09 to line 614. The original literal-import snippet is unchanged. Only its exact position and full-file context checksum are refreshed; the registry still contains the same four reviewed findings. The new read helper passes validated locators as fixed broker parameters and contains no authorization evaluator or SQL interpolation.

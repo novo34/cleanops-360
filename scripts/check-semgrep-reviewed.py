@@ -86,16 +86,19 @@ def evaluate(report, manifest, root=ROOT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', default='test-results/semgrep-reviewed.json')
+    parser.add_argument('--quality', action='store_true', help='Full repository scope and the original 17 individually reviewed findings')
     args = parser.parse_args()
     # Preserve --error: 1 is accepted only as the documented findings exit code.
     command = ['semgrep', 'scan', '--config', '.semgrep/cleanops-foundation.yml', '--error',
                '--metrics=off', '--disable-version-check', '--disable-nosem', '--json',
-               'lib/b1', 'components/auth-panel.tsx', 'components/manage-access-panel.tsx']
+               *(['.', '--exclude', '.semgrep/cleanops-foundation', '--exclude', '.semgrep/cleanops-foundation.ts', '--exclude', '.semgrep/fixtures'] if args.quality else
+                 ['lib/b1', 'components/auth-panel.tsx', 'components/manage-access-panel.tsx'])]
     scan = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
     try:
         if scan.returncode not in (0, 1):
             raise ValueError('Scanner execution failed: ' + str(scan.returncode))
-        result = evaluate(json.loads(scan.stdout), json.loads(MANIFEST.read_text()))
+        manifest = ROOT / '.semgrep/quality-reviewed-findings.json' if args.quality else MANIFEST
+        result = evaluate(json.loads(scan.stdout), json.loads(manifest.read_text()))
         if (scan.returncode == 1) != (result['raw_findings'] > 0):
             raise ValueError('Unexpected scanner findings/exit status')
     except (ValueError, KeyError, TypeError, OSError) as error:

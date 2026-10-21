@@ -1,0 +1,327 @@
+{
+  "version": 1,
+  "engine": "1.177.0",
+  "review": "docs/reviews/SEMGREP_STAGING_17.md",
+  "reviewed_commit": "5e7d73530dd70d55edc1f3db7b9377f2c08db41a",
+  "context_sha256": {
+    ".semgrep/cleanops-foundation.yml": "30ed5e227fafb8b53a794ec2ebb808447bee752679779fadf82aaa7a44ecd681",
+    "e2e/b1-real-postgres.spec.ts": "84a4a1ef4f1ab796f536d89f92bab8dfa530e9c0fef9f3938dddd138f1aee155",
+    "e2e/b1-recovery-postgres.spec.ts": "279162f1ba0599d610bad50c8a96e37d0e2d2b7ec2dbd0537a8d845471bff62d",
+    "e2e/b1-reset-postgres.spec.ts": "e0f2f65d9210a19ea01201e1bd0fc627136011db72c15ed459d8bc93e4257558",
+    "lib/b1/approved-backend.ts": "37cc4a1ec5ce6b4b2ddbab6716bbe0170299fcba1f2d15fd71aecdfb5e5c95b4",
+    "lib/b1/password.ts": "396436d97d91c13dd832945a966bd035f1e270284dea1ca949e705d841ff1007",
+    "lib/b1/runtime.ts": "1ee57f2f960c6d86d22bf5e1c0056a67f099f5ead53fed5ee8754005bef54e02",
+    "lib/b1/totp.ts": "d3d361c93ff078dccb5ccc84e2fb15efa5facd354457b015a272817ffe42c6b9",
+    "package-lock.json": "9041209587186955078edfde44c19cf0fe4c4d76c11a9af5bd1b0cd0d815ad53",
+    "scripts/b1-real-browser-server.mjs": "937a12b5629d294046e1ab52f0ab10cd5d4a6746a9a65be945b1241aef7dea85",
+    "scripts/openbao-b1-integration.ts": "7f17ed74ffda59eec860416df99959637dd08369d6cb9a1d3afc99e656e7713f",
+    "scripts/openbao-isolated-worker.mjs": "46c472776c772c8ef528f4e291e77cc9f78b9be8ba7cb2f8dcc9c03d5f232833",
+    "scripts/pg-b1-browser.py": "5e1b6966f1ebac7ae7d9017453ad9b4525e5b1ee957055b8bd749f9c0a3cf4cd",
+    "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
+    "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",
+    "scripts/pg05-browser-backend.ts": "92bf1789d833fea22f3535a6b906f116b56de9be8c6494dd3ab4e41e9605e297",
+    "scripts/pg05-http-real.ts": "da9860c4bb4d01a85cedc0a4b9cd5ef13e3166174211f234b804513710464aa6",
+    "scripts/test-b1-openbao-integration.py": "4d34557ba8380e5417dda457b1dd31afbe42f4cb8d15d8d68450ef1fb50d1fb3"
+  },
+  "findings": [
+    {
+      "id": "FP-01",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-real-postgres.spec.ts",
+      "start": {
+        "line": 116,
+        "col": 33
+      },
+      "end": {
+        "line": 116,
+        "col": 50
+      },
+      "source_sha256": "45c5b9edcf7f80f1f437a3668bdbbdfddd43a86c51647b237e18acdbfe277d78",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-02",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-real-postgres.spec.ts",
+      "start": {
+        "line": 250,
+        "col": 28
+      },
+      "end": {
+        "line": 250,
+        "col": 45
+      },
+      "source_sha256": "370cd099e3df8f35e1225503acab8c056ec2a36286ccf7c6053d2a37d7ce2c56",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-03",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "start": {
+        "line": 39,
+        "col": 30
+      },
+      "end": {
+        "line": 39,
+        "col": 47
+      },
+      "source_sha256": "b4b0ee8273f7b78b4fcb8a82726a73f9fdcc3955c6f16e85074dbf391c9c2d08",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-04",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "start": {
+        "line": 121,
+        "col": 28
+      },
+      "end": {
+        "line": 121,
+        "col": 45
+      },
+      "source_sha256": "a28cfc851bc1b87f579b5b906bb79ef266189fe8e8ceb72ae65d59ea8f606360",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-05",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "start": {
+        "line": 142,
+        "col": 28
+      },
+      "end": {
+        "line": 142,
+        "col": 45
+      },
+      "source_sha256": "a28cfc851bc1b87f579b5b906bb79ef266189fe8e8ceb72ae65d59ea8f606360",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-06",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "e2e/b1-recovery-postgres.spec.ts",
+      "start": {
+        "line": 187,
+        "col": 28
+      },
+      "end": {
+        "line": 187,
+        "col": 45
+      },
+      "source_sha256": "a28cfc851bc1b87f579b5b906bb79ef266189fe8e8ceb72ae65d59ea8f606360",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-07",
+      "check_id": "semgrep.cleanops-ssrf-user-url",
+      "path": "e2e/b1-reset-postgres.spec.ts",
+      "start": {
+        "line": 95,
+        "col": 17
+      },
+      "end": {
+        "line": 95,
+        "col": 290
+      },
+      "source_sha256": "9e6bb86b0d38556b0bd8f9c11eb1106badade15b754e1f70d0d6142c7b2cb18c",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Browser page.evaluate uses constant relative fetch URL; variable receipt data is only in JSON body, not URL. No server-side request sink."
+    },
+    {
+      "id": "FP-08",
+      "check_id": "semgrep.cleanops-ssrf-user-url",
+      "path": "e2e/b1-reset-postgres.spec.ts",
+      "start": {
+        "line": 116,
+        "col": 18
+      },
+      "end": {
+        "line": 116,
+        "col": 293
+      },
+      "source_sha256": "6053ff3fd59fb907dd5cbc4bad63f5ee981da315c578b9483d5147f453e60462",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Browser page.evaluate uses constant relative fetch URL; variable receipt data is only in JSON body, not URL. No server-side request sink."
+    },
+    {
+      "id": "FP-09",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/approved-backend.ts",
+      "start": {
+        "line": 620,
+        "col": 38
+      },
+      "end": {
+        "line": 620,
+        "col": 55
+      },
+      "source_sha256": "74159db132aab1c51b13ec9afb7c36992680d3ab56a45cc77d9863d99ecb90e5",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-10",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/password.ts",
+      "start": {
+        "line": 29,
+        "col": 23
+      },
+      "end": {
+        "line": 29,
+        "col": 39
+      },
+      "source_sha256": "175559cba301e7821971d518e7868f75206fda6a0bde550fa8903e7843f74d19",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-11",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/password.ts",
+      "start": {
+        "line": 66,
+        "col": 25
+      },
+      "end": {
+        "line": 66,
+        "col": 41
+      },
+      "source_sha256": "3d37911a6d16c8d0d6d5961598aad71e518e9f868180b454e432d3ce9d958b27",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-12",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "lib/b1/totp.ts",
+      "start": {
+        "line": 61,
+        "col": 36
+      },
+      "end": {
+        "line": 61,
+        "col": 53
+      },
+      "source_sha256": "6ea614fd84617161f119fe9224938ae0aa79a1fc7c5ccb052d98fe2e3ef5faa0",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-13",
+      "check_id": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/openbao-b1-integration.ts",
+      "start": {
+        "line": 82,
+        "col": 8
+      },
+      "end": {
+        "line": 82,
+        "col": 54
+      },
+      "source_sha256": "2a610738d085c974557090d0020b92174cd1c2a760b36a064da846bbcced5515",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Synthetic fixture passphrase in owned isolated test harness; no deployed credential or application runtime importer. See source/runner evidence in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-14",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "scripts/openbao-isolated-worker.mjs",
+      "start": {
+        "line": 26,
+        "col": 49
+      },
+      "end": {
+        "line": 26,
+        "col": 80
+      },
+      "source_sha256": "7246af5b2f5051c0368f155c427cc3831e8645510daa869316e2488e52553e9e",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Only repository producer sets a fixed relative module in trusted stdin; owned isolated test runner, no HTTP input. Review scripts/test-b1-openbao-integration.py:49."
+    },
+    {
+      "id": "FP-15",
+      "check_id": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/pg05-browser-backend.ts",
+      "start": {
+        "line": 36,
+        "col": 7
+      },
+      "end": {
+        "line": 36,
+        "col": 46
+      },
+      "source_sha256": "75eb59079179d344aba7a5f7ca89132bd065aa31a60fe4cc71573e8fd667153c",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Synthetic fixture passphrase in owned isolated test harness; no deployed credential or application runtime importer. See source/runner evidence in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-16",
+      "check_id": "semgrep.cleanops-code-execution-import",
+      "path": "scripts/pg05-browser-backend.ts",
+      "start": {
+        "line": 111,
+        "col": 36
+      },
+      "end": {
+        "line": 111,
+        "col": 57
+      },
+      "source_sha256": "16c95515afa432247c03f40ed8aebe6f271c1c360fbb6fe1919bde161247fb29",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Fixed literal module specifier, independent of untrusted data; source/sink reviewed in SEMGREP_STAGING_17.md."
+    },
+    {
+      "id": "FP-17",
+      "check_id": "semgrep.cleanops-hardcoded-secret",
+      "path": "scripts/pg05-http-real.ts",
+      "start": {
+        "line": 19,
+        "col": 7
+      },
+      "end": {
+        "line": 19,
+        "col": 46
+      },
+      "source_sha256": "75eb59079179d344aba7a5f7ca89132bd065aa31a60fe4cc71573e8fd667153c",
+      "classification": "confirmed_false_positive",
+      "risk": "informational",
+      "justification": "Synthetic fixture passphrase in owned isolated test harness; no deployed credential or application runtime importer. See source/runner evidence in SEMGREP_STAGING_17.md."
+    }
+  ],
+  "vendor_parser_limitation": {
+    "path": "public/demo-map/maplibre-gl-worker.mjs",
+    "sha256": "1c69066368331aae63967ed24a9affcf962cf55fcc6d8f532a8b040f736dbcfa",
+    "reason": "Existing warning on minified upstream MapLibre 6.15.0 worker, byte-identical to pinned npm package; not an ignored source directory or security finding."
+  },
+  "inheritedFrom": "novo34/cleanops-360@a217cfeda74431b77ffa30d117febb62695c70d0",
+  "scope": [
+    "."
+  ],
+  "scopeReview": "Same 17 reviewed IDs, rules, snippet hashes and classifications. Coordinates refreshed only for identical snippets. Current B1-only trust-context changes are byte-identical to verified B1 base569975aa; the production four use its already-reviewed B2 context. Scanner, runtime and lock contexts remain hash pinned."
+}

@@ -107,6 +107,16 @@ class ReviewGuardTests(unittest.TestCase):
         for name,expected in registry['context_sha256'].items():
             self.assertEqual(guard.digest(ROOT/name),expected,name)
 
+    def test_full_quality_registry_preserves_the_original_17_and_scoped_four(self):
+        quality=json.loads((ROOT/'.semgrep/quality-reviewed-findings.json').read_text())
+        scoped=json.loads((ROOT/'.semgrep/reviewed-findings.json').read_text())
+        self.assertEqual({row['id'] for row in quality['findings']},{f'FP-{i:02}' for i in range(1,18)})
+        by_id={row['id']:row for row in quality['findings']}
+        for row in scoped['findings']:self.assertEqual(by_id[row['id']],row)
+        report={'version':quality['engine'],'results':copy.deepcopy(quality['findings']),'errors':[]}
+        self.assertEqual(guard.evaluate(report,quality)['status'],'PASS')
+        for name,expected in quality['context_sha256'].items():self.assertEqual(guard.digest(ROOT/name),expected,name)
+
 
 if __name__=='__main__':
     unittest.main()
