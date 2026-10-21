@@ -67,7 +67,7 @@ function cookies(request: Request): Record<string, string> {
   }
   return result
 }
-async function body(request: Request): Promise<Uint8Array> {
+export async function body(request: Request): Promise<Uint8Array> {
   const limit = numeric('json_body_max')
   const declared = request.headers.get('content-length')
   if (declared && (!/^\d+$/.test(declared) || Number(declared) > limit)) throw new AuthError(413, 'BODY_TOO_LARGE')

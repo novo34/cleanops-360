@@ -5,6 +5,14 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  invitationLinkMaterial:{sql:'SELECT auth_api.invitation_link_material($1::uuid,$2::text,$3::bytea,$4::bytea,$5::uuid) AS value',arity:5,kind:'json'},
+  invitationCredentialDenied:{sql:'SELECT auth_api.invitation_credential_denied($1::uuid,$2::uuid) AS value',arity:2,kind:'void'},
+  prepareInvitationAcceptance:{sql:'SELECT auth_api.prepare_invitation_acceptance($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'boolean'},
+  invitationFactorMaterial:{sql:'SELECT auth_api.invitation_factor_material($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'json'},
+  invitationFactorCas:{sql:'SELECT auth_api.invitation_factor_cas($1::text,$2::text,$3::bigint,$4::bigint,$5::bigint,$6::bigint,$7::uuid) AS value',arity:7,kind:'boolean'},
+  invitationFactorDenied:{sql:'SELECT auth_api.invitation_factor_denied($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'void'},
+  consumeInvitationAcceptance:{sql:'SELECT auth_api.consume_invitation_acceptance($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'boolean'},
+
   invitationDraftOwned:{sql:'SELECT auth_api.invitation_draft_owned($1::jsonb,$2::uuid,$3::bytea,$4::bytea,$5::uuid) AS value',arity:5,kind:'json'},
   invitationPublishOwned:{sql:'SELECT auth_api.publish_invitation_owned($1::uuid,$2::bigint,$3::uuid,$4::bytea,$5::bytea,$6::text,$7::bytea,$8::bytea,$9::uuid) AS value',arity:9,kind:'boolean'},
   administrationInvitations:{sql:'SELECT auth_api.administration_invitations($1::uuid) AS value',arity:1,kind:'json'},
@@ -215,6 +223,14 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  invitationLinkMaterial:[invitation:string,secret:string,network:Buffer,device:Buffer,correlation:string]
+  invitationCredentialDenied:[invitation:string,correlation:string]
+  prepareInvitationAcceptance:[payload:string,cookie:Buffer,csrf:Buffer,correlation:string]
+  invitationFactorMaterial:[capability:string,csrf:string,correlation:string]
+  invitationFactorCas:[capability:string,csrf:string,generation:string,policy:string,previous:number|null,next:number,correlation:string]
+  invitationFactorDenied:[capability:string,csrf:string,correlation:string]
+  consumeInvitationAcceptance:[capability:string,csrf:string,correlation:string]
+
   invitationDraftOwned:[payload:string,candidate:string,key:Buffer,request:Buffer,correlation:string]
   invitationPublishOwned:[invitation:string,generation:string,outbox:string,verifier:Buffer,ciphertext:Buffer,keyVersion:string,key:Buffer,request:Buffer,correlation:string]
   administrationInvitations:[after:string|null]

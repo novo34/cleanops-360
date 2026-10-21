@@ -1,8 +1,9 @@
 # Owner approved exact SQL4 package cd138d7. Reviewed body unchanged.
 name: B2 individually approved invitation administration PostgreSQL
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # Owner requested no repeat after successful run 39568439638.
+  # Manual reruns require a new owner instruction; original checks remain unchanged.
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

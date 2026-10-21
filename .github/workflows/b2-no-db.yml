@@ -38,6 +38,7 @@ jobs:
           python scripts/parse-b1-sql.py docs/proposals/b2-access/002-effective-access.review.sql
           python scripts/parse-b1-sql.py docs/proposals/b2-users/003-user-changes.review.sql
           python scripts/parse-b1-sql.py docs/proposals/b2-invitations/004-invitation-administration.review.sql
+          python scripts/parse-b1-sql.py docs/proposals/b2-invitations/005-invitation-acceptance.review.sql
       - name: Installed Next.js route and client guides
         run: |
           find node_modules/next/dist/docs -type f -iname '*route*' -o -iname '*client-component*'
