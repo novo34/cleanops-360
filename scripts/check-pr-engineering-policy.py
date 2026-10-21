@@ -52,6 +52,17 @@ def validate(body: str) -> list[str]:
         errors.append("Missing anti-duplication assertion")
     if "Sintaxis/lint/tests locales" not in body:
         errors.append("Missing validation assertion")
+    # An unchecked checklist is not evidence. QG-3 must be explicitly completed.
+    required_checks = (
+        "No hay implementaciones paralelas",
+        "Consumidores, documentación y tests usan una implementación canónica",
+        "Inventario de archivos añadidos/modificados/eliminados",
+        "Sintaxis/lint/tests locales",
+        "Sin merge/TECH-READY/ACCEPTED",
+    )
+    for label in required_checks:
+        if not re.search(r"(?m)^- \[x\] [^\n]*" + re.escape(label), body, re.IGNORECASE):
+            errors.append("Unchecked mandatory evidence: " + label)
     # Never accept explicit bypasses as evidence.
     if re.search(r"(?im)^\s*(?:QG-0|inventario de reutilización)\s*:\s*(?:n/a|omitido|skip)\s*$", body):
         errors.append("Reuse inventory cannot be waived by a placeholder")
