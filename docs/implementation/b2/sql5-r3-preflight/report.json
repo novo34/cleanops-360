@@ -1,0 +1,112 @@
+{
+  "scope": "SQL5_R3_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "result": "FAIL",
+  "referenceCommit": "aff420f40d37e1e6a44942e80c7ff70fadd612ba",
+  "authorizationCommit": "dab07757313ec7463909663755c76247ef166827",
+  "branch": "review/b2-sql5-r3-regex-fix",
+  "checks": [
+    {
+      "name": "published-owner-authorization",
+      "status": "PASS"
+    },
+    {
+      "name": "exact-reference-manifest",
+      "status": "PASS"
+    },
+    {
+      "name": "exact-file:docs/proposals/b2-invitations/004-invitation-administration.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "exact-file:docs/proposals/b2-invitations/005-invitation-acceptance.r3.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "exact-file:docs/proposals/b2-invitations/acceptance-tests.r3.review.py",
+      "status": "PASS"
+    },
+    {
+      "name": "exact-file:scripts/b2-acceptance-r3-postgres.review.py",
+      "status": "PASS"
+    },
+    {
+      "name": "python-ast:scripts/b2-acceptance-r3-postgres.review.py",
+      "status": "PASS"
+    },
+    {
+      "name": "python-ast:docs/proposals/b2-invitations/acceptance-tests.r3.review.py",
+      "status": "PASS"
+    },
+    {
+      "name": "fixture-sql-check-record-harness-signatures",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized-review-branch-compatible-with-harness",
+      "status": "FAIL",
+      "detail": {
+        "authorizedBranch": "review/b2-sql5-r3-regex-fix",
+        "requiredByUnchangedHarness": "feat/b2-users-access",
+        "wouldRaise": "HOSTED_CI_SCOPE_REQUIRED"
+      }
+    },
+    {
+      "name": "historical-authorizations-full-validation",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "github-hosted-runtime",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "external-database-binding-check",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "ephemeral-isolation",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "native-fixtures",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "parallel-concurrency",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "activation",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    },
+    {
+      "name": "acl-runtime",
+      "status": "SKIP",
+      "detail": "Stopped at incompatible branch guard before workflow or SQL"
+    }
+  ],
+  "preflightCounts": {
+    "PASS": 9,
+    "FAIL": 1,
+    "SKIP": 8
+  },
+  "nativeTests": {
+    "PASS": 0,
+    "FAIL": 0,
+    "SKIP": "ALL_NOT_STARTED"
+  },
+  "postgresStarted": false,
+  "sqlExecuted": false,
+  "nativeExecutionAuthorizationConsumed": false,
+  "workflowRun": null,
+  "cleanup": "NOT_APPLICABLE_NO_RESOURCES_CREATED",
+  "approvedArtifactsChanged": false,
+  "b1Changed": false,
+  "b2TechReady": false
+}
