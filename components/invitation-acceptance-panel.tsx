@@ -24,7 +24,8 @@ export function InvitationAcceptancePanel(){
   form.reset();setBusy(true);setMessage('')
   try{
    const csrf=document.cookie.split(';').map(p=>p.trim()).find(p=>p.startsWith('__Host-cleanops_invitation_csrf='))?.split('=')[1]??''
-   const response=await fetch('/auth/invitations/acceptance',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-csrf-token':csrf},body:JSON.stringify(input)})
+   const operation=String(input.operation);delete input.operation
+   const response=await fetch('/auth/invitations/'+(({PREPARE:'prepare',FACTOR:'factor',ACCEPT:'accept'} as Record<string,string>)[operation]),{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-csrf-token':csrf,'idempotency-key':crypto.randomUUID()},body:JSON.stringify(input)})
    delete input.password;delete input.token
    const result=await response.json()
    if(!response.ok)throw new Error(response.status===503?'La aceptación no está disponible todavía.':'No se pudo verificar la invitación. Comprueba el enlace y tus datos.')
@@ -34,7 +35,7 @@ export function InvitationAcceptancePanel(){
   }catch(error){setMessage(error instanceof Error?error.message:'No se pudo completar la solicitud.')}
   finally{delete input.password;delete input.token;setBusy(false)}
  }
- return <main style={{maxWidth:560,margin:'4rem auto',padding:'1.5rem'}}>
+ return <main className="auth-panel" style={{maxWidth:560,margin:'4rem auto',padding:'1.5rem'}}>
   <h1>Aceptar invitación</h1>
   <p>Verifica tus credenciales y completa la seguridad requerida antes de activar tu acceso.</p>
   {state==='ACCEPTED'?<><p role="status">Invitación aceptada. Ya puedes iniciar sesión.</p><a href="/login">Ir al inicio de sesión</a></>:<form onSubmit={submit} aria-busy={busy}>

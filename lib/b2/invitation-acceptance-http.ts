@@ -16,11 +16,14 @@ export function createInvitationAcceptanceHandler(ceremony:Ceremony,publicOrigin
   const respond=(value:unknown,status=200)=>new Response(JSON.stringify(value),{status,headers})
   try{
    const url=new URL(request.url)
-   if(url.origin!==origin||url.pathname!=='/auth/invitations/acceptance'||url.search||request.method!=='POST')throw new AuthError(400,'INVALID_ROUTE')
+   const operation=({'/auth/invitations/prepare':'PREPARE','/auth/invitations/factor':'FACTOR','/auth/invitations/accept':'ACCEPT'} as Record<string,string>)[url.pathname]
+   if(url.origin!==origin||!operation||url.search||request.method!=='POST')throw new AuthError(400,'INVALID_ROUTE')
    if(request.headers.get('origin')!==origin||request.headers.get('sec-fetch-site')!=='same-origin')throw new AuthError(403,'AUTH_FORBIDDEN')
    if(request.headers.has('content-encoding')||!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))throw new AuthError(415,'JSON_REQUIRED')
-   const input=parseSelectorJson(new TextDecoder('utf-8',{fatal:true}).decode(await body(request))) as Record<string,unknown>
-   if(!input||typeof input!=='object'||Array.isArray(input))throw new AuthError(422,'INVALID_INPUT')
+   const parsed=parseSelectorJson(new TextDecoder('utf-8',{fatal:true}).decode(await body(request))) as Record<string,unknown>
+   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed)||Object.hasOwn(parsed,'operation'))throw new AuthError(422,'INVALID_INPUT')
+   const input:Record<string,unknown>={...parsed,operation}
+   if(operation==='ACCEPT'&&!/^[A-Za-z0-9._:-]{8,128}$/.test(request.headers.get('idempotency-key')??''))throw new AuthError(400,'INVALID_REQUEST')
    const keys=Object.keys(input).sort().join(',')
    if(input.operation==='PREPARE'){
     if(keys!=='invitation_id,operation,password,token'||!valid({type:'string',format:'uuid'},input.invitation_id)||typeof input.token!=='string'||!pattern.test(input.token)||typeof input.password!=='string'||input.password.length>1024)throw new AuthError(422,'INVALID_INPUT')

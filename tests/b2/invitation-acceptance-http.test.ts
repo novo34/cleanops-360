@@ -4,7 +4,7 @@ import {createInvitationAcceptanceHandler} from '../../lib/b2/invitation-accepta
 import {AuthError} from '../../lib/b1/service.ts'
 
 const origin='https://cleanops.test',token='a'.repeat(43),id='11111111-1111-4111-8111-111111111111'
-function request(input:unknown,extra:Record<string,string>={}){return new Request(origin+'/auth/invitations/acceptance',{method:'POST',headers:{origin,'sec-fetch-site':'same-origin','content-type':'application/json',...extra},body:JSON.stringify(input)})}
+function request(input:Record<string,unknown>,extra:Record<string,string>={}){const {operation,...body}=input;return new Request(origin+'/auth/invitations/'+(({PREPARE:'prepare',FACTOR:'factor',ACCEPT:'accept'} as Record<string,string>)[String(operation)]??'invalid'),{method:'POST',headers:{origin,'sec-fetch-site':'same-origin','content-type':'application/json','idempotency-key':'synthetic-acceptance-key',...extra},body:JSON.stringify(body)})}
 test('limited acceptance rejects asserted authority, cross-origin and missing CSRF before private calls',async()=>{
  let calls=0
  const ceremony={async prepare(){calls++;throw Error('unexpected')},async factor(){calls++;throw Error('unexpected')},async accept(){calls++;throw Error('unexpected')}}
