@@ -16,7 +16,7 @@ MFA previo de identidad existente y E2E PostgreSQL siguen pendientes e independi
 ## Manifest
 
 `docs/proposals/b2-invitations/sql5-r3-manifest.review.json`
-SHA-256 del manifiesto: `928c038a0c8952e63e1673e2a2258711f7c3fdb9b28593f87084921845f92f8a`.
+SHA-256 del manifiesto: `3a1f258a7187ae50d42888b1f6a3e660d8136918aafbbdc0c53007e96172e026`.
 
 El runner R3 requiere un nuevo `invitation-acceptance-r3-authorization.json` con `ownerApproved=true`, commit fijo, hash del manifiesto y scope exacto. Dicho archivo NO existe. Ningún SQL debe ejecutarse sin autorización del propietario, preflight y hashes coincidentes.
 
