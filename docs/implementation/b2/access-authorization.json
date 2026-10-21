@@ -4,7 +4,7 @@
   "source": "Explicit individual owner response to the exact package question in this session, 2026-10-21",
   "sha256": {
     "sql": "d11842d50959ea6e2e90afe8d90d7c327bcbc8ca45685e893c436baae3549efe",
-    "fixtures": "a5fe0da1cc46276992c3e9d53671cd2597ff349dfa776b6c4f06b393171c5a42"
+    "fixtures": "72ed26f1e515ef5e7126271a91e9cdfb38575826e861a04b2196ea6e0e7e2550"
   },
   "conditions": [
     "Exact SQL/fixture hashes and prior SQL14+SQL1 authorizations before any installation",
@@ -23,6 +23,17 @@
   ],
   "artifacts": {
     "sql": "docs/proposals/b2-access/002-effective-access.review.sql",
-    "fixtures": "docs/proposals/b2-access/access-tests.review.py"
+    "fixtures": "docs/proposals/b2-access/access-tests.r2.review.py"
+  },
+  "originalFixture": {
+    "path": "docs/proposals/b2-access/access-tests.review.py",
+    "sha256": "a5fe0da1cc46276992c3e9d53671cd2597ff349dfa776b6c4f06b393171c5a42",
+    "result": "FAIL retained in first-authorized-execution.json"
+  },
+  "fixtureApproval": {
+    "ownerApproved": true,
+    "referenceCommit": "147dac36c921e1ff1ee6af7ca1b30bf9425c0062",
+    "source": "Explicit individual SQL2-R2 / SQL3-R2 authorization in current owner message, 2026-10-21",
+    "restriction": "Only exact revised fixture; SQL, ACL, grants and expectations unchanged"
   }
 }

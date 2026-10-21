@@ -25,13 +25,21 @@ BASE_BLOB = '1971a9fdc5c1f3fd1fcb5f6706459678e5399256'
 PACKAGES = {
  'access': {'reference':'9f4eb74af74d4b5c2420d2ff1c602e79c41cc6b5',
   'sql':'docs/proposals/b2-access/002-effective-access.review.sql','sqlHash':'d11842d50959ea6e2e90afe8d90d7c327bcbc8ca45685e893c436baae3549efe',
-  'tests':'docs/proposals/b2-access/access-tests.review.py','testsHash':'a5fe0da1cc46276992c3e9d53671cd2597ff349dfa776b6c4f06b393171c5a42',
+  'tests':'docs/proposals/b2-access/access-tests.r2.review.py','testsHash':'72ed26f1e515ef5e7126271a91e9cdfb38575826e861a04b2196ea6e0e7e2550',
+  'fixtureReference':'147dac36c921e1ff1ee6af7ca1b30bf9425c0062',
   'hook':'B2-access-positive-ui-stepup','fixture':'accessBrowserFixture','executed':'accessBrowserExecuted'},
  'users': {'reference':'d16f79f3f8748e08ee6a5354c6c9b6668da60666',
   'sql':'docs/proposals/b2-users/003-user-changes.review.sql','sqlHash':'77c3d298602d1e2a273db104b5ee28d7d4db2c8824558c9b7d1775440bf8df4b',
-  'tests':'docs/proposals/b2-users/user-change-tests.review.py','testsHash':'dcf477a07b324b7ea2aa5d68cf4356a195116a4322e1bd0b088fb5da1fcc234c',
+  'tests':'docs/proposals/b2-users/user-change-tests.r2.review.py','testsHash':'1a66ccf3610b01bf840ad1f8a9e01c6917c7fe55ed72123b574008442168e6b2',
+  'fixtureReference':'147dac36c921e1ff1ee6af7ca1b30bf9425c0062',
   'hook':'B2-user-positive-ui-stepup','fixture':'userChangeBrowserFixture','executed':'userChangeBrowserExecuted'},
 }
+
+
+def fixture_reference_bytes(package):
+    result=subprocess.run(['git','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT,capture_output=True)
+    if result.returncode:raise RuntimeError('EXACT_FIXTURE_COMMIT_UNAVAILABLE')
+    return result.stdout
 
 
 def authorize_package(scope):
@@ -40,11 +48,15 @@ def authorize_package(scope):
     expected={package['sql']:package['sqlHash'],package['tests']:package['testsHash']}
     if (owner.get('ownerApproved') is not True or owner.get('referenceCommit')!=package['reference']
             or owner.get('artifacts')!={'sql':package['sql'],'fixtures':package['tests']}
-            or owner.get('sha256')!={'sql':package['sqlHash'],'fixtures':package['testsHash']}):
+            or owner.get('sha256')!={'sql':package['sqlHash'],'fixtures':package['testsHash']}
+            or owner.get('fixtureApproval',{}).get('ownerApproved') is not True
+            or owner['fixtureApproval'].get('referenceCommit')!=package['fixtureReference']):
         raise RuntimeError('EXACT_SELECTED_PACKAGE_AUTHORIZATION_REQUIRED')
     for path,sha in expected.items():
         if hashlib.sha256((ROOT/path).read_bytes()).hexdigest()!=sha:
             raise RuntimeError('EXACT_SELECTED_PACKAGE_HASH_MISMATCH')
+    if fixture_reference_bytes(package)!=(ROOT/package['tests']).read_bytes():
+        raise RuntimeError('EXACT_FIXTURE_COMMIT_BYTES_MISMATCH')
     if scope=='access':
         raw=(ROOT/'scripts/pg11-rbac-matrix.py').read_bytes()
         if hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!='45c144c9640388b22cf9a62dab96f30bd329fd86':

@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -29,6 +30,7 @@ class PreflightTests(unittest.TestCase):
             destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
         self.addCleanup(patch.stopall)
         patch.object(runner,'ROOT',self.root).start()
+        patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:subprocess.check_output(['git','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT)).start()
         patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','GITHUB_REPOSITORY':'novo34/cleanops-360','GITHUB_HEAD_REF':'feat/b2-users-access'},clear=True).start()
 
     def test_exact_individual_records_and_prior_authorizations_match(self):

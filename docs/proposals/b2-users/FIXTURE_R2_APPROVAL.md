@@ -1,7 +1,9 @@
 # Corrección de fixtures, sin cambiar SQL ni permisos
 
-Pendiente de autorización específica. Los originales autorizados se conservan
-íntegros; los nuevos archivos r2 no se cargan ni ejecutan desde el runner actual.
+SQL2-R2 y SQL3-R2 autorizados individualmente por el propietario2026-10-21,
+con los hashes exactos de este documento. Se verificaron contra los bytes del
+commit147dac36 y se registraron en los dos manifiestos de autorización.
+Primera ejecución R2 pendiente. Los originales R1 se conservan íntegros.
 Primera ejecución: Actions39542403981, jobs119032884865 y119032885120. Ambos
 preflights y ambas instalaciones pasaron. Los resultados FAIL se conservan en
 `../../implementation/b2/first-authorized-execution.json`.

@@ -1,7 +1,10 @@
 # Dos autorizaciones independientes pendientes
 
 Estado actualizado2026-10-21: SQL2 y SQL3 AUTORIZADOS INDIVIDUALMENTE por las dos
-respuestas expresas a sus respectivas solicitudes. Primera ejecución pendiente.
+respuestas expresas a sus respectivas solicitudes. La primera ejecución R1 fue
+FAIL y se conserva en first-authorized-execution.json. Los dos fixtures R2 de
+147dac36 también están autorizados individualmente, con sus hashes exactos y
+SQL originales intactos; su primera ejecución está pendiente.
 Registros verificables: `../../implementation/b2/access-authorization.json` y
 `../../implementation/b2/users-authorization.json`. La autorización f5cf6aa sigue
 limitada a SQL1. La respuesta SQL3 omite caracteres del SHA escrito; el registro
