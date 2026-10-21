@@ -52,3 +52,13 @@ test('a principal NOWAIT collision rolls back the whole unit and only the exact 
   assert.equal(calls.at(-1),'ROLLBACK');assert.equal(discarded,true)
  }
 })
+test('a valid uppercase UUID still identifies self-disable after PostgreSQL canonicalizes the returned UUID',async()=>{
+ const id='abcdef01-2345-4678-8abc-def012345678',active={...binding,id,userId:id,sessionId:id}
+ const result={...data,user:{...data.user,id}},body={...input,target_user_id:id.toUpperCase()}
+ const repository=createV4IdentityRepository({async connect(){return {async query(){return {rows:[{value:result}]}},release(){}}}})
+ const effect=await repository.transaction(broker=>changeUser(broker,body,active,actor,Buffer.alloc(32,1),Buffer.alloc(32,2)))
+ assert.deepEqual(effect,{data:result,clearSession:true})
+ const backend:Backend={async bootstrap(){},async transaction(work){return work({resolve:async()=>active,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>effect,complete:async()=>{}} as unknown as Transaction)}}
+ const response=await createAuthHandler(backend,origin).handle(request(body),'changeAdministrationUser')
+ assert.equal(response.status,200);assert.ok(response.headers.getSetCookie().every(cookie=>cookie.includes('Max-Age=0')))
+})

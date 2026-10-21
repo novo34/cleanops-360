@@ -17,8 +17,9 @@ export async function changeUser(broker:V4Broker,input:Input,binding:Binding,cor
   return new AuthError(errors[data.error],data.error)
  }
  if(!valid(contract.components.schemas.B2UserChangeResponse,{data,meta:{correlation_id:correlation}}))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
- const ended=input.operation==='STATE'&&input.state==='DISABLED'&&input.target_user_id===binding.userId
- if((data.user as Input).id!==input.target_user_id||data.session_ended!==ended)throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+ const target=String(input.target_user_id).toLowerCase()
+ const ended=input.operation==='STATE'&&input.state==='DISABLED'&&target===binding.userId.toLowerCase()
+ if(String((data.user as Input).id).toLowerCase()!==target||data.session_ended!==ended)throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
  if((input.operation==='STATE'&&(data.user as Input).state!==input.state)||(input.operation==='EDIT'&&(data.user as Input).display_name!==String(input.display_name).replace(/^ +| +$/g,'')))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
  return {data,...(ended?{clearSession:true}:{})}
 }

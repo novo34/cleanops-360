@@ -34,6 +34,17 @@ added or executed. PostgreSQL integration is the existing disposable Quality
 service, with synthetic credentials only. B2's authorized networkless SQL14/SQL1
 workflow and its evidence remain separate and unchanged.
 
+Quality39541044979/job119028602827 confirms PASS for all17 exact findings,
+zero unreviewed findings, and the positive/negative fixtures of all eight rules.
+It then retains FAIL for one Gitleaks generic-api-key result introduced by
+9b4439f4c9d69f13e5749b4548cee9f4bb0597a4 at
+`.semgrep/quality-reviewed-findings.json:12`. The value is exactly the SHA256
+of lib/b1/password.ts, recomputed locally, and matches the already reviewed
+staging checksum finding described below. It is not a password/token/account hash.
+After this individual review, only that immutable commit:path:rule:line fingerprint
+is added to .gitleaksignore. No regex, file/rule exclusion or new Semgrep exception
+is added. The failed execution is preserved; a follow-up scan must pass itself.
+
 ## B2 shared-boundary context refresh (2026-10-20)
 
 The subsequent two fixed Manage Access read dispatches add one static import and three lines, moving FP-09 to line 614. The original literal-import snippet is unchanged. Only its exact position and full-file context checksum are refreshed; the registry still contains the same four reviewed findings. The new read helper passes validated locators as fixed broker parameters and contains no authorization evaluator or SQL interpolation.

@@ -230,7 +230,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'recoverMfa' && ((effect.data as Input).state !== 'ENROLLMENT_REQUIRED' || effect.transition?.kind !== 'PREAUTH')) throw new AuthError(503, 'MFA_REQUIRED')
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
-          if(operationId === 'changeAdministrationUser' && (effect.transition || Boolean(effect.clearSession) !== authData.session_ended || (authData.session_ended && (input.operation !== 'STATE' || input.state !== 'DISABLED' || input.target_user_id !== binding.userId)))) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+          if(operationId === 'changeAdministrationUser' && (effect.transition || Boolean(effect.clearSession) !== authData.session_ended || (authData.session_ended && (input.operation !== 'STATE' || input.state !== 'DISABLED' || String(input.target_user_id).toLowerCase() !== binding.userId?.toLowerCase())))) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession','checkUserEffectiveAccess','listAssignableRoles'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId.includes('Trusted') && effect.transition) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId==='registerTrustedDevice') {
