@@ -9,7 +9,7 @@ test('invitation ceremony clears the fragment, remains closed and emits no B1 se
  const response=page.waitForResponse(r=>r.url().endsWith('/auth/invitations/prepare'))
  await page.getByRole('button',{name:'Verificar',exact:true}).click()
  expect((await response).status()).toBe(503)
- await expect(page.getByRole('alert')).toContainText('no está disponible')
+ await expect(page.getByRole('main').getByRole('alert')).toContainText('no está disponible')
  await expect(page.getByLabel('Contraseña',{exact:true})).toHaveValue('')
  expect((await context.cookies()).filter(c=>/__Host-cleanops_(session|preauth)/.test(c.name))).toEqual([])
  for(const path of ['factor','accept']){
