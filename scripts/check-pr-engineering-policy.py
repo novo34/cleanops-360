@@ -73,9 +73,15 @@ def validate(body: str) -> list[str]:
         follow = lines[i+1].strip() if i+1 < len(lines) else ""
         if not after and (not follow or follow.startswith(("##", "**", "- [", ">"))):
             errors.append("Unfilled field: " + field)
-    # Block placeholders and false-positive attestations.
-    if re.search(r"(?im)(?:^|:\s*)(?:todo|tbd|pendiente|por definir|n/a|ninguno revisado)\s*$", body):
-        errors.append("Placeholder is not engineering evidence")
+    # Inspect field values after stripping markdown, not the raw :** sequence.
+    for field in FIELDS:
+        for line in lines:
+            if field not in line:
+                continue
+            answer = line.split(field, 1)[1].replace("**", "").strip()
+            if re.fullmatch(r"(?:todo|tbd|pendiente|por definir|n/a|ninguno revisado)", answer, re.IGNORECASE):
+                errors.append("Placeholder is not engineering evidence: " + field)
+            break
     # Never accept explicit bypasses as evidence.
     if re.search(r"(?im)^\s*(?:QG-0|inventario de reutilización)\s*:\s*(?:n/a|omitido|skip)\s*$", body):
         errors.append("Reuse inventory cannot be waived by a placeholder")
