@@ -1,6 +1,6 @@
 # ENGINEERING QUALITY POLICY — CleanOps 360
 
-**Estado:** política propuesta, pendiente de aprobación del Product Owner. **Ámbito:** humanos, Codex, ChatGPT, Claude y demás agentes; código, SQL, UI, fixtures, scripts, workflows e infraestructura. No altera SRS, decisiones aprobadas ni autorizaciones de ejecución.
+**Estado:** política candidata; exigible tras aprobación, merge y activación de branch rulesets. **Ámbito:** humanos, Codex, ChatGPT, Claude y demás agentes; código, SQL, UI, fixtures, scripts, workflows e infraestructura. No altera SRS, decisiones aprobadas ni autorizaciones de ejecución.
 
 **Autoridad:** Product Master/SRS → arquitectura y contratos canónicos → gates de seguridad → esta política de ingeniería → instrucciones del agente. Ante contradicción: detener el cambio, no reinterpretar requisitos.
 
@@ -43,7 +43,7 @@ Las pruebas deben probar la propiedad anunciada: concurrencia requiere simultane
 
 ## 5. Gate de aceptación (QG-3)
 
-Antes de solicitar merge o declarar TECH-READY:
+Antes de solicitar merge, READY_FOR_PO o ACCEPTED:
 - Trazabilidad requisito → implementación única → consumidor → prueba ejecutada → evidencia.
 - Inspección de diff por duplicados, archivos añadidos, referencias y cambios fuera de alcance.
 - Comprobación de rutas, imports, referencias, tests y documentación; remover artefactos que no tienen dueño/consumidor o mantenerlos justificados explícitamente.
@@ -71,9 +71,5 @@ Un PR puede estar técnicamente completo pero no ACEPTADO. Si hay deuda nueva, i
 **Humana:** cada PR requiere ficha QG-0 y checklist QG-3. **Automática:** comprobaciones estáticas pueden verificar trazabilidad, rutas nuevas, archivos de revisión en runtime, duplicados evidentes y ausencia de campos obligatorios. Ningún linter puede probar por sí solo que la mejor arquitectura fue reutilizada: revisión técnica obligatoria. No activar controles bloqueantes sobre PR existentes hasta inventariar falsos positivos y aprobar baseline.
 
 **Enforcement:** agentes deben rechazar tareas que impliquen crear archivos sin QG-0; si el dueño pide «continúa», continuar dentro del alcance ya autorizado, no interpretar como ampliación de permisos. Toda excepción requiere razón, aprobación y caducidad. El cierre de un módulo precede al siguiente.
-
-## 8. Ejemplo SQL5-R3 (lección, no aprobación de código)
-
-R1/R2 y R3 son antecedentes auditables, no tres caminos productivos. Un conflicto entre branch guard y revisión autorizada requiere revisar diseño del harness/orquestación canónica; no crear sucesivos wrappers que copien preflight. El nuevo adaptador R3 queda pendiente de evaluación, NO adoptado como solución. Mantener SQL5-R3, autorización y evidencias intactos hasta auditoría específica posterior.
 
 **No levantar** closedBackend, AUTH-GATE-05 ni ejecutar PostgreSQL/migraciones, ni desplegar o fusionar por la aprobación de esta política.
