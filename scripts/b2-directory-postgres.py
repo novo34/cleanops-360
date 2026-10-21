@@ -4,6 +4,7 @@ Reuses the original B1 local-socket transport, baseline synthetic fixtures and
 inventory checks. Never connects to a URL, remote Docker endpoint or persistent DB.
 """
 import hashlib
+import argparse
 import importlib.util
 import json
 import os
@@ -21,6 +22,32 @@ APPROVED = {
 }
 BASE_SHA = '965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa'
 BASE_BLOB = '1971a9fdc5c1f3fd1fcb5f6706459678e5399256'
+PACKAGES = {
+ 'access': {'reference':'9f4eb74af74d4b5c2420d2ff1c602e79c41cc6b5',
+  'sql':'docs/proposals/b2-access/002-effective-access.review.sql','sqlHash':'d11842d50959ea6e2e90afe8d90d7c327bcbc8ca45685e893c436baae3549efe',
+  'tests':'docs/proposals/b2-access/access-tests.review.py','testsHash':'a5fe0da1cc46276992c3e9d53671cd2597ff349dfa776b6c4f06b393171c5a42',
+  'hook':'B2-access-positive-ui-stepup','fixture':'accessBrowserFixture','executed':'accessBrowserExecuted'},
+ 'users': {'reference':'d16f79f3f8748e08ee6a5354c6c9b6668da60666',
+  'sql':'docs/proposals/b2-users/003-user-changes.review.sql','sqlHash':'77c3d298602d1e2a273db104b5ee28d7d4db2c8824558c9b7d1775440bf8df4b',
+  'tests':'docs/proposals/b2-users/user-change-tests.review.py','testsHash':'dcf477a07b324b7ea2aa5d68cf4356a195116a4322e1bd0b088fb5da1fcc234c',
+  'hook':'B2-user-positive-ui-stepup','fixture':'userChangeBrowserFixture','executed':'userChangeBrowserExecuted'},
+}
+
+
+def authorize_package(scope):
+    package=PACKAGES[scope]
+    owner=json.loads((ROOT/f'docs/implementation/b2/{scope}-authorization.json').read_text())
+    expected={package['sql']:package['sqlHash'],package['tests']:package['testsHash']}
+    if owner.get('ownerApproved') is not True or owner.get('referenceCommit')!=package['reference'] or owner.get('sha256')!=expected:
+        raise RuntimeError('EXACT_SELECTED_PACKAGE_AUTHORIZATION_REQUIRED')
+    for path,sha in expected.items():
+        if hashlib.sha256((ROOT/path).read_bytes()).hexdigest()!=sha:
+            raise RuntimeError('EXACT_SELECTED_PACKAGE_HASH_MISMATCH')
+    if scope=='access':
+        raw=(ROOT/'scripts/pg11-rbac-matrix.py').read_bytes()
+        if hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()!='45c144c9640388b22cf9a62dab96f30bd329fd86':
+            raise RuntimeError('UNCHANGED_B1_MATRIX_REQUIRED_BEFORE_INSTALL')
+    return package
 
 
 def load(name, path):
@@ -36,7 +63,7 @@ def preflight():
             and os.environ.get('GITHUB_HEAD_REF') == 'feat/b2-users-access'):
         raise RuntimeError('HOSTED_CI_SCOPE_REQUIRED')
     # Inspect only names and presence. Never print environment or credential values.
-    forbidden = re.compile(r'^(DATABASE_URL|CLEANOPS_TEST_DATABASE_URL|PGHOST|PGPORT|PGUSER|PGPASSWORD|PGPASSFILE|PGSERVICE|PGSERVICEFILE|DATABASE_.*|DB_.*|SUPABASE_.*|NEON_.*|RDS_.*|CLEANOPS_.*(?:DATABASE|DB_|BAO|SECRET|TOKEN|KEY).*)$')
+    forbidden = re.compile(r'^(DATABASE_URL|CLEANOPS_TEST_DATABASE_URL|PG[A-Z_]*|DATABASE_.*|DB_.*|SUPABASE_.*|NEON_.*|RDS_.*|OPENBAO_.*|VAULT_.*|CLEANOPS_.*(?:DATABASE|DB_|BAO|SECRET|TOKEN|KEY).*)$')
     if any(value and forbidden.fullmatch(key) for key, value in os.environ.items()):
         raise RuntimeError('EXTERNAL_DATABASE_OR_SECRET_BINDING_PRESENT')
     owner = json.loads((ROOT / 'docs/implementation/b2/directory-authorization.json').read_text())
@@ -56,12 +83,18 @@ def preflight():
     return raw.decode()
 
 
-def browser(b):
+def browser(b,scope='directory'):
     load('b2_existing_runtime_copy','scripts/pg-http-integration.py').copy_runtime(b,('scripts/b2-browser-backend.ts',))
     fixture = {'container':b.CID,'run':b.RUN,'foreign':b.W,'otherTenant':b.B}
-    result = subprocess.run(['npx','--no-install','playwright','test','--config=playwright.b2-postgres.config.ts'],cwd=ROOT,
+    if scope!='directory':
+        package=PACKAGES[scope]
+        fixture.update(b.REPORT[package['fixture']])
+        fixture['access' if scope=='access' else 'userChanges']=True
+        b.REPORT[package['executed']]=True
+    config='playwright.b2-postgres.config.ts' if scope=='directory' else f'playwright.b2-{scope}-postgres.config.ts'
+    result = subprocess.run(['npx','--no-install','playwright','test','--config='+config],cwd=ROOT,
                             env=dict(b.ENV,B2_BROWSER_FIXTURE=json.dumps(fixture)),text=True,capture_output=True,timeout=180)
-    path = ROOT / 'artifacts/b2-directory/playwright.json'
+    path = ROOT / f'artifacts/b2-{scope}/playwright.json'
     count = 0
     if path.exists():
         try:
@@ -78,17 +111,18 @@ def browser(b):
                 collect(suite)
         finally:
             path.unlink()  # Never preserve raw browser errors, request headers or tokens.
-    b.REPORT['functionalBrowser'] = 'PASS' if result.returncode == 0 and count == 2 else 'FAIL'
+    b.REPORT['functionalBrowser'] = 'PASS' if result.returncode == 0 and count == (2 if scope=='directory' else 1) else 'FAIL'
     b.record('B2-real-browser-process',b.REPORT['functionalBrowser'],'Real private backend and persisted PostgreSQL; raw output suppressed.')
 
 
-def main():
-    report = {'scope':'B2_DIRECTORY_EXACT_OWNER_BUNDLE','runtime':'closedBackend','checks':[], 'cleanup':'SKIP','result':'FAIL'}
-    target = ROOT / 'artifacts/b2-directory/report.json'
+def main(scope='directory'):
+    report = {'scope':f'B2_{scope.upper()}_EXACT_OWNER_BUNDLE','runtime':'closedBackend','checks':[], 'cleanup':'SKIP','result':'FAIL'}
+    target = ROOT / f'artifacts/b2-{scope}/report.json'
     b = None
     before = None
     try:
         baseline = preflight()  # Must finish before Docker, SQL, or fixture imports.
+        selected=authorize_package(scope) if scope!='directory' else None
         b = load('b2_original_b1_transport', 'scripts/pg-test-01.py')
         b.REPORT = report
         b.record('exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings','PASS')
@@ -132,14 +166,16 @@ def main():
         # Applies the existing owner-approved profile; no B2 policy/ACL is added.
         if not b.check('B1-approved-12h24h-existing-session-fixture',"UPDATE identity_private.configuration SET values_json=jsonb_set(jsonb_set(values_json,'{absolute_sensitive}','43200'::jsonb),'{absolute_operational}','86400'::jsonb);"):
             raise RuntimeError('AUTHORIZED_B1_SESSION_FIXTURE_FAILED')
+        if selected and not b.check('install-exact-authorized-'+scope+'-SQL-and-ACL',(ROOT/selected['sql']).read_text()):
+            raise RuntimeError('SELECTED_INSTALLATION_FAILED_NO_REPLACEMENT_SQL')
         original_check = b.check
         def with_browser(name, text, expected=None, role='postgres', failure=None):
             passed = original_check(name,text,expected,role,failure)
-            if name == 'B2-synthetic-global-view' and passed:
-                browser(b)
+            if name == (selected['hook'] if selected else 'B2-synthetic-global-view') and passed:
+                browser(b,scope)
             return passed
         b.check = with_browser
-        load('b2_exact_authorized_assertions','docs/proposals/b2-users/directory-tests.review.py').run(b)
+        load('b2_exact_authorized_assertions',selected['tests'] if selected else 'docs/proposals/b2-users/directory-tests.review.py').run(b)
     except Exception as error:
         item = {'name':'harness','status':'FAIL','detail':str(error) if isinstance(error,RuntimeError) else type(error).__name__}
         report['checks'].append(item)
@@ -161,9 +197,11 @@ def main():
         report['b2TechReady'] = False
         target.parent.mkdir(parents=True,exist_ok=True)
         target.write_text(json.dumps(report,indent=2)+'\n')
-        print('B2_DIRECTORY '+report['result'],flush=True)
+        print('B2_'+scope.upper()+' '+report['result'],flush=True)
     return 0 if report['result']=='PASS' else 1
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--package',choices=['directory','access','users'],default='directory')
+    sys.exit(main(parser.parse_args().package))

@@ -1,6 +1,11 @@
 # Dos autorizaciones independientes pendientes
 
-Estado: NO AUTORIZADO / NO EJECUTADO. La autorización de f5cf6aa solo cubre SQL1.
+Estado actualizado2026-10-21: SQL2 y SQL3 AUTORIZADOS INDIVIDUALMENTE por las dos
+respuestas expresas a sus respectivas solicitudes. Primera ejecución pendiente.
+Registros verificables: `../../implementation/b2/access-authorization.json` y
+`../../implementation/b2/users-authorization.json`. La autorización f5cf6aa sigue
+limitada a SQL1. La respuesta SQL3 omite caracteres del SHA escrito; el registro
+conserva el commit completo y los dos hashes inequívocos de la solicitud respondida.
 Antes de ejecutar cualquiera: comprobar hashes exactos, autorización de SQL14 y
 SQL1, runner GitHub-hosted, inventario previo, contenedor propio PostgreSQL16 sin
 red/puertos/mounts persistentes y ausencia de bindings/credenciales externos.
@@ -61,4 +66,5 @@ sesiones, versión monotónica y self-disable con journal sin respuesta almacena
 Detalle completo: `USER_CHANGES_APPROVAL.md`. SQL2 no es dependencia de esta prueba.
 
 Ambos candidatos ya pasaron gramática PG16 sin ejecución. Eso no acredita sus
-tipos, ACL, persistencia ni resultados nativos: continúan SKIP hasta aprobación.
+tipos, ACL, persistencia ni resultados nativos. Las ejecuciones autorizadas usan
+dos jobs y contenedores separados; ninguno instala el otro paquete.

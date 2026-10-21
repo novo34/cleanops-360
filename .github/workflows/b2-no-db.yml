@@ -30,6 +30,8 @@ jobs:
           python-version: '3.12'
       - name: Install pinned PostgreSQL 16 grammar parser (no database)
         run: python scripts/install-pg16-parser.py
+      - name: B2 execution authorization gates without Docker or SQL
+        run: python -B -m unittest discover -s tests/static -p test_b2_execution_preflight.py -v
       - name: Parse prepared SQL without executing SQL or fixtures
         run: |
           python scripts/parse-b1-sql.py docs/proposals/b2-users/001-directory.review.sql

@@ -1,0 +1,42 @@
+name: B2 individually authorized PostgreSQL packages
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  isolated-package:
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b2-users-access'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [access, users]
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Verify exact individual authorization and isolated scope before any SQL
+        run: python scripts/b2-directory-postgres.py --package ${{ matrix.package }}
+      - name: Preserve sanitized status, cleanup and synthetic screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b2-${{ matrix.package }}-pg16-sanitized
+          path: |
+            artifacts/b2-${{ matrix.package }}/report.json
+            artifacts/b2-${{ matrix.package }}/*.png
+          if-no-files-found: error
+          retention-days: 7

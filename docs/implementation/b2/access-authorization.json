@@ -1,0 +1,24 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "9f4eb74af74d4b5c2420d2ff1c602e79c41cc6b5",
+  "source": "Explicit individual owner response to the exact package question in this session, 2026-10-21",
+  "sha256": {
+    "docs/proposals/b2-access/002-effective-access.review.sql": "d11842d50959ea6e2e90afe8d90d7c327bcbc8ca45685e893c436baae3549efe",
+    "docs/proposals/b2-access/access-tests.review.py": "a5fe0da1cc46276992c3e9d53671cd2597ff349dfa776b6c4f06b393171c5a42"
+  },
+  "conditions": [
+    "Exact SQL/fixture hashes and prior SQL14+SQL1 authorizations before any installation",
+    "GitHub-hosted ephemeral owned networkless PostgreSQL16 only",
+    "No external connections or credentials; stop selected execution on any failed preflight",
+    "Separate container and execution from the other individually approved package"
+  ],
+  "excluded": [
+    "Persistent databases",
+    "Hostinger",
+    "Swiss VPS",
+    "B1 activation",
+    "staging/main changes",
+    "merges",
+    "Any other package through this approval"
+  ]
+}
