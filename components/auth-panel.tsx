@@ -261,7 +261,7 @@ export function AuthPanel({administration=false}: {administration?:boolean}) {
   }
   async function changeUserInvitation(body:object):Promise<boolean|'STEP_UP'>{
     const result=await call('changeUserInvitation',body)
-    if(result){setInvitationRefresh(value=>value+1);setMessage('Solicitud de invitación aceptada.');return true}
+    if(result){setMessage('Solicitud de invitación aceptada.');return true}
     if(lastFailure.current==='STEP_UP_REQUIRED'){const step=await call('startStepUp',{grant_id:'B1-SELF-06'});if(step){setPendingAction({operation:'changeUserInvitation',body});prepare(step,{grant_id:'B1-SELF-06'});return 'STEP_UP'}}
     return false
   }

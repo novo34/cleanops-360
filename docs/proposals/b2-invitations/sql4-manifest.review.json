@@ -1,0 +1,24 @@
+{
+  "scope": "SQL4_INVITATION_ADMIN_HOSTED_EPHEMERAL_PG16",
+  "status": "PENDING_SPECIFIC_SQL_FIXTURE_APPROVAL",
+  "artifacts": {
+    "a01": "docs/proposals/b2-invitations/004-invitation-administration.review.sql",
+    "a02": "docs/proposals/b2-invitations/invitation-admin-tests.review.py",
+    "a03": "scripts/b2-invitations-postgres.review.py",
+    "a04": "scripts/b2-invitation-browser-backend.ts",
+    "a05": "scripts/b2-invitation-browser-server.mjs",
+    "a06": "playwright.b2-invitations-postgres.config.ts",
+    "a07": "e2e/b2-invitations-postgres.spec.ts",
+    "a08": "docs/proposals/b2-invitations/workflow.review.yml"
+  },
+  "sha256": {
+    "a01": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
+    "a02": "166ccde947b44216b04354b7cc666ebb549f58a53695b229bf75521bb976e0fd",
+    "a03": "55891967bc24f3fbe958aa2107376a55dae652763a85f6e6fba59f15befeb922",
+    "a04": "acd3ee77a8ab11f00029ea77942dfcc89b7e6f2c24350b38da654a6ccb612070",
+    "a05": "bdcb459b4bc33de942888b51e25bef441b10075748c5d3fdceabb05795434fe2",
+    "a06": "61b12db0d9d04a51d2204d000340b68b0bc54843540ba5f18372f7ba2ed39e03",
+    "a07": "31680f5d6e637d3e35eb1123fbf785621bbd27624194c5d46a3b8e7210d5eb3a",
+    "a08": "6789c4e8806f8ec7a0f4777aaadcad63c97e553e154cbaed8dd89324afd250f6"
+  }
+}

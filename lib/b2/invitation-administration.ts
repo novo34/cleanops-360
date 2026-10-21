@@ -23,7 +23,7 @@ export async function changeInvitation(broker:V4Broker,input:Input,binding:Bindi
  if(!object(material))throw unavailable()
  if(Object.keys(material).length===1&&typeof material.error==='string'){
   const codes:Record<string,number>={INVALID_INPUT:422,POLICY_DENIED:403,STEP_UP_REQUIRED:403,NOT_FOUND:404,INVITATION_CONFLICT:409,RATE_LIMITED:429,AUTH_DEPENDENCY_UNAVAILABLE:503}
-  if(!codes[material.error])throw unavailable()
+  if(!Object.hasOwn(codes,material.error))throw unavailable()
   return new AuthError(codes[material.error],material.error,material.error==='RATE_LIMITED'?60:undefined)
  }
  if(Object.keys(material).length===1&&material.accepted===true)return {data:{accepted:true}}

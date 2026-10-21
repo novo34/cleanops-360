@@ -10,10 +10,12 @@ CREATE TABLE identity_private.user_invitations (
  verifier bytea CHECK(verifier IS NULL OR octet_length(verifier)=32),
  issued_at timestamptz NOT NULL, expires_at timestamptz NOT NULL, revoked_at timestamptz, consumed_at timestamptz,
  created_by uuid NOT NULL, owner_backend integer, owner_xid xid8,
+ owner_key bytea CHECK(owner_key IS NULL OR octet_length(owner_key)=32), owner_request bytea CHECK(owner_request IS NULL OR octet_length(owner_request)=32),
  PRIMARY KEY(tenant_id,id), FOREIGN KEY(tenant_id,created_by) REFERENCES app.users(tenant_id,id),
  CHECK(expires_at>issued_at AND expires_at<=issued_at+interval '24h'),
  CHECK((state='ISSUED')=(verifier IS NOT NULL)),
- CHECK((owner_backend IS NULL)=(owner_xid IS NULL))
+ CHECK((owner_backend IS NULL)=(owner_xid IS NULL)),
+ CHECK((state='DRAFT')=(owner_backend IS NOT NULL AND owner_xid IS NOT NULL AND owner_key IS NOT NULL AND owner_request IS NOT NULL))
 );
 CREATE UNIQUE INDEX user_invitation_open_recipient ON identity_private.user_invitations(tenant_id,email_normalized) WHERE state IN('DRAFT','ISSUED');
 CREATE TABLE identity_private.invitation_delivery_attempts (
@@ -24,7 +26,12 @@ CREATE TABLE identity_private.invitation_delivery_attempts (
 CREATE INDEX invitation_delivery_window ON identity_private.invitation_delivery_attempts(tenant_id,requested_at);
 CREATE TABLE identity_private.invitation_policy (
  tenant_id uuid PRIMARY KEY REFERENCES app.organizations(id),
- link_seconds integer NOT NULL CHECK(link_seconds BETWEEN 3600 AND 86400)
+ link_seconds integer NOT NULL CHECK(link_seconds BETWEEN 3600 AND 86400),
+ recipient_hourly integer NOT NULL DEFAULT 3 CHECK(recipient_hourly BETWEEN 1 AND 3),
+ recipient_daily integer NOT NULL DEFAULT 10 CHECK(recipient_daily BETWEEN 1 AND 10),
+ actor_hourly integer NOT NULL DEFAULT 20 CHECK(actor_hourly BETWEEN 1 AND 20),
+ tenant_hourly integer NOT NULL DEFAULT 100 CHECK(tenant_hourly BETWEEN 1 AND 100),
+ resend_seconds integer NOT NULL DEFAULT 60 CHECK(resend_seconds BETWEEN 60 AND 86400)
 );
 GRANT SELECT,INSERT,UPDATE ON identity_private.user_invitations TO cleanops_auth_broker;
 GRANT SELECT,INSERT ON identity_private.invitation_delivery_attempts TO cleanops_auth_broker;
@@ -45,7 +52,7 @@ ALTER TABLE app.auth_outbox ADD CONSTRAINT invitation_outbox_purpose CHECK(
 CREATE FUNCTION auth_api.invitation_draft_owned(payload jsonb,candidate uuid,key_hash bytea,request_hash bytea,corr uuid) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE c identity_private.tx_context; v identity_private.user_invitations; op text; keys text[]; recipient text; label_value text;
- seconds integer; reason_value text; now_at timestamptz; pseudonym bytea; retry boolean; policy_ok boolean; step_ok boolean; outbox uuid:=gen_random_uuid();
+ settings identity_private.invitation_policy; seconds integer; reason_value text; now_at timestamptz; pseudonym bytea; retry boolean; policy_ok boolean; step_ok boolean; outbox uuid:=gen_random_uuid();
 BEGIN
  c:=identity_private.context();
  IF candidate IS NULL OR corr IS NULL OR key_hash IS NULL OR octet_length(key_hash)<>32 OR request_hash IS NULL OR octet_length(request_hash)<>32
@@ -85,14 +92,15 @@ BEGIN
   INSERT INTO app.audit_logs VALUES(c.tenant_id,gen_random_uuid(),c.user_id,'USER','users.invitation.revoke',candidate,'SUCCESS',corr,clock_timestamp(),jsonb_build_object('reason',reason_value,'before_version',v.generation::text,'after_version',(v.generation+1)::text));
   RETURN jsonb_build_object('accepted',true);
  END IF;
- SELECT link_seconds INTO seconds FROM identity_private.invitation_policy WHERE tenant_id=c.tenant_id;
+ SELECT * INTO settings FROM identity_private.invitation_policy WHERE tenant_id=c.tenant_id;
  IF NOT FOUND THEN RETURN jsonb_build_object('error','AUTH_DEPENDENCY_UNAVAILABLE');END IF;
- now_at:=clock_timestamp();pseudonym:=crypto.digest(recipient,'sha256');
- SELECT count(*) FILTER(WHERE requested_at>now_at-interval '1h')>=100
- OR count(*) FILTER(WHERE actor_id=c.user_id AND requested_at>now_at-interval '1h')>=20
- OR count(*) FILTER(WHERE recipient_digest=pseudonym)>=10
- OR count(*) FILTER(WHERE recipient_digest=pseudonym AND requested_at>now_at-interval '1h')>=3
- OR count(*) FILTER(WHERE recipient_digest=pseudonym AND requested_at>now_at-interval '60s')>0 INTO retry
+ seconds:=settings.link_seconds;
+ now_at:=clock_timestamp();pseudonym:=crypto.digest(convert_to(recipient,'UTF8'),'sha256');
+ SELECT count(*) FILTER(WHERE requested_at>now_at-interval '1h')>=settings.tenant_hourly
+ OR count(*) FILTER(WHERE actor_id=c.user_id AND requested_at>now_at-interval '1h')>=settings.actor_hourly
+ OR count(*) FILTER(WHERE recipient_digest=pseudonym)>=settings.recipient_daily
+ OR count(*) FILTER(WHERE recipient_digest=pseudonym AND requested_at>now_at-interval '1h')>=settings.recipient_hourly
+ OR count(*) FILTER(WHERE recipient_digest=pseudonym AND requested_at>now_at-make_interval(secs=>settings.resend_seconds))>0 INTO retry
  FROM identity_private.invitation_delivery_attempts WHERE tenant_id=c.tenant_id AND requested_at>now_at-interval '1d';
  IF retry THEN
   INSERT INTO app.audit_logs VALUES(c.tenant_id,gen_random_uuid(),c.user_id,'USER','users.invitation.rate_limited',NULL,'DENY',corr,now_at,jsonb_build_object('operation',op));
@@ -103,13 +111,13 @@ BEGIN
   -- Suppress duplicate open requests without disclosing a principal in another tenant.
   IF EXISTS(SELECT 1 FROM identity_private.user_invitations WHERE tenant_id=c.tenant_id AND email_normalized=recipient AND state IN('DRAFT','ISSUED'))
   OR EXISTS(SELECT 1 FROM app.users u JOIN identity_private.principals p ON p.id=u.principal_id WHERE u.tenant_id=c.tenant_id AND p.email_normalized=recipient) THEN
-   PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'users.invitation.request',NULL,1,corr);
+   INSERT INTO app.audit_logs VALUES(c.tenant_id,gen_random_uuid(),c.user_id,'USER','users.invitation.request',NULL,'SUCCESS',corr,now_at,jsonb_build_object('reason',reason_value,'operation',op));
    RETURN jsonb_build_object('accepted',true);
   END IF;
-  INSERT INTO identity_private.user_invitations VALUES(c.tenant_id,candidate,recipient,label_value,reason_value,1,'DRAFT',NULL,now_at,now_at+make_interval(secs=>seconds),NULL,NULL,c.user_id,pg_backend_pid(),pg_current_xact_id()) RETURNING * INTO v;
+  INSERT INTO identity_private.user_invitations VALUES(c.tenant_id,candidate,recipient,label_value,reason_value,1,'DRAFT',NULL,now_at,now_at+make_interval(secs=>seconds),NULL,NULL,c.user_id,pg_backend_pid(),pg_current_xact_id(),key_hash,request_hash) RETURNING * INTO v;
  ELSE
   UPDATE app.auth_outbox SET state='CANCELLED',payload_ciphertext=decode('','hex'),claim_digest=NULL,lease_until=NULL WHERE tenant_id=c.tenant_id AND invitation_id=candidate AND state IN('PENDING','CLAIMED','DISPATCHING','QUARANTINED');
-  UPDATE identity_private.user_invitations SET generation=generation+1,state='DRAFT',reason=reason_value,verifier=NULL,issued_at=now_at,expires_at=now_at+make_interval(secs=>seconds),owner_backend=pg_backend_pid(),owner_xid=pg_current_xact_id() WHERE tenant_id=c.tenant_id AND id=candidate RETURNING * INTO v;
+  UPDATE identity_private.user_invitations SET generation=generation+1,state='DRAFT',reason=reason_value,verifier=NULL,issued_at=now_at,expires_at=now_at+make_interval(secs=>seconds),owner_backend=pg_backend_pid(),owner_xid=pg_current_xact_id(),owner_key=key_hash,owner_request=request_hash WHERE tenant_id=c.tenant_id AND id=candidate RETURNING * INTO v;
  END IF;
  RETURN jsonb_build_object('tenant_id',c.tenant_id,'invitation_id',v.id,'generation',v.generation::text,'recipient',v.email_normalized,'issued_at',v.issued_at,'expires_at',v.expires_at,'outbox_id',outbox);
 END $fn$;
@@ -122,9 +130,9 @@ BEGIN
  IF corr IS NULL OR outbox IS NULL OR verifier_value IS NULL OR octet_length(verifier_value)<>32 OR payload IS NULL OR octet_length(payload) NOT BETWEEN 29 AND 2048 OR key_version_value IS NULL OR length(key_version_value) NOT BETWEEN 1 AND 120 THEN RETURN false;END IF;
  PERFORM 1 FROM app.idempotency_records r WHERE r.tenant_id=c.tenant_id AND r.user_id=c.user_id AND r.operation='changeUserInvitation' AND r.key_digest=key_hash AND r.request_digest=request_hash AND r.owner_backend=pg_backend_pid() AND r.owner_xid=pg_current_xact_id() AND r.state='PENDING' AND r.one_time_result AND r.expires_at>clock_timestamp();
  IF NOT FOUND THEN RAISE EXCEPTION 'RESERVATION_NOT_OWNED';END IF;
- SELECT * INTO v FROM identity_private.user_invitations WHERE tenant_id=c.tenant_id AND id=invite AND generation=generation_value AND state='DRAFT' AND owner_backend=pg_backend_pid() AND owner_xid=pg_current_xact_id() FOR UPDATE;
+ SELECT * INTO v FROM identity_private.user_invitations WHERE tenant_id=c.tenant_id AND id=invite AND generation=generation_value AND state='DRAFT' AND owner_backend=pg_backend_pid() AND owner_xid=pg_current_xact_id() AND owner_key=key_hash AND owner_request=request_hash FOR UPDATE;
  IF NOT FOUND OR v.expires_at<=clock_timestamp() THEN RETURN false;END IF;
- UPDATE identity_private.user_invitations SET state='ISSUED',verifier=verifier_value,owner_backend=NULL,owner_xid=NULL WHERE tenant_id=c.tenant_id AND id=invite;
+ UPDATE identity_private.user_invitations SET state='ISSUED',verifier=verifier_value,owner_backend=NULL,owner_xid=NULL,owner_key=NULL,owner_request=NULL WHERE tenant_id=c.tenant_id AND id=invite;
  INSERT INTO app.auth_outbox(tenant_id,id,user_id,challenge_id,event_type,payload_ciphertext,key_version,state,dedup_key,attempts,available_at,expires_at,invitation_id,invitation_generation)
  VALUES(c.tenant_id,outbox,NULL,NULL,'INVITATION',payload,key_version_value,'PENDING',outbox,0,v.issued_at,v.expires_at,invite,generation_value);
  INSERT INTO app.audit_logs VALUES(c.tenant_id,gen_random_uuid(),c.user_id,'USER','users.invitation.issue',invite,'SUCCESS',corr,clock_timestamp(),jsonb_build_object('reason',v.reason,'before_generation',(generation_value-1)::text,'after_generation',generation_value::text));

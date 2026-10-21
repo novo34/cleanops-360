@@ -23,9 +23,9 @@ test('missing, duplicated, altered approved and unreviewed trial values fail clo
   assert.throws(() => securityProfile(values.values.slice(1)))
   assert.throws(() => numeric('missing'))
 })
-test('31 existing B1 operations plus six B2 operations; all inputs and success/error schemas validate and reject unknown fields', () => {
-  assert.equal(operations.length, 37); assert.equal(new Set(operations.map(o => o.operationId)).size, 37)
-  assert.deepEqual(operations.filter(o => o.path.startsWith('/auth/users')).map(o => o.operationId).sort(), ['changeAdministrationUser', 'checkUserEffectiveAccess', 'getAdministrationSession', 'getAdministrationUser', 'listAdministrationUsers', 'listAssignableRoles'])
+test('31 existing B1 operations plus eight B2 operations; all inputs and success/error schemas validate and reject unknown fields', () => {
+  assert.equal(operations.length, 39); assert.equal(new Set(operations.map(o => o.operationId)).size, 39)
+  assert.deepEqual(operations.filter(o => o.path.startsWith('/auth/users')).map(o => o.operationId).sort(), ['changeAdministrationUser', 'changeUserInvitation', 'checkUserEffectiveAccess', 'getAdministrationSession', 'getAdministrationUser', 'listAdministrationInvitations', 'listAdministrationUsers', 'listAssignableRoles'])
   for (const op of operations) {
     if (op.requestBody) { const s = op.requestBody.content['application/json'].schema, value = sample(s); assert.ok(valid(s, value), op.operationId); assert.ok(!valid(s, { ...value as object, user_id: id }), op.operationId) }
     for (const response of Object.values(op.responses)) { const s = response.content['application/json'].schema; assert.ok(valid(s, sample(s)), op.operationId) }

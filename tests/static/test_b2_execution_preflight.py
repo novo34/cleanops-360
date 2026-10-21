@@ -101,4 +101,17 @@ class PreflightTests(unittest.TestCase):
             runner.authorize_composition()
 
 
+class InvitationApprovalTests(unittest.TestCase):
+    def test_sql4_missing_or_false_record_never_authorizes_execution(self):
+        spec=importlib.util.spec_from_file_location('sql4_preflight',ROOT/'scripts/b2-invitations-postgres.review.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            with patch.object(module,'ROOT',root):
+                with self.assertRaisesRegex(RuntimeError,'EXACT_SQL4_OWNER_APPROVAL_REQUIRED'):module.authorize()
+                path=root/'docs/implementation/b2/invitation-administration-authorization.json'
+                path.parent.mkdir(parents=True);path.write_text(json.dumps({'ownerApproved':False}))
+                with self.assertRaisesRegex(RuntimeError,'EXACT_SQL4_OWNER_APPROVAL_REQUIRED'):module.authorize()
+
+
 if __name__=='__main__':unittest.main()
