@@ -1,5 +1,80 @@
 # Revisión independiente de 17 hallazgos Semgrep preexistentes
 
+## B2 Quality restoration — 2026-10-21
+
+Quality on d16f79f ran a raw whole-repository scan while the inherited B1
+registry/runner deliberately covered only production (FP-09..FP-12). It therefore
+reported the original17, without applying the full-scope review already approved
+and used at staging a217cfeda74431b77ffa30d117febb62695c70d0. This is a scope and
+workflow mismatch, not17 new findings.
+
+The full original registry is restored separately in
+`.semgrep/quality-reviewed-findings.json`; B1's four-entry registry is preserved.
+All17 IDs, rule names, source-line hashes, classifications and justifications are
+reused. FP-09 uses its existing B2-reviewed coordinates. FP-13 moves79→82 and
+FP-15/16 move33→36/108→111 with identical source hashes. The three affected test
+context files were compared completely: their differences add the closed two-origin
+test transport and custody deadline assertions already present byte-for-byte in
+the verified B1 base569975aa. No harness code is changed here. The fixture value
+and fixed module imports are unchanged. Runtime/rules remain unchanged. Current
+lockfile and production contexts use the already reviewed B1/B2 hashes; argon2 and
+otpauth package records also match the original staging lockfile exactly.
+
+The existing evaluator now has an explicit `--quality` mode to scan the complete
+repository with exactly the original three deliberate unsafe-fixture exclusions,
+all eight rules and `--disable-nosem`. Any new/stale/changed finding, context,
+scanner error or parser warning still fails. Its full-scope registry is covered by
+a new regression alongside the existing14 adversarial tests. No rule, severity,
+inline suppression, broad path exemption or new finding exception is introduced.
+
+Quality reuses the already reviewed staging runner repairs: Node24, scoped CSP
+matrix and separate synthetic dashboard suite. Existing foundation migration
+allowlist contains only0001_system_status.sql; neither proposed B2 package is
+added or executed. PostgreSQL integration is the existing disposable Quality
+service, with synthetic credentials only. B2's authorized networkless SQL14/SQL1
+workflow and its evidence remain separate and unchanged.
+
+Quality39541044979/job119028602827 confirms PASS for all17 exact findings,
+zero unreviewed findings, and the positive/negative fixtures of all eight rules.
+It then retains FAIL for one Gitleaks generic-api-key result introduced by
+9b4439f4c9d69f13e5749b4548cee9f4bb0597a4 at
+`.semgrep/quality-reviewed-findings.json:12`. The value is exactly the SHA256
+of lib/b1/password.ts, recomputed locally, and matches the already reviewed
+staging checksum finding described below. It is not a password/token/account hash.
+After this individual review, only that immutable commit:path:rule:line fingerprint
+is added to .gitleaksignore. No regex, file/rule exclusion or new Semgrep exception
+is added. The failed execution is preserved; a follow-up scan must pass itself.
+Quality39541528648/job119030139699 then passed Gitleaks, SBOM, all16 foundation
+PostgreSQL tests and all27 CSP browser-matrix tests. Its remaining FAIL was a
+missing old staging `playwright.demo-v0.config.ts`, which is absent from the
+verified B1 base. The runner now selects the current, unchanged9-test
+demo-workspace.spec.ts suite in a dedicated local-only configuration, retaining
+all three browser engines (27 executions). No existing test or assertion is
+removed, and the earlier failed run remains visible. This only repairs test
+selection; no dashboard or B1 product implementation changes.
+
+The completed follow-up Quality39541906222/job119031323565 is PASS, including
+all27 CSP and all27 dashboard cases across the three engines.
+
+Authorization records introduced two additional Gitleaks generic-api-key
+findings at34dd612a8613ffeaf06f4a5423e13d4cd522e2bb,
+docs/implementation/b2/access-authorization.json:6 and:7. Each was inspected and
+recomputed: they are exactly the SQL2 SHA256d11842d5…3549efe and fixture
+SHA256a5fe0da1…71c5a42 explicitly approved by the owner, not credentials. The
+two immutable commit:path:rule:line fingerprints alone are excepted. Failed
+Quality39542403764 and full-history scan39542403879 remain recorded. New selected
+package records now separate artifact paths from explicitly named SQL/fixture
+digest fields; their bytes, approval scope and strict comparisons are unchanged.
+No scanner rule or broad exemption changes. New findings must still be reviewed.
+
+## B2 shared-boundary context refresh (2026-10-20)
+
+The subsequent two fixed Manage Access read dispatches add one static import and three lines, moving FP-09 to line 614. The original literal-import snippet is unchanged. Only its exact position and full-file context checksum are refreshed; the registry still contains the same four reviewed findings. The new read helper passes validated locators as fixed broker parameters and contains no authorization evaluator or SQL interpolation.
+
+The administrative session-resume read adds one fixed activeSummary dispatch, moving the same FP-09 snippet to line 610 without changing its snippet digest. It reuses the approved SQL14 function and original B1 self-service authorization. It cannot issue/rotate cookies, change tenant/session, or extend the active session lifetime. This additive compatibility is required to open user administration with an existing authenticated session; it does not activate the closed production backend. The exact-reviewed context hash and coordinates are refreshed again with no added exception.
+
+PR #12 adds only a fixed B2 reader import and an explicit two-operation dispatch after B1's owns/resolveAgain checks. No authorization, credential, session, custody, or cookie behavior changes. FP-09 moves from line 605 to 609; its exact source-line SHA-256 is unchanged. Refresh only its coordinates and the full approved-backend context hash. All four inherited exact findings, classifications, snippet hashes, scanner engine, rules, and fail-closed guard remain unchanged; no exception is added. Quality run 39504589951 at 9870ec7 reports the same 17 inherited raw findings and remains FAIL. B2's dedicated scan additionally covers its reader/UI/routes and runs the existing full shared-boundary reviewed scanner; new or changed findings still fail.
+
 Fecha: 2026-10-20. Base: staging `646c9af496b2497a542ab58d96ae1e7b17b1ee81`. Integración: `c639403eeb195cc5cd0f96893d8503f2aa4ae4f7`.
 
 Alcance: revisión estática de los 17 resultados de Semgrep 1.177.0, reglas locales sin modificar. No ejecuta los harnesses de PostgreSQL/OpenBao ni activa B1. Los 10 archivos afectados son byte a byte iguales a staging; comparación y localizaciones originales en `../implementation/demo-staging/evidence/semgrep-comparison.json`.
@@ -90,6 +165,12 @@ Only commit:path:rule:line fingerprints are added to .gitleaksignore. No path/ru
 The earlier one-shot experiment paragraph records the initial ec5bc165 follow-up. Final P1 custody/SQL integration is executed at df6a52b0, with all reports and source guards in PROXY_DEADLINE_EXECUTION.json; the unchanged dashboard remains pinned to its initial successful source.
 
 
+The B2 user-profile write adds a fixed broker dispatch alongside the existing
+owned transaction operations. The already reviewed random-key fallback snippet
+is unchanged and now starts at line620 of approved-backend.ts. Only that exact
+location and whole-file context checksum are refreshed; no finding, rule, source
+snippet or exemption is added.
+
 ### Corrected history coverage
 
 The phrase full-history above described the PR #7 action's broader range compared with PR #11, but was too broad: inspection of pinned gitleaks-action/src/gitleaks.js shows an unpaginated GitHub PR commits request and a first-parent range limited to30 returned commits. Logs39485356802 and39486006161 each explicitly scanned30 commits. They do not prove full-history coverage.
@@ -102,3 +183,15 @@ Actions39486006161 retained FAIL for a Git-blob checksum assertion at introducin
 ### First actual complete reachable-history scan
 
 Actions39486601226/job118848514239 scanned303 reachable commits at branch source1e0b6519 and retained FAIL with nine additional findings. Every original commit/file/line was inspected individually. Six findings are source-integrity digests (codeSha256, provenance, a verified Git blob and original V4 artifact-manifest entries); two are prose or synthetic delivery callback control flow with no literal secret; one is a fixed unit-test idempotency identifier. The canonical manifest's prior38/38 integrity validation remains the proof of those original asset digests, not a credential inventory. No canonical asset or product code is changed. The exact nine fingerprints and classifications, together with the failed sanitized scan, are preserved in PROXY_DEADLINE_EXECUTION.json. Only those immutable fingerprints are excepted; a new value/commit/path/rule/line, any scanner error or incomplete report still fails.
+# B2 invitation administration context review
+
+Owner-approved invitation contract at 3ea4ec8: the new administrative operations
+reuse strict B1 request validation, ACTIVE binding, owned one-time journal and
+fixed parameterized broker calls. SQL4 must independently enforce create/users,
+fresh B1 step-up, tenant, quotas and version CAS. Optional invitation mail custody
+fails closed; no dependency is installed by runtime and closedBackend is intact.
+No password/TOTP proof, session issuer or existing login branch is changed.
+FP-09 is the identical fixed literal otpauth import line (same whole-line hash),
+moved from620 to628. Only its coordinates and approved-backend full-file context
+hash are refreshed in both existing registries. All17/four IDs, rules, snippets
+and classifications remain unchanged; new findings are never suppressed.

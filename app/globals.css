@@ -30,5 +30,40 @@ button, input, select { font: inherit; }
 .auth-panel button { padding: 10px 14px; margin: 4px; cursor: pointer; }
 .auth-panel button:disabled { cursor: wait; opacity: .65; }
 .auth-panel fieldset { min-width: 0; }
+.manage-access-panel { margin-top: 24px; padding: clamp(16px,3vw,28px); border: 1px solid #dce5eb; border-radius: 16px; background: #fff; color: #15283b; }
+.manage-access-panel ul { list-style: none; padding: 0; display: grid; gap: 12px; }
+.manage-access-panel li { padding: 14px; border: 1px solid #dce5eb; border-radius: 10px; overflow-wrap: anywhere; }
+.manage-access-panel form, .manage-access-panel fieldset { margin-top: 18px; border: 1px solid #dce5eb; border-radius: 10px; padding: 16px; }
+.manage-access-panel input, .manage-access-panel select, .manage-access-panel button { border: 1px solid #9bafbf; border-radius: 7px; min-height: 44px; }
+@media (prefers-color-scheme: dark) { .manage-access-panel { background: #142638; color: #edf5f8; border-color: #355065; color-scheme: dark; } .manage-access-panel li, .manage-access-panel form, .manage-access-panel fieldset { border-color: #355065; } }
+.users-directory { --users-surface: #fff; --users-text: #15283b; --users-muted: #526477; --users-border: #dce5eb; margin: 24px 0; padding: clamp(16px,3vw,28px); border: 1px solid var(--users-border); border-radius: 16px; background: var(--users-surface); color: var(--users-text); box-shadow: 0 8px 24px #101a2b08; }
+.users-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.users-heading h3 { margin: 6px 0; font-size: 24px; letter-spacing: -.03em; }
+.users-heading p, .users-empty p { color: var(--users-muted); line-height: 1.6; }
+.users-directory button { border: 1px solid var(--users-border); border-radius: 8px; background: var(--users-surface); color: var(--users-text); min-height: 44px; }
+.users-directory button:not(:disabled):hover { border-color: #1b977a; }
+.users-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; padding: 20px 0; }
+.users-filters label { display: grid; gap: 8px; font-size: 14px; }
+.users-filters input, .users-filters select { min-height: 44px; background: var(--users-surface); color: var(--users-text); border: 1px solid var(--users-border); border-radius: 8px; }
+.users-filters label:first-child { flex: 1; min-width: min(240px,100%); }
+.users-table-scroll { overflow-x: auto; }
+.users-directory table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+.users-directory caption { text-align: left; color: var(--users-muted); padding: 10px 0; }
+.users-directory td, .users-directory th { border-bottom: 1px solid var(--users-border); padding: 14px 12px; }
+.users-directory thead { color: var(--users-muted); font-size: 12px; }
+.users-state { display: inline-block; border-radius: 20px; padding: 5px 10px; background: #e9edf2; color: #354357; }
+.users-state.is-active { background: #e1f5ed; color: #12654f; }
+.users-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; font-size: 13px; }
+.users-empty, .users-notice { padding: 22px; border: 1px solid var(--users-border); border-radius: 10px; }
+.users-detail { width: min(560px,calc(100% - 32px)); border: 1px solid var(--users-border); border-radius: 16px; padding: 24px; background: var(--users-surface); color: var(--users-text); }
+.users-detail::backdrop { background: #0a182acc; }
+.users-detail dl div { padding: 12px 0; border-bottom: 1px solid var(--users-border); }
+.users-detail dt { color: var(--users-muted); font-size: 13px; }
+.users-detail dd { margin: 6px 0; }
+.users-detail fieldset { border: 1px solid var(--users-border); border-radius: 10px; padding: 14px; margin: 16px 0; }
+.users-detail label { display: grid; gap: 6px; }
+.users-detail input { background: var(--users-surface); color: var(--users-text); border: 1px solid var(--users-border); border-radius: 7px; }
+@media (prefers-color-scheme: dark) { .users-directory { --users-surface: #142638; --users-text: #edf5f8; --users-muted: #afc2d2; --users-border: #355065; color-scheme: dark; } }
+@media (max-width: 600px) { .users-heading, .users-filters, .users-pagination { display: grid; } .users-directory td, .users-directory th { padding: 10px 8px; } }
 .auth-panel :focus-visible { outline: 3px solid #1b977a; outline-offset: 3px; }
 @media (max-width: 480px) { .auth-panel button { width: 100%; margin: 4px 0; } }

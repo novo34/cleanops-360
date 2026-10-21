@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {ManageAccessPanel,type AccessDetail} from './manage-access-panel'
+import {InvitationsPanel} from './invitations-panel'
+import { UsersDirectory } from './users-directory'
 import { TotpEnrollmentQr } from './totp-enrollment-qr'
 import { contract, operations, valid } from '@/lib/b1/contracts'
 import { UiRequestKeys } from '@/lib/b1/ui-request-keys'
@@ -12,11 +14,12 @@ type StepContext = { grant_id: string; resource_id?: string }
 function expired(expiresAt: string) { return Date.parse(expiresAt) <= Date.now() }
 type Tenant = { id: string; name: string }
 type Session = { id: string; device_label: string; browser_label: string; is_current: boolean; created_at: string; last_activity_at: string; absolute_expires_at: string }
-export function AuthPanel() {
+export function AuthPanel({administration=false}: {administration?:boolean}) {
   const [view, setView] = useState(emptyView)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [selected, setSelected] = useState('')
   const [accessOpen,setAccessOpen]=useState(false)
+  const [directoryRefresh,setDirectoryRefresh]=useState(0)
   const [accessView,setAccessView]=useState<{target:string;detail:AccessDetail}|null>(null)
   const [trustedDevices,setTrustedDevices]=useState<{id:string;created_at:string;expires_at:string}[]>([])
   const [trustedCursor,setTrustedCursor]=useState<string|null>(null)
@@ -53,6 +56,7 @@ export function AuthPanel() {
   const [emailPending, setEmailPending] = useState<{ challenge_id: string; allowed_methods: string[]; expires_at: string } | null>(null)
   const [emailEnrollment, setEmailEnrollment] = useState(false)
   const [enrollmentAuthorized, setEnrollmentAuthorized] = useState(false)
+  const [invitationsOpen,setInvitationsOpen]=useState(false),[invitationRefresh,setInvitationRefresh]=useState(0)
   const [pendingAction, setPendingAction] = useState<{ operation: string; body?: object; accessTarget?:string } | null>(null)
   useEffect(() => {
     const authExpiry = view.auth && ('absolute_expires_at' in view.auth ? view.auth.absolute_expires_at : view.auth.expires_at)
@@ -97,6 +101,11 @@ export function AuthPanel() {
       if (requestGeneration !== generation.current) return null
       // Authentication loss is authoritative even if the error body is malformed.
       if (response.status === 401) { endCeremony('La sesión ha caducado. Vuelve a iniciar el acceso.', true); return null }
+      if (operation === 'changeAdministrationUser' && response.status === 409) {
+        const error = await response.json()
+        if (!valid(contract.components.schemas.Error,error)) throw new Error('INVALID_ERROR')
+        lastFailure.current='USER_CHANGE_CONFLICT';setMessage('No se pudo confirmar el cambio. Actualiza la ficha antes de guardar de nuevo.');return null
+      }
       // Ceremony/authorization failure is not evidence that the ACTIVE session was revoked.
       if ([403, 409, 410].includes(response.status)) {
         if(response.status===403){try{const error=await response.json();if(valid(contract.components.schemas.Error,error)&&error.error.code==='STEP_UP_REQUIRED')lastFailure.current='STEP_UP_REQUIRED'}catch{ /* Safe generic failure; never infer authorization. */ }}
@@ -104,7 +113,7 @@ export function AuthPanel() {
       if (!/^application\/json(?:\s*;|$)/i.test(response.headers.get('Content-Type') ?? '')) throw new Error('INVALID_CONTENT_TYPE')
       const result = await response.json()
       if (requestGeneration !== generation.current) return null
-      if (response.status !== 200) {
+      if (response.status !== 200 && !(operation==='changeUserInvitation'&&response.status===202)) {
         if (!valid(contract.components.schemas.Error, result)) throw new Error('INVALID_ERROR')
         setMessage(response.status === 429 ? 'Demasiados intentos. Espera antes de reintentar.' : 'No se pudo confirmar la solicitud. Reintenta o vuelve a iniciar el acceso.')
         return null
@@ -148,6 +157,7 @@ export function AuthPanel() {
     if (auth.state === 'TOTP_SELECTION_REQUIRED') { setView(emptyView); prepare(auth, null); return }
     setSelection(null); setSelected(''); selectionKeys.current.clear()
     setView(previous => receiveAuth(previous, auth)); setEnrollment(null); setChallenge(null)
+    if (administration && auth.state === 'ACTIVE') setAccessOpen(true)
     if (auth.state === 'PENDING_MFA') setChallenge(auth)
   }
   async function login(form: HTMLFormElement) {
@@ -183,6 +193,8 @@ export function AuthPanel() {
         if (result && action.operation === 'enrollTotp') { setEnrollment(result); setEnrollmentAuthorized(false); setEmailEnrollment(false) }
         else if (result && action.operation === 'enrollEmail') { setEmailPending(result); setEmailEnrollment(false) }
         else if(result && action.operation==='changeAccess' && action.accessTarget){await loadUserAccess(action.accessTarget);setMessage('Permisos actualizados.')}
+        else if(result && action.operation==='changeAdministrationUser')receiveUserChange(result)
+        else if(result && action.operation==='changeUserInvitation'){setInvitationRefresh(value=>value+1);setMessage('Solicitud de invitación aceptada.')}
         else if(result && action.operation.includes('Trusted')){setTrustedDevices([]);setTrustedCursor(null);setTrustedStatus(action.operation==='registerTrustedDevice'?true:null);setMessage('Cambio de confianza confirmado. MFA sigue siendo obligatorio.')}
         else if(result&&action.operation==='adminResetMfa')setMessage('MFA restablecido. El usuario debe configurar y verificar un nuevo factor.')
         else if (result?.state && result.state !== 'REVOKED') accept(result)
@@ -234,14 +246,35 @@ export function AuthPanel() {
     const step=await call('startStepUp',{grant_id:'B1-SELF-06'})
     if(step){setPendingAction({operation:'changeAccess',body,accessTarget:target});prepare(step,{grant_id:'B1-SELF-06'})}
   }
+  function receiveUserChange(result:{session_ended:boolean}){
+    if(result.session_ended){clearCeremony();setView(emptyView);setMessage('Tu acceso a esta empresa se ha desactivado.');return}
+    setDirectoryRefresh(value=>value+1);setAccessOpen(true);setAccessView(null);setMessage('Usuario actualizado.')
+  }
+  async function changeAdministrationUser(body:object):Promise<boolean|'STEP_UP'>{
+    const result=await call('changeAdministrationUser',body)
+    if(result){receiveUserChange(result);return true}
+    if(lastFailure.current==='STEP_UP_REQUIRED'){
+      const step=await call('startStepUp',{grant_id:'B1-SELF-06'})
+      if(step){setPendingAction({operation:'changeAdministrationUser',body});prepare(step,{grant_id:'B1-SELF-06'});return 'STEP_UP'}
+    }
+    return false
+  }
+  async function changeUserInvitation(body:object):Promise<boolean|'STEP_UP'>{
+    const result=await call('changeUserInvitation',body)
+    if(result){setMessage('Solicitud de invitación aceptada.');return true}
+    if(lastFailure.current==='STEP_UP_REQUIRED'){const step=await call('startStepUp',{grant_id:'B1-SELF-06'});if(step){setPendingAction({operation:'changeUserInvitation',body});prepare(step,{grant_id:'B1-SELF-06'});return 'STEP_UP'}}
+    return false
+  }
   async function enroll() {
     const result = await call('enrollTotp')
     if (result) setEnrollment(result)
   }
-  return <main className="auth-panel" style={{ maxWidth: 640, margin: '3rem auto', padding: 24 }}>
-    <h1>CleanOps 360 · Acceso</h1>
+  return <main className="auth-panel" style={{ maxWidth: administration?1120:640, margin: '3rem auto', padding: 24 }}>
+    {administration && <nav aria-label="Administración"><a href="/">Inicio</a> → Administración → Usuarios</nav>}
+    <h1>{administration?'Administración · Usuarios':'CleanOps 360 · Acceso'}</h1>
     <p role="status" aria-live="polite">{busy ? 'Procesando…' : message}</p>
     <fieldset disabled={busy} aria-busy={busy} style={{ border: 0, padding: 0 }}>
+      {administration && !view.auth && !challenge && !selection && !resetting && !resetDone && <button type="button" onClick={async()=>{const result=await call('getAdministrationSession');if(result)accept(result)}}>Continuar con mi sesión</button>}
       {!view.auth && !challenge && !selection && !resetting && !resetDone && <form onSubmit={event => { event.preventDefault(); void login(event.currentTarget) }}>
         <p><label>Email <input name="email" type="email" autoComplete="username" required maxLength={254} /></label></p>
         <p><label>Contraseña <input name="password" type="password" autoComplete="current-password" required /></label></p>
@@ -319,11 +352,14 @@ export function AuthPanel() {
         <button onClick={async () => { const r = await call('startStepUp', { grant_id: 'B1-SELF-04' }); if (r) { setPendingAction({ operation: 'revokeOtherOwnSessions', body: { reason: 'Revocación de mis demás sesiones' } }); prepare(r, { grant_id: 'B1-SELF-04' }); setView(v => ({ ...v, sessions: [], codes: [] })); setSessionsCursor(null) } }}>Revocar mis demás sesiones</button>
         <section aria-labelledby="administration-heading"><h3 id="administration-heading">Administración</h3>
           <button type="button" onClick={()=>{setAccessOpen(v=>!v);setAccessView(null)}}>Usuarios y permisos</button>
+          <button type="button" onClick={()=>setInvitationsOpen(value=>!value)}>Invitaciones de usuarios</button>
+          {invitationsOpen&&<InvitationsPanel refresh={invitationRefresh} onList={async after=>call('listAdministrationInvitations',undefined,undefined,undefined,after?{after}:{})} onChange={changeUserInvitation} />}
+          {accessOpen && <UsersDirectory onManageAccess={loadUserAccess} onChangeUser={changeAdministrationUser} refresh={directoryRefresh} />}
           {accessOpen&&<form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);void loadUserAccess(String(d.get('access_target')))}}>
             <label>Usuario para Manage Access <input name="access_target" minLength={36} maxLength={36} required /></label>
             <button type="submit">Abrir Manage Access</button>
           </form>}
-          {accessView&&<ManageAccessPanel key={accessView.target+':'+accessView.detail.policy_version} target={accessView.target} detail={accessView.detail} onReload={()=>loadUserAccess(accessView.target)} onChange={body=>changeAccess(body,accessView.target)} onCheck={async query=>{const r=await call('checkEffectiveAccess',undefined,undefined,undefined,query);return r?r.allowed:null}} />}
+          {accessView&&<ManageAccessPanel key={accessView.target+':'+accessView.detail.policy_version} target={accessView.target} detail={accessView.detail} onReload={()=>loadUserAccess(accessView.target)} onChange={body=>changeAccess(body,accessView.target)} onCheck={async query=>{const r=await call('checkEffectiveAccess',undefined,undefined,undefined,query);return r?r.allowed:null}} onTargetCheck={async query=>{const r=await call('checkUserEffectiveAccess',undefined,undefined,undefined,{...query,target_user_id:accessView.target});return r?r.allowed:null}} onRoles={async after=>call('listAssignableRoles',undefined,undefined,undefined,{target_user_id:accessView.target,...(after?{after}:{})})} />}
         </section>
         <section aria-labelledby="trusted-heading"><h3 id="trusted-heading">Dispositivos de confianza</h3>
           <p>Confianza válida hasta 30 días. No sustituye MFA ni prolonga tu sesión. No registres dispositivos compartidos.</p>

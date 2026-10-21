@@ -1,0 +1,208 @@
+{
+  "scope": "SQL5_R2_NEW_IDENTITY_ACCEPTANCE",
+  "runtime": "closedBackend",
+  "checks": [
+    {
+      "name": "exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-container-network-none-no-ports-no-bind-or-volume",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-SQL14",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres-function-body-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-B2-functions-and-EXECUTE",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "B1-approved-12h24h-existing-session-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-access-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-users-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-install-004-invitation-administration.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-install-005-invitation-acceptance.r2.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-explicit-synthetic-tenant-policy",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-direct-identity-access",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-R2-attempt-ledger-private",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-R2-B1-security-log-remains-append-only",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-runtime-call",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-synthetic-issued-link",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-link-is-private-no-membership-before-MFA",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-user-or-session-created",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-unknown-capability-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-invalid-link-is-generic",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-prepare-pending-MFA",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "2201B"
+      }
+    },
+    {
+      "name": "SQL5-expired-capability-denied-with-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-before-MFA-no-activation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-wrong-CSRF-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-native-factor-CAS",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-rollback-activation",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-rollback-has-no-member",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-atomic-activation",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-consumed-idempotent-no-recreation",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-active-only-in-invited-tenant",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-activation-audited-once",
+      "status": "FAIL"
+    },
+    {
+      "name": "SQL5-revocation-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-revoked-link-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-identity-synthetic-invite-other-tenant",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-identity-fails-closed-without-prior-factor-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-credential-and-memberships-untouched",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-synthetic-failure-budget-invite",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-1",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-2",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-3",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-4",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-5",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-sixth-credential-attempt-blocked",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-helpers-not-public",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": "PASS",
+  "result": "FAIL",
+  "image": "postgres@sha256:d81f7b51697014367236d07ec58b54153fc28f828b72bf247fe5c7487520bcb0",
+  "functionalBrowser": "SKIP_NOT_IN_THIS_PACKAGE",
+  "b2TechReady": false,
+  "existingIdentityAcceptance": "SKIP_NOT_IMPLEMENTED"
+}

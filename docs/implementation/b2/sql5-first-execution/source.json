@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "a465ddda0d19fcae5485c824f89932ee140f6108",
+  "reviewCommit": "c2f3f877f90f3d97cb5ccf982c7fc2b356ee1e40",
+  "run": "https://github.com/novo34/cleanops-360/actions/runs/39582464898",
+  "artifact": 12336478305,
+  "zipSha256": "8fdc77aa618a1d1eead6d8a02cd780e97feb6b085db84e1a4f9d8733b6bf5ce2",
+  "reportSha256": "0c97ae95262888d76b3cb8b606224426794da0b3bcd4a5c5901f5505948a8cfa",
+  "result": "FAIL",
+  "diagnosis": "SQL5 reads security_log, but B1 grants the broker INSERT only. SQL5 R1 and its failed native results remain immutable. No broad SELECT on B1 security log will be introduced.",
+  "b2TechReady": false
+}

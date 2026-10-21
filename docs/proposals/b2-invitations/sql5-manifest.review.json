@@ -1,0 +1,11 @@
+{
+  "scope": "SQL5_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "ownerApproved": false,
+  "status": "PENDING_OWNER_APPROVAL",
+  "files": {
+    "docs/proposals/b2-invitations/004-invitation-administration.review.sql": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
+    "docs/proposals/b2-invitations/005-invitation-acceptance.review.sql": "490e916ccfbca8c5584fd689ee21b3deaa2d90bdb08ae93db390e0f97e47dd83",
+    "docs/proposals/b2-invitations/acceptance-tests.review.py": "18e0009f78a3f911dcb54759764f843430721553bf095a7aa018a6d96e4f9479",
+    "scripts/b2-acceptance-postgres.review.py": "73aad9c946b270266a9464b54227f5641f4d72c6b7d3adb0d235f817054fcca3"
+  }
+}

@@ -1,0 +1,42 @@
+import {test,expect} from '@playwright/test'
+const fixture=JSON.parse(process.env.B2_BROWSER_FIXTURE??'{}')
+test.beforeEach(async({context})=>{
+ await context.addCookies([
+  {name:'__Host-cleanops_session',value:'c'.repeat(43),url:'https://127.0.0.1:3443',httpOnly:true,secure:true,sameSite:'Lax'},
+  {name:'__Host-cleanops_csrf',value:'e'.repeat(43),url:'https://127.0.0.1:3443',secure:true,sameSite:'Lax'},
+ ])
+})
+test('real PostgreSQL session opens directory, literal search, empty state and profile with keyboard focus',async({page})=>{
+ await page.goto('/administration/users')
+ await page.getByRole('button',{name:'Continuar con mi sesión'}).click()
+ const table=page.getByRole('table',{name:'Usuarios visibles para tu sesión en esta empresa'})
+ await expect(table).toBeVisible()
+ await expect(table.getByText('Synthetic A1')).toBeVisible()
+ await expect(table.getByText('B2 literal % _ example')).toBeVisible()
+ await page.getByRole('searchbox',{name:'Buscar por nombre'}).fill('%')
+ await page.getByRole('button',{name:'Buscar usuarios'}).click()
+ await expect(table.getByText('Synthetic A1')).toHaveCount(0)
+ const profile=table.getByRole('button',{name:'Ver ficha de B2 literal % _ example'})
+ await profile.click()
+ const dialog=page.getByRole('dialog',{name:'Ficha de usuario'})
+ await expect(dialog.getByText('Synthetic A',{exact:true})).toBeVisible()
+ await page.keyboard.press('Escape')
+ await expect(dialog).not.toBeVisible();await expect(profile).toBeFocused()
+ await page.getByRole('searchbox',{name:'Buscar por nombre'}).fill('not-present-synthetic')
+ await page.getByRole('button',{name:'Buscar usuarios'}).click()
+ await expect(page.getByRole('heading',{name:'Sin usuarios que mostrar'})).toBeVisible()
+ await page.screenshot({path:'artifacts/b2-directory/directory-empty.png'})
+})
+test('real API hides foreign identities, binds tenant and paginates persisted users',async({context})=>{
+ const first=await context.request.get('/auth/users?limit=1')
+ expect(first.status()).toBe(200)
+ const a=(await first.json()).data;expect(a.items).toHaveLength(1);expect(a.next_after).toBe(a.items[0].id)
+ const second=await context.request.get('/auth/users?limit=1&after='+a.next_after)
+ expect(second.status()).toBe(200)
+ const b=(await second.json()).data;expect(b.items).toHaveLength(1);expect(b.items[0].id).not.toBe(a.items[0].id);expect(b.next_after).toBeNull()
+ const foreign=await context.request.get('/auth/users/detail?target_user_id='+fixture.foreign)
+ const absent=await context.request.get('/auth/users/detail?target_user_id=11111111-1111-4111-8111-111111111111')
+ expect(foreign.status()).toBe(404);expect(absent.status()).toBe(404)
+ expect((await foreign.json()).error.code).toBe((await absent.json()).error.code)
+ expect((await context.request.get('/auth/users?tenant_id='+fixture.otherTenant)).status()).toBe(400)
+})

@@ -1,0 +1,414 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CleanOps B2 Manage Access reads",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/auth/users/permissions/effective": {
+      "get": {
+        "operationId": "checkUserEffectiveAccess",
+        "summary": "B2 scoped Manage Access read using the shared B1 evaluator; SQL requires separate approval",
+        "x-authentication-state": "ACTIVE",
+        "x-requirements": [
+          "REQ-AUTHZ-001",
+          "REQ-AUTHZ-002",
+          "REQ-AUTHZ-005",
+          "REQ-AUTHZ-006",
+          "REQ-AUTHZ-007"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "target_user_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "view",
+                "create",
+                "edit",
+                "approve",
+                "delete",
+                "export",
+                "manage_permissions"
+              ]
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "resource_kind",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "resource_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed authorized read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/B2TargetPermissionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/users/roles": {
+      "get": {
+        "operationId": "listAssignableRoles",
+        "summary": "B2 scoped Manage Access read using the shared B1 evaluator; SQL requires separate approval",
+        "x-authentication-state": "ACTIVE",
+        "x-requirements": [
+          "REQ-AUTHZ-001",
+          "REQ-AUTHZ-002",
+          "REQ-AUTHZ-005",
+          "REQ-AUTHZ-006",
+          "REQ-AUTHZ-007"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "target_user_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed authorized read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/B2RoleCatalogueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error without subject existence disclosure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "B2TargetPermissionResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "target_user_id",
+            "action",
+            "resource_kind",
+            "resource_id",
+            "allowed"
+          ],
+          "properties": {
+            "target_user_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "view",
+                "create",
+                "edit",
+                "approve",
+                "delete",
+                "export",
+                "manage_permissions"
+              ]
+            },
+            "resource_kind": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+            },
+            "resource_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "minLength": 36,
+                  "maxLength": 36
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "allowed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          }
+        }
+      }
+    },
+    "B2RoleCatalogueResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "items",
+            "next_after"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "role_id",
+                  "label",
+                  "assignable"
+                ],
+                "properties": {
+                  "role_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "minLength": 36,
+                    "maxLength": 36
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "assignable": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "next_after": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "minLength": 36,
+                  "maxLength": 36
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          }
+        }
+      }
+    }
+  }
+}

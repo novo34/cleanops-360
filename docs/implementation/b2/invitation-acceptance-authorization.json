@@ -1,0 +1,7 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "c2f3f877f90f3d97cb5ccf982c7fc2b356ee1e40",
+  "scope": "SQL5_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "manifestSha256": "56e0abc4a3ec0b21b19d4f815b10c49519f6e59f671ed574c7702fb007aae32c",
+  "authorization": "Owner explicitly authorized only the described SQL5 package for new identities: hosted ephemeral networkless PG16, exact historical SQL14+SQL1+SQL2+SQL3 and SQL4 dependency, synthetic native fixtures. No repeat of historical SQL4 suite, existing-identity acceptance, PostgreSQL acceptance E2E, real mail, persistent DB, B1 activation, staging/main, deploys or merges. Verify all hashes, historical bytes, prior approvals and isolation before SQL."
+}
