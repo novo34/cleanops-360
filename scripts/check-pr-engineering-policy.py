@@ -37,16 +37,17 @@ def validate(body: str) -> list[str]:
     for field in FIELDS:
         if field not in body:
             errors.append("Missing field: " + field)
-    # Require actual filled content for key engineering decisions, not just headings.
+    # Require meaningful content rather than an unfilled PR template.
     lines = body.splitlines()
     for field in FIELDS[:6]:
-        for i, line in enumerate(lines):
-            if line.startswith("**" + field) or line.startswith(field):
-                tail = line.split("**:", 1)[-1].strip() if "**:" in line else line.partition(":")[2].strip()
-                next_line = lines[i+1].strip() if i+1 < len(lines) else ""
-                if not tail and (not next_line or next_line.startswith(("##", "**", "- [", ">"))):
-                    errors.append("Unfilled field: " + field)
-                break
+        matching = [i for i, line in enumerate(lines) if field in line]
+        if not matching:
+            continue
+        i = matching[0]
+        after = lines[i].split(field, 1)[1].replace("**", "").strip()
+        follow = lines[i+1].strip() if i+1 < len(lines) else ""
+        if not after and (not follow or follow.startswith(("##", "**", "- [", ">"))):
+            errors.append("Unfilled field: " + field)
     if "No hay implementaciones paralelas" not in body:
         errors.append("Missing anti-duplication assertion")
     if "Sintaxis/lint/tests locales" not in body:
