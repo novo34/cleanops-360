@@ -1,5 +1,6 @@
 """REVIEW ONLY. SQL5 never runs from current CI; exact approval required first."""
 import hashlib
+import ast
 import importlib.util
 import json
 from pathlib import Path
@@ -35,6 +36,8 @@ def authorize():
 
 
 def main():
+    # Fail before PostgreSQL/container setup if reviewed Python is malformed.
+    ast.parse((ROOT/FIXTURES).read_text(), filename=FIXTURES)
     spec=importlib.util.spec_from_file_location('sql5_owned_harness',ROOT/'scripts/b2-directory-postgres.py')
     core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
     prior=core.authorize_composition
