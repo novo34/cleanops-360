@@ -1,0 +1,9 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "cd138d71fb8fd8e9298e17c0f69b83e259ef3eba",
+  "scope": "SQL4_INVITATION_ADMIN_HOSTED_EPHEMERAL_PG16",
+  "manifestSha256": "dfda308abd7cb144d36d5b180c769038e76da46f633e633ac842a8991788e6d3",
+  "sqlSha256": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
+  "fixturesSha256": "166ccde947b44216b04354b7cc666ebb549f58a53695b229bf75521bb976e0fd",
+  "authorization": "Owner explicitly authorized only the described SQL4 package: hosted ephemeral networkless PG16, synthetic data, prior approved SQL14+SQL1+SQL2+SQL3 and regression; no acceptance/activation, real mail, persistent DB, B1 activation, staging/main, deploys or merges."
+}
