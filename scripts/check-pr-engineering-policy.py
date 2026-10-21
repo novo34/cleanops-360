@@ -74,7 +74,7 @@ def validate(body: str) -> list[str]:
         if not after and (not follow or follow.startswith(("##", "**", "- [", ">"))):
             errors.append("Unfilled field: " + field)
     # Block placeholders and false-positive attestations.
-    if re.search(r"(?im)(?:^|:\\s*)(?:todo|tbd|pendiente|por definir|n/a|ninguno revisado)\\s*$", body):
+    if re.search(r"(?im)(?:^|:\s*)(?:todo|tbd|pendiente|por definir|n/a|ninguno revisado)\s*$", body):
         errors.append("Placeholder is not engineering evidence")
     # Never accept explicit bypasses as evidence.
     if re.search(r"(?im)^\s*(?:QG-0|inventario de reutilización)\s*:\s*(?:n/a|omitido|skip)\s*$", body):
