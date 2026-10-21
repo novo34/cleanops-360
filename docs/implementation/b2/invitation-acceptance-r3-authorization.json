@@ -1,0 +1,7 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "aff420f40d37e1e6a44942e80c7ff70fadd612ba",
+  "scope": "SQL5_R3_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "manifestSha256": "483a8cba21c199fb4507e5b6b0ff493477d1808ec9feacfc6a21709cc0d9e052",
+  "authorization": "Owner specifically approved one controlled SQL5-R3 execution on the exact commit and manifest. Mandatory Python syntax and file-hash preflight before PostgreSQL. GitHub-hosted isolated ephemeral PG16 with synthetic data, verified cleanup, durable logs. Preserve R1/R2. Do not repeat historical suites, modify B1, persistent infrastructure, staging/main, closedBackend or AUTH-GATE-05; no merge or deployment."
+}
