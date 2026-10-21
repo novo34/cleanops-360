@@ -44,6 +44,14 @@ staging checksum finding described below. It is not a password/token/account has
 After this individual review, only that immutable commit:path:rule:line fingerprint
 is added to .gitleaksignore. No regex, file/rule exclusion or new Semgrep exception
 is added. The failed execution is preserved; a follow-up scan must pass itself.
+Quality39541528648/job119030139699 then passed Gitleaks, SBOM, all16 foundation
+PostgreSQL tests and all27 CSP browser-matrix tests. Its remaining FAIL was a
+missing old staging `playwright.demo-v0.config.ts`, which is absent from the
+verified B1 base. The runner now selects the current, unchanged9-test
+demo-workspace.spec.ts suite in a dedicated local-only configuration, retaining
+all three browser engines (27 executions). No existing test or assertion is
+removed, and the earlier failed run remains visible. This only repairs test
+selection; no dashboard or B1 product implementation changes.
 
 ## B2 shared-boundary context refresh (2026-10-20)
 

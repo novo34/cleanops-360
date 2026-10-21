@@ -148,7 +148,7 @@ jobs:
             sleep 1
           done
           test "$ready" = yes
-          npx playwright test --config=playwright.demo-v0.config.ts
+          npx playwright test --config=playwright.dashboard.config.ts
       - name: Upload browser test traces on failure
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
