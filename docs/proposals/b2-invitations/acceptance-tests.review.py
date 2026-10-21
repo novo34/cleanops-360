@@ -37,6 +37,7 @@ def run(b):
     # here are synthetic, not a claim of real cryptographic/browser validation.
     prepare=f"BEGIN;WITH d AS MATERIALIZED(SELECT auth_api.invitation_link_material({args}) v) SELECT auth_api.prepare_invitation_acceptance((v-'tenant_id'-'recipient'-'password_hash'-'risk_class'-'mfa_required')||jsonb_build_object('expected_hash',NULL,'replacement_hash','$argon2id$fixture-not-a-real-password','method',{q(method)}::jsonb),{cap_digest(cap,'CAPABILITY')},{cap_digest(csrf,'CSRF')},'{uuid.uuid4()}') FROM d;COMMIT;"
     b.check('SQL5-prepare-pending-MFA',prepare,'t',service)
+    b.check('SQL5-expired-capability-denied-with-rollback',f"BEGIN;UPDATE identity_private.invitation_acceptances SET created_at=clock_timestamp()-interval '10m',expires_at=clock_timestamp()-interval '1s' WHERE invitation_id='{invite}';SELECT NOT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},'{uuid.uuid4()}');ROLLBACK;",'t')
     b.check('SQL5-before-MFA-no-activation',f"SELECT NOT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},'{uuid.uuid4()}');",'t',service)
     b.check('SQL5-wrong-CSRF-denied',f"SELECT auth_api.invitation_factor_material({q(cap)},repeat('a',43),'{uuid.uuid4()}') IS NULL;",'t',service)
     factor=f"WITH m AS MATERIALIZED(SELECT auth_api.invitation_factor_material({q(cap)},{q(csrf)},'{uuid.uuid4()}') v) SELECT auth_api.invitation_factor_cas({q(cap)},{q(csrf)},(v->>'generation')::bigint,(v->>'policy_version')::bigint,NULL,floor(extract(epoch FROM clock_timestamp())/30)::bigint,'{uuid.uuid4()}') FROM m;"
@@ -49,4 +50,9 @@ def run(b):
     b.check('SQL5-activation-audited-once',f"SELECT count(*)=1 FROM app.audit_logs WHERE resource_id='{invite}' AND action='users.invitation.accept';",'t')
     b.check('SQL5-revocation-fixture',f"UPDATE identity_private.user_invitations SET state='REVOKED',verifier=NULL,revoked_at=clock_timestamp() WHERE id='{invite}';")
     b.check('SQL5-revoked-link-denied',f"SELECT auth_api.invitation_link_material({args}) IS NULL;",'t',service)
+    existing=str(uuid.uuid4())
+    existing_verifier=hashlib.sha256(json.dumps(['CLEANOPS_INVITATION_LINK_V1',b.B,existing,'1','u2@fixture.invalid'],separators=(',',':')).encode()+raw).hexdigest()
+    b.check('SQL5-existing-identity-synthetic-invite-other-tenant',f"INSERT INTO identity_private.user_invitations(tenant_id,id,email_normalized,display_name,reason,generation,state,verifier,issued_at,expires_at,created_by) VALUES('{b.B}','{existing}','u2@fixture.invalid','Synthetic existing recipient','Existing MFA proof required',1,'ISSUED',decode('{existing_verifier}','hex'),clock_timestamp(),clock_timestamp()+interval '24h','{b.W}');")
+    b.check('SQL5-existing-identity-fails-closed-without-prior-factor-proof',f"SELECT auth_api.invitation_link_material('{existing}',{q(secret)},decode(repeat('43',32),'hex'),decode(repeat('44',32),'hex'),'{uuid.uuid4()}') IS NULL;",'t',service)
+    b.check('SQL5-existing-credential-and-memberships-untouched',f"SELECT (SELECT argon2id_hash='$argon2id$fixture-not-a-real-password' AND credential_version=1 FROM identity_private.credentials WHERE principal_id='{b.Q}') AND NOT EXISTS(SELECT 1 FROM app.users WHERE tenant_id='{b.B}' AND principal_id='{b.Q}');",'t')
     b.check('SQL5-helpers-not-public',"SELECT NOT has_function_privilege('cleanops_identity_service',(SELECT oid FROM pg_proc WHERE proname='valid_invitation_cap'),'EXECUTE');",'t')

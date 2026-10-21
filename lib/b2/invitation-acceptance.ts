@@ -72,21 +72,14 @@ export function createInvitationAcceptance(pool:IdentityPool,deps:AcceptanceDepe
     const found=material(await broker.call('invitationLinkMaterial',[invitation,link,scope.network,scope.device,correlation]))
     if(!found){await verifyPasswordFactor(password,deps.dummyPasswordHash,async()=>true);return invalid()}
     if(found.invitation_id.toLowerCase()!==invitation.toLowerCase())throw unavailable()
+    // Existing factors must be proved first; enrolling a new target-tenant factor
+    // cannot replace them. Keep this path closed until its B1 proof adapter exists.
+    if(found.principal_id!==null)return unavailable()
     const expires=Math.min(Date.parse(found.expires_at),now()+invitationPolicy.capabilitySeconds*1000)
     if(!Number.isSafeInteger(expires)||expires<=now())return invalid()
-    let replacement:string|null=null,expected=found.password_hash
-    if(found.principal_id===null){
-     const prepared=await prepareReplacementHash(password,deps.passwordAdmission)
-     if(prepared instanceof AuthError)return failed(broker,invitation,correlation)
-     replacement=prepared
-    }else{
-     const proof=await verifyPasswordFactor(password,expected!,async(oldHash,newHash)=>{
-      const ok=await broker.call('rehashCas',[found.principal_id!,found.credential_version!,oldHash,newHash])
-      if(ok)expected=newHash
-      return ok
-     })
-     if(proof instanceof AuthError)return failed(broker,invitation,correlation)
-    }
+    const replacement=await prepareReplacementHash(password,deps.passwordAdmission)
+    if(replacement instanceof AuthError)return failed(broker,invitation,correlation)
+    const expected=null
     const capability=secret(),cookieDigest=invitationCapabilityDigest(capability,'CAPABILITY'),csrfDigest=invitationCapabilityDigest(csrf,'CSRF')
     let pending:ReturnType<typeof prepareTotpEnrollment>|undefined
     try{

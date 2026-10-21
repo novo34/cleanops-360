@@ -86,6 +86,9 @@ BEGIN
   SELECT * INTO p FROM identity_private.principals WHERE id=pid;
   SELECT * INTO cred FROM identity_private.credentials WHERE principal_id=pid FOR UPDATE;
   IF NOT FOUND OR p.state<>'ACTIVE' THEN RETURN NULL;END IF;
+  -- Existing-factor proof is mandatory under the approved contract.
+  -- Until that adapter is implemented, fail closed: new enrollment is no substitute.
+  RETURN NULL;
  END IF;
  PERFORM 1 FROM app.organizations WHERE id=v.tenant_id AND state='ACTIVE' FOR SHARE;
  IF NOT FOUND THEN RETURN NULL;END IF;
@@ -118,7 +121,7 @@ END $fn$;
 
 CREATE FUNCTION auth_api.prepare_invitation_acceptance(payload jsonb,cookie bytea,csrf bytea,corr uuid) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
-DECLARE c identity_private.invitation_acceptances;v identity_private.user_invitations;cred identity_private.credentials;s identity_private.invitation_policy;until_at timestamptz;method jsonb;
+DECLARE c identity_private.invitation_acceptances;v identity_private.user_invitations;s identity_private.invitation_policy;until_at timestamptz;method jsonb;
 BEGIN
  IF corr IS NULL OR cookie IS NULL OR octet_length(cookie)<>32 OR csrf IS NULL OR octet_length(csrf)<>32 OR jsonb_typeof(payload)<>'object' THEN RETURN false;END IF;
  IF NOT(payload ?& ARRAY['invitation_id','generation','principal_id','credential_version','expected_hash','replacement_hash','user_id','acceptance_id','policy_version','expires_at','method']) OR EXISTS(SELECT 1 FROM jsonb_object_keys(payload) x(k) WHERE x.k<>ALL(ARRAY['invitation_id','generation','principal_id','credential_version','expected_hash','replacement_hash','user_id','acceptance_id','policy_version','expires_at','method'])) THEN RETURN false;END IF;
@@ -128,12 +131,8 @@ BEGIN
  IF v.state<>'ISSUED' OR v.generation<>c.generation OR v.expires_at<=clock_timestamp() THEN RETURN false;END IF;
  SELECT * INTO s FROM identity_private.invitation_policy WHERE tenant_id=c.tenant_id;
  IF s.default_risk_class IS DISTINCT FROM c.risk_class OR (s.default_risk_class='SENSITIVE' OR s.operational_mfa_required) IS DISTINCT FROM c.mfa_required THEN RETURN false;END IF;
- IF c.principal_id IS NOT NULL THEN
-  SELECT * INTO cred FROM identity_private.credentials WHERE principal_id=c.principal_id;
-  IF NOT FOUND OR cred.credential_version<>c.credential_version OR cred.argon2id_hash IS DISTINCT FROM payload->>'expected_hash' OR payload->>'replacement_hash' IS NOT NULL THEN RETURN false;END IF;
- ELSE
-  IF payload->>'expected_hash' IS NOT NULL OR coalesce(payload->>'replacement_hash','') NOT LIKE '$argon2id$%' OR length(payload->>'replacement_hash')>256 THEN RETURN false;END IF;
- END IF;
+ IF c.principal_id IS NOT NULL THEN RETURN false;END IF;
+ IF payload->>'expected_hash' IS NOT NULL OR coalesce(payload->>'replacement_hash','') NOT LIKE '$argon2id$%' OR length(payload->>'replacement_hash')>256 THEN RETURN false;END IF;
  until_at:=LEAST(c.expires_at,v.expires_at,(payload->>'expires_at')::timestamptz);
  IF until_at<=clock_timestamp() OR until_at>c.created_at+interval '10m' THEN RETURN false;END IF;
  method:=payload->'method';
@@ -218,6 +217,7 @@ BEGIN
  c:=identity_private.valid_invitation_cap(raw,csrf);
  IF c.id IS NULL THEN RETURN false;END IF;
  IF c.state='CONSUMED' THEN RETURN true;END IF;
+ IF c.principal_id IS NOT NULL THEN RETURN false;END IF;
  IF c.state<>'READY' OR c.password_verified_at IS NULL OR (c.mfa_required AND (c.factor_verified_at IS NULL OR c.factor_verified_at<=clock_timestamp()-interval '5m' OR c.last_counter IS NULL)) THEN RETURN false;END IF;
  SELECT * INTO v FROM identity_private.user_invitations WHERE tenant_id=c.tenant_id AND id=c.invitation_id;
  SELECT id INTO p FROM identity_private.principals WHERE email_normalized=v.email_normalized;

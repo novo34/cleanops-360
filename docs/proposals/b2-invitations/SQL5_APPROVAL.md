@@ -13,8 +13,9 @@ excluidos. No se reemplazan funciones, precondiciones ni emisores de sesiones B1
 
 La ceremonia verifica contraseña mediante B1 y TOTP mediante sus primitivas,
 mantiene capacidad de 10 minutos y prueba MFA de hasta 5 minutos. Consume y activa
-transaccionalmente; no asigna roles/permisos ni emite sesiones. Identidades ya
-existentes conservan contraseña, factores y sesiones de otros tenants. Una
+transaccionalmente; no asigna roles/permisos ni emite sesiones. La rama de identidades ya existentes queda bloqueada: su prueba de factores
+previos todavía no está implementada. No se sustituye por enrolar un factor nuevo
+ni se cambian contraseña, factores o sesiones de otros tenants. Una
 pertenencia existente, incluida DISABLED, impide activación mediante invitación.
 
 Ejecución propuesta: `scripts/prepare-b2-composition-approval.py`, seguido del
@@ -29,6 +30,9 @@ MFA, preparación, CSRF, CAS, rollback, activación, idempotencia, tenant y audi
 Usan hashes/ciphertext sintéticos: no acreditan criptografía ni E2E. Los tests
 unitarios HTTP/servicio son independientes de SQL. El E2E de aceptación con
 PostgreSQL real sigue pendiente y necesitará artefactos revisables adicionales.
+
+El alcance funcional validable de este paquete se limita a identidades nuevas.
+La aceptación de identidades existentes y los E2E completos permanecen pendientes.
 
 Autorizar este manifiesto permite exclusivamente esa composición y sus fixtures
 en PG16 efímero. No autoriza correo real, bases persistentes, B1 real, despliegues,

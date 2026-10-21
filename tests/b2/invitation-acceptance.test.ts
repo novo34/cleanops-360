@@ -27,6 +27,15 @@ test('unknown factor commits a generic denial without a B1 session and malformed
  assert.equal(connections,1)
 })
 
+test('existing identity cannot substitute enrollment for its previous factors or change credentials',async()=>{
+ const id='11111111-1111-4111-8111-111111111111',calls:string[]=[]
+ const ceremony=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);return {rows:[{value:{tenant_id:id,invitation_id:id,generation:'1',recipient:'synthetic@fixture.invalid',principal_id:id,credential_version:'1',password_hash:'$argon2id$synthetic',user_id:id,acceptance_id:id,policy_version:'1',risk_class:'SENSITIVE',mfa_required:true,expires_at:new Date(Date.now()+600000).toISOString()}}]}},release(){}}}},deps)
+ const result=await ceremony.prepare(id,token,'synthetic password',token)
+ assert.ok(result instanceof AuthError&&result.status===503)
+ assert.equal(calls.length,3);assert.equal(calls.at(-1),'COMMIT')
+ assert.ok(!calls.some(c=>/rehash|prepare_invitation|issue_session/.test(c)))
+})
+
 test('new invitee chooses a real Argon2 credential and proves B1-encrypted SHA256 TOTP before consume',async()=>{
  const id='11111111-1111-4111-8111-111111111111',now=Date.now(),key=Buffer.alloc(32,19)
  const scope={tenant_id:id,invitation_id:id,generation:'1',recipient:'synthetic@fixture.invalid',principal_id:null,credential_version:null,password_hash:null,user_id:id,acceptance_id:id,policy_version:'1',risk_class:'SENSITIVE',mfa_required:true,expires_at:new Date(now+3600000).toISOString()}

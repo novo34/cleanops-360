@@ -17,6 +17,9 @@ def authorize():
     owner=json.loads(path.read_text());reference=owner.get('referenceCommit')
     if owner.get('ownerApproved') is not True or owner.get('scope')!='SQL5_ACCEPTANCE_HOSTED_EPHEMERAL_PG16' or not re.fullmatch(r'[0-9a-f]{40}',reference or ''):
         raise RuntimeError('EXACT_SQL5_OWNER_APPROVAL_REQUIRED')
+    prior=json.loads((ROOT/'docs/implementation/b2/invitation-administration-authorization.json').read_text())
+    if prior.get('ownerApproved') is not True or prior.get('referenceCommit')!='cd138d71fb8fd8e9298e17c0f69b83e259ef3eba' or prior.get('sqlSha256')!='e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96':
+        raise RuntimeError('EXACT_PRIOR_SQL4_APPROVAL_REQUIRED')
     raw=(ROOT/MANIFEST).read_bytes()
     historical=subprocess.run(['git','show',reference+':'+MANIFEST],cwd=ROOT,capture_output=True)
     if historical.returncode or historical.stdout!=raw or hashlib.sha256(raw).hexdigest()!=owner.get('manifestSha256'):
@@ -39,7 +42,15 @@ def main():
         selected=prior();authorize();selected['tests']=FIXTURES
         return selected
     core.authorize_composition=plan
-    return core.main('combined')
+    result=core.main('combined')
+    source=ROOT/'artifacts/b2-combined/report.json'
+    if source.exists():
+        report=json.loads(source.read_text())
+        report.update(scope='SQL5_NEW_IDENTITY_ACCEPTANCE',functionalBrowser='SKIP_NOT_IN_THIS_PACKAGE',existingIdentityAcceptance='SKIP_NOT_IMPLEMENTED',b2TechReady=False)
+        destination=ROOT/'artifacts/b2-acceptance/report.json'
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        destination.write_text(json.dumps(report,indent=2)+'\n')
+    return result
 
 
 if __name__=='__main__':raise SystemExit(main())
