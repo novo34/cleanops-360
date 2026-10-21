@@ -1,5 +1,7 @@
 """Authorization gates only: never import a SQL fixture or invoke Docker/SQL."""
 import importlib.util
+import contextlib
+import io
 import json
 import os
 from pathlib import Path
@@ -59,6 +61,44 @@ class PreflightTests(unittest.TestCase):
         for change in [{'RUNNER_ENVIRONMENT':'self-hosted'},{'GITHUB_HEAD_REF':'main'},{'GITHUB_REPOSITORY':'other/repository'}]:
             with patch.dict(os.environ,change):
                 with self.assertRaisesRegex(RuntimeError,'HOSTED_CI_SCOPE_REQUIRED'):runner.preflight()
+
+    def test_individual_approvals_do_not_authorize_composition_or_import_transport(self):
+        path=self.root/'docs/proposals/b2-integration/AUTHORIZATION.review.json'
+        path.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(ROOT/'docs/proposals/b2-integration/AUTHORIZATION.review.json',path)
+        with self.assertRaisesRegex(RuntimeError,'EXPLICIT_COMPOSITION_APPROVAL_REQUIRED'):
+            runner.authorize_composition()
+        with patch.object(runner,'load',side_effect=AssertionError('TRANSPORT_MUST_NOT_LOAD')) as transport, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.main('combined'),1)
+            transport.assert_not_called()
+        report=json.loads((self.root/'artifacts/b2-combined/report.json').read_text())
+        self.assertEqual(report['result'],'FAIL')
+        self.assertEqual(report['cleanup'],'SKIP')
+        self.assertEqual(report['checks'][0]['detail'],'EXPLICIT_COMPOSITION_APPROVAL_REQUIRED')
+
+    def test_composition_scope_cannot_expand_from_individual_approval(self):
+        path=self.root/'docs/proposals/b2-integration/AUTHORIZATION.review.json'
+        path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_text(json.dumps({'ownerApproved':True,'referenceCommit':'1'*40,'scope':'persistent'}))
+        with self.assertRaisesRegex(RuntimeError,'EXACT_COMPOSITION_SCOPE_REQUIRED'):
+            runner.authorize_composition()
+
+    def test_composition_requires_exact_artifact_set_and_bytes_even_with_approval(self):
+        path=self.root/'docs/proposals/b2-integration/AUTHORIZATION.review.json'
+        path.parent.mkdir(parents=True,exist_ok=True)
+        owner=json.loads((ROOT/'docs/proposals/b2-integration/AUTHORIZATION.review.json').read_text())
+        owner.update(ownerApproved=True,referenceCommit='1'*40)
+        for name in owner['artifacts'].values():
+            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+        owner['sha256'][next(iter(owner['sha256']))]='0'*64
+        path.write_text(json.dumps(owner))
+        with patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:(ROOT/package['tests']).read_bytes()), patch.object(runner.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout=b'not historical bytes')):
+            with self.assertRaisesRegex(RuntimeError,'EXACT_COMPOSITION_BYTES_REQUIRED'):
+                runner.authorize_composition()
+        owner['artifacts']['extra']='unreviewed.sql';owner['sha256']['extra']='0'*64
+        path.write_text(json.dumps(owner))
+        with self.assertRaisesRegex(RuntimeError,'EXACT_COMPOSITION_ARTIFACTS_REQUIRED'):
+            runner.authorize_composition()
 
 
 if __name__=='__main__':unittest.main()

@@ -86,7 +86,7 @@ solo en memoria durante preparación. Página sin recursos/analítica de tercero
 sin referrer, respuestas no-store. GET/prefetch/escáner de correo no consume.
 Capacidad de aceptación mediante cookie protegida, opaca y de propósito distinto
 a B1; ligada a invitación/principal/tenant/generación/CSRF/versión de política.
-Su TTL y límites son parámetros pendientes; no hereda las 24 horas del enlace.
+Su TTL y límites se proponen en la tabla siguiente; no hereda las 24 horas del enlace.
 
 Modelo mínimo futuro: invitación vinculada a tenant y principal/pertenencia
 resueltos, destinatario normalizado protegido, verificador, generación, versión,
@@ -112,11 +112,77 @@ consumir y activar con actor/tenant/op correlacionados, fecha, motivo y versione
 sin token, contraseña, OTP, cookie ni hash de contraseña. Lectura solo por permiso
 de auditoría aplicable; no se crea un visor general fuera del alcance aprobado.
 
-## Aprobaciones y evidencias antes de implementar
+## Parámetros definitivos propuestos para aprobación
 
-Se solicita aprobación del contrato completo, en especial: ceremonia limitada
-antes de ACTIVE; enlace configurable con propuesta inicial 24h; TTL de capacidad
-y cuotas concretas; payload/worker de invitación separado. Ninguno es un valor
+Todos los valores de esta tabla son recomendaciones de producto, no valores
+habilitados. La política B1 existente siempre conserva cualquier límite más
+estricto. El servidor calcula expiración/ventanas; ninguna fecha viene del cliente.
+
+| Parámetro | Recomendación concreta | Justificación |
+|---|---|---|
+| Enlace | 24 horas desde emisión; configurable por tenant entre 1 y 24 horas | Permite completar el alta en una jornada; no permite al tenant ampliar el máximo sin nueva revisión |
+| Capacidad limitada | 10 minutos absolutos, sin renovación; nunca después del vencimiento del enlace | Acota el proceso interactivo y no convierte el enlace en sesión |
+| MFA verificado | Prueba de esta ceremonia, ligada a generación/política y con antigüedad máxima de 5 minutos al consumir | Evita reutilizar MFA antiguo o de otra finalidad; nunca sustituye el login posterior |
+| Contraseña/factor | Máximo 5 fallos combinados por ceremonia y destinatario en 15 minutos; pausa de 15 minutos | Limita adivinación sin bloqueo indefinido de la identidad global |
+| Verificación de enlace | 10 intentos por identificador en 15 minutos y 30 por origen en 15 minutos | Acota abuso; un secreto inválido no cambia ni revela el estado de una invitación válida |
+| Reenvío | Separación mínima de 60 segundos; 3 envíos por hora y 10 por día por tenant/destinatario | Limita correo repetido; cada reenvío invalida atómicamente enlace y capacidades anteriores |
+| Cuotas agregadas | 20 envíos/hora por administrador y 100/hora por tenant, además de límites globales B1 | Evita eludir cuotas individuales con muchos destinatarios |
+| Revocación | Efectiva en la siguiente validación/transacción; invalida toda capacidad/outbox pendiente de esa generación | No depende de cachés ni de cerrar la pestaña del invitado |
+| Recuperación | Enlace vencido/revocado: nueva invitación autorizada; capacidad vencida: reiniciar con enlace aún válido | No recupera secretos ni extiende la vigencia original |
+
+Los fallos de contraseña/factor conservan también límites por principal y origen
+B1: una invitación nueva o un reenvío no reinician sus contadores. No se bloquea
+el login ordinario de otros tenants por consumir el presupuesto de una invitación.
+Un valor de cuota menor configurado por tenant se admite; no se permiten aumentos
+por encima de los máximos propuestos sin revisión. Se contabilizan solicitudes
+aceptadas aunque el correo no exista o se suprima, con respuesta pública uniforme.
+
+Si la identidad existente perdió contraseña/MFA, la invitación no los resetea:
+se utiliza exclusivamente recuperación B1 y sus gates. Mientras ese flujo no esté
+disponible/autorizado, la aceptación queda bloqueada con indicación genérica de
+recuperación; no existe bypass administrativo. Perder el factor durante una
+invitación nueva exige reiniciar su preparación y enrolamiento autorizado.
+
+## Invariantes B1 y pertenencias en otros tenants
+
+Este contrato **preserva las invariantes de B1 por diseño**: no modifica sus
+precondiciones ACTIVE, selección de tenant, emisión/rotación de sesión, MFA,
+step-up, guardas owned, ACL/RLS, revocación o evaluador RBAC. La implementación
+todavía no existe y esta afirmación no es evidencia de validación ejecutada.
+
+Para un principal existente en otro tenant, la resolución de email es interna.
+La credencial y sus generaciones siguen siendo globales y no se reemplazan;
+pertenencias, factores tenant y sesiones existentes permanecen intactos. No se
+copia un rol ni se acepta una cookie/prueba MFA de otro tenant como autorización
+del receptor. Se verifica la credencial del mismo principal y una prueba de
+factor aplicable al tenant receptor, ligada a esta invitación. Si se necesita
+enrolar un método del receptor antes de ACTIVE, su material permanece en la
+ceremonia limitada protegida hasta verificar el primer código; la promoción a las
+entidades B1 existentes se realiza con el consumo transaccional. No se escribe un
+método utilizable por login ni se activa una pertenencia antes de esa prueba.
+
+La política MFA se calcula en servidor según riesgo/tenant y toda asignación
+aplicable existente, sin introducir roles por defecto ni permisos en la invitación.
+Una elevación posterior de rol continúa protegida por el writer B1 y su step-up;
+el login aplica de nuevo la política vigente. Si no se puede determinar la
+política o verificar factor/credencial, se deniega; nunca se interpreta como MFA
+opcional. El consumo bloquea y revalida versiones del principal, credencial,
+destinatario, invitación, tenant y política; un reset/reenvío/revocación concurrente
+invalida las pruebas. No se usa `new_preauth_verified` para pendientes ni se
+emite un token compatible con `begin_verified_context`.
+
+La capacidad limitada solo permite preparar/probar/aceptar esa invitación:
+no permite listar usuarios, consultar permisos, crear recursos, asumir tenant ni
+llamar al broker de negocio. No contiene permisos editables por el cliente. Su
+validación y la del MFA reutilizan los controles y primitivas B1, con propósito
+criptográfico distinto; el adaptador específico requerirá contrato y pruebas
+de ausencia de autoridad, no un motor de autenticación paralelo.
+
+## Aprobación solicitada y evidencias antes de implementar
+
+Se solicita aprobación del contrato completo y de la tabla de parámetros, en
+especial ceremonia limitada antes de ACTIVE; enlace configurable inicialmente
+24h; recuperación sin bypass y payload/worker de invitación separado. Ninguno es un valor
 de producto aprobado por este documento. No se solicita permiso para persistencia
 o envío real. Tras aprobación, se prepararán artefactos SQL y autorización exacta.
 

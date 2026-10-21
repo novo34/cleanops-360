@@ -71,6 +71,44 @@ def load(name, path):
     return module
 
 
+def authorize_composition():
+    """Individual approvals never authorize composition. No transport import here."""
+    path=ROOT/'docs/proposals/b2-integration/AUTHORIZATION.review.json'
+    owner=json.loads(path.read_text())
+    if owner.get('ownerApproved') is not True or not re.fullmatch(r'[0-9a-f]{40}',owner.get('referenceCommit') or ''):
+        raise RuntimeError('EXPLICIT_COMPOSITION_APPROVAL_REQUIRED')
+    if owner.get('scope')!='SQL14+SQL1+SQL2+SQL3_HOSTED_EPHEMERAL_PG16':
+        raise RuntimeError('EXACT_COMPOSITION_SCOPE_REQUIRED')
+    for scope in ('access','users'):
+        authorize_package(scope)
+    artifacts=owner.get('artifacts',{})
+    hashes=owner.get('sha256',{})
+    if not isinstance(artifacts,dict) or not isinstance(hashes,dict) or set(artifacts)!=set(hashes):
+        raise RuntimeError('EXACT_COMPOSITION_ARTIFACTS_REQUIRED')
+    expected={name:hashes[key] for key,name in artifacts.items()}
+    if len(expected)!=len(artifacts):raise RuntimeError('EXACT_COMPOSITION_ARTIFACTS_REQUIRED')
+    required={
+        'scripts/b2-directory-postgres.py','docs/proposals/b2-integration/combined-tests.review.py',
+        'docs/proposals/b2-integration/workflow.review.yml','scripts/pg-test-01.py',
+        'scripts/pg-http-integration.py','scripts/pg11-rbac-matrix.py',
+        'scripts/b2-browser-backend.ts','scripts/b2-real-browser-server.mjs',
+        'playwright.b2-access-postgres.config.ts','playwright.b2-users-postgres.config.ts',
+        'e2e/b2-access-postgres.spec.ts','e2e/b2-users-postgres.spec.ts','docs/RBAC_PERMISSIONS.md',
+        'docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql',*APPROVED,
+        *(name for package in PACKAGES.values() for name in (package['sql'],package['tests'])),
+    }
+    if set(expected)!=required:raise RuntimeError('EXACT_COMPOSITION_ARTIFACTS_REQUIRED')
+    for name,sha in expected.items():
+        candidate=Path(name)
+        if candidate.is_absolute() or '..' in candidate.parts or not re.fullmatch(r'[0-9a-f]{64}',sha):
+            raise RuntimeError('INVALID_COMPOSITION_ARTIFACT')
+        raw=(ROOT/candidate).read_bytes()
+        historical=subprocess.run(['git','show',owner['referenceCommit']+':'+name],cwd=ROOT,capture_output=True)
+        if hashlib.sha256(raw).hexdigest()!=sha or historical.returncode or historical.stdout!=raw:
+            raise RuntimeError('EXACT_COMPOSITION_BYTES_REQUIRED')
+    return {'tests':'docs/proposals/b2-integration/combined-tests.review.py','packages':['access','users']}
+
+
 def preflight():
     if not (os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
             and os.environ.get('GITHUB_REPOSITORY') == 'novo34/cleanops-360'
@@ -136,7 +174,7 @@ def main(scope='directory'):
     before = None
     try:
         baseline = preflight()  # Must finish before Docker, SQL, or fixture imports.
-        selected=authorize_package(scope) if scope!='directory' else None
+        selected=authorize_composition() if scope=='combined' else authorize_package(scope) if scope!='directory' else None
         b = load('b2_original_b1_transport', 'scripts/pg-test-01.py')
         b.REPORT = report
         b.record('exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings','PASS')
@@ -180,12 +218,16 @@ def main(scope='directory'):
         # Applies the existing owner-approved profile; no B2 policy/ACL is added.
         if not b.check('B1-approved-12h24h-existing-session-fixture',"UPDATE identity_private.configuration SET values_json=jsonb_set(jsonb_set(values_json,'{absolute_sensitive}','43200'::jsonb),'{absolute_operational}','86400'::jsonb);"):
             raise RuntimeError('AUTHORIZED_B1_SESSION_FIXTURE_FAILED')
-        if selected and not b.check('install-exact-authorized-'+scope+'-SQL-and-ACL',(ROOT/selected['sql']).read_text()):
-            raise RuntimeError('SELECTED_INSTALLATION_FAILED_NO_REPLACEMENT_SQL')
+        for kind in (selected['packages'] if scope=='combined' else [scope] if selected else []):
+            if not b.check('install-exact-authorized-'+kind+'-SQL-and-ACL',(ROOT/PACKAGES[kind]['sql']).read_text()):
+                raise RuntimeError('SELECTED_INSTALLATION_FAILED_NO_REPLACEMENT_SQL')
         original_check = b.check
         def with_browser(name, text, expected=None, role='postgres', failure=None):
             passed = original_check(name,text,expected,role,failure)
-            if name == (selected['hook'] if selected else 'B2-synthetic-global-view') and passed:
+            if scope=='combined' and passed:
+                for kind in ('access','users'):
+                    if name==PACKAGES[kind]['hook']:browser(b,kind)
+            elif scope!='combined' and name == (selected['hook'] if selected else 'B2-synthetic-global-view') and passed:
                 browser(b,scope)
             return passed
         b.check = with_browser
@@ -217,5 +259,5 @@ def main(scope='directory'):
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--package',choices=['directory','access','users'],default='directory')
+    parser.add_argument('--package',choices=['directory','access','users','combined'],default='directory')
     sys.exit(main(parser.parse_args().package))
