@@ -1,12 +1,11 @@
 name: Engineering Policy Gate
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, edited, synchronize, ready_for_review]
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   engineering-policy:
