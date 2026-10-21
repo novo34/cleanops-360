@@ -63,6 +63,19 @@ def validate(body: str) -> list[str]:
     for label in required_checks:
         if not re.search(r"(?m)^- \[x\] [^\n]*" + re.escape(label), body, re.IGNORECASE):
             errors.append("Unchecked mandatory evidence: " + label)
+    # Fields that attest to evidence need a substantive answer too.
+    for field in FIELDS[6:]:
+        indices = [i for i, line in enumerate(lines) if field in line]
+        if not indices:
+            continue
+        i = indices[0]
+        after = lines[i].split(field, 1)[1].replace("**", "").strip()
+        follow = lines[i+1].strip() if i+1 < len(lines) else ""
+        if not after and (not follow or follow.startswith(("##", "**", "- [", ">"))):
+            errors.append("Unfilled field: " + field)
+    # Block placeholders and false-positive attestations.
+    if re.search(r"(?im)(?:^|:\\s*)(?:todo|tbd|pendiente|por definir|n/a|ninguno revisado)\\s*$", body):
+        errors.append("Placeholder is not engineering evidence")
     # Never accept explicit bypasses as evidence.
     if re.search(r"(?im)^\s*(?:QG-0|inventario de reutilización)\s*:\s*(?:n/a|omitido|skip)\s*$", body):
         errors.append("Reuse inventory cannot be waived by a placeholder")
