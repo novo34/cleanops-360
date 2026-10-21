@@ -40,7 +40,7 @@ def preflight_r3(core):
             raise RuntimeError('EXACT_B2_SHA256_MISMATCH')
     approval=json.loads((ROOT/'docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json').read_text())
     raw=(ROOT/approval['candidatePath']).read_bytes()
-    blob=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\\0'+raw).hexdigest()
+    blob=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
     if (approval.get('ownerApproved') is not True or approval['candidate']['sha256']!=core.BASE_SHA
             or approval['candidate']['gitBlob']!=core.BASE_BLOB
             or hashlib.sha256(raw).hexdigest()!=core.BASE_SHA or blob!=core.BASE_BLOB):
