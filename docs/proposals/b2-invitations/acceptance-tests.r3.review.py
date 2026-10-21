@@ -8,6 +8,7 @@ import hashlib
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 
 def run(b):
@@ -51,13 +52,21 @@ def run(b):
     b.check('SQL5-native-factor-CAS',factor,'t',service)
     b.check('SQL5-rollback-activation',f"BEGIN;SELECT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},'{uuid.uuid4()}');ROLLBACK;",'t',service)
     b.check('SQL5-rollback-has-no-member',f"SELECT NOT EXISTS(SELECT 1 FROM identity_private.principals WHERE email_normalized={q(email)});",'t')
-    # Race: two independent psql sessions, same READY capability.
+    # Two independent psql connections start together against one READY capability.
+    # Idempotent success may return t twice; the durable single mutation is authoritative.
+    simultaneous=Barrier(2, timeout=15)
     def consume(_):
+        simultaneous.wait(timeout=15)
         return b.sql(f"SELECT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},'{uuid.uuid4()}');",service)
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        results=list(pool.map(consume,(0,1)))
-    values=[r.stdout.strip() for r in results]
-    b.record('SQL5-R3-parallel-race','PASS' if len(results)==2 and all(r.returncode==0 and v in ('t','f') for r,v in zip(results,values)) and values.count('t')>=1 else 'FAIL')
+    try:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures=[pool.submit(consume,i) for i in (0,1)]
+            results=[f.result(timeout=40) for f in futures]
+        values=[r.stdout.strip() for r in results]
+        race_ok=len(results)==2 and all(r.returncode==0 and v in ('t','f') for r,v in zip(results,values)) and 't' in values
+    except Exception:
+        race_ok=False
+    b.record('SQL5-R3-parallel-race','PASS' if race_ok else 'FAIL')
     b.check('SQL5-R3-parallel-unique-mutate',f"SELECT (SELECT count(*) FROM app.users u JOIN identity_private.principals p ON p.id=u.principal_id WHERE p.email_normalized={q(email)})=1 AND (SELECT count(*) FROM app.audit_logs WHERE resource_id='{invite}' AND action='users.invitation.accept')=1;",'t')
     b.check('SQL5-consumed-idempotent-no-recreation',f"SELECT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},'{uuid.uuid4()}');",'t',service)
     b.check('SQL5-active-only-in-invited-tenant',f"SELECT count(*)=1 AND bool_and(u.tenant_id='{b.A}' AND u.state='ACTIVE') FROM app.users u JOIN identity_private.principals p ON p.id=u.principal_id WHERE p.email_normalized={q(email)};",'t')
