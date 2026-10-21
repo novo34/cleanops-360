@@ -1,0 +1,54 @@
+name: B2 individually approved invitation acceptance PostgreSQL
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  scope:
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b2-users-access'
+    runs-on: ubuntu-latest
+    outputs:
+      execute: ${{ steps.once.outputs.execute }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - id: once
+        name: Only this owner-authorized execution commit; future development does not repeat SQL5
+        run: |
+          if test "$(git log -1 --format=%s)" = 'test(b2): execute exact owner-approved SQL5 c2f3f877'; then
+            echo 'execute=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'execute=false' >> "$GITHUB_OUTPUT"
+          fi
+  acceptance:
+    needs: scope
+    if: needs.scope.outputs.execute == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify approved composition bytes and hosted scope; no SQL
+        run: python scripts/prepare-b2-composition-approval.py
+      - name: Verify exact SQL5 approval before isolated PG16 execution
+        run: python scripts/b2-acceptance-postgres.review.py
+      - name: Preserve sanitized SQL5 evidence independently
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b2-acceptance-pg16-sanitized
+          path: artifacts/b2-acceptance/report.json
+          if-no-files-found: error
+          retention-days: 7
