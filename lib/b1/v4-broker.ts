@@ -5,6 +5,9 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
  * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
 const statements = {
+  invitationDraftOwned:{sql:'SELECT auth_api.invitation_draft_owned($1::jsonb,$2::uuid,$3::bytea,$4::bytea,$5::uuid) AS value',arity:5,kind:'json'},
+  invitationPublishOwned:{sql:'SELECT auth_api.publish_invitation_owned($1::uuid,$2::bigint,$3::uuid,$4::bytea,$5::bytea,$6::text,$7::bytea,$8::bytea,$9::uuid) AS value',arity:9,kind:'boolean'},
+  administrationInvitations:{sql:'SELECT auth_api.administration_invitations($1::uuid) AS value',arity:1,kind:'json'},
   changeUserOwned: {sql:'SELECT auth_api.change_user_owned($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'json'},
   userEffectiveAccess: {sql:'SELECT auth_api.user_effective_access($1::uuid,$2::text,$3::text,$4::uuid) AS value',arity:4,kind:'boolean'},
   assignableRoleCatalogue: {sql:'SELECT auth_api.assignable_role_catalogue($1::uuid,$2::uuid) AS value',arity:2,kind:'json'},
@@ -212,6 +215,9 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
+  invitationDraftOwned:[payload:string,candidate:string,key:Buffer,request:Buffer,correlation:string]
+  invitationPublishOwned:[invitation:string,generation:string,outbox:string,verifier:Buffer,ciphertext:Buffer,keyVersion:string,key:Buffer,request:Buffer,correlation:string]
+  administrationInvitations:[after:string|null]
   changeUserOwned: [payload:string,keyHash:Buffer,requestHash:Buffer,correlation:string]
   userEffectiveAccess: [target:string,action:AccessAction,kind:string,resource:string|null]
   assignableRoleCatalogue: [target:string,after:string|null]

@@ -1,0 +1,300 @@
+{
+  "paths": {
+    "/auth/users/invitations": {
+      "get": {
+        "operationId": "listAdministrationInvitations",
+        "x-authentication-state": "ACTIVE",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed tenant-scoped result; never exposes invitation tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/B2InvitationPageResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "changeUserInvitation",
+        "x-authentication-state": "ACTIVE",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 43,
+              "maxLength": 43,
+              "pattern": "^[A-Za-z0-9_-]{43}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/B2InvitationChangeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Committed tenant-scoped result; never exposes invitation tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/B2InvitationAcceptedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "B2InvitationChangeInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "const": "CREATE"
+            },
+            "display_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 254
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "operation",
+            "display_name",
+            "email",
+            "reason"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "operation": {
+              "enum": [
+                "RESEND",
+                "REVOKE"
+              ]
+            },
+            "invitation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            "expected_version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "maxLength": 19
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "operation",
+            "invitation_id",
+            "expected_version",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "B2InvitationAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accepted": {
+          "const": true
+        }
+      },
+      "required": [
+        "accepted"
+      ]
+    },
+    "B2InvitationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 25,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "minLength": 36,
+                "maxLength": 36
+              },
+              "display_name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 254
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "maxLength": 19
+              },
+              "state": {
+                "enum": [
+                  "ISSUED",
+                  "EXPIRED",
+                  "REVOKED",
+                  "CONSUMED"
+                ]
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "display_name",
+              "email",
+              "version",
+              "state",
+              "expires_at"
+            ]
+          }
+        },
+        "next_after": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "can_invite": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "items",
+        "next_after",
+        "can_invite"
+      ]
+    },
+    "B2InvitationAcceptedResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/B2InvitationAccepted"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          },
+          "required": [
+            "correlation_id"
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "meta"
+      ]
+    },
+    "B2InvitationPageResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/components/schemas/B2InvitationPage"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid",
+              "minLength": 36,
+              "maxLength": 36
+            }
+          },
+          "required": [
+            "correlation_id"
+          ]
+        }
+      },
+      "required": [
+        "data",
+        "meta"
+      ]
+    }
+  }
+}

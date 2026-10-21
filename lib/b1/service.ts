@@ -176,7 +176,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           let parsed: unknown
           try {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword','adminResetMfa','authorizePasswordReset','revokeTrustedDevice','adminRevokeTrustedDevices','changeAccess','changeAdministrationUser'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
+            parsed = ['selectTotpMethod', 'confirmEmail', 'resendEmail', 'resendEmailEnrollment','recoverMfa','resetPassword','adminResetMfa','authorizePasswordReset','revokeTrustedDevice','adminRevokeTrustedDevices','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operationId) ? parseSelectorJson(text) : JSON.parse(text)
           } catch { throw new AuthError(400, 'INVALID_JSON') }
           if (!valid(operation.requestBody.content['application/json'].schema, parsed)) throw new AuthError(422, 'INVALID_INPUT')
           Object.assign(input, parsed)
@@ -231,7 +231,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
           if (operationId === 'login' && (effect.data as Input).state === 'ACTIVE') throw new AuthError(503, 'MFA_REQUIRED')
           const authData = effect.data as Input
           if(operationId === 'changeAdministrationUser' && (effect.transition || Boolean(effect.clearSession) !== authData.session_ended || (authData.session_ended && (input.operation !== 'STATE' || input.state !== 'DISABLED' || String(input.target_user_id).toLowerCase() !== binding.userId?.toLowerCase())))) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
-          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession','checkUserEffectiveAccess','listAssignableRoles'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
+          if(['getUserAccess','checkEffectiveAccess','changeAccess','adminResetMfa','listAdministrationUsers','getAdministrationUser','getAdministrationSession','checkUserEffectiveAccess','listAssignableRoles','listAdministrationInvitations','changeUserInvitation'].includes(operationId) && (effect.transition || effect.clearSession))throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId.includes('Trusted') && effect.transition) throw new AuthError(503,'INVALID_BACKEND_RESPONSE')
           if (operationId==='registerTrustedDevice') {
             const t=effect.trustedCookie, device=(effect.data as Input).device as Input
@@ -261,7 +261,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'ACTIVE' && (typeof absolute !== 'string' || expiresAt > Date.parse(absolute))) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
-          if (scope) await tx.complete(scope, requestHash, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')) ? null : effect.data, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')))
+          if (scope) await tx.complete(scope, requestHash, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')) ? null : effect.data, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')))
           return effect
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome

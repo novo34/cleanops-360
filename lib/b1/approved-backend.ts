@@ -13,6 +13,7 @@ import type { IdentityPool } from './pg-identity-driver.ts'
 import { readAdministrationUsers } from '../b2/users.ts'
 import { readUserAccess } from '../b2/access.ts'
 import { changeUser } from '../b2/user-changes.ts'
+import {changeInvitation,readInvitations,type InvitationMailCustody} from '../b2/invitation-administration.ts'
 
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
 const invalid = () => new AuthError(401, 'AUTH_INVALID')
@@ -28,6 +29,7 @@ export interface ApprovedBackendDependencies {
   /** Explicit private local admission/corpus policy, no production fallback. */
   passwordAdmission?: (password:string)=>Promise<boolean>
   mail?: PrivateMailCustody
+  invitationMail?: InvitationMailCustody
   factors: PrivateFactorKeys
   cursorKey: Buffer
   now?: () => number
@@ -268,7 +270,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = (actor.kind==='PREAUTH'&&operation==='switchTenant')||['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = (actor.kind==='PREAUTH'&&operation==='switchTenant')||['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -317,6 +319,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
+          if (operation === 'listAdministrationInvitations') return readInvitations(broker,input,binding,correlation)
           if (operation === 'getAdministrationSession') return {data:await activeSummary(binding)}
           if (operation === 'checkUserEffectiveAccess' || operation === 'listAssignableRoles') {
             return readUserAccess(broker, operation, input, binding, correlation)
@@ -324,8 +327,13 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
           if (operation === 'listAdministrationUsers' || operation === 'getAdministrationUser') {
             return readAdministrationUsers(broker, operation, input, binding, correlation)
           }
-          if (['changeAdministrationUser','changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','adminResetMfa','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser'].includes(operation) || r.oneTime))) throw unavailable()
+          if (['changeUserInvitation','changeAdministrationUser','changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','adminResetMfa','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operation) || r.oneTime))) throw unavailable()
+          if(operation==='changeUserInvitation'){
+            const owned=[...reservations.values()].filter(r=>!r.done&&r.operation===operation&&r.oneTime)
+            if(owned.length!==1)throw unavailable()
+            return changeInvitation(broker,input,binding,correlation,owned[0].key,hex(requestTag(owned[0].hash)),{mail:deps.invitationMail,normalizeEmail:deps.normalizeEmail})
+          }
           if (operation === 'changeAdministrationUser') {
             const owned = [...reservations.values()].filter(r => !r.done && r.operation === operation && r.oneTime)
             if (owned.length !== 1) throw unavailable()

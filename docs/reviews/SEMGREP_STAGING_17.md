@@ -183,3 +183,15 @@ Actions39486006161 retained FAIL for a Git-blob checksum assertion at introducin
 ### First actual complete reachable-history scan
 
 Actions39486601226/job118848514239 scanned303 reachable commits at branch source1e0b6519 and retained FAIL with nine additional findings. Every original commit/file/line was inspected individually. Six findings are source-integrity digests (codeSha256, provenance, a verified Git blob and original V4 artifact-manifest entries); two are prose or synthetic delivery callback control flow with no literal secret; one is a fixed unit-test idempotency identifier. The canonical manifest's prior38/38 integrity validation remains the proof of those original asset digests, not a credential inventory. No canonical asset or product code is changed. The exact nine fingerprints and classifications, together with the failed sanitized scan, are preserved in PROXY_DEADLINE_EXECUTION.json. Only those immutable fingerprints are excepted; a new value/commit/path/rule/line, any scanner error or incomplete report still fails.
+# B2 invitation administration context review
+
+Owner-approved invitation contract at 3ea4ec8: the new administrative operations
+reuse strict B1 request validation, ACTIVE binding, owned one-time journal and
+fixed parameterized broker calls. SQL4 must independently enforce create/users,
+fresh B1 step-up, tenant, quotas and version CAS. Optional invitation mail custody
+fails closed; no dependency is installed by runtime and closedBackend is intact.
+No password/TOTP proof, session issuer or existing login branch is changed.
+FP-09 is the identical fixed literal otpauth import line (same whole-line hash),
+moved from620 to628. Only its coordinates and approved-backend full-file context
+hash are refreshed in both existing registries. All17/four IDs, rules, snippets
+and classifications remain unchanged; new findings are never suppressed.
