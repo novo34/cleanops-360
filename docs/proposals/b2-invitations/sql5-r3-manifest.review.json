@@ -5,7 +5,7 @@
   "files": {
     "docs/proposals/b2-invitations/004-invitation-administration.review.sql": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
     "docs/proposals/b2-invitations/005-invitation-acceptance.r3.review.sql": "14f1f9ba932e1f3f88e8fcbfa9226378ad801618abec532301bac40a8e63d62b",
-    "docs/proposals/b2-invitations/acceptance-tests.r3.review.py": "1d04d8549324c03bba7b8f137a05fe608fc622fdf43ef4ddb916c0bd0de36992",
+    "docs/proposals/b2-invitations/acceptance-tests.r3.review.py": "486bffcd91867c2cd7d6f8c696cabf2d57fbf0e8cdd1b7b7650347efc4cb3b1d",
     "scripts/b2-acceptance-r3-postgres.review.py": "71a54a1edc02d0a220e2b542b03edff49ca5657e2cfeab69fd5a03dc71ebb906"
   }
 }
