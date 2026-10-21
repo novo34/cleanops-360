@@ -9,14 +9,14 @@ Sustituye únicamente el cuantificador PostgreSQL incompatible `{29,512}` por co
 
 ## Alcance NO acreditado
 
-No se ha ejecutado SQL5-R3 en PostgreSQL ni CI. El fixture R3 ahora incluye dos sesiones `psql` concurrentes con sincronización de inicio para competir sobre la misma capacidad READY, más verificación de única membresía y auditoría. La cobertura está preparada, NO ejecutada ni acreditada; el resultado debe comprobarse en PG16 aislado antes de declarar PASS.
+No se ha ejecutado SQL5-R3 en PostgreSQL ni CI. El fixture R3 reconstruido desde R2 incluye dos conexiones `psql` independientes, lanzadas con ThreadPoolExecutor sobre la misma capacidad READY, más verificación de membresía y auditoría únicas. La cobertura está preparada, NO ejecutada ni acreditada; el resultado debe comprobarse en PG16 aislado antes de declarar PASS.
 
 MFA previo de identidad existente y E2E PostgreSQL siguen pendientes e independientes. Las evidencias R1/R2 permanecen inalteradas; ninguna de sus autorizaciones se extiende a R3.
 
 ## Manifest
 
 `docs/proposals/b2-invitations/sql5-r3-manifest.review.json`
-SHA-256 del manifiesto: `cc437cfaa8f527a501cb6234fc3cd048503d01e396be8987f176ed3003ddf066`.
+SHA-256 del manifiesto: `928c038a0c8952e63e1673e2a2258711f7c3fdb9b28593f87084921845f92f8a`.
 
 El runner R3 requiere un nuevo `invitation-acceptance-r3-authorization.json` con `ownerApproved=true`, commit fijo, hash del manifiesto y scope exacto. Dicho archivo NO existe. Ningún SQL debe ejecutarse sin autorización del propietario, preflight y hashes coincidentes.
 
