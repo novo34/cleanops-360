@@ -53,6 +53,20 @@ all three browser engines (27 executions). No existing test or assertion is
 removed, and the earlier failed run remains visible. This only repairs test
 selection; no dashboard or B1 product implementation changes.
 
+The completed follow-up Quality39541906222/job119031323565 is PASS, including
+all27 CSP and all27 dashboard cases across the three engines.
+
+Authorization records introduced two additional Gitleaks generic-api-key
+findings at34dd612a8613ffeaf06f4a5423e13d4cd522e2bb,
+docs/implementation/b2/access-authorization.json:6 and:7. Each was inspected and
+recomputed: they are exactly the SQL2 SHA256d11842d5…3549efe and fixture
+SHA256a5fe0da1…71c5a42 explicitly approved by the owner, not credentials. The
+two immutable commit:path:rule:line fingerprints alone are excepted. Failed
+Quality39542403764 and full-history scan39542403879 remain recorded. New selected
+package records now separate artifact paths from explicitly named SQL/fixture
+digest fields; their bytes, approval scope and strict comparisons are unchanged.
+No scanner rule or broad exemption changes. New findings must still be reviewed.
+
 ## B2 shared-boundary context refresh (2026-10-20)
 
 The subsequent two fixed Manage Access read dispatches add one static import and three lines, moving FP-09 to line 614. The original literal-import snippet is unchanged. Only its exact position and full-file context checksum are refreshed; the registry still contains the same four reviewed findings. The new read helper passes validated locators as fixed broker parameters and contains no authorization evaluator or SQL interpolation.

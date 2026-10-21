@@ -64,3 +64,12 @@ test('B2 resume reads only the current active session without issuing a cookie o
   assert.equal(rejected.status,503);assert.equal(rejected.headers.get('set-cookie'),null)
  }
 })
+test('a schema-valid detail for another user in the same tenant is rejected, while UUID casing is equivalent',async()=>{
+ let result={user:{...user,id:tenant},organization:{id:tenant,name:'Synthetic organization'}}
+ const repository=createV4IdentityRepository({async connect(){return {async query(){return {rows:[{value:result}]}},release(){}}}})
+ await assert.rejects(repository.transaction(broker=>readAdministrationUsers(broker,'getAdministrationUser',{target_user_id:id},actor,id)),{code:'INVALID_BACKEND_RESPONSE'})
+ const same='abcdef01-2345-4678-8abc-def012345678'
+ result={...result,user:{...user,id:same}}
+ const effect=await repository.transaction(broker=>readAdministrationUsers(broker,'getAdministrationUser',{target_user_id:same.toUpperCase()},actor,id))
+ assert.deepEqual(effect,{data:result})
+})

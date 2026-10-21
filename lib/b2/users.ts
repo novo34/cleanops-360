@@ -17,5 +17,6 @@ export async function readAdministrationUsers(broker: V4Broker, operation: strin
   if (!valid(contract.components.schemas[schema], { data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
   // The organization is server-resolved and must agree with the active binding.
   if (operation === 'getAdministrationUser' && (data as {organization:{id:string}}).organization.id !== binding.tenantId) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+  if (operation === 'getAdministrationUser' && (data as {user:{id:string}}).user.id.toLowerCase() !== String(input.target_user_id).toLowerCase()) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
   return { data }
 }

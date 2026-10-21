@@ -38,7 +38,9 @@ def authorize_package(scope):
     package=PACKAGES[scope]
     owner=json.loads((ROOT/f'docs/implementation/b2/{scope}-authorization.json').read_text())
     expected={package['sql']:package['sqlHash'],package['tests']:package['testsHash']}
-    if owner.get('ownerApproved') is not True or owner.get('referenceCommit')!=package['reference'] or owner.get('sha256')!=expected:
+    if (owner.get('ownerApproved') is not True or owner.get('referenceCommit')!=package['reference']
+            or owner.get('artifacts')!={'sql':package['sql'],'fixtures':package['tests']}
+            or owner.get('sha256')!={'sql':package['sqlHash'],'fixtures':package['testsHash']}):
         raise RuntimeError('EXACT_SELECTED_PACKAGE_AUTHORIZATION_REQUIRED')
     for path,sha in expected.items():
         if hashlib.sha256((ROOT/path).read_bytes()).hexdigest()!=sha:

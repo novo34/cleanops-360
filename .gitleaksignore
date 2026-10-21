@@ -28,3 +28,5 @@ ec2f9e05cfc92c498b1d2e819f0308779d6453a5:lib/b1/provenance.json:generic-api-key:
 # Reviewed historical non-credential: SOURCE_INTEGRITY_DIGEST.
 796ba73cbe0ed7c5fc48ccba16711e6d030f1f7b:docs/canonical/auth-review/v4/artifact-manifest.json:generic-api-key:23
 9b4439f4c9d69f13e5749b4548cee9f4bb0597a4:.semgrep/quality-reviewed-findings.json:generic-api-key:12
+34dd612a8613ffeaf06f4a5423e13d4cd522e2bb:docs/implementation/b2/access-authorization.json:generic-api-key:6
+34dd612a8613ffeaf06f4a5423e13d4cd522e2bb:docs/implementation/b2/access-authorization.json:generic-api-key:7
