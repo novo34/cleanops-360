@@ -3,7 +3,9 @@
 SQL2-R2 y SQL3-R2 autorizados individualmente por el propietario2026-10-21,
 con los hashes exactos de este documento. Se verificaron contra los bytes del
 commit147dac36 y se registraron en los dos manifiestos de autorización.
-Primera ejecución R2 pendiente. Los originales R1 se conservan íntegros.
+Primera ejecución R2: SQL2 PASS166/166, SQL3 PASS44/44, Actions39548304721.
+Evidencia separada: ../../implementation/b2/r2-authorized-execution.json.
+Los originales R1 se conservan íntegros con sus FAIL.
 Primera ejecución: Actions39542403981, jobs119032884865 y119032885120. Ambos
 preflights y ambas instalaciones pasaron. Los resultados FAIL se conservan en
 `../../implementation/b2/first-authorized-execution.json`.

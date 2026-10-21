@@ -1,10 +1,11 @@
-# Dos autorizaciones independientes pendientes
+# Autorizaciones individuales y resultados
 
 Estado actualizado2026-10-21: SQL2 y SQL3 AUTORIZADOS INDIVIDUALMENTE por las dos
 respuestas expresas a sus respectivas solicitudes. La primera ejecución R1 fue
 FAIL y se conserva en first-authorized-execution.json. Los dos fixtures R2 de
 147dac36 también están autorizados individualmente, con sus hashes exactos y
-SQL originales intactos; su primera ejecución está pendiente.
+SQL originales intactos; SQL2-R2 PASS (166/166) y SQL3-R2 PASS (44/44),
+ejecución Actions39548304721. Evidencia: ../../implementation/b2/r2-authorized-execution.json.
 Registros verificables: `../../implementation/b2/access-authorization.json` y
 `../../implementation/b2/users-authorization.json`. La autorización f5cf6aa sigue
 limitada a SQL1. La respuesta SQL3 omite caracteres del SHA escrito; el registro
@@ -68,6 +69,10 @@ preauth/challenges solo del tenant, otra pertenencia intacta, no resurrección d
 sesiones, versión monotónica y self-disable con journal sin respuesta almacenada.
 Detalle completo: `USER_CHANGES_APPROVAL.md`. SQL2 no es dependencia de esta prueba.
 
-Ambos candidatos ya pasaron gramática PG16 sin ejecución. Eso no acredita sus
-tipos, ACL, persistencia ni resultados nativos. Las ejecuciones autorizadas usan
+Ambos candidatos pasaron gramática y ejecución nativa PG16 con persistencia, ACL
+y Chromium reales en sus R2 autorizados. Las ejecuciones autorizadas usan
 dos jobs y contenedores separados; ninguno instala el otro paquete.
+
+Pendiente real: aprobar INVITATION_CONTRACT.review.md antes de implementar altas
+por invitación. No se ha solicitado ni ejecutado instalación conjunta SQL2+SQL3;
+los PASS separados no acreditan esa composición ni B2-TECH-READY.

@@ -56,11 +56,13 @@ no cumplen ese contrato. No se puede enviar mediante el codec/worker OTP sin
 cambios. Será necesario aprobar un contrato de plantilla/invitación específico
 dentro de la infraestructura existente, manteniendo intactas las restricciones OTP.
 
-**Orden obligatorio:** SQL14 `new_preauth_verified` y `lock_memberships` exigen
-credencial y pertenencia ACTIVE; una invitación pendiente no permite iniciar esa
-ceremonia. La aceptación inicial debe crear/verificar credencial y activar la
-pertenencia atómicamente antes de entrar al login B1 existente, como propone el
-paso4. El enlace por sí mismo no puede llamar a la emisión de sesiones.
+**Corrección del orden propuesto:** SQL14 `new_preauth_verified` y
+`lock_memberships` exigen credencial y pertenencia ACTIVE. El paso4 anterior,
+activar antes del login/MFA, no satisface la instrucción posterior del propietario
+que condiciona activación a MFA según política. No se implementará ese orden.
+La propuesta única corregida y su capacidad limitada sin sesión están en
+[INVITATION_CONTRACT.review.md](INVITATION_CONTRACT.review.md), pendientes de
+aprobación. No se relajan las precondiciones de B1.
 
 **Contraseña:** `lib/b1/password.ts:20–33` exige un admission/corpus checker
 aprobado y falla cerrado si no está disponible. Reutilizar Argon2id no sustituye
