@@ -28,6 +28,22 @@ pasó la matriz B1 completa. Eso no convierte los jobs globales FAIL en PASS.
 
 ## Dos aprobaciones de fixture independientes
 
+Commit inmutable de ambos fixtures R2: `147dac36c921e1ff1ee6af7ca1b30bf9425c0062`.
+
+Operaciones SQL2: crear fixtures sintéticos de recursos, roles, reglas y
+pertenencias; insertar evidencia step-up; consultar catálogo/permisos efectivos
+y ACL; reservar/cambiar/completar o descartar asignaciones mediante las funciones
+owned B1 existentes, comprobando auditorías. Cambiar vigencias, revocación y estado
+sintéticos; limpiar el DENY creado por Chromium; ejecutar la matriz B1 original.
+La única consulta adicional R2 es obtener el OID del helper para inspección ACL.
+
+Operaciones SQL3: crear recursos/reglas y evidencia step-up sintéticos; consultar
+versiones; reservar/cambiar/completar o descartar edición/estado con las funciones
+owned autorizadas; dos conexiones concurrentes y rollback; fixtures sintéticos
+de dispositivos, preauth y challenges; comprobar revocación por tenant, auditorías,
+reactivación y self-disable. Chromium ejecuta edición/desactivación/reactivación.
+No se añade ninguna operación de negocio frente a R1.
+
 | Paquete | Nuevo archivo | SHA-256 |
 |---|---|---|
 | SQL2, fixture r2 | `../b2-access/access-tests.r2.review.py` | `72ed26f1e515ef5e7126271a91e9cdfb38575826e861a04b2196ea6e0e7e2550` |
