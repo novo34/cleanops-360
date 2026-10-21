@@ -17,7 +17,7 @@ const unavailable=()=>new AuthError(503,'AUTH_DEPENDENCY_UNAVAILABLE')
 const tokenPattern=/^[A-Za-z0-9_-]{43}$/
 function context(value:InvitationContext){
  if(!value||!valid({type:'string',format:'uuid'},value.tenantId)||!valid({type:'string',format:'uuid'},value.invitationId)||
-  typeof value.generation!=='string'||!/^[1-9][0-9]{0,18}$/.test(value.generation)||BigInt(value.generation)>9223372036854775807n||
+  typeof value.generation!=='string'||!/^[1-9][0-9]{0,18}$/.test(value.generation)||BigInt(value.generation)>BigInt('9223372036854775807')||
   !valid({type:'string',format:'email',maxLength:254},value.recipient))throw unavailable()
  return [value.tenantId.toLowerCase(),value.invitationId.toLowerCase(),value.generation,value.recipient]
 }
