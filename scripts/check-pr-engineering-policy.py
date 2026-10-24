@@ -80,9 +80,11 @@ def validate(body: str) -> list[str]:
     answers = {}
     checks = []
     current = None
+    quoted = False
     errors = []
     for raw in body.splitlines():
         if not raw.strip():
+            quoted = False
             continue
         line = raw.expandtabs(4)
         if len(line) - len(line.lstrip()) > 3:
@@ -92,7 +94,11 @@ def validate(body: str) -> list[str]:
                 or re.search(r"<(?:[A-Za-z!/?])", line)):
             return ["Code blocks and raw HTML are outside the form dialect"]
         if line.startswith(">"):
+            quoted = True
             current = None
+        # Lazy paragraph continuations also belong to a quote. This dialect
+        # requires a blank boundary before returning to the top-level form.
+        if quoted:
             continue
         heading = re.fullmatch(r"#{2,3}\s+(.+)", line)
         if heading:
