@@ -36,63 +36,108 @@ PLACEHOLDERS = {"todo", "tbd", "pendiente", "por definir", "n/a", "ninguno", "x"
 
 def normalize(value: str) -> str:
     value = unicodedata.normalize("NFKC", html.unescape(value))
-    value = re.sub(r"[\u200b-\u200f\u2060\ufeff]", "", value)
+    value = "".join(char for char in value
+                    if not unicodedata.category(char).startswith("C") or char.isspace())
     value = re.sub(r"[\x60*_~\\]", "", value).strip(" \t.,;:!?¿¡-")
     return " ".join(value.casefold().split())
 
-def visible(body: str) -> str:
-    body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
-    return re.sub(r"<[^>]*>", "", body)
+def answer_text(answer: str) -> str:
+    """Accepted inline grammar: literal prose/URLs and paired inline code only.
+
+    Links, images, HTML, escapes and emphasis are deliberately outside this
+    form's dialect. Their source length must never count as visible evidence.
+    """
+    parts = []
+    i = 0
+    while i < len(answer):
+        char = answer[i]
+        if char == "`":
+            end = answer.find("`", i + 1)
+            if end < 0 or end == i + 1:
+                raise ValueError("Unpaired/empty inline code")
+            parts.append(answer[i + 1:end])
+            i = end + 1
+        elif char in "[]<>!*_~\\":
+            raise ValueError("Use literal prose/URLs or inline code in answers")
+        else:
+            parts.append(char)
+            i += 1
+    # Decode entities only after syntax recognition: escaped markup is text,
+    # but encoded whitespace/control characters still cannot supply evidence.
+    return normalize("".join(parts))
+
 
 def validate(body: str) -> list[str]:
+    """Parse a restricted top-level Markdown form, never arbitrary Markdown.
+
+    Blocks: ATX headings, exact bold field labels, prose continuations and
+    exact task items. Quotes are ineligible; other block syntax fails closed.
+    There is no source-text search inside code, HTML, links or references.
+    """
     if not isinstance(body, str):
         return ["PR body must be text"]
-    body = visible(body)
-    lines = body.splitlines()
+    sections = []
+    answers = {}
+    checks = []
+    current = None
     errors = []
+    for raw in body.splitlines():
+        if not raw.strip():
+            continue
+        line = raw.expandtabs(4)
+        if len(line) - len(line.lstrip()) > 3:
+            return ["Indented blocks are outside the form dialect"]
+        line = line.lstrip()
+        if (re.match(r"^(`{3,}|~{3,})", line)
+                or re.search(r"<(?:[A-Za-z!/?])", line)):
+            return ["Code blocks and raw HTML are outside the form dialect"]
+        if line.startswith(">"):
+            current = None
+            continue
+        heading = re.fullmatch(r"#{2,3}\s+(.+)", line)
+        if heading:
+            sections.append(heading[1])
+            current = None
+            continue
+        field = next((label for label in FIELDS
+                      if line.startswith("**" + label + "**")), None)
+        if field is not None:
+            if field in answers:
+                errors.append("Duplicate field: " + field)
+            answers.setdefault(field, []).append(line[len(field) + 4:].strip())
+            current = field
+            continue
+        task = re.fullmatch(r"[-*]\s+\[([ xX])\]\s+(.+)", line)
+        if task:
+            checks.append((task[1], task[2]))
+            current = None
+            continue
+        if (re.match(r"^(?:[-+*]\s|\d+[.)]\s|#{1,6}\s|\[)", line)
+                or line.startswith(("**", "---", "===", "~~~"))):
+            errors.append("Unsupported Markdown block")
+            current = None
+            continue
+        if current is not None:
+            answers[current].append(line)
+
     for section in SECTIONS:
-        if not any(re.match(r"^#{2,3}\s+" + re.escape(section) + r"(?:\b|\s|$)", line) for line in lines):
-            errors.append("Missing visible section: " + section)
+        if sum(bool(re.match(re.escape(section) + r"(?:\b|\s|$)", title))
+               for title in sections) != 1:
+            errors.append("Missing/duplicate section: " + section)
     for label in FIELDS:
-        matches = [i for i, line in enumerate(lines) if normalize(label) in normalize(line)]
-        if len(matches) != 1:
-            errors.append("Missing/duplicate field: " + label)
-            continue
-        i = matches[0]
-        line = lines[i]
-        # Extract only after the COMPLETE label, not an ambiguous prefix.
-        start = normalize(line).find(normalize(label))
-        if start < 0:
-            errors.append("Malformed field: " + label)
-            continue
-        # Prefer the exact Markdown label; fallback is a normalized equivalent.
-        prefix = "**" + label + "**"
-        if prefix in line:
-            answer = line.split(prefix, 1)[1]
-        elif label in line:
-            answer = line.split(label, 1)[1]
-        else:
-            answer = ""
-        if not normalize(answer):
-            following = []
-            for candidate in lines[i+1:]:
-                if not candidate.strip():
-                    continue
-                if candidate.lstrip().startswith(("#", "**", "- [", "* [", ">")) or any(
-                    normalize(field) in normalize(candidate) for field in FIELDS
-                ):
-                    break
-                following.append(candidate)
-                break
-            answer = " ".join(following)
-        value = normalize(answer)
-        if (len(value) < 12 or value in PLACEHOLDERS
-                or all(word in PLACEHOLDERS for word in value.split())
+        try:
+            value = answer_text(" ".join(answers.get(label, [])))
+        except ValueError:
+            value = ""
+        tokens = [word.strip(".,;:!?¿¡-()") for word in value.split()]
+        if (sum(char.isalnum() for char in value) < 12
+                or value in PLACEHOLDERS
+                or all(word in PLACEHOLDERS for word in tokens)
                 or value.startswith(("tbd ", "todo ", "pendiente "))):
             errors.append("Missing/unsubstantiated answer: " + label)
     for label in CHECKS:
-        checked = [line for line in lines if re.match(r"^\s*[-*]\s+\[[xX]\]\s+", line) and line.split("]", 1)[1].strip() == label]
-        if len(checked) != 1:
+        matching = [mark for mark, text in checks if text == label]
+        if len(matching) != 1 or matching[0] not in ("x", "X"):
             errors.append("Mandatory checklist unchecked/missing/duplicate: " + label)
     return errors
 

@@ -26,4 +26,6 @@
 
 **Excepciones explícitas, dueño, aprobación y fecha/condición de eliminación:**
 
+> Formato: respuestas en prosa, URLs literales o código inline. No usar enlaces Markdown, imágenes, HTML, bloques de código ni referencias como evidencia; las citas no cuentan como respuestas.
+>
 > Política: `docs/ENGINEERING_QUALITY_POLICY.md`. No marcar casillas sin evidencia.
