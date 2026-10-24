@@ -12,8 +12,26 @@
 - Si una reparación obliga a una segunda variante para la misma responsabilidad: **STOP-AND-DESIGN**; revisar causa raíz antes de escribir.
 - Codebase Memory MCP / DeusData: **FUERA DE ALCANCE** hasta cerrar este checklist; no instalar ni conectar durante la recuperación.
 
+## R0 — Línea base verificada (2026-10-24)
+
+**Estado: DONE documental, sin intervención funcional.** Se verificaron mediante GitHub el estado de PR, ramas relevantes y documentos de autorización/preflight. La corrupción de SQL5-R3 procede de auditoría independiente estática; **no se ha vuelto a ejecutar PostgreSQL ni repetido su parseo en esta comprobación**.
+
+| Referencia | Estado comprobado |
+|---|---|
+| PR #12 B2 | OPEN, DRAFT, HEAD `063cd7456056fdff2840a626655700231902ab2a`, base `feat/b1-http-flows` |
+| PR #13 anterior de gobernanza | CLOSED, NOT MERGED, HEAD `7f9a6928dd2db884241ed5721b0e7afeacbb9eb6` |
+| PR #14 gobernanza canónica | OPEN, NOT DRAFT, HEAD antes de este registro `158128d37a824a2598c5c3dfcfec99c83583f76b`, base `main` |
+| SQL5-R3 autorizado | Reference `aff420f40d37e1e6a44942e80c7ff70fadd612ba`; manifest SHA-256 `483a8cba21c199fb4507e5b6b0ff493477d1808ec9feacfc6a21709cc0d9e052` |
+| SQL5-R3 preflight | FAIL: 9 PASS, 1 FAIL, 8 SKIP, PG no ejecutado; autorización nativa no consumida |
+| Rama revisión | `review/b2-sql5-r3-regex-fix` presente |
+| Linajes staging | `staging` y `integrate/demo-v0-map-staging` presentes |
+| Linajes B1/B2 | `feat/b1-*`, `feat/b2-users-access` presentes |
+| Gobernanza | `governance/reuse-first-main` y antecedente `governance/reuse-first-quality-policy` presentes |
+
+**No habilitado:** SQL5-R3 corrupto (AUD-010), runner de la rama incompatible (AUD-011), `closedBackend` conectado, `AUTH-GATE-05` abierto. El plan no cambia autorizaciones ni permisos. **Próximo bloque único: R1.**
+
 ## Estado y evidencias
-- [ ] **R0 — Baseline congelada y alcance verificado.** Confirmar HEAD y estado de PR #14 (gobernanza) y #12 (B2); registrar commits de referencia y las ramas staging/B1/B2 a comparar. Identificar evidencia del hallazgo AUD-010 en SHA aprobado. Ninguna modificación de producto. **Cierre:** inventario concreto de referencias, árbol de PR, gates, autorizaciones, lista de cambios permitidos y verificación de que no hay ejecuciones pendientes. **No ejecutar código de producción.**
+- [x] **R0 — Baseline congelada y alcance verificado.** Confirmar HEAD y estado de PR #14 (gobernanza) y #12 (B2); registrar commits de referencia y las ramas staging/B1/B2 a comparar. Identificar evidencia del hallazgo AUD-010 en SHA aprobado. Ninguna modificación de producto. **Cierre:** inventario concreto de referencias, árbol de PR, gates, autorizaciones, lista de cambios permitidos y verificación de que no hay ejecuciones pendientes. **No ejecutar código de producción.**
 - [ ] **R1 — Gobernanza realmente obligatoria (PR #14).** Validar el verificador **real** y el workflow, con pruebas positivas/negativas y seguridad de `pull_request_target` (solo checkout de base, permisos mínimos, no ejecución de PR). Resolver bootstrap del primer merge, revisión independiente vigente del SHA final, compatibilidad con PR históricos y coste CI. Corregir **solo** cinco archivos existentes del PR #14 salvo justificación QG-0. PR #13 ya cerrado sin merge; no reabrir ni duplicar. **Cierre:** aprobación del propietario para merge y merge verificado; ruleset/revisiones/CODEOWNERS o control equivalente realmente activos en ramas aplicables; PR de prueba inválido bloqueado y PR válido aceptado, con evidencias; registrar limitación de un solo propietario y bypass. **Si faltan permisos para rulesets:** BLOQUEADO, no declarar DONE.
 - [ ] **R2 — Definir integración canónica B1/B2/staging.** Comparar cambios concretos en linajes divergentes (AUD-001/038), PR y dependencias; determinar propietario de cada archivo/flujo, orden de integración y contratos. No elegir una rama completa por intuición ni fusionar por simple ancestry. **Cierre:** mapa archivo/flujo → origen canónico, conflictos resueltos, plan de migración reversible y matriz de regresión, aprobado antes de merges.
 - [ ] **R3 — Reparación mínima SQL5 (AUD-010/011/023).** Preservar R1/R2/R3 originales y sus hashes. Crear **un único candidato corregido** a partir de R2, aplicar sustitución literal segura (evitar expansión JS `$'`), verificar SQL íntegro hasta el único `COMMIT`, sintaxis PostgreSQL/PLpgSQL y manifiesto; reutilizar scripts de parseo/revisión existentes y añadir la cobertura faltante, sin duplicar harness ni guards. Resolver el desacuerdo rama/alcance mediante diseño de ejecución canónico; no falsear variables. **Cierre estático:** hashes nuevos, diff justificado, revisión independiente y *nueva autorización explícita* por commit+manifiesto. **Cierre nativo:** solo después de autorización, una ejecución de PG16 efímero aislado con fixtures sintéticos, concurrencia y limpieza; PASS/FAIL/SKIP documentados. Hasta entonces SQL5 BLOCKED. No ejecutar R3 corrupto.
