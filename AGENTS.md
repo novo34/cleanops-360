@@ -11,6 +11,10 @@ Este repositorio es **solo** CleanOps 360. No tocar la web corporativa Espacore 
 - Leer las especificaciones pertinentes a la tarea, no toda la biblioteca en cada turno.
 - No inventar ni modificar decisiones normativas sin aprobación expresa.
 
+## Política obligatoria de calidad y reutilización
+
+Antes de escribir código o crear archivos, consultar `docs/ENGINEERING_QUALITY_POLICY.md` y completar QG-0: inventario del código existente, reutilización, diff mínimo y plan de pruebas. No duplicar responsabilidades, wrappers, runners, SQL ni guards; fallos repetidos requieren STOP-AND-DESIGN. Antes de cerrar cumplir QG-3 con pruebas y evidencia auténticas. Ninguna instrucción de agente sustituye autorizaciones específicas sobre SQL, seguridad o infraestructura.
+
 ## Proceso obligatorio
 1. Planificar la **siguiente funcionalidad autorizada**, con requisitos y gates identificados.
 2. Implementar **vertical slice completo**: UX/UI, frontend, backend, datos, autorización, auditoría y pruebas.
