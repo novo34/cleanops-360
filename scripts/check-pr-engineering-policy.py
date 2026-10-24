@@ -76,20 +76,26 @@ def validate(body: str) -> list[str]:
     """
     if not isinstance(body, str):
         return ["PR body must be text"]
+    # GFM lines end only at LF, CR or CRLF. Other controls and Unicode
+    # line/paragraph separators must not manufacture blocks or quote boundaries.
+    if any((unicodedata.category(char) in ("Cc", "Zl", "Zp")
+            and char not in "\r\n\t") for char in body):
+        return ["Unsupported line separator/control character"]
+    body = body.replace("\r\n", "\n").replace("\r", "\n")
     sections = []
     answers = {}
     checks = []
     current = None
     quoted = False
     errors = []
-    for raw in body.splitlines():
-        if not raw.strip():
+    for raw in body.split("\n"):
+        if not raw.strip(" \t"):
             quoted = False
             continue
         line = raw.expandtabs(4)
-        if len(line) - len(line.lstrip()) > 3:
+        if len(line) - len(line.lstrip(" \t")) > 3:
             return ["Indented blocks are outside the form dialect"]
-        line = line.lstrip()
+        line = line.lstrip(" \t")
         if (re.match(r"^(`{3,}|~{3,})", line)
                 or re.search(r"<(?:[A-Za-z!/?])", line)):
             return ["Code blocks and raw HTML are outside the form dialect"]
@@ -100,7 +106,7 @@ def validate(body: str) -> list[str]:
         # requires a blank boundary before returning to the top-level form.
         if quoted:
             continue
-        heading = re.fullmatch(r"#{2,3}\s+(.+)", line)
+        heading = re.fullmatch(r"#{2,3}[ \t]+(.+)", line)
         if heading:
             sections.append(heading[1])
             current = None
@@ -113,12 +119,12 @@ def validate(body: str) -> list[str]:
             answers.setdefault(field, []).append(line[len(field) + 4:].strip())
             current = field
             continue
-        task = re.fullmatch(r"[-*]\s+\[([ xX])\]\s+(.+)", line)
+        task = re.fullmatch(r"[-*][ \t]{1,4}\[([ xX])\][ \t]+(.+)", line)
         if task:
             checks.append((task[1], task[2]))
             current = None
             continue
-        if (re.match(r"^(?:[-+*]\s|\d+[.)]\s|#{1,6}\s|\[)", line)
+        if (re.match(r"^(?:[-+*][ \t]|\d+[.)][ \t]|#{1,6}[ \t]|\[)", line)
                 or line.startswith(("**", "---", "===", "~~~"))):
             errors.append("Unsupported Markdown block")
             current = None
@@ -127,7 +133,7 @@ def validate(body: str) -> list[str]:
             answers[current].append(line)
 
     for section in SECTIONS:
-        if sum(bool(re.match(re.escape(section) + r"(?:\b|\s|$)", title))
+        if sum(bool(re.match(re.escape(section) + r"(?:\b|[ \t]|$)", title))
                for title in sections) != 1:
             errors.append("Missing/duplicate section: " + section)
     for label in FIELDS:
