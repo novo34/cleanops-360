@@ -20,18 +20,19 @@ FIELDS = (
 )
 SECTIONS = ("Cambio y trazabilidad", "QG-0", "QG-1/QG-2", "QG-3")
 CHECKS = (
-    "No hay implementaciones paralelas",
-    "Causa raíz corregida",
-    "Consumidores, documentación y tests usan una implementación canónica",
-    "Cambios dentro de alcance",
-    "Inventario de archivos añadidos/modificados/eliminados",
-    "Sintaxis/lint/tests locales",
-    "Tests reales y PASS/FAIL/SKIP",
-    "Controles de seguridad, multi-tenant",
-    "Sin merge/TECH-READY/ACCEPTED",
+    "No hay implementaciones paralelas, wrappers/guards/runner duplicados, endpoints huérfanos ni mocks productivos.",
+    "Causa raíz corregida; no nueva variante por fallo previo sin STOP-AND-DESIGN.",
+    "Consumidores, documentación y tests usan una implementación canónica.",
+    "Cambios dentro de alcance y autorizaciones; no se han modificado archivos aprobados sin nueva aprobación.",
+    "Inventario de archivos añadidos/modificados/eliminados, sin basura o duplicación.",
+    "Sintaxis/lint/tests locales antes de CI costosa.",
+    "Tests reales y PASS/FAIL/SKIP separados con enlaces a logs y commit exacto.",
+    "Controles de seguridad, multi-tenant, concurrencia e idempotencia probados si afectan al cambio.",
+    "Sin merge/TECH-READY/ACCEPTED hasta satisfacer gates y revisión del propietario.",
 )
 PLACEHOLDERS = {"todo", "tbd", "pendiente", "por definir", "n/a", "ninguno", "x",
-                "ninguno revisado", "no he inspeccionado nada", "sin revisar"}
+                "ninguno revisado", "no he inspeccionado nada", "sin revisar",
+                "false", "falso", "no", "none", "null", "0"}
 
 def normalize(value: str) -> str:
     value = unicodedata.normalize("NFKC", html.unescape(value))
@@ -77,16 +78,20 @@ def validate(body: str) -> list[str]:
             for candidate in lines[i+1:]:
                 if not candidate.strip():
                     continue
-                if candidate.startswith(("##", "**", "- [", "* [")):
+                if candidate.lstrip().startswith(("#", "**", "- [", "* [", ">")) or any(
+                    normalize(field) in normalize(candidate) for field in FIELDS
+                ):
                     break
                 following.append(candidate)
                 break
             answer = " ".join(following)
         value = normalize(answer)
-        if len(value) < 12 or value in PLACEHOLDERS or value.startswith(("tbd ", "todo ", "pendiente ")):
+        if (len(value) < 12 or value in PLACEHOLDERS
+                or all(word in PLACEHOLDERS for word in value.split())
+                or value.startswith(("tbd ", "todo ", "pendiente "))):
             errors.append("Missing/unsubstantiated answer: " + label)
     for label in CHECKS:
-        checked = [line for line in lines if re.match(r"^\s*[-*]\s+\[[xX]\]\s+", line) and label in line]
+        checked = [line for line in lines if re.match(r"^\s*[-*]\s+\[[xX]\]\s+", line) and line.split("]", 1)[1].strip() == label]
         if len(checked) != 1:
             errors.append("Mandatory checklist unchecked/missing/duplicate: " + label)
     return errors
