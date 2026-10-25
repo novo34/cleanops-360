@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Only this exact, locally validated lock transition is authorized. Never derive
 # an accepted hash from the working tree or attribute its review to an old commit.
 R2_LOCK_FROM = '9041209587186955078edfde44c19cf0fe4c4d76c11a9af5bd1b0cd0d815ad53'
-R2_LOCK_TO = '0caa3a5f40dd2b93779e21300f8801e225c41c069ef38ea488abe4399e49f549'
+R2_LOCK_TO = '2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4765'
 R2_HISTORICAL_MANIFESTS = {
     '.semgrep/reviewed-findings.json': 'aeb58e69731e880e5b4376f8355c8f18c498675865881a40db34078e06031ab6',
     '.semgrep/quality-reviewed-findings.json': '1398d55f34f401d28481866b413741e1cb5ed25fa1d255a1c122e64b2c9185c0',
