@@ -27,3 +27,7 @@ Implementar el sistema independiente CleanOps 360 **por funcionalidades completa
 
 ## Plantilla de orden futura al equipo
 > Ejecuta la siguiente funcionalidad no aceptada de la fase actual siguiendo `PHASE_EXECUTION_DOSSIERS.md`, `DELIVERY_PLAYBOOK.md`, `IMPLEMENTATION_GATES.md` y sus REQ del SRS. Entrega UI/UX, frontend, backend, persistencia, permisos y pruebas funcionales integradas. No marques COMPLETED sin evidencia y aprobación; documenta y eleva toda decisión no aprobada.
+
+## Especificación transversal: idiomas gestionados desde UI
+
+Antes de implementar textos visibles, administración, notificaciones o documentos, consultar `I18N_LANGUAGE_MANAGEMENT_SPEC.md`. Product Master V3 §109 y SRS V1.1 §29 ya exigen DE/ES/EN/IT/PT/SQ. Además, el Product Owner requiere administración de idiomas desde la UI con plantillas JSON descargables/importables, editor, borradores, versiones, publicación, permisos, auditoría y pruebas. El detalle derivado no sustituye normas originales; resolver sus `DECISION_REQUIRED` en D0/D2. Preparar i18n desde Foundation sin anticipar tablas/endpoints sin consumidor.
