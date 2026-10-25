@@ -1,0 +1,40 @@
+{
+  "candidate": "PG-TEST-01-CONSOLIDATED-11",
+  "status": "REVIEW ONLY",
+  "installationAuthorized": false,
+  "source": {
+    "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
+    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b"
+  },
+  "candidateArtifact": {
+    "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
+    "bytes": 205225,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql"
+  },
+  "fullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/11/SQL10_TO_SQL11.diff",
+    "sha256": "bacb95c11fae79a8fe2031e942995eb35cf5e5695c8088a08cd744334d9f4d5a"
+  },
+  "newSignature": "auth_api.change_access_owned(jsonb,bytea,bytea,uuid) RETURNS jsonb",
+  "owner": "cleanops_auth_broker",
+  "securityDefiner": true,
+  "searchPath": "pg_catalog",
+  "executeOnly": "cleanops_identity_service",
+  "legacyMutationExecuteRevocations": [
+    "set_user_access_rule",
+    "set_access_role",
+    "set_role_membership",
+    "set_role_access_rule",
+    "revoke_access_assignment"
+  ],
+  "existingFunctionBodiesChanged": [],
+  "tableChanges": [],
+  "roleChanges": [],
+  "rlsChanges": [],
+  "directTablePrivilegeChanges": [],
+  "securityScope": "Mandatory owned reservation, durable before/after/actor/reason and DENY audit, and no-overdelegation on revoked-role reactivation; no productive grants or runtime activation.",
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN"
+}

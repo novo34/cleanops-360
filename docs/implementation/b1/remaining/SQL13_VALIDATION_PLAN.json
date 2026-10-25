@@ -1,0 +1,743 @@
+{
+  "candidate": "PG-TEST-01-CONSOLIDATED-13",
+  "blob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+  "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+  "status": "EXECUTED_PASS",
+  "installationAuthorized": true,
+  "environment": "NEW isolated PostgreSQL16 Docker, synthetic data, no public ports/shared volumes",
+  "functionalRole": "ordinary identity service; administrator permitted only for synthetic fixture setup and catalogue/effect inspection, never for passing functional authorization",
+  "cases": [
+    {
+      "id": "ROT-01",
+      "setup": "Valid password-verified two-company SELECTION",
+      "action": "Choose active authorized destination under owned transaction",
+      "expected": "Both digests rotate on same row; old cookie fails; expiry/credential proof unchanged; no session before destination MFA and COMMIT",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-01-real-owned-rotation-and-old-cookie-invalidation",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT01 ROT14 real multi-company login rotates PREAUTH and CSRF then requires destination MFA",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-02",
+      "setup": "Missing or incorrect CSRF/Origin",
+      "action": "POST company selection",
+      "expected": "Safe403; no selection, factor, session or owned success",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 ROT02 ROT03 real selection denial csrf",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT02 ROT03 real selection denial origin",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-03",
+      "setup": "Foreign user/tenant or inactive membership",
+      "action": "Select client-provided destination locator",
+      "expected": "Generic denial; no existence/details; no cross-company mutation",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 ROT02 ROT03 real selection denial foreign",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT02 ROT03 real selection denial revoked",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-04",
+      "setup": "Revoked/expired PREAUTH or changed credential version",
+      "action": "Attempt selection",
+      "expected": "Rejected; no rotation or usable challenge",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-04-expired-preauth",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-04-revoked-preauth",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-04-stale-credential-version",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "ROT-05",
+      "setup": "Factor-bound/origin-bound/tenant-bound PREAUTH",
+      "action": "Invoke new primitive",
+      "expected": "Rejected; primitive cannot replace ACTIVE switch or grant proof",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-05-bound-preauth-not-selection",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-05-08-null-or-bound-input--1",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "SQL13-ROT-05-08-null-or-bound-input--2",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        }
+      ]
+    },
+    {
+      "id": "ROT-06",
+      "setup": "Missing/wrong key/request or foreign owned marker",
+      "action": "Invoke selection",
+      "expected": "No effect; no marker theft, transfer or completion",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-06-missing-owned-marker",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-06-wrong-request",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-06-wrong-key",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "ROT-07",
+      "setup": "Marker belongs to another backend/xid or expired while waiting",
+      "action": "Hold target/policy lock; expire marker; release",
+      "expected": "Revalidation rejects before effects",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-07-foreign-backend-xid-marker-denied",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-07-real-policy-row-wait-expires-owned-marker-no-effects",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        }
+      ]
+    },
+    {
+      "id": "ROT-08",
+      "setup": "Equal/null/incorrect-length cookie or CSRF digest",
+      "action": "Invoke primitive",
+      "expected": "Rejected; cannot preserve cookie or weaken rotation",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-08-equal-cookie-digest",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-08-equal-CSRF-digest",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-08-malformed-digest",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ROT-05-08-null-or-bound-input-1",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "SQL13-ROT-05-08-null-or-bound-input-2",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        }
+      ]
+    },
+    {
+      "id": "ROT-09",
+      "setup": "Two real connections select concurrently",
+      "action": "Race same PREAUTH/owned request",
+      "expected": "At most one usable rotation; replay/loser safe; no duplicate challenge/session",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-09-concurrent-one-winner",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "ROT-10",
+      "setup": "Current proof/membership/method generation changes while blocked",
+      "action": "Release lock after revocation/version update",
+      "expected": "Revalidation denies stale authority; destination factor cannot be reused",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-10-real-membership-row-wait-revocation-revalidated-no-effects",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        }
+      ]
+    },
+    {
+      "id": "ROT-11",
+      "setup": "Selection succeeds then MFA preparation denies",
+      "action": "Service savepoint encloses selection and sensitive effects",
+      "expected": "Selection/digests/challenge roll back; only permitted denial/rate accounting commits; old marker discarded",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-11-late-failure-savepoint-rolls-back-sensitive-effects",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT11 real late MFA preparation failure rolls back rotation and owned reservations before retry",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-12",
+      "setup": "Termination before COMMIT",
+      "action": "Execute rotation then terminate transaction",
+      "expected": "Full rollback; no HTTP cookie/session; safe bounded retry",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ROT-12-termination-before-COMMIT-rolls-back",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT12 ROT13 real rotation COMMIT termination rolls back and allows bounded retry",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-13",
+      "setup": "COMMIT succeeds but acknowledgement/HTTP response is lost",
+      "action": "Drop response after commit",
+      "expected": "No sensitive response assumed; committed effects may exist; old cookie cannot replay; require safe fresh credentials instead of claiming rollback",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 ROT12 ROT13 real rotation committed acknowledgement loss never emits cookie",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ROT-14",
+      "setup": "New PREAUTH cookie followed by destination MFA",
+      "action": "Real UI QR/code flow through API and PostgreSQL",
+      "expected": "Session only after current tenant/method/version/CAS validation and successful COMMIT",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 ROT01 ROT14 real multi-company login rotates PREAUTH and CSRF then requires destination MFA",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "SQL13-ROT-14-factorless-selection-cannot-issue-session",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "ACL-01",
+      "setup": "Ordinary service roles and PUBLIC",
+      "action": "Inspect/call new function",
+      "expected": "Only identity service and implicit owner can execute; PUBLIC/runtime/mail/maintenance/verifier denied",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ACL-01-owner-definer-search-path-PUBLIC",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-01-execute-pgtest_runtime",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-01-execute-pgtest_identity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-01-execute-pgtest_mail",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-01-execute-pgtest_maintenance",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-01-execute-pgtest_verifier",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "ACL-02",
+      "setup": "Identity service and other ordinary roles",
+      "action": "Attempt private direct SELECT/INSERT/DELETE and role adoption",
+      "expected": "No new table privileges; no broker membership/SUPERUSER/BYPASSRLS or cross-company/private-log access",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-ACL-02-no-table-role-bypass",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "SQL13-ACL-02-direct-private-INSERT-and-log-DML-denied",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        }
+      ]
+    },
+    {
+      "id": "ACL-03",
+      "setup": "Installed exact function/catalogue",
+      "action": "Inspect owner/search_path/ACL/RLS and definition",
+      "expected": "Exact approved bytes; no unexpected roles/tables/policies/privileges/signature changes",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "job": 117703534514
+        },
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705409073
+        },
+        {
+          "name": "exact13-approved-blob-sha256-full-diff-ACL-RLS",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_REGRESSION.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705408882
+        },
+        {
+          "name": "SQL13-ACL-01-owner-definer-search-path-PUBLIC",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        }
+      ]
+    },
+    {
+      "id": "AUD-01",
+      "setup": "Trusted ACTIVE without rule permission",
+      "action": "Call protected existing HTTP operation",
+      "expected": "Generic403 and durable POLICY_DENIED HMAC event after COMMIT; no business mutation; ACTIVE preserved",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "AUD-02",
+      "setup": "Trusted ACTIVE with permission but no fresh step-up",
+      "action": "Call protected sensitive operation",
+      "expected": "Generic403 and durable STEP_UP_REQUIRED event; no factor/session/cookie or completed success marker",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 AUD01 AUD02 real guard denials commit journal and preserve ACTIVE",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "AUD-03",
+      "setup": "Malformed/unlisted/client-injected event code or identifiers",
+      "action": "Attempt direct/helper/HTTP injection",
+      "expected": "Reject arbitrary code/authority; no raw actor selection, secrets, OTP, ciphertext, receiver or internal details exposed",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-AUD-03-arbitrary-event-code-denied",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "AUD-04",
+      "setup": "Denial insertion or pre-COMMIT failure",
+      "action": "Cause event failure / terminate before COMMIT",
+      "expected": "Fail closed; rollback; never claim durable denial or successful mutation",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "SQL13-AUD-04-rollback-has-no-false-durable-event",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "Browser-PG-SQL13 AUD04 real terminated denial journal transaction rolls back then persists trusted denial separately",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "Browser-PG-SQL13 ROT12 ROT13 real rotation COMMIT termination rolls back and allows bounded retry",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "AUD-05",
+      "setup": "Concurrent allowed mutation and denied request",
+      "action": "Two independent real transactions with current policy/versions",
+      "expected": "Independent outcomes and correct committed journals; no false success, rolled-back denial claim or lost ACTIVE",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 AUD05 real concurrent protected challenge mutation and policy denial have independent durable outcomes",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "AUD-06",
+      "setup": "PREAUTH without reliable tenant/user or invalid ingress",
+      "action": "Reject invalid request",
+      "expected": "No invented actor/company or successful business audit; preserve approved pseudonymous channel semantics",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "Browser-PG-SQL13 AUD03 AUD06 real client-supplied event authority and invalid ingress cannot create a journal actor",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        }
+      ]
+    },
+    {
+      "id": "ENV-01",
+      "setup": "All owned isolated fixtures/resources",
+      "action": "Backup/restore and teardown",
+      "expected": "Database integrity checked; all owned resources removed; preexisting inventory unchanged",
+      "status": "PASS",
+      "evidence": [
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "job": 117703534514
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705409073
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_REGRESSION.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705408882
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NATIVE.json",
+          "source": "be4b7dd0102afa232baa8f78003ba25e15233753",
+          "run": 39135659377,
+          "job": 117699530426
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_NEGATIVES.json",
+          "source": "8b3d6ec2281f5dba6b5f8fd7434c8d3a5400610a",
+          "run": 39137748800,
+          "job": 117705630615
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_BROWSER.json",
+          "source": "d4dfbb13230190ca1bbafe7ba7af6ab548306944",
+          "run": 39137308745,
+          "job": 117704346278
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "job": 117703534514
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_POLICY_BOUNDARIES.json",
+          "source": "0646f7380d97a47db6004a1fe4828f7fd69f9b90",
+          "run": 39137035268,
+          "job": 117703534514
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705409073
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_TRUST_LIFETIME.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705409073
+        },
+        {
+          "name": "create-owned-restore-db",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_REGRESSION.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705408882
+        },
+        {
+          "name": "backup-restore-all31-tables-integrity",
+          "sourceReport": "docs/implementation/b1/consolidated-test-13/EXECUTION_REGRESSION.json",
+          "source": "8733d5bcf380b1fa3814f105bb7b5627372d99ea",
+          "run": 39137673324,
+          "job": 117705408882
+        }
+      ]
+    }
+  ],
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "authorization": "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json",
+  "evidence": "docs/implementation/b1/consolidated-test-13/ACCEPTANCE_EVIDENCE.json"
+}

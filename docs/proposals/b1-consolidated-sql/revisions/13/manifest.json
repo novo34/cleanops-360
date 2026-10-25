@@ -1,0 +1,26 @@
+{
+  "candidate": "PG-TEST-01-CONSOLIDATED-13",
+  "status": "REVIEW ONLY",
+  "installationAuthorized": false,
+  "supersedesUninstalledProposal": "SQL12; its exact owned PREAUTH rotation function is retained byte-identically",
+  "candidateArtifact": {
+    "gitBlob": "7a2df8463e6c1a45b2a2c9005187c0269d2cf423",
+    "sha256": "a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279",
+    "bytes": 209170,
+    "path": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql"
+  },
+  "baseApproved": "SQL11 blob3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+  "fullDiffSha256": "e8d56b63f6c39f9dccbd4f49328bbc2a9c3d67447f12e19496e67a8dc3bf453e",
+  "changes": [
+    "Exact SQL12 owned PREAUTH rotation function and its existing documented function ACL",
+    "Only add POLICY_DENIED and STEP_UP_REQUIRED to existing record_security_event code allowlist"
+  ],
+  "tableChanges": [],
+  "roleChanges": [],
+  "rlsChanges": [],
+  "directTablePrivilegeChanges": [],
+  "existingSignatureChanges": [],
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN"
+}

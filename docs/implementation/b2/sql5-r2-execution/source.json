@@ -1,0 +1,31 @@
+{
+  "result": "FAIL",
+  "checks": {
+    "PASS": 39,
+    "FAIL": 7,
+    "SKIP": 0
+  },
+  "sourceCommit": "96d2ada22845e7c7e3e1131f6ea814152c3be89b",
+  "reviewCommit": "0eb651f3cfce5733726ca1d122e09bd1d0162c26",
+  "run": "https://github.com/novo34/cleanops-360/actions/runs/39585052936",
+  "job": 119171778246,
+  "artifact": 12339033084,
+  "artifactZipSha256": "e56ecc0e3df13778c0cc1e5d0daadddeb6a365551339cc32ff1d60744f3b678a",
+  "reportSha256": "2fb82c0bc1b3b24abb10824e4f95b8c48d4e8edcbcb9e3a20570ea86664426e9",
+  "cleanup": "PASS",
+  "sql4HistoricalSuiteRepeated": false,
+  "historicalSuitesRepeated": false,
+  "approvedArtifactsUnchanged": true,
+  "primaryDefect": {
+    "check": "SQL5-prepare-pending-MFA",
+    "sqlstate": "2201B",
+    "location": "docs/proposals/b2-invitations/005-invitation-acceptance.r2.review.sql:156",
+    "diagnosis": "The PostgreSQL regular-expression quantifier {29,512} exceeds its maximum bound of 255. MFA preparation fails before factor consumption and activation. No revised SQL was executed."
+  },
+  "coverageLimits": {
+    "parallelConcurrency": "SKIP_NOT_PRESENT_IN_AUTHORIZED_FIXTURES",
+    "acceptancePostgresE2E": "SKIP_EXCLUDED_FROM_AUTHORIZATION",
+    "existingIdentityMFA": "SKIP_EXCLUDED_FROM_AUTHORIZATION"
+  },
+  "b2TechReady": false
+}

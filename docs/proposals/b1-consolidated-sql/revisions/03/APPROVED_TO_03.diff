@@ -1,0 +1,11 @@
+--- CONSOLIDATED-02
++++ CONSOLIDATED-03-REVIEW-ONLY
+@@ -1480,7 +1480,7 @@
+  SELECT * INTO x FROM app.mfa_challenges WHERE tenant_id=t AND id=challenge AND user_id=u FOR UPDATE;
+  IF NOT FOUND OR x.kind<>'EMAIL_OTP' OR x.state<>'ISSUED'
+  OR ROW(x.method_id,x.method_version,x.grant_key,x.resource_id) IS DISTINCT FROM ROW(before_x.method_id,before_x.method_version,before_x.grant_key,before_x.resource_id)
+- OR x.purpose IS DISTINCT FROM CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END
++ OR x.purpose IS DISTINCT FROM (CASE WHEN raw_preauth IS NULL THEN 'STEP_UP' ELSE 'LOGIN' END)
+  OR (raw_preauth IS NULL AND x.session_id IS DISTINCT FROM c.session_id)
+  OR (raw_preauth IS NOT NULL AND x.preauth_id IS DISTINCT FROM q.id)
+  OR clock_timestamp()>=LEAST(x.expires_at,(material->>'expiresAt')::timestamptz)

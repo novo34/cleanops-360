@@ -1,0 +1,1602 @@
+{
+  "kind": "COMPOSITE_REAL_CASE_EVIDENCE",
+  "source": "0967447ceec557a50ef746aec36b345198f06876",
+  "run": 39141990295,
+  "result": "PASS",
+  "cleanup": "PASS",
+  "newUIE2E": "EXECUTED_SQL14_DIRECTED_COMPOSITE_REAL_BROWSER",
+  "candidate": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
+  },
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "exact14-approved-blob-sha256-full-diff-ACL-RLS",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "install-consolidated14",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL13-approved-12h24h-configuration-data-only",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_rules",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_roles",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_role_memberships",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_resources",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_access_role(uuid,text,bigint,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-revoke_access_assignment(text,uuid,uuid,bigint,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-access_detail(uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-exact-definer-effective_access(text,text,uuid)",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-exact-new-owner-definer-searchpath-public",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL11-service-not-owner-or-bypass",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "SQL14-UI07-catalogue-owner-forced-RLS-and-broker-read-only",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-helper-owner-definer-path-public-ACL",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-ordinary-role-denied-pgtest_runtime",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-ordinary-role-denied-pgtest_identity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-ordinary-role-denied-pgtest_mail",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-ordinary-role-denied-pgtest_maintenance",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-UI07-ordinary-role-denied-pgtest_verifier",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR01",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR02",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR03",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR04",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR05",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR06",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR07",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR08",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR09",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR10",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR11",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR12",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR13",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR14",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR15",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR16",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR18",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR19",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR20",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "SQL14-MR17",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_NATIVE.json",
+      "source": "3462787a2dda419bdc49067a47fa2c48fc58df2b",
+      "run": 39141604860,
+      "job": 117717012022
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "backup-restore-all32-tables-integrity",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session OPERATIONAL-SENSITIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session SENSITIVE-OPERATIONAL",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI01 actual mixed-role password MFA session OPERATIONAL-OPERATIONAL",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI02 actual authorization row wait revalidates reactivated sensitive role and invalidates24h session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI04 actual membership START boundary while authorization waits",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI04 actual membership EXPIRE boundary while authorization waits",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI03 real concurrent MFA counter CAS has one session winner with mixed roles",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI03 revoked current method generation cannot consume a valid old proof or create session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI06 actual successful COMMIT with lost acknowledgement emits no cookie or false rollback",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119183
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary -1",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary 0",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role exact absolute boundary 1",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role real database Idle expiration",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role real database Absolute expiration",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "Browser-PG-SQL14 UI05 mixed-role activity step-up and trust cannot extend absolute ceiling",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_POLICY.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119010
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "PASS",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output.",
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    },
+    {
+      "name": "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200",
+          "HTTP_ACCESS_409"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_503",
+          "HTTP_ACCESS_200",
+          "HTTP_ACCESS_409"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-AUTHZ SQL11 denied operator is audited durably and ACTIVE survives safe HTTP errors",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "HTTP_ACCESS_403",
+          "HTTP_ACCESS_422"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-SWITCH real ACTIVE source step-up and destination MFA commit destination and revoke source atomically",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-SWITCH real ACTIVE source step-up and destination MFA deny revoked origin without consuming destination factor",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_REGRESSION.json",
+      "source": "0967447ceec557a50ef746aec36b345198f06876",
+      "run": 39141990295,
+      "job": 117718119164
+    },
+    {
+      "name": "Browser-PG-SQL14 UI01 unknown active role fails closed without a session or internal HTTP details",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "DENIED_HTTP_401",
+          "PUBLIC_AUTH_INVALID",
+          "SAFE_DETAILS",
+          "ACTIVE_COUNT_0"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      },
+      "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json",
+      "source": "13773f662127d925bc727ddb78cb6fc16c4bee05",
+      "run": 39142700719,
+      "job": 117720202829
+    }
+  ],
+  "productionAcceptance": false,
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "authGate05": "OPEN",
+  "resolvedInitialHarnessFailure": {
+    "sourceReport": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_INITIAL.json",
+    "failedCase": "unknown role expected503 instead of existing SQL AUTH_INVALID401 mapping",
+    "correction": "Expected HTTP status corrected to canonical401; UI intentionally aborts its fetch on401 so safe body inspected through separate real browser API request. SQL/ACL/backend unchanged",
+    "resolvedBy": "docs/implementation/b1/consolidated-test-14/EXECUTION_BROWSER_RETRY.json"
+  }
+}

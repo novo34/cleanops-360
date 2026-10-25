@@ -1,0 +1,1004 @@
+{
+  "scope": "PG-TEST-01",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized-patch-hashes-and-exact-diff",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-V4",
+      "status": "PASS"
+    },
+    {
+      "name": "install-B1-X",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42601",
+        "message": "syntax error at end of input",
+        "verified_source_diagnostic": "ERROR:  42601: syntax error at end of input\nLINE 27:  OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' E...\n                                                    ^\nLOCATION:  scanner_yyerror, scan.l:1236\n"
+      }
+    },
+    {
+      "name": "install-D1",
+      "status": "BLOCKED",
+      "detail": "Dependency installation failed; original SQL not modified."
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "rls-enabled-forced-21-tables",
+      "status": "PASS"
+    },
+    {
+      "name": "non-login-non-bypass-broker-owns-no-tables",
+      "status": "PASS"
+    },
+    {
+      "name": "definer-owner-and-search-path",
+      "status": "PASS"
+    },
+    {
+      "name": "tenant-immutability-trigger-stays-invoker",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_runtime-no-super-create-bypass-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_runtime-cannot-assume-broker",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-cannot-create-schema",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.audit_logs",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.auth_outbox",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.idempotency_records",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.mfa_challenges",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.mfa_methods",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.organizations",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.policy_versions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.recovery_codes",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.self_service_rules",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.sessions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.step_up_evidence",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-app.users",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.ceremony_idempotency",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.configuration",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.credentials",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.csrf_bootstrap",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.preauth",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.principals",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.rate_buckets",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.security_log",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-table-identity_private.tx_context",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_runtime-no-dml-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_identity-no-super-create-bypass-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_identity-cannot-assume-broker",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-cannot-create-schema",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.audit_logs",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.auth_outbox",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.idempotency_records",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.mfa_challenges",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.mfa_methods",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.organizations",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.policy_versions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.recovery_codes",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.self_service_rules",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.sessions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.step_up_evidence",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-app.users",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.ceremony_idempotency",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.configuration",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.credentials",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.csrf_bootstrap",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.preauth",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.principals",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.rate_buckets",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.security_log",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-table-identity_private.tx_context",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_identity-no-dml-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_mail-no-super-create-bypass-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_mail-cannot-assume-broker",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-cannot-create-schema",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.audit_logs",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.auth_outbox",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.idempotency_records",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.mfa_challenges",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.mfa_methods",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.organizations",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.policy_versions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.recovery_codes",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.self_service_rules",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.sessions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.step_up_evidence",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-app.users",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.ceremony_idempotency",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.configuration",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.credentials",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.csrf_bootstrap",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.preauth",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.principals",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.rate_buckets",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.security_log",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-table-identity_private.tx_context",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_mail-no-dml-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_maintenance-no-super-create-bypass-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "pgtest_maintenance-cannot-assume-broker",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-cannot-create-schema",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.audit_logs",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.auth_outbox",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.idempotency_records",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.mfa_challenges",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.mfa_methods",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.organizations",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.policy_versions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.recovery_codes",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.self_service_rules",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.sessions",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.step_up_evidence",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-app.users",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.ceremony_idempotency",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.configuration",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.credentials",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.csrf_bootstrap",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.preauth",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.principals",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.rate_buckets",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.security_log",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-table-identity_private.tx_context",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "pgtest_maintenance-no-dml-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "bound-identity-a",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "own-sessions-a",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "bound-identity-d",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "own-sessions-d",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "missing-context-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "forged-guc-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "context-cannot-switch",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "foreign-revoke-00000000-0000-4000-8000-00000000000a",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "foreign-revoke-00000000-0000-4000-8000-00000000000b",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "cross-tenant-fk",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "23503"
+      }
+    },
+    {
+      "name": "explicit-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "transaction-error-rollback",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "22012"
+      }
+    },
+    {
+      "name": "rollback-confirmed",
+      "status": "PASS"
+    },
+    {
+      "name": "service-row-lock-timeout",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "55P03"
+      }
+    },
+    {
+      "name": "timeout-left-target-active",
+      "status": "PASS"
+    },
+    {
+      "name": "terminate-only-owned-transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "commit-transport-failure",
+      "status": "PASS",
+      "detail": "Server-terminated transaction; not a simulation of committed-but-response-lost."
+    },
+    {
+      "name": "failed-commit-no-effects",
+      "status": "PASS"
+    },
+    {
+      "name": "revoke-own-after-lock-release",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "revoked-token-denied",
+      "status": "BLOCKED",
+      "detail": "Prerequisite revocation failed; target was never revoked."
+    },
+    {
+      "name": "success-audit-atomic",
+      "status": "BLOCKED",
+      "detail": "No successful revocation to assert atomic audit for."
+    },
+    {
+      "name": "other-tenant-and-user-intact",
+      "status": "PASS"
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore",
+      "status": "PASS"
+    },
+    {
+      "name": "restore-session-state-preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "restore-rls-21-tables",
+      "status": "PASS"
+    },
+    {
+      "name": "B1-X-credential-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "B1-X-global-TOTP-counter-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-locked-material-and-challenge-generation",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-concurrent-consume",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "credential-CAS-concurrent-one-winner",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    },
+    {
+      "name": "global-TOTP-CAS-concurrent-one-winner",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    },
+    {
+      "name": "D1-method-version-revalidation",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    }
+  ],
+  "image": "postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+  "cleanup": "PASS",
+  "patchAuthorization": {
+    "authorization": "PG-TEST-01-PATCH-01",
+    "sourceHead": "66f97ea2bf7eaf49dd915b956879547753b496f1",
+    "scope": "Ephemeral isolated Docker PostgreSQL 16 tests only",
+    "manifest": {
+      "path": "docs/proposals/pg-test-01-fix/manifest.json",
+      "gitBlob": "6e11f5a529921d85f83defc7dbc51ef680e233ae",
+      "sha256": "103fddaec1b91f0171aa6264daa71e129f39e391d601d15cfaaaaa1f8d54aff3"
+    },
+    "candidates": [
+      {
+        "source": "docs/canonical/auth-review/v4/b1-review-only.sql",
+        "candidate": "docs/proposals/pg-test-01-fix/v4.candidate.sql",
+        "sourceBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+        "candidateBlob": "e93f62529de79bc53377bdd1bd309203ed81bb46",
+        "change": "Parenthesize the two CASE operands in issue_active_session only; no predicate/policy change.",
+        "sha256": "27d77916173f40c12f69f73c0bf3bb36bad7dcfcc870f81273009188fb655a96"
+      },
+      {
+        "source": "docs/proposals/b1-v4-extension/review-only.sql",
+        "candidate": "docs/proposals/pg-test-01-fix/b1-x.candidate.sql",
+        "sourceBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+        "candidateBlob": "4694813e670e88e14bdcb4dad499c5d6098c66cd",
+        "change": "Remove only unconditional REVIEW_ONLY DO block; no capability/schema/ACL change.",
+        "sha256": "2d1c5c3b63d02feeb1c331cf1707aa74378ffefa3aa21e2c69e0a4cebd29fc6d"
+      },
+      {
+        "source": "docs/proposals/b1-ceremony-material/review-only.sql",
+        "candidate": "docs/proposals/pg-test-01-fix/d1.candidate.sql",
+        "sourceBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+        "candidateBlob": "a84364bb612baecefb7e96c0afb698782621a160",
+        "change": "Remove only unconditional REVIEW_ONLY DO block; D1 ACL matrix unchanged.",
+        "sha256": "d48f0fccab085c3a8de93e9e5672b2e0677dc03536a164527b4e248f5986a4be"
+      }
+    ],
+    "matrixBlob": "50590047d35467b2473945731384ae3da5729f28",
+    "diffAudit": "Only two CASE operand parentheses in issue_active_session; previously disclosed unconditional REVIEW_ONLY guard removal in B1-X/D1. No function signature, predicate or ACL change. Final ROLLBACK statements remain unchanged and must be checked for persistence.",
+    "newSqlChangesAuthorized": false,
+    "productionAuthorized": false,
+    "runtime": "closedBackend",
+    "authGate05": "OPEN",
+    "sha256Provenance": "Computed from byte-verified Git blobs; not an independently owner-supplied SHA-256."
+  },
+  "sessionDiagnostic": {
+    "sqlstate": "42501",
+    "message": "permission denied for table policy_versions"
+  },
+  "brokerPolicyLockUpdatePrivilege": "f",
+  "result": "FAIL",
+  "provenance": {
+    "head": "f893e65825a1190c213f4661b2815cb57493767c",
+    "run": 39007287983,
+    "job": 117322240417,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39007287983",
+    "sqlPackage": "PG-TEST-01-PATCH-01",
+    "patch02Installed": false
+  }
+}

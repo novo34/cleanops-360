@@ -1,0 +1,16 @@
+{
+  "baseline": "f319b3153a3ad99946eb635a6bee062b00ed856f",
+  "ownerAuthorized": true,
+  "scope": "Real OpenBao local/isolated synthetic TLS/mTLS, prepared policy/tenant isolation, audit, rotation, encrypted backup and fresh-target restore trials only. New network-none Docker sandboxes on a fresh Actions runner; no public ports or shared volumes.",
+  "preparedOpenBaoPoliciesOnly": true,
+  "postgresOrSqlAclInstallation": false,
+  "productionOrExistingInfrastructureChange": false,
+  "productiveSecrets": false,
+  "operationalQuorumApproved": false,
+  "principalCustodian": "PROJECT_OWNER_CANDIDATE_UNCONFIRMED",
+  "secondaryCustodian": null,
+  "futureHostDecision": "Expandable home server physically in Switzerland, portable to compatible VPS/dedicated hosts; final hardware purchase is not required for synthetic trials",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend"
+}

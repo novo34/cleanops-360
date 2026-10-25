@@ -1,0 +1,11 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "f5cf6aa7bc3f2f66da4e8246a8d47bb6c824ee0e",
+  "source": "Explicit owner response to the exact B2 execution request in this session, 2026-10-20",
+  "sha256": {
+    "docs/proposals/b2-users/001-directory.review.sql": "8a380379b392536bb986136c997833c57ca4e482de3c418b389b898245e8e31f",
+    "docs/proposals/b2-users/directory-tests.review.py": "b5d669aad3c61935b89d90fad8ad845cd1fc048125d866d37563ac40123a78fe"
+  },
+  "conditions": ["Verify exact package SHA-256 and prior SQL14 authorization before execution", "GitHub-hosted ephemeral isolated PostgreSQL16 only", "No persistent/external database connections, secrets or credentials", "If a preflight fails, do not execute the package and report the blocker"],
+  "excluded": ["Hostinger", "Swiss VPS", "persistent migrations", "B1 activation", "staging/main changes", "merges", "other B2 SQL or ACL"]
+}

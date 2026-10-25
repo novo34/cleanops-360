@@ -1,0 +1,30 @@
+name: B1 resolve pinned QR dependency
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  lock:
+    if: github.event.pull_request.number == 7 && github.event.before == '92ca72e0417f24bfb5ff8ce2c3903696f9d3a6c8' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Resolve exact lock without lifecycle scripts or repository write credentials
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-exact qrcode@1.5.4
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund --save-dev --save-exact @types/qrcode
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b1-qr-lock-review
+          path: |
+            package.json
+            package-lock.json
+          retention-days: 7

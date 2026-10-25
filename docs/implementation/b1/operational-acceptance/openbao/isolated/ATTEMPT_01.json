@@ -1,0 +1,47 @@
+{
+  "scope": "B1_OPENBAO_SYNTHETIC_ISOLATED",
+  "B1": "OPEN",
+  "accepted": 42,
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "checks": [
+    {
+      "name": "exact-pinned-OpenBao-binary-SHA256",
+      "status": "PASS"
+    },
+    {
+      "name": "isolated-harness",
+      "status": "FAIL",
+      "detail": {
+        "exception": "RuntimeError",
+        "code": "PROCESS_FAILED"
+      }
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "productiveCustodyAccepted": false,
+  "realSwissResidenceVerified": false,
+  "signatureTrustVerified": false,
+  "postgresExecuted": false,
+  "release": {
+    "version": "v2.7.1",
+    "assetSha256": "0e2f1ce10d124e03112b50dd2fbec6b78003783253bc3a91587938f39d1e2243",
+    "digestSource": "committed GitHub release metadata; independent signer trust not claimed"
+  },
+  "sandboxImage": "node@sha256:ec857ea6bb60cb3d0fa4d97495590c5fe7d51be8572c307b55957eeb06569cf7",
+  "fixtureOnlyDifferences": [
+    "Private RFC1918 binding/DNS replaced by loopback inside network-none sandbox",
+    "TLS paths point to synthetic24h test certificates",
+    "Workload CIDRs narrowed to127.0.0.1/32; TTL120/300/60 trial only",
+    "Two-of-two synthetic Shamir initialization is not productive quorum approval"
+  ],
+  "serverConfigSha256": "02fdb3037de1810f537c0fa5ca4c76a3c6cd066bfe21511d94db1e715a657877",
+  "cleanup": "PASS",
+  "result": "FAIL",
+  "source": "b061ab6eb0f946bf2b055c9989fc7f1197390e11",
+  "run": 39146879857,
+  "job": 117732410165
+}

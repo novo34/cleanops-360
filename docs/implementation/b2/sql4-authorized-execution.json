@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "checksPassed": 260,
+  "sourceCommit": "978233774027274ee8a3e229f5e66b57d73dcdb9",
+  "reviewCommit": "cd138d71fb8fd8e9298e17c0f69b83e259ef3eba",
+  "run": "https://github.com/novo34/cleanops-360/actions/runs/39568439638",
+  "job": 119116357507,
+  "artifact": "https://github.com/novo34/cleanops-360/actions/runs/39568439638/artifacts/12330683495",
+  "b2TechReady": false,
+  "remaining": [
+    "Limited invitation acceptance/password/MFA/activation SQL5 implementation and separate SQL authorization",
+    "Independent review and phase gates"
+  ],
+  "priorEvidencePreserved": true,
+  "artifactZipSha256": "f79ba64b4e51bd423e2b12e3d37adbc44fc69131c54f2ce472e2b8a181a34a22",
+  "artifactVerifiedAgainstOriginalReport": true,
+  "durableReport": "docs/implementation/b2/sql4-evidence/b2-invitations/report.json",
+  "durableReportSha256": "745cea3379094a3a056d56aa7b427023d7d125bdc8b5d6b61d228d2a3a0f4b97"
+}

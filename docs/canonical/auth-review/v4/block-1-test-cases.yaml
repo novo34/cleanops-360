@@ -1,0 +1,356 @@
+status: TEST_SPECIFICATION_NOT_PRODUCT_EXECUTION
+approved_grants_installed: false
+ddl_executed: false
+fixture_policy: Grants sintéticos solo al autorizar ejecución en DB efímera; nunca
+  importar matriz a servicios compartidos. No hay fixtures instalados en esta entrega.
+cases:
+- id: AUTHZ-MATRIX-01
+  layer: unit+integration
+  setup: Dos tenants A/B, diez roles; con reglas funcionales aprobadas pero sin bindings
+    activos
+  action: Evaluar ocho políticas proyectadas sobre diez roles con reglas sin aprobar/revocadas
+    y fixtures futuras aprobadas
+  expected: Sin aprobación DENY; solo sujeto propio en tenant activo puede ALLOW tras
+    regla positiva aprobada
+  requirements:
+  - REQ-AUTHZ-007
+  - REQ-TEN-004
+  parameters:
+  - block-1-role-projection.csv
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: TENANT-01
+  layer: api+postgres
+  setup: Dos tenants, usuarios distintos, recurso propio y ajeno con IDs conocidos,
+    runtime no owner
+  action: Ejecutar SELECT/INSERT/UPDATE/DELETE, listado y joins cruzados por API y
+    SQL
+  expected: Propio con grant válido funciona; ajeno invisible/no modificable, FK compuesta
+    rechaza relación; sin fuga en error
+  requirements:
+  - REQ-TEN-001
+  - REQ-TEN-002
+  - REQ-TEN-003
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: SCOPE-01
+  layer: unit+api
+  setup: Candidata aprobada en fixture para recurso propio/asignado/invitado
+  action: Cambiar sujeto, tenant y membresía; no probar negocio/centros futuros como
+    alcance B1
+  expected: Mismo rol no permite ajeno, otro tenant ni membresía ausente
+  requirements:
+  - REQ-AUTHZ-002
+  - REQ-AUTHZ-004
+  - REQ-AUTHZ-007
+  parameters:
+  - block-1-grants-requiring-approval.csv
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: DENY-01
+  layer: unit+integration
+  setup: ALLOW fixture de rol/usuario/temporal y DENY aplicable en ámbito superior
+  action: Evaluar conflicto, expiración exacta, revocación y grant futuro
+  expected: DENY prevalece; ventana [start,expires); revocación efectiva tras commit
+  requirements:
+  - REQ-AUTHZ-004
+  - REQ-AUTHZ-007
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: AUDIT-01
+  layer: postgres+api
+  setup: Mutación sensible con versión y mandato; actor/proponente/aprobador sintéticos
+  action: Revocar sesiones propias/cambiar tenant y provocar fallo de append; intentar
+    escribir/modificar política por runtime
+  expected: Evento tenant-preserving atómico; fallo revierte efecto; runtime no modifica
+    política/auditoría
+  requirements:
+  - REQ-AUD-001
+  - REQ-AUTHZ-007
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: CTX-01
+  layer: postgres
+  setup: Transacción runtime sin begin_verified_context
+  action: Consultar tabla app y falsificar app.tenant_id por set_config
+  expected: Sin contexto verificado deniega/error seguro; GUC arbitrario no cambia
+    identidad
+  requirements:
+  - REQ-TEN-003
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: CTX-02
+  layer: postgres+pool
+  setup: Pool de tamaño controlado con conexión reutilizada A→B
+  action: Commit/rollback/timeout/savepoint/crash y nueva transacción
+  expected: Contexto anterior nunca válido en nuevo xid; transacción no puede reinicializar
+    a otra empresa
+  requirements:
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: CTX-03
+  layer: postgres
+  setup: Token ausente/inválido/caducado/revocado, sujeto o tenant desactivado
+  action: Invocar broker con cada variante y consultar privada directamente
+  expected: Broker deniega todas; runtime no lee/escribe tx_context/credentials ni
+    hace SET ROLE/DDL/TRUNCATE
+  requirements:
+  - REQ-TEN-003
+  - REQ-AUTH-045
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: CTX-04
+  layer: postgres+concurrency
+  setup: Sesión y policy_version vigentes; revocador concurrente
+  action: Intercalar validación, mutación y revocación; repetir tras commit
+  expected: Orden serializado y auditado; tras commit de revocación ninguna operación
+    nueva confirma con token anterior
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTHZ-007
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: LOGIN-01
+  layer: api+browser
+  setup: Usuario con contraseña válida, MFA requerido/no enrolado; cuenta inexistente
+    e inactiva
+  action: Login y acceso protegido antes/después de factor
+  expected: PENDING_MFA/ENROLLMENT_REQUIRED nunca autoriza negocio; ACTIVE solo tras
+    factor requerido; errores sin enumerar cuentas
+  requirements:
+  - REQ-AUTH-001
+  - REQ-AUTH-002
+  - REQ-AUTH-017
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: OTP-01
+  layer: api+concurrency
+  setup: OTP con cinco minutos normativos y limitadores configurados aprobados
+  action: Consumir doble en paralelo, reenviar, expirar, agotar intentos y fallar
+    SMTP
+  expected: Exactamente un consumo; reenvío invalida; expirado falla; correo fallido
+    no activa sesión ni baja factor
+  requirements:
+  - REQ-AUTH-010
+  - REQ-AUTH-011
+  - REQ-AUTH-013
+  - REQ-AUTH-016
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: TOTP-01
+  layer: api+browser
+  setup: Ceremonia inicial restringida o sesión con step-up; secreto cifrado
+  action: Obtener QR, confirmar primer código, repetir paso/contador, inspeccionar
+    logs
+  expected: No activo antes del primer código; secreto no aparece en logs; recovery
+    codes una vez con hash y replay bloqueado
+  requirements:
+  - REQ-AUTH-020
+  - REQ-AUTH-021
+  - REQ-AUTH-022
+  - REQ-AUTH-030
+  - REQ-AUTH-031
+  - REQ-AUTH-032
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: RECOVERY-CODE-01
+  layer: unit+postgres
+  setup: Lote sintético de recovery codes; sin exponer endpoint de recuperación total
+  action: Ejecutar contrato interno de consumo atómico en carreras y regenerar lote
+  expected: Un solo consumo, anteriores inválidos tras regenerar; no ampliar privilegios
+    ni exponer códigos por reintento
+  requirements:
+  - REQ-AUTH-030
+  - REQ-AUTH-032
+  - REQ-AUTH-033
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: SESSION-01
+  layer: api+clock
+  setup: Tabla de valores aprobada; reloj controlado en pruebas
+  action: Vencer absoluta/inactividad independientes y revocar propia individual y
+    demás propias, excluyendo actual
+  expected: Nuevas operaciones tras commit deniegan token revocado; otras propias
+    no incluye otro usuario ni otra empresa
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-AUTH-044
+  - REQ-AUTH-045
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: SESSION-02
+  layer: api+browser
+  setup: Cookie sesión y preauth emitidas por servidor real
+  action: CSRF cross-origin, login-CSRF, fixation, token JS/log y respuesta cacheada
+  expected: CSRF rechazado, ID rota al elevar confianza, Secure/HttpOnly/no-store,
+    ningún secreto en logs
+  requirements:
+  - REQ-SEC-020
+  - REQ-AUTH-047
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: SESSION-03
+  layer: api+integration
+  setup: Grant válido pero step-up ausente/obsoleto o ligado a otro recurso
+  action: Acción sensible y posterior cambio de permisos tras obtener factor
+  expected: Exige factor fresco ligado a acción/tenant/recurso y vuelve a evaluar
+    permisos en ejecución
+  requirements:
+  - REQ-AUTH-047
+  - REQ-AUTHZ-006
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: SWITCH-01
+  layer: api+browser+postgres
+  setup: Principal con membresía A/B, otro con solo A; grants diferentes
+  action: Switch a B con prueba/mandato, luego usar sesión vieja y destino no autorizado
+  expected: Rota sesión/CSRF, invalida anterior, limpia UI/caches; no arrastra grants;
+    audita origen/destino sin fuga; fallo revierte
+  requirements:
+  - REQ-TEN-001
+  - REQ-TEN-002
+  - REQ-AUD-001
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: RETAIN-01
+  layer: postgres
+  setup: Empresa y actor sintéticos con sesiones/logs
+  action: Desactivar tenant/usuario y ejecutar ensayo de migración/backfill y restore
+  expected: Logs mantienen tenant/actor; no SET NULL; huérfanos bloquean backfill;
+    restauración conserva FK/RLS
+  requirements:
+  - REQ-TEN-001
+  - REQ-AUD-001
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: E2E-01
+  layer: browser+api+postgres
+  setup: Backend real, dos tenants, SMTP controlado, grants fixture aprobados para
+    test aislado
+  action: Login→MFA→me→sesiones→switch→revocar/logout
+  expected: Éxito real propio y denegación ajena con persistencia/auditoría; sin route.fulfill
+    ni mocks HTTP para aceptación
+  requirements:
+  - REQ-PR-006
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: CI-01
+  layer: ci
+  setup: Checkout SHA exacto, dependencias fijadas, DB efímera, runtime mínimo
+  action: Lint/typecheck/build, contratos, unitarias, SQL/RLS, E2E y análisis secretos
+  expected: Evidencia por test/commit/entorno; sin cierre automático gates ni merge;
+    System Status sigue AUTH_GATE_05; no rutas/grants administrativos ni acceso System
+    Status en B1
+  requirements:
+  - REQ-PR-006
+  - REQ-PR-007
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: REVOKE-OWN-01
+  layer: api+postgres+concurrency
+  setup: A/u1 actual s1, propias s2/s3, ajena A/u2 s4 y mismo principal B/u1 s5
+  action: POST /me/sessions/revoke-other-own con motivo
+  expected: Solo s2/s3 revocadas; s1/s4/s5 intactas
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: REVOKE-OWN-02
+  layer: api+postgres+concurrency
+  setup: Cookie válida y target ajeno/otro tenant/ausente
+  action: DELETE /me/sessions/{session_id}
+  expected: 404 equivalente sin revelar propietario ni mutar
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: REVOKE-OWN-03
+  layer: api+postgres+concurrency
+  setup: Cookie válida; body incluye user_id/tenant_id/session_ids/principal_id
+  action: Bulk propio con selector inyectado
+  expected: 400 o 422 de schema; cero efectos
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: REVOKE-OWN-04
+  layer: api+postgres+concurrency
+  setup: Sin regla positiva o sin step-up o sesión PENDING_MFA
+  action: Bulk propio
+  expected: DENY; factor no concede permiso por sí mismo
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: REVOKE-OWN-05
+  layer: api+postgres+concurrency
+  setup: Sesiones propias; revocación concurrente y reintento tras commit
+  action: Intercalar dos bulk/single y logout con locks deterministas
+  expected: Sin deadlock persistente, current preservada en bulk, token revocado no
+    inicia nueva operación; rollback seguro
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+- id: ADMIN-EXCLUDED-01
+  layer: api+postgres+concurrency
+  setup: Solo ocho reglas propias en fixture de suite futura
+  action: Intentar adminRevokeUserSessions con mismo rol administrador nominal
+  expected: Ruta no expuesta en B1; contrato completo exige capacidad distinta y no
+    hereda self_sessions
+  requirements:
+  - REQ-AUTH-042
+  - REQ-AUTH-043
+  - REQ-TEN-002
+  - REQ-TEN-004
+  parameters: []
+  execution_status: NOT_EXECUTED_PRODUCT_TEST
+  environment: EPHEMERAL_SYNTHETIC_ONLY
+source_comment: 6196986740
+functional_rules_approved: true
+functional_approval_source: 6197407914
+activation_authorized: false

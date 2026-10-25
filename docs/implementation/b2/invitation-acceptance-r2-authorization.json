@@ -1,0 +1,7 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "0eb651f3cfce5733726ca1d122e09bd1d0162c26",
+  "scope": "SQL5_R2_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "manifestSha256": "0fbac856e9fe970fbc56f23bcab822e9bb074c38c5a41edbcd3dc68fc8d5ccf4",
+  "authorization": "Owner explicitly authorized only exact SQL5-R2 and its native synthetic fixtures in GitHub-hosted ephemeral networkless PG16; verify historical commit, manifest, four files, prior approvals and isolation before SQL. SQL4 is installed only as the exact dependency in the reviewed manifest; do not repeat its historical suite or other accredited suites. Preserve R1 and actual PASS/FAIL/SKIP and cleanup evidence. No new SQL5 versions, existing-identity MFA implementation, business activation, persistent infrastructure, staging/main, deployments or merges."
+}

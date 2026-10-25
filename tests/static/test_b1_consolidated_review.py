@@ -1,0 +1,115 @@
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location('review', ROOT / 'scripts/review-b1-consolidated.py')
+review = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(review)
+
+class ConsolidatedReviewTests(unittest.TestCase):
+    def test_generated_diff_and_inventory_are_reproducible(self):
+        for name, expected in review.build().items():
+            self.assertEqual((review.TARGET / name).read_bytes(), expected.encode())
+
+    def test_lexer_preserves_literals_and_dollar_bodies(self):
+        text = "-- removed\nSELECT 'a;--b', 'it''s literal'; DO $fn$ BEGIN RAISE NOTICE 'x;'; END $fn$; /* nested /* comment */ */"
+        parsed = review.statements(text)
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[0], ['SELECT', "'a;--b'", ',', "'it''s literal'"])
+        self.assertEqual(parsed[1], ['DO', "$fn$ BEGIN RAISE NOTICE 'x;'; END $fn$"])
+        self.assertNotEqual(review.statements("SELECT 'a b';"), review.statements("SELECT 'a  b';"))
+
+    def test_malformed_or_unterminated_artifacts_fail_closed(self):
+        for value in ['SELECT 1', "SELECT 'missing;", 'DO $body$ missing;', '/* missing']:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                review.statements(value)
+
+    def test_extra_grant_or_disabled_rls_cannot_be_reviewed_as_the_pinned_candidate(self):
+        manifest_path = Path('docs/proposals/b1-consolidated-sql/manifest.json')
+        manifest = json.loads((ROOT / manifest_path).read_text())
+        for extra in ['GRANT cleanops_auth_broker TO cleanops_runtime;', 'ALTER TABLE app.sessions DISABLE ROW LEVEL SECURITY;']:
+            with tempfile.TemporaryDirectory(prefix='cleanops-review-only-') as directory:
+                root = Path(directory)
+                for path in [manifest_path] + [Path(s['path']) for s in manifest['sources']] + [Path(manifest['candidate']['path'])]:
+                    target = root / path
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes((ROOT / path).read_bytes())
+                target = root / manifest['candidate']['path']
+                target.write_bytes(target.read_bytes() + extra.encode())
+                # Even changing the review manifest cannot bless an unreviewed SQL artifact.
+                manifest['candidate'].update(review.hashes(target.read_bytes()))
+                (root / manifest_path).write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, 'candidate hash mismatch'):
+                    review.build(root)
+
+class ConsolidatedRevision2Tests(unittest.TestCase):
+    def generator(self):
+        spec = importlib.util.spec_from_file_location('generator', ROOT / 'scripts/consolidate-b1-sql.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_revision2_is_one_full_file_and_changes_only_the_missed_d1_case(self):
+        generator = self.generator()
+        old, _ = generator.generate('01')
+        new, manifest = generator.generate('02')
+        bare = "OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END"
+        fixed = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+        self.assertEqual(old.count(bare), 1)
+        self.assertEqual(new, old.replace(bare, fixed))
+        self.assertEqual(new.count(fixed), 2)
+        self.assertFalse(json.loads(manifest)['installationAuthorized'])
+        artifacts = review.build_revision2()
+        report = json.loads(artifacts['static-review.json'])
+        self.assertEqual(report['changedStatements'], 1)
+        self.assertEqual(report['aclChanges'], 0)
+        self.assertEqual(report['signatureChanges'], 0)
+        for path, content in artifacts.items():
+            self.assertEqual((review.TARGET / 'revisions/02' / path).read_bytes(), content.encode())
+
+    def test_regression_detects_the_overriding_d1_definition_reintroducing_the_defect(self):
+        generator = self.generator()
+        sql, _ = generator.generate('02')
+        prefix, d1 = sql.split('-- BEGIN SOURCE D1', 1)
+        fixed = "OR m.state<>(CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END)"
+        bare = "OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' ELSE 'ACTIVE' END"
+        broken = prefix + '-- BEGIN SOURCE D1' + d1.replace(fixed, bare)
+        with self.assertRaisesRegex(ValueError, 'Both TOTP material definitions'):
+            generator.validate_revision2(broken)
+
+
+class ConsolidatedRevision3Tests(unittest.TestCase):
+    def module(self):
+        spec = importlib.util.spec_from_file_location('case_review', ROOT / 'scripts/review-b1-case-operands.py')
+        value = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(value)
+        return value
+
+    def test_revision3_changes_one_body_and_inventories_every_case(self):
+        module = self.module()
+        artifacts = module.build()
+        report = json.loads(artifacts['static-review.json'])
+        self.assertEqual(len(report['caseSites']), 29)
+        self.assertEqual(len(report['parentDefects']), 1)
+        self.assertFalse(any(site['barePredicateOperand'] for site in report['caseSites']))
+        self.assertEqual(report['changedStatements'], 1)
+        self.assertEqual(report['signatureChanges'], 0)
+        self.assertEqual(report['aclChanges'], 0)
+        self.assertFalse(report['installed'])
+        for path, content in artifacts.items():
+            self.assertEqual((module.TARGET / path).read_text(), content)
+
+    def test_other_functions_and_comparison_operators_are_not_whitelisted(self):
+        inventory = self.module().inventory
+        for operator in ('<>', '=', '!=', '<=', '>=', '<', '>', 'IS DISTINCT FROM', 'IS NOT DISTINCT FROM'):
+            with self.subTest(operator=operator):
+                bare = f"IF factor {operator} CASE WHEN enabled THEN 'A' ELSE 'B' END THEN RETURN false; END IF;"
+                self.assertTrue(inventory(bare)[0]['barePredicateOperand'])
+                self.assertFalse(inventory(bare.replace('CASE', '(CASE').replace('END THEN', 'END) THEN'))[0]['barePredicateOperand'])
+        self.assertFalse(inventory("IF ready THEN UPDATE private.t SET state=CASE WHEN ok THEN 'A' ELSE 'B' END;")[0]['barePredicateOperand'])
+
+if __name__ == '__main__':
+    unittest.main()

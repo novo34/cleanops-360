@@ -1,0 +1,33 @@
+{
+  "status": "REVIEW_ONLY_NOT_AUTHORIZED_NOT_INSTALLED",
+  "request": "PG-TEST-01-PATCH-01",
+  "sourceHead": "e6cc739756141a7239442954ffae10f4d139e58a",
+  "failureRun": 38957446332,
+  "changes": [
+    {
+      "source": "docs/canonical/auth-review/v4/b1-review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/v4.candidate.sql",
+      "sourceBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "candidateBlob": "e93f62529de79bc53377bdd1bd309203ed81bb46",
+      "change": "Parenthesize the two CASE operands in issue_active_session only; no predicate/policy change."
+    },
+    {
+      "source": "docs/proposals/b1-v4-extension/review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/b1-x.candidate.sql",
+      "sourceBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "candidateBlob": "4694813e670e88e14bdcb4dad499c5d6098c66cd",
+      "change": "Remove only unconditional REVIEW_ONLY DO block; no capability/schema/ACL change."
+    },
+    {
+      "source": "docs/proposals/b1-ceremony-material/review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/d1.candidate.sql",
+      "sourceBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "candidateBlob": "a84364bb612baecefb7e96c0afb698782621a160",
+      "change": "Remove only unconditional REVIEW_ONLY DO block; D1 ACL matrix unchanged."
+    }
+  ],
+  "matrixBlob": "50590047d35467b2473945731384ae3da5729f28",
+  "sqlExecuted": false,
+  "activationAuthorized": false,
+  "authGate05": "OPEN"
+}

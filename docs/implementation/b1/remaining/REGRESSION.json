@@ -1,0 +1,77 @@
+{
+  "scope": "FINAL_DIRECTED_REGRESSION_OF_AUTHORIZED_SQL11_FUNCTIONALITY_AFTER_SHARED_CSRF_CHANGE",
+  "result": "PASS",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "acceptedRequirements": 39,
+  "candidateInstalled": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+  "batteries": [
+    {
+      "function": "EMAIL",
+      "report": "docs/implementation/b1/remaining/REGRESSION_EMAIL.json",
+      "source": "186bcc64eee71530f687b5a01e23d1ac921eee14",
+      "run": 39132186494,
+      "job": 117689439617,
+      "checks": 105,
+      "browserExecutions": 15,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "function": "RECOVERY",
+      "report": "docs/implementation/b1/remaining/REGRESSION_RECOVERY.json",
+      "source": "186bcc64eee71530f687b5a01e23d1ac921eee14",
+      "run": 39132186494,
+      "job": 117689439346,
+      "checks": 113,
+      "browserExecutions": 23,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "function": "RESET",
+      "report": "docs/implementation/b1/remaining/REGRESSION_RESET.json",
+      "source": "3e0d50e22f791729e02c37fd9cdd1ace9a3155ff",
+      "run": 39131826234,
+      "job": 117688396617,
+      "checks": 98,
+      "browserExecutions": 8,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "function": "TRUSTED",
+      "report": "docs/implementation/b1/remaining/REGRESSION_TRUSTED.json",
+      "source": "3e0d50e22f791729e02c37fd9cdd1ace9a3155ff",
+      "run": 39131826234,
+      "job": 117688396428,
+      "checks": 99,
+      "browserExecutions": 9,
+      "result": "PASS",
+      "cleanup": "PASS"
+    },
+    {
+      "function": "AUTHZ",
+      "report": "docs/implementation/b1/remaining/REGRESSION_AUTHZ.json",
+      "source": "3e0d50e22f791729e02c37fd9cdd1ace9a3155ff",
+      "run": 39131826234,
+      "job": 117688396512,
+      "checks": 99,
+      "browserExecutions": 9,
+      "result": "PASS",
+      "cleanup": "PASS"
+    }
+  ],
+  "passedChecksIncludingRepeatedInstallationGuards": 514,
+  "browserExecutionsIncludingRepeatedCommonCases": 64,
+  "distinctBrowserCases": 48,
+  "retainedUnaffectedNativeEvidence": "docs/implementation/b1/consolidated-test-11/EXECUTION.json",
+  "attemptsPreserved": [
+    "REGRESSION_EMAIL_ATTEMPT_1.json",
+    "REGRESSION_RECOVERY_ATTEMPT_1.json"
+  ],
+  "correctedTestInfrastructure": "QR decoding assertion failed because EMAIL/recovery groups did not install zbarimg; provisioned the same decoder already proven by enrollment job, then repeated only these two groups. No SQL, application code, ACL, assertions or security controls changed to obtain PASS.",
+  "operationalExternalDependencies": "Synthetic isolated keys, delivery and independent identity-attestation fixtures are not productive integration acceptance.",
+  "notExecuted": "SQL12/SQL13 installation and new-contract tests; owner approval pending; no production/SMTP/deployment/merge."
+}

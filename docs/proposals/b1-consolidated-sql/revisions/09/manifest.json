@@ -1,0 +1,28 @@
+{
+  "revision": "09",
+  "status": "REVIEW_ONLY_NOT_INSTALLED",
+  "base": {
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+    "bytes": 193163
+  },
+  "candidate": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
+    "bytes": 196276
+  },
+  "newSQLSignatures": [
+    "auth_api.reserve_reset_owned(text,text,bytea,bytea)"
+  ],
+  "existingSQLBodiesUnchanged": true,
+  "newRoles": [],
+  "newTables": [],
+  "newTableGrants": [],
+  "newRLSPolicies": [],
+  "functionOwner": "cleanops_auth_broker",
+  "execute": [
+    "cleanops_identity_service"
+  ],
+  "publicExecute": false,
+  "diffSha256": "20a7d7bc4f0390576596c26013329e058cbf310a8293dab27b8edd4d63567c59"
+}

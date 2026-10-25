@@ -1,0 +1,42 @@
+name: B1 SQL14 authorized PG16 directed validation
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  authorized-pg:
+    if: github.event.pull_request.number == 7 && github.event.before == 'd07664258893486497eec54fc9bed6135b0705de' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [browser]
+    env:
+      B1_SQL14_GROUP: ${{ matrix.group }}
+      B1_SQL14_BROWSER_GREP: 'unknown active role'
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:b1
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: python3 scripts/pg-consolidated-14.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: sql14-${{ matrix.group }}-redacted
+          path: artifacts/pg-consolidated-14/report.json
+          retention-days: 7

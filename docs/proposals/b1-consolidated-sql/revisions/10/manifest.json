@@ -1,0 +1,32 @@
+{
+  "candidate": "PG-TEST-01-CONSOLIDATED-10",
+  "status": "REVIEW ONLY",
+  "installationAuthorized": false,
+  "rootCause": "SQLSTATE23514: independent clock_timestamp calls may violate the exact trusted-device 30-day CHECK",
+  "source": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+  },
+  "candidateArtifact": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/10/schema.review.sql",
+    "gitBlob": "68c0545f79cf15fa780566ebf4aab14b3ccb892b",
+    "sha256": "d95e9896ebd12f840f00c12c97ffb9e8b17f3cfe28052655d7f4c4e80d3f5e4b",
+    "bytes": 196329
+  },
+  "fullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/10/SQL09_TO_SQL10.diff",
+    "sha256": "b7c0572dd26fe310c9a601c4f9486f3dd039f897d63e51c670d2b1b02c98d5cf"
+  },
+  "changedFunctions": [
+    "auth_api.register_trusted_device(bytea,uuid) RETURNS uuid"
+  ],
+  "newSignatures": [],
+  "aclChanges": [],
+  "roleChanges": [],
+  "tableChanges": [],
+  "rlsChanges": [],
+  "securityChanges": "None: same guards, MFA/ACTIVE context, token digest, audit, principal lock, owner, SECURITY DEFINER and pg_catalog search_path. One server timestamp enforces exactly30days.",
+  "runtime": "closedBackend",
+  "B1": "OPEN",
+  "AUTH-GATE-05": "OPEN"
+}

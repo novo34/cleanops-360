@@ -1,0 +1,62 @@
+# Optional synthetic-only overlay. Rendered config/TLS and measured capacity required.
+services:
+  openbao:
+    profiles: [synthetic-custody]
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: deploy/staging/openbao/Dockerfile
+    restart: unless-stopped
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    cpus: "0.5"
+    mem_limit: 512m
+    ulimits:
+      core: {soft: 0, hard: 0}
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m
+    environment:
+      OPENBAO_HEALTH_ORIGIN: https://openbao:8200
+    volumes:
+      - type: bind
+        source: ${CLEANOPS_BAO_CONFIG_FILE:?Rendered synthetic server.json required}
+        target: /etc/openbao/server.json
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${CLEANOPS_BAO_TLS_DIR:?Private synthetic TLS directory required}
+        target: /run/openbao-tls
+        read_only: true
+        bind: {create_host_path: false}
+      - baodata:/var/lib/openbao
+      - baoaudit:/var/log/openbao
+    networks:
+      custody:
+        ipv4_address: ${CLEANOPS_BAO_PRIVATE_IPV4:?Approved nonconflicting private address required}
+    labels:
+      traefik.enable: "false"
+      cleanops.scope: STAGING_SYNTHETIC
+    healthcheck:
+      test: [CMD, node, /opt/cleanops/staging-bao-health.mjs]
+      interval: 20s
+      timeout: 7s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+networks:
+  custody:
+    name: cleanops360_staging_custody
+    internal: true
+    ipam:
+      config:
+        - subnet: ${CLEANOPS_BAO_SUBNET:?Measured nonconflicting private subnet required}
+volumes:
+  baodata:
+    name: cleanops360_staging_baodata
+  baoaudit:
+    name: cleanops360_staging_baoaudit

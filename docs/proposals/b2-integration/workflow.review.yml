@@ -1,0 +1,42 @@
+# REVIEW ONLY. Not under .github/workflows; never automatically executed.
+# Install as a workflow only after exact owner approval of this composition.
+name: B2 individually approved combined PostgreSQL validation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  combined:
+    if: github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b2-users-access'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Verify composition approval, exact bytes and isolation before SQL
+        run: python scripts/b2-directory-postgres.py --package combined
+      - name: Preserve sanitized evidence and synthetic screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b2-combined-pg16-sanitized
+          path: |
+            artifacts/b2-combined/report.json
+            artifacts/b2-access/*.png
+            artifacts/b2-users/*.png
+          if-no-files-found: error
+          retention-days: 7

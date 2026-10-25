@@ -1,0 +1,43 @@
+{
+  "authorization": "PG-TEST-01-PATCH-01",
+  "sourceHead": "66f97ea2bf7eaf49dd915b956879547753b496f1",
+  "scope": "Ephemeral isolated Docker PostgreSQL 16 tests only",
+  "manifest": {
+    "path": "docs/proposals/pg-test-01-fix/manifest.json",
+    "gitBlob": "6e11f5a529921d85f83defc7dbc51ef680e233ae",
+    "sha256": "103fddaec1b91f0171aa6264daa71e129f39e391d601d15cfaaaaa1f8d54aff3"
+  },
+  "candidates": [
+    {
+      "source": "docs/canonical/auth-review/v4/b1-review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/v4.candidate.sql",
+      "sourceBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "candidateBlob": "e93f62529de79bc53377bdd1bd309203ed81bb46",
+      "change": "Parenthesize the two CASE operands in issue_active_session only; no predicate/policy change.",
+      "sha256": "27d77916173f40c12f69f73c0bf3bb36bad7dcfcc870f81273009188fb655a96"
+    },
+    {
+      "source": "docs/proposals/b1-v4-extension/review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/b1-x.candidate.sql",
+      "sourceBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "candidateBlob": "4694813e670e88e14bdcb4dad499c5d6098c66cd",
+      "change": "Remove only unconditional REVIEW_ONLY DO block; no capability/schema/ACL change.",
+      "sha256": "2d1c5c3b63d02feeb1c331cf1707aa74378ffefa3aa21e2c69e0a4cebd29fc6d"
+    },
+    {
+      "source": "docs/proposals/b1-ceremony-material/review-only.sql",
+      "candidate": "docs/proposals/pg-test-01-fix/d1.candidate.sql",
+      "sourceBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "candidateBlob": "a84364bb612baecefb7e96c0afb698782621a160",
+      "change": "Remove only unconditional REVIEW_ONLY DO block; D1 ACL matrix unchanged.",
+      "sha256": "d48f0fccab085c3a8de93e9e5672b2e0677dc03536a164527b4e248f5986a4be"
+    }
+  ],
+  "matrixBlob": "50590047d35467b2473945731384ae3da5729f28",
+  "diffAudit": "Only two CASE operand parentheses in issue_active_session; previously disclosed unconditional REVIEW_ONLY guard removal in B1-X/D1. No function signature, predicate or ACL change. Final ROLLBACK statements remain unchanged and must be checked for persistence.",
+  "newSqlChangesAuthorized": false,
+  "productionAuthorized": false,
+  "runtime": "closedBackend",
+  "authGate05": "OPEN",
+  "sha256Provenance": "Computed from byte-verified Git blobs; not an independently owner-supplied SHA-256."
+}

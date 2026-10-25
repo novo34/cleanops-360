@@ -1,0 +1,34 @@
+name: PG-TEST-01 consolidated 07 authorized PG16
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  pg07:
+    if: github.event.pull_request.number == 7 && github.event.before == 'ac0a068467cdc2d0de812684655c5d72a3a46ebe' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: python3 scripts/precheck-b1-07.py
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - name: Exact approved07 clean install, native ACL and full new-contract battery
+        run: python3 scripts/pg-consolidated-07.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pg07-redacted-evidence
+          path: artifacts/pg-consolidated-07/report.json
+          retention-days: 7

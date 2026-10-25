@@ -1,0 +1,79 @@
+{
+  "scope": "STAGING_SYNTHETIC_FUNCTIONAL_ONLY",
+  "status": "PREPARED_NOT_EXECUTED",
+  "canonicalManualDossier": "docs/implementation/b1/remaining/PO_MANUAL_DEMONSTRATION.md",
+  "sourceHead": null,
+  "build": null,
+  "tester": null,
+  "executedAt": null,
+  "dataAttestation": "SYNTHETIC_ONLY_REQUIRED",
+  "runtime": "closedBackend",
+  "functionalOnlineStatus": "BLOCKED_AUTH_GATE_05_AND_EXPLICIT_ACTIVATION",
+  "cases": [
+    {
+      "step": 1,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 2,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 3,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 4,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 5,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 6,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 7,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 8,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 9,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    },
+    {
+      "step": 10,
+      "result": "NOT_EXECUTED",
+      "ownerObservation": null,
+      "redactedEvidence": null
+    }
+  ],
+  "decision": null,
+  "productionSwissAcceptance": false,
+  "PR006": "OPEN",
+  "PR007": "OPEN",
+  "AUTH_GATE_05": "OPEN"
+}

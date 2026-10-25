@@ -1,0 +1,48 @@
+2026-10-21T10:30:18.9340067Z PASS exact source manifest, 20 historical artifacts, individual approvals and hosted scope; metadata staged only
+2026-10-21T10:30:19.0334200Z {"name": "exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings", "status": "PASS"}
+2026-10-21T10:30:30.0362088Z {"name": "owned-container-network-none-no-ports-no-bind-or-volume", "status": "PASS"}
+2026-10-21T10:30:31.4228289Z {"name": "install-exact-authorized-SQL14", "status": "PASS"}
+2026-10-21T10:30:31.4831857Z {"name": "postgres-function-body-validation-enabled", "status": "PASS"}
+2026-10-21T10:30:31.5561600Z {"name": "install-exact-authorized-B2-functions-and-EXECUTE", "status": "PASS"}
+2026-10-21T10:30:31.6565940Z {"name": "synthetic-fixtures-and-separated-logins", "status": "PASS"}
+2026-10-21T10:30:31.7237477Z {"name": "B1-approved-12h24h-existing-session-fixture", "status": "PASS"}
+2026-10-21T10:30:31.7889059Z {"name": "install-exact-authorized-access-SQL-and-ACL", "status": "PASS"}
+2026-10-21T10:30:31.8555675Z {"name": "install-exact-authorized-users-SQL-and-ACL", "status": "PASS"}
+2026-10-21T10:30:31.9292954Z {"name": "SQL5-install-004-invitation-administration.review.sql", "status": "PASS"}
+2026-10-21T10:30:31.9999062Z {"name": "SQL5-install-005-invitation-acceptance.r2.review.sql", "status": "PASS"}
+2026-10-21T10:30:32.0621399Z {"name": "SQL5-explicit-synthetic-tenant-policy", "status": "PASS"}
+2026-10-21T10:30:32.1241071Z {"name": "SQL5-no-direct-identity-access", "status": "PASS", "detail": {"sqlstate": "42501"}}
+2026-10-21T10:30:32.1941565Z {"name": "SQL5-R2-attempt-ledger-private", "status": "PASS", "detail": {"sqlstate": "42501"}}
+2026-10-21T10:30:32.2562598Z {"name": "SQL5-R2-B1-security-log-remains-append-only", "status": "PASS"}
+2026-10-21T10:30:32.3229058Z {"name": "SQL5-no-runtime-call", "status": "PASS", "detail": {"sqlstate": "42501"}}
+2026-10-21T10:30:32.3881964Z {"name": "SQL5-synthetic-issued-link", "status": "PASS"}
+2026-10-21T10:30:32.4585600Z {"name": "SQL5-link-is-private-no-membership-before-MFA", "status": "PASS"}
+2026-10-21T10:30:32.5231369Z {"name": "SQL5-no-user-or-session-created", "status": "PASS"}
+2026-10-21T10:30:32.5880493Z {"name": "SQL5-unknown-capability-denied", "status": "PASS"}
+2026-10-21T10:30:32.6603219Z {"name": "SQL5-invalid-link-is-generic", "status": "PASS"}
+2026-10-21T10:30:32.7323548Z {"name": "SQL5-prepare-pending-MFA", "status": "FAIL", "detail": {"sqlstate": "2201B"}}
+2026-10-21T10:30:32.7978256Z {"name": "SQL5-expired-capability-denied-with-rollback", "status": "PASS"}
+2026-10-21T10:30:32.8639998Z {"name": "SQL5-before-MFA-no-activation", "status": "PASS"}
+2026-10-21T10:30:32.9376900Z {"name": "SQL5-wrong-CSRF-denied", "status": "PASS"}
+2026-10-21T10:30:33.0114149Z {"name": "SQL5-native-factor-CAS", "status": "FAIL"}
+2026-10-21T10:30:33.0814651Z {"name": "SQL5-rollback-activation", "status": "FAIL"}
+2026-10-21T10:30:33.1517006Z {"name": "SQL5-rollback-has-no-member", "status": "PASS"}
+2026-10-21T10:30:33.2330250Z {"name": "SQL5-atomic-activation", "status": "FAIL"}
+2026-10-21T10:30:33.3045922Z {"name": "SQL5-consumed-idempotent-no-recreation", "status": "FAIL"}
+2026-10-21T10:30:33.3730040Z {"name": "SQL5-active-only-in-invited-tenant", "status": "FAIL"}
+2026-10-21T10:30:33.4372841Z {"name": "SQL5-activation-audited-once", "status": "FAIL"}
+2026-10-21T10:30:33.5018493Z {"name": "SQL5-revocation-fixture", "status": "PASS"}
+2026-10-21T10:30:33.5689918Z {"name": "SQL5-revoked-link-denied", "status": "PASS"}
+2026-10-21T10:30:33.6322003Z {"name": "SQL5-existing-identity-synthetic-invite-other-tenant", "status": "PASS"}
+2026-10-21T10:30:33.7014795Z {"name": "SQL5-existing-identity-fails-closed-without-prior-factor-proof", "status": "PASS"}
+2026-10-21T10:30:33.7693404Z {"name": "SQL5-existing-credential-and-memberships-untouched", "status": "PASS"}
+2026-10-21T10:30:33.8340129Z {"name": "SQL5-R2-synthetic-failure-budget-invite", "status": "PASS"}
+2026-10-21T10:30:33.9052522Z {"name": "SQL5-R2-record-credential-failure-1", "status": "PASS"}
+2026-10-21T10:30:33.9758519Z {"name": "SQL5-R2-record-credential-failure-2", "status": "PASS"}
+2026-10-21T10:30:34.0489907Z {"name": "SQL5-R2-record-credential-failure-3", "status": "PASS"}
+2026-10-21T10:30:34.1212073Z {"name": "SQL5-R2-record-credential-failure-4", "status": "PASS"}
+2026-10-21T10:30:34.1981737Z {"name": "SQL5-R2-record-credential-failure-5", "status": "PASS"}
+2026-10-21T10:30:34.2700175Z {"name": "SQL5-R2-sixth-credential-attempt-blocked", "status": "PASS"}
+2026-10-21T10:30:34.3345161Z {"name": "SQL5-helpers-not-public", "status": "PASS"}
+2026-10-21T10:30:34.4938721Z {"name": "preexisting-containers-networks-volumes-unchanged", "status": "PASS"}
+2026-10-21T10:30:34.4941977Z B2_COMBINED FAIL

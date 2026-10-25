@@ -1,0 +1,18 @@
+# Attach ONLY the web service to the existing Dokploy Traefik network.
+services:
+  web:
+    networks:
+      - ingress
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${CLEANOPS_TRAEFIK_NETWORK:?Confirm existing Dokploy network}
+      traefik.http.routers.cleanops360-staging.rule: Host("cleanops.nuvurent.com")
+      traefik.http.routers.cleanops360-staging.entrypoints: ${CLEANOPS_TRAEFIK_ENTRYPOINT:?Confirm HTTPS entrypoint}
+      traefik.http.routers.cleanops360-staging.tls: "true"
+      traefik.http.routers.cleanops360-staging.tls.certresolver: ${CLEANOPS_TRAEFIK_CERTRESOLVER:?Confirm existing resolver}
+      traefik.http.routers.cleanops360-staging.service: cleanops360-staging
+      traefik.http.services.cleanops360-staging.loadbalancer.server.port: "3000"
+networks:
+  ingress:
+    external: true
+    name: ${CLEANOPS_TRAEFIK_NETWORK:?Confirm existing Dokploy network}

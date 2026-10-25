@@ -1,0 +1,86 @@
+name: cleanops360-staging
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      CLEANOPS_AUTH_ORIGIN: ${CLEANOPS_AUTH_ORIGIN:?Set trusted HTTPS origin}
+      # Exact Next listener URLs, not public origins and never inferred from headers.
+      CLEANOPS_AUTH_INTERNAL_ORIGINS: '${CLEANOPS_AUTH_INTERNAL_ORIGINS:-["http://0.0.0.0:3000","https://0.0.0.0:3000","http://127.0.0.1:3000"]}'
+      # B1 runtime intentionally remains closedBackend until approved integration.
+    expose:
+      - "3000"
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: "0.65"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
+
+  postgres:
+    image: postgres:16-bookworm
+    # With cap_drop ALL, start as postgres: root entrypoint cannot use gosu/setuid.
+    user: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cleanops_staging
+      POSTGRES_USER: cleanops_bootstrap
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_bootstrap_password
+    secrets:
+      - postgres_bootstrap_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - private
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: "0.6"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "psql", "-XqAt", "-v", "ON_ERROR_STOP=1", "-U", "cleanops_bootstrap", "-d", "cleanops_staging", "-c", "SELECT 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+networks:
+  private:
+    internal: true
+    name: cleanops360_staging_private
+
+volumes:
+  pgdata:
+    name: cleanops360_staging_pgdata
+
+secrets:
+  postgres_bootstrap_password:
+    file: ${CLEANOPS_PG_PASSWORD_FILE:?Absolute path to private file outside repo}
+

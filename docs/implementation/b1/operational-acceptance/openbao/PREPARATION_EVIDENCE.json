@@ -1,0 +1,44 @@
+{
+  "baseline": "425503d89e48d19c8be2d5803f0e2d58829c8f38",
+  "state": "PREPARATION_VERIFIED_NOT_OPERATIONALLY_VALIDATED",
+  "B1": {
+    "accepted": 42,
+    "total": 44,
+    "state": "OPEN"
+  },
+  "AUTH-GATE-05": "OPEN",
+  "runtime": "closedBackend",
+  "executed": [
+    {
+      "command": "python3 -m py_compile scripts/prepare-b1-openbao.py",
+      "result": "PASS"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/static -p test_b1_openbao_preparation.py -v",
+      "PASS": 6,
+      "FAIL": 0,
+      "SKIP": 0,
+      "scope": "Offline renderer, exact scopes, rejected unsafe inputs, unchanged SQL14 and acceptance state. Not actual OpenBao ACL evaluation."
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/static -p test_*.py",
+      "PASS": 58,
+      "FAIL": 0,
+      "SKIP": 3,
+      "scope": "Local static suite; optional PG-parser dependency tests skipped, not OpenBao runtime tests."
+    }
+  ],
+  "notExecuted": [
+    "OpenBao binary/signature verification or native configuration parser",
+    "OpenBao installation or initialization",
+    "Real Swiss infrastructure/custody provision",
+    "Secrets generation, workload authentication or installed policy evaluation",
+    "REC01-REC12 recovery/security suite",
+    "Independent review",
+    "Manual PO demonstration",
+    "Formal PR006/PR007 acceptance"
+  ],
+  "resourceOperationsIssued": false,
+  "B1CodeOrSqlModified": false,
+  "releaseSource": "release-pin.json"
+}

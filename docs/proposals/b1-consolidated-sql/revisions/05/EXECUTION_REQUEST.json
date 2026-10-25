@@ -1,0 +1,20 @@
+{
+  "authorizationRequested": "PG-TEST-01-CONSOLIDATED-05",
+  "ownerApproved": false,
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql",
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c"
+  },
+  "exactContract": "APPROVAL.md",
+  "changes": [
+    "Revoke broker DELETE on security_log; do not grant broker SELECT",
+    "New private void SECURITY DEFINER purge helper owned by distinct NOLOGIN/NOBYPASSRLS role",
+    "Purger DELETE + SELECT(expires_at) only; two expired-row RLS policies; no memberships",
+    "Broker-only helper EXECUTE; no direct service/PUBLIC calls"
+  ],
+  "scope": "NEW isolated PG16 Docker, synthetic data only; verify complete install, 254 baseline checks plus restricted-purge negatives; rollback, failed COMMIT, concurrency, backup/restore and cleanup. No production/SMTP/deployment/merge/runtime activation.",
+  "installed": false,
+  "runtime": "closedBackend",
+  "authGate05": "OPEN"
+}

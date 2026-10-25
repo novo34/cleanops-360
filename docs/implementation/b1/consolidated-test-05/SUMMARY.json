@@ -1,0 +1,31 @@
+{
+  "installation": "PASS",
+  "postgres": "PASS",
+  "postgresNonHTTPCheckCount": 281,
+  "combinedCheckCount": 294,
+  "combinedResult": "PASS",
+  "privateHTTPRealCryptoPostgres": "PASS",
+  "privateHTTPChecks": 10,
+  "fullProductUIE2E": "BLOCKED_NOT_EXECUTED",
+  "browserFixturesNotCredited": true,
+  "b1Accepted": {
+    "count": 0,
+    "total": 44
+  },
+  "cleanup": "PASS",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "candidate": {
+    "gitBlob": "62cec23e534fe15888ddba98cf76add7e857cfef",
+    "sha256": "3f3c22e0bbdd5798806ed0810b1710fb2d55c34994cb5087652d4ce683d0258c",
+    "bytes": 119875
+  },
+  "provenance": {
+    "head": "56ebab0d824b7bece15167f0600d3fea03cf59bf",
+    "run": 39068144839,
+    "job": 117499979503,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39068144839"
+  },
+  "newSQLCorrectionsInstalled": false
+}

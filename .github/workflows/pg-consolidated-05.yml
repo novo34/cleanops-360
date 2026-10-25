@@ -1,0 +1,56 @@
+name: PG-TEST-01 consolidated 05 authorized PG16
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  authorized-consolidated:
+    # One authorized transition from the verified source HEAD only. Evidence/fix
+    # commits after this run must not repeatedly reinstall the failing candidate.
+    if: github.event.pull_request.number == 7 && github.event.before == 'ee5e4ffdca19c312c0b6bd9679b9c1ba707681ac' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify immutable consolidated proposal
+        run: |
+          python3 scripts/consolidate-b1-sql.py --revision 05 --check
+          python3 scripts/review-b1-restricted-purge.py --check
+      - name: PostgreSQL 16 offline parser dependency
+        run: python3 scripts/install-pg16-parser.py
+      - name: All function declarations offline grammar diagnostics
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/pg-consolidated-05
+          python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql > artifacts/pg-consolidated-05/parser.json
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - name: Authorized new isolated PostgreSQL 16 run
+        run: python3 scripts/pg-consolidated-05.py
+      - name: Redacted exact-run evidence
+        if: always()
+        run: |
+          if [ -f artifacts/pg-consolidated-05/report.json ]; then
+            cat artifacts/pg-consolidated-05/report.json
+          elif [ -f artifacts/pg-test-01/report.json ]; then
+            cat artifacts/pg-test-01/report.json
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pg-consolidated-05-redacted-evidence
+          path: artifacts/pg-consolidated-05/*.json
+          if-no-files-found: ignore
+          retention-days: 7

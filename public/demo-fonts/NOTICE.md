@@ -1,0 +1,3 @@
+# Demo typography recovered from v0
+
+DM Sans and Manrope are the font families already named in the v0 prototype's app/globals.css. These local variable latin WOFF2 subsets (weight 400–700) were downloaded from fonts.gstatic.com through the official fonts.googleapis.com CSS API on 2026-10-20. Their OFL licenses are retained alongside the fonts. No Google/CDN request occurs when a visitor uses the demo. Combined font data is approximately 62KB; font-display:swap preserves loading feedback. Existing layout and copy are retained. These assets do not change fonts on authentication or administration routes.

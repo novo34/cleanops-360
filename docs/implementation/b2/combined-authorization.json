@@ -1,0 +1,10 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "3ea4ec890fd05a59ae803f005e29cad713d1e5e8",
+  "scope": "SQL14+SQL1+SQL2+SQL3_HOSTED_EPHEMERAL_PG16",
+  "sourceManifest": "docs/proposals/b2-integration/AUTHORIZATION.review.json",
+  "sourceManifestSha256": "133cc6643d7caa6082688bdbd6ba87cb4ffaad659de5c30911a6ef5b759f004b",
+  "fixturesSha256": "710038fe021b2863338230c09d868712ef06a0864b2dc17058da624d176b58f3",
+  "authorization": "Owner explicitly approved this composition separately; hosted ephemeral networkless PostgreSQL16, synthetic data only. No invitations, persistent DB, B1 activation, staging/main, deployments or merges.",
+  "manifestHandling": "Verify original historical and working manifest bytes before updating ownerApproved/referenceCommit/status in CI working copy only; Git review manifest stays unchanged."
+}

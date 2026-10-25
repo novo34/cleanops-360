@@ -1,0 +1,17 @@
+{
+  "status": "PASS_STATIC_PREINSTALL_SCOPE",
+  "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+  "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
+  "bytes": 187018,
+  "exactDeltaReproduced": true,
+  "newGrants": [
+    "GRANT UPDATE(version) ON app.policy_versions TO cleanops_auth_broker;",
+    "GRANT UPDATE(credential_version) ON identity_private.credentials TO cleanops_auth_broker;"
+  ],
+  "newDirectServiceGrants": [],
+  "newPublicSQLSignatures": [],
+  "newPrivateHelper": "identity_private.lock_pair_nowait(uuid,uuid)",
+  "RLS_Owners_Memberships_Unchanged": true,
+  "broker": "NOLOGIN_NOBYPASSRLS_NO_SERVICE_MEMBERSHIP",
+  "limits": "Static proof of exact bounded delta, not native ACL/tenant/concurrency proof. Native negative gate required immediately after install."
+}

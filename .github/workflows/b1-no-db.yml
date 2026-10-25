@@ -1,0 +1,133 @@
+name: B1 no database
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: read # Gitleaks reads PR commit metadata; no write permission
+jobs:
+  b1:
+    if: startsWith(github.head_ref, 'feat/b1-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0 # required to verify historical OpenBao source hashes
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: npm ci --ignore-scripts
+      - name: Dependency security audit
+        run: npm audit --audit-level=high
+      - name: Install pinned Semgrep
+        run: python -m pip install --disable-pip-version-check semgrep==1.177.0
+      - name: Scan changed production authentication boundary with unchanged rules
+        run: semgrep scan --config .semgrep/cleanops-foundation.yml --error --disable-nosem --metrics=off lib/b1/service.ts lib/b1/runtime.ts
+      - name: Secret scanning (existing pinned Gitleaks action)
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: '8.24.3'
+      - name: Full reachable B1 history secret scan (not limited to PR API pagination)
+        if: always()
+        run: |
+          test "$(git rev-parse --is-shallow-repository)" = false
+          scan_status=0
+          gitleaks detect --redact --exit-code=2 --report-format=json --report-path=/tmp/b1-gitleaks-full-raw.json --log-opts=HEAD || scan_status=$?
+          B1_GITLEAKS_SCAN_EXIT="$scan_status" python - <<'PY'
+          import json,os,subprocess
+          from pathlib import Path
+          raw=Path('/tmp/b1-gitleaks-full-raw.json')
+          result={'scope':'ALL_HISTORY_REACHABLE_FROM_HEAD','status':'FAIL','scanner':'8.24.3',
+                  'exitCode':int(os.environ['B1_GITLEAKS_SCAN_EXIT']),
+                  'source':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'branchSource':os.environ.get('B1_GITLEAKS_BRANCH_SOURCE'),
+                  'reachableCommits':int(subprocess.check_output(['git','rev-list','--count','HEAD'],text=True)),
+                  'findings':[]}
+          try:
+              findings=json.loads(raw.read_text())
+              if findings is None and result['exitCode']==0: findings=[]
+              if not isinstance(findings,list): raise ValueError('INVALID_SCANNER_REPORT')
+              allowed=['RuleID','Description','File','StartLine','EndLine','Commit','Fingerprint']
+              result['findings']=[{key:f[key] for key in allowed if key in f} for f in findings]
+              if result['exitCode']==0 and not findings: result['status']='PASS'
+          except (OSError,ValueError,KeyError,TypeError):
+              result['error']='SCANNER_REPORT_INCOMPLETE'
+          finally:
+              raw.unlink(missing_ok=True)
+          output=Path('test-results/gitleaks-full-history.json')
+          output.parent.mkdir(parents=True,exist_ok=True)
+          output.write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          raise SystemExit(0 if result['status']=='PASS' else 1)
+          PY
+        env:
+          B1_GITLEAKS_BRANCH_SOURCE: ${{ github.event.pull_request.head.sha }}
+      - name: Preserve sanitized full-history scan evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b1-gitleaks-full-history-redacted
+          path: test-results/gitleaks-full-history.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: python3 scripts/consolidate-b1-sql.py --check
+      - run: python3 scripts/review-b1-consolidated.py --check
+      - run: python3 scripts/consolidate-b1-sql.py --revision 02 --check
+      - run: python3 scripts/consolidate-b1-sql.py --revision 03 --check
+      - run: python3 scripts/review-b1-case-operands.py --check
+      - run: python3 scripts/review-b1-consolidated.py --revision 02 --check
+      - run: python3 scripts/install-pg16-parser.py
+      - run: python3 scripts/parse-b1-sql.py
+      - run: python3 scripts/consolidate-b1-sql.py --revision 04 --check
+      - run: python3 scripts/review-b1-maintenance-acl.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/04/schema.review.sql
+      - run: python3 scripts/consolidate-b1-sql.py --revision 05 --check
+      - run: python3 scripts/review-b1-restricted-purge.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/05/schema.review.sql
+      - run: python3 scripts/consolidate-b1-e1.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/06/schema.review.sql
+      - run: python3 scripts/consolidate-b1-e1.py --revision 07 --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql
+      - run: python3 scripts/consolidate-b1-reset.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql
+      - run: python3 scripts/consolidate-b1-bootstrap-reset.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql
+      - run: python3 scripts/consolidate-b1-trusted-clock.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/10/schema.review.sql
+      - run: python3 scripts/consolidate-b1-access-audit.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql
+      - run: python3 scripts/consolidate-b1-denial-events.py --check
+      - run: python3 scripts/consolidate-b1-role-risk.py --check
+      - run: python3 scripts/test-b1-role-risk-review.py
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql
+      - run: python3 scripts/consolidate-b1-preauth-selection.py --check
+      - run: python3 scripts/parse-b1-sql.py docs/proposals/b1-consolidated-sql/revisions/12/schema.review.sql
+      - run: python3 -m unittest discover -s tests/static -v
+      - run: npm run test:b1
+      - run: npm test
+      - run: npm run build
+      - name: B1 production Next proxy regression (closed backend, no database)
+        run: node --experimental-strip-types scripts/test-b1-proxy-origin.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.b1.config.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: demo-visual-review
+          path: test-results/demo-*.png
+          if-no-files-found: ignore
+          retention-days: 7
