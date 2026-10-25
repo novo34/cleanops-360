@@ -1,0 +1,120 @@
+# CleanOps 360 local Semgrep ruleset.
+# Origin: Semgrep community JavaScript/TypeScript security patterns, curated locally.
+# Version: 1.1.0 (2026-10-12). Review changes as code; CI uses this immutable repository copy.
+rules:
+  - id: cleanops-dangerous-eval
+    languages: [javascript, typescript]
+    message: Avoid dynamic code execution; use a typed, explicit implementation.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-95
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)
+
+  - id: cleanops-child-process-shell
+    languages: [javascript, typescript]
+    message: Do not execute shell commands with untrusted or interpolated input.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-78
+    pattern-either:
+      - pattern: child_process.exec($CMD, ...)
+      - pattern: child_process.execSync($CMD, ...)
+      - pattern: child_process.spawn($CMD, ...)
+      - pattern: exec($CMD, ...)
+      - pattern: execSync($CMD, ...)
+
+  - id: cleanops-sql-string-interpolation
+    languages: [javascript, typescript]
+    message: Do not build SQL or query strings with interpolation; use parameterized queries.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-89
+    patterns:
+      - pattern-either:
+          - pattern: $DB.$METHOD(`...${$VALUE}...`)
+          - pattern: $DB.$METHOD("..." + $VALUE + "...", ...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: (?i)(query|execute|raw|unsafe|findMany|findFirst)
+
+  - id: cleanops-ssrf-user-url
+    languages: [javascript, typescript]
+    message: Validate and allowlist outbound URLs before making server-side requests.
+    severity: ERROR
+    mode: taint
+    metadata:
+      category: security
+      cwe: CWE-918
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.$FIELD
+              - pattern: $REQ[$FIELD]
+          - metavariable-regex:
+              metavariable: $FIELD
+              regex: (?i)(url|uri|href|target|redirect)
+    pattern-sinks:
+      - pattern: fetch($URL, ...)
+    pattern-sanitizers:
+      - pattern: allowlistedUrl($URL)
+
+  - id: cleanops-sql-taint
+    languages: [javascript, typescript]
+    message: Do not pass request-controlled data into SQL or query execution.
+    severity: ERROR
+    mode: taint
+    metadata:
+      category: security
+      cwe: CWE-89
+    pattern-sources:
+      - pattern: $REQ.$FIELD
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $DB.query($SQL)
+          - pattern: $DB.execute($SQL)
+          - pattern: $DB.raw($SQL)
+    pattern-sanitizers:
+      - pattern: parameterize($SQL, ...)
+      - pattern: $DB.query($SQL, [$...PARAMS])
+
+  - id: cleanops-code-execution-import
+    languages: [javascript, typescript]
+    message: Do not dynamically load modules from untrusted input.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-494
+    pattern: import($VALUE)
+
+  - id: cleanops-unsafe-innerhtml
+    languages: [javascript, typescript]
+    message: Avoid direct HTML injection; sanitize content before rendering.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-79
+    pattern-either:
+      - pattern: $X.innerHTML = $Y
+      - pattern: <$TAG dangerouslySetInnerHTML={$VALUE} />
+
+  - id: cleanops-hardcoded-secret
+    languages: [javascript, typescript]
+    message: Do not hardcode credentials or tokens in source code.
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: CWE-798
+    patterns:
+      - pattern: $NAME = "$VALUE"
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i)(api[_-]?key|secret|token|password|private[_-]?key)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: (?i).{12,}
