@@ -47,7 +47,7 @@
 - [ ] **R9 — Experimento DeusData/codebase-memory-mcp (separado, condicionado).** **Solo después de R8:** revisión oficial de release/checksums, piloto aislado y de solo lectura, benchmark en copia local, ninguna edición de AGENTS/config sin aprobación. Su adopción necesita valor medido y evaluación de seguridad. No es un componente de CleanOps 360 ni una excusa para crear otra capa.
 
 ## Orden de decisión
-**Ahora:** R0 → R1. R2 solo al cerrar R1, etc. Hallazgos HIGH se pueden elevar a emergencia solo con riesgo de seguridad demostrado y autorización del propietario. Si las comprobaciones bloquean una fase, consignar BLOCKED y su causa; no saltar al siguiente bloque para aparentar progreso.
+**Ahora:** R0 y R1 cerrados con aceptación del propietario; siguiente bloque único R2 (TODO, aún no iniciado). R3 y posteriores únicamente tras el cierre autorizado del bloque precedente. Hallazgos HIGH se pueden elevar a emergencia solo con riesgo de seguridad demostrado y autorización del propietario. Si las comprobaciones bloquean una fase, consignar BLOCKED y su causa; no saltar al siguiente bloque para aparentar progreso.
 
 ## Formato único del parte por bloque
 `Bloque | estado TODO/IN_PROGRESS/BLOCKED/DONE | SHA inicial → final | hallazgos | código reutilizado | archivos añadidos/modificados/retirados | pruebas PASS/FAIL/SKIP | permisos/autorizaciones | riesgos pendientes | evidencia URLs | aceptación PO`.
