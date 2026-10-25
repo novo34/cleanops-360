@@ -10,19 +10,24 @@ const uuid = '11111111-1111-4111-8111-111111111111', dest = '22222222-2222-4222-
 const csrf = 'C'.repeat(43), bindingToken = 'B'.repeat(43)
 const active = (tenant = uuid) => ({ state: 'ACTIVE', session_id: uuid, tenant_id: tenant, absolute_expires_at: new Date(clock()+28800000).toISOString() })
 const pending = () => ({ state: 'PENDING_MFA', challenge_id: uuid, allowed_methods: ['TOTP'], expires_at: new Date(clock()+600000).toISOString() })
-const binding = (kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']): Binding => ({ kind, state, id: 'verified-test-binding', csrfDigest: digest(csrf), expiresAt: clock()+(kind === 'ACTIVE' ? 28800000 : 600000), tenantId: uuid, userId: uuid, sessionId: uuid })
+const binding = (kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']): Binding => ({ kind, state, id: 'verified-test-binding', csrfDigest: digest(csrf), absoluteExpiresAt: clock()+28800000, expiresAt: clock()+(kind === 'ACTIVE' ? 28800000 : 600000), tenantId: uuid, userId: uuid, sessionId: uuid })
 function fixture(kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']) {
   const records = new Map<string, { replay: boolean; requestHash: string; data: unknown; oneTime: boolean; expiresAt: number }>()
-  const f = { binding: binding(kind, state) as Binding | null, allow: true, step: true, retry: null as number | null, commits: 0, calls: 0, commitFailure: false,
+  const f = { time: clock(), renewalDeadline: undefined as number | undefined, afterCommit: undefined as number | undefined, expireDuringExecute: false, revoked: false, renewals: 0, durableRenewals: 0, binding: binding(kind, state) as Binding | null, allow: true, step: true, retry: null as number | null, commits: 0, calls: 0, commitFailure: false,
     effect: { data: active() } as Effect | AuthError, last: {} as Input, rules: [] as string[], bootstraps: [] as string[] }
   let tail = Promise.resolve()
   const backend: Backend = {
     async bootstrap(b, c) { f.bootstraps.push(b, c) },
     async transaction(work) {
       const before = tail; let release!: () => void; tail = new Promise<void>(r => { release = r }); await before
-      const saved = structuredClone(records)
+      const saved = structuredClone(records), beforeRenewals = f.renewals
       try {
         const tx: Transaction = {
+          async renewActivity(binding) {
+            if (f.revoked || !f.binding || f.binding.expiresAt <= f.time || (f.binding.absoluteExpiresAt ?? 0) <= f.time) throw new AuthError(401, 'AUTH_INVALID')
+            f.renewals++
+            return f.renewalDeadline ?? binding.expiresAt
+          },
           async resolve(cookies) { return cookies[names.session] === bindingToken || cookies[names.preauth] === bindingToken ? f.binding : null },
           async authorize(_b, rule) { f.rules.push(rule); return f.allow },
           async stepUp() { return f.step },
@@ -30,16 +35,16 @@ function fixture(kind: Binding['kind'] = 'ACTIVE', state?: Binding['state']) {
           async reserve(scope, hash) { return records.get(scope) ?? { replay: false, requestHash: hash } },
           async discard(scope) { records.delete(scope) },
           async complete(scope, hash, data, oneTime) { records.set(scope, { replay: true, requestHash: hash, data, oneTime, expiresAt: clock()+86400000 }) },
-          async execute(_op, input) { f.calls++; f.last = input; return f.effect },
+          async execute(_op, input) { f.calls++; f.last = input; if (f.expireDuringExecute && f.binding) f.time = f.binding.expiresAt; return f.effect },
         }
         const result = await work(tx)
         if (f.commitFailure) throw new Error('database commit failed with secret details')
-        f.commits++; return result
+        f.commits++; f.durableRenewals += f.renewals - beforeRenewals; if (f.afterCommit !== undefined) f.time = f.afterCommit; return result
       } catch (e) { records.clear(); for (const [k,v] of saved) records.set(k,v); throw e }
       finally { release() }
     },
   }
-  return { f, backend, handler: createAuthHandler(backend, origin, clock), records }
+  return { f, backend, handler: createAuthHandler(backend, origin, () => f.time), records }
 }
 function request(path: string, method = 'POST', body?: unknown, headers: Record<string,string> = {}) {
   return new Request(origin+path, { method, headers: {
@@ -232,3 +237,87 @@ test('internal HTTP preserves digest-bound CSRF denial before any business effec
   assert.equal(f.calls, 0); assert.equal(f.commits, 1)
 })
 
+
+
+test('activity renewal uses the persisted deadline and unchanged cookies under both approved risk policies', async () => {
+  for (const [idle, absolute] of [[1800, 43200], [28800, 86400]]) {
+    const { f, handler } = fixture()
+    f.binding = { ...binding(), expiresAt: clock()+1000, absoluteExpiresAt: clock()+absolute*1000 }
+    f.renewalDeadline = clock()+idle*1000
+    f.effect = { data: { ...active(), absolute_expires_at: new Date(f.binding.absoluteExpiresAt!).toISOString() } }
+    const response = await handler.handle(request('/auth/users/session','GET'), 'getAdministrationSession')
+    assert.equal(response.status, 200)
+    assert.equal(f.durableRenewals, 1)
+    assert.deepEqual(response.headers.getSetCookie(), [
+      cookie(names.session, bindingToken, idle), cookie(names.csrf, csrf, idle, false),
+    ])
+    assert.equal((await response.json()).data.absolute_expires_at, new Date(f.binding.absoluteExpiresAt!).toISOString())
+  }
+})
+
+test('renewal never exceeds the original absolute deadline or accepts invalid persisted expiry', async () => {
+  for (const deadline of [clock(), clock()-1, clock()+28800001, NaN, Infinity]) {
+    const { f, handler } = fixture()
+    f.renewalDeadline = deadline
+    await expectError(await handler.handle(request('/auth/users/session','GET'),'getAdministrationSession'),503,'INVALID_COOKIE_TRANSITION')
+    assert.equal(f.commits,0); assert.equal(f.durableRenewals,0)
+  }
+  const { f, handler } = fixture()
+  f.binding = { ...binding(), absoluteExpiresAt: clock()+5000 }
+  f.renewalDeadline = f.binding.absoluteExpiresAt
+  f.effect = { data: { ...active(), absolute_expires_at: new Date(f.renewalDeadline!).toISOString() } }
+  const response = await handler.handle(request('/auth/users/session','GET'),'getAdministrationSession')
+  assert.equal(response.status,200)
+  assert.ok(response.headers.getSetCookie().every(c=>c.includes('Max-Age=5')))
+})
+
+test('expired, revoked and no-longer-valid activity never commits a renewal', async () => {
+  for (const scenario of ['idle-exact','idle-past','absolute-exact','revoked','during-operation']) {
+    const { f, handler } = fixture()
+    if (scenario==='idle-exact') f.binding={...binding(),expiresAt:clock()}
+    if (scenario==='idle-past') f.binding={...binding(),expiresAt:clock()-1}
+    if (scenario==='absolute-exact') f.binding={...binding(),absoluteExpiresAt:clock()}
+    if (scenario==='revoked') f.revoked=true
+    if (scenario==='during-operation') { f.binding={...binding(),expiresAt:clock()+1000}; f.expireDuringExecute=true }
+    await expectError(await handler.handle(request('/auth/users/session','GET'),'getAdministrationSession'),401,'AUTH_INVALID')
+    assert.equal(f.durableRenewals,0);assert.equal(f.commits,0)
+  }
+})
+
+test('GET with an unverified CSRF cookie cannot touch activity or overwrite CSRF', async () => {
+  const { f, handler } = fixture()
+  const headers={Cookie:names.session+'='+bindingToken+'; '+names.csrf+'='+'X'.repeat(43)}
+  const response=await handler.handle(request('/auth/users/session','GET',undefined,headers),'getAdministrationSession')
+  assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null);assert.equal(f.renewals,0)
+})
+
+test('denied, rate-limited and invalid responses do not renew activity', async () => {
+  for (const scenario of ['rate','invalid','factor']) {
+    const { f, handler } = fixture()
+    if (scenario==='rate') f.retry=30
+    if (scenario==='invalid') f.effect={data:{unexpected:true}}
+    if (scenario==='factor') f.effect=new AuthError(422,'MFA_INVALID')
+    const response=await handler.handle(request('/auth/users/session','GET'),'getAdministrationSession')
+    assert.notEqual(response.status,200);assert.equal(response.headers.get('set-cookie'),null);assert.equal(f.renewals,0)
+  }
+})
+
+test('commit failure never emits refreshed cookies and a delayed expired response does not delete newer cookies', async () => {
+  const failed=fixture();failed.f.commitFailure=true
+  await expectError(await failed.handler.handle(request('/auth/users/session','GET'),'getAdministrationSession'),503)
+  assert.equal(failed.f.durableRenewals,0)
+  const delayed=fixture();delayed.f.afterCommit=delayed.f.binding!.expiresAt+1
+  const response=await delayed.handler.handle(request('/auth/users/session','GET'),'getAdministrationSession')
+  assert.equal(response.status,200);assert.equal(delayed.f.durableRenewals,1)
+  assert.equal(response.headers.get('set-cookie'),null)
+})
+
+test('concurrent authorized idempotent replays renew without repeating the business effect', async () => {
+  const { f, handler }=fixture()
+  f.effect={data:{challenge_id:uuid,allowed_methods:['TOTP'],expires_at:new Date(clock()+600000).toISOString()}}
+  const req=()=>request('/auth/step-up','POST',{grant_id:'B1-SELF-05'})
+  const responses=await Promise.all([handler.handle(req(),'startStepUp'),handler.handle(req(),'startStepUp')])
+  assert.deepEqual(responses.map(r=>r.status),[200,200])
+  assert.equal(f.calls,1);assert.equal(f.durableRenewals,2)
+  assert.ok(responses.every(r=>r.headers.getSetCookie().length===2))
+})

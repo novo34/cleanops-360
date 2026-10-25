@@ -41,6 +41,58 @@ def identity(finding):
             finding['end']['line'], finding['end']['col'])
 
 
+# Current P2 technical review of the unchanged literal import (628 -> 640).
+# These are exact reviewed bytes, not a new approval inherited from reviewed_commit.
+R2_P2_CONTEXT = {
+    'lib/b1/approved-backend.ts': '9a11bc2430877d12d868e70341b1ed5ea3dfce6183ec210dbf415a94ebdb2c52',
+    'lib/b1/private-adapter.ts': '8d968b73658d5384b2e4d9970d324bb9840a0ee2559b08565e6c38e316175d83',
+    'lib/b1/service.ts': 'd51ba2b9e5b9f2541b3201331269270b55bc7e858153f722a23a29416acb35ef',
+}
+R2_P2_BACKEND_FROM = 'b7b4a1aae33d0c914eb46f69d3c775233ee69318d011bc1f536d0289179f393c'
+R2_P2_SCAN_SHA256 = {
+    'scoped': 'a0c240b388488a4723d3fdb3f3cf4a8e790f570df52fd2394e55c563c15c599e',
+    'quality': 'dd4f0951e4acafe1e6638021d4f52f59ee7204cb1a9b05ac899377cf6edeb78b',
+}
+R2_P2_SOURCE_TREE = '48925fe75deceac44bf57d5644a886027eaee871ff5a4a65877cc9e879b21b44'
+
+
+def reconcile_p2_context(manifest, quality, root):
+    backend = 'lib/b1/approved-backend.ts'
+    actual = digest(checked_path(root, backend))
+    if actual == R2_P2_BACKEND_FROM:
+        return manifest
+    if (manifest['context_sha256'][backend] != R2_P2_BACKEND_FROM
+            or actual != R2_P2_CONTEXT[backend]
+            or manifest['context_sha256']['package-lock.json'] != R2_LOCK_TO):
+        raise ValueError('Review expired: unauthorized P2 context transition')
+    for name, expected in R2_P2_CONTEXT.items():
+        if digest(checked_path(root, name)) != expected:
+            raise ValueError('Review expired: P2 trust context changed: ' + name)
+    entries = [row for row in manifest['findings'] if row['id'] == 'FP-09']
+    if (len(entries) != 1
+            or identity(entries[0]) != ('semgrep.cleanops-code-execution-import', backend, 628, 38, 628, 55)
+            or entries[0]['source_sha256'] != '74159db132aab1c51b13ec9afb7c36992680d3ab56a45cc77d9863d99ecb90e5'):
+        raise ValueError('Review expired: unexpected P2 finding')
+    # Only its location moves. evaluate still requires the same full source-line
+    # digest, classification and actual scanner identity; any extra match fails.
+    entries[0]['start']['line'] = entries[0]['end']['line'] = 640
+    manifest['context_sha256'].update(R2_P2_CONTEXT)
+    manifest['context_reconciliation']['p2_current_context'] = {
+        'review_kind': 'Current local technical review under owner authorization; no human approval claimed',
+        'reviewed_commit': None,
+        'historical_approval_covers_new_code': False,
+        'finding': 'FP-09',
+        'basis': 'Identical fixed otpauth literal and source-line digest; P2 touch/activity changes cannot supply its module specifier',
+        'historical_backend_sha256': R2_P2_BACKEND_FROM,
+        'validated_context_sha256': dict(R2_P2_CONTEXT),
+        'scanned_source_tree_sha256': R2_P2_SOURCE_TREE,
+        'actual_scan_report_sha256': R2_P2_SCAN_SHA256['quality' if quality else 'scoped'],
+        'old_line': 628, 'current_line': 640,
+    }
+    return manifest
+
+
+
 def load_manifest(quality=False, root=ROOT):
     name = '.semgrep/quality-reviewed-findings.json' if quality else '.semgrep/reviewed-findings.json'
     path = checked_path(root, name)
@@ -53,8 +105,8 @@ def load_manifest(quality=False, root=ROOT):
     if (manifest['context_sha256']['package-lock.json'] != R2_LOCK_FROM
             or actual_lock != R2_LOCK_TO):
         raise ValueError('Review expired: unauthorized lock/manifest transition')
-    # Change no finding, classification, review pointer, reviewed_commit or other
-    # context. evaluate still validates every full-file/snippet hash and result.
+    # Preserve historical classification/review attribution. The separately
+    # reviewed P2 context below accepts only its exact bytes and shifted literal.
     manifest['context_sha256']['package-lock.json'] = R2_LOCK_TO
     manifest['context_reconciliation'] = {
         'scope': 'R2 lock context only; no new finding approval or candidate reviewed_commit',
@@ -63,7 +115,7 @@ def load_manifest(quality=False, root=ROOT):
         'historical_lock_sha256': R2_LOCK_FROM,
         'validated_lock_sha256': R2_LOCK_TO,
     }
-    return manifest
+    return reconcile_p2_context(manifest, quality, root)
 
 
 def evaluate(report, manifest, root=ROOT):

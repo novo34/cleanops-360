@@ -5,7 +5,8 @@ import {createV4IdentityRepository} from '../../lib/b1/v4-broker.ts'
 import {changeUser} from '../../lib/b2/user-changes.ts'
 
 const actor='11111111-1111-4111-8111-111111111111',peer='22222222-2222-4222-8222-222222222222',origin='https://cleanops.test',csrf='e'.repeat(43)
-const binding:Binding={kind:'ACTIVE',id:actor,userId:actor,sessionId:actor,tenantId:actor,csrfDigest:digest(csrf),expiresAt:Date.now()+120000}
+const bindingExpiry=Date.now()+120000
+const binding:Binding={kind:'ACTIVE',id:actor,userId:actor,sessionId:actor,tenantId:actor,csrfDigest:digest(csrf),absoluteExpiresAt:bindingExpiry,expiresAt:bindingExpiry}
 const version='a'.repeat(64), nextVersion='b'.repeat(64)
 const input={operation:'STATE',target_user_id:actor,expected_version:version,reason:'Synthetic state change',state:'DISABLED'}
 const data={changed:true,user:{id:actor,display_name:'Synthetic user',state:'DISABLED',risk_class:'SENSITIVE',created_at:'2026-10-20T12:00:00Z'},resource_version:nextVersion,session_ended:true}
@@ -21,7 +22,7 @@ test('user changes reject tenant/role/risk assertions and duplicate JSON selecto
 test('self-disable clears cookies only after committed success and completes an owned one-time marker without response plaintext',async()=>{
  const calls:string[]=[]
  function backend(commitFailure=false):Backend{return {async bootstrap(){},async transaction(work){
-  const value=await work({resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data,clearSession:true}),complete:async(_scope:string,_hash:string,payload:unknown,oneTime:boolean)=>{assert.equal(payload,null);assert.equal(oneTime,true);calls.push('complete')}} as unknown as Transaction)
+  const value=await work({renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data,clearSession:true}),complete:async(_scope:string,_hash:string,payload:unknown,oneTime:boolean)=>{assert.equal(payload,null);assert.equal(oneTime,true);calls.push('complete')}} as unknown as Transaction)
   if(commitFailure)throw Error('private commit diagnostic');calls.push('commit');return value
  }}}
  const response=await createAuthHandler(backend(),origin).handle(request(),'changeAdministrationUser')
@@ -30,7 +31,7 @@ test('self-disable clears cookies only after committed success and completes an 
  assert.equal(uncertain.status,503);assert.equal(uncertain.headers.get('set-cookie'),null);assert.ok(!(await uncertain.text()).includes('private commit'))
 })
 test('a user change response cannot clear another user session or emit a new token',async()=>{
- const backend:Backend={async bootstrap(){},async transaction(work){return work({resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data:{...data,user:{...data.user,id:peer}},clearSession:true})} as unknown as Transaction)}}
+ const backend:Backend={async bootstrap(){},async transaction(work){return work({renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data:{...data,user:{...data.user,id:peer}},clearSession:true})} as unknown as Transaction)}}
  const response=await createAuthHandler(backend,origin).handle(request({...input,target_user_id:peer}),'changeAdministrationUser')
  assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null)
 })
@@ -58,7 +59,7 @@ test('a valid uppercase UUID still identifies self-disable after PostgreSQL cano
  const repository=createV4IdentityRepository({async connect(){return {async query(){return {rows:[{value:result}]}},release(){}}}})
  const effect=await repository.transaction(broker=>changeUser(broker,body,active,actor,Buffer.alloc(32,1),Buffer.alloc(32,2)))
  assert.deepEqual(effect,{data:result,clearSession:true})
- const backend:Backend={async bootstrap(){},async transaction(work){return work({resolve:async()=>active,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>effect,complete:async()=>{}} as unknown as Transaction)}}
+ const backend:Backend={async bootstrap(){},async transaction(work){return work({renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>active,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>effect,complete:async()=>{}} as unknown as Transaction)}}
  const response=await createAuthHandler(backend,origin).handle(request(body),'changeAdministrationUser')
  assert.equal(response.status,200);assert.ok(response.headers.getSetCookie().every(cookie=>cookie.includes('Max-Age=0')))
 })

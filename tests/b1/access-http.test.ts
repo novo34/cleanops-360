@@ -8,8 +8,9 @@ const body={operation:'ROLE',role_id:id,label:'A label is not authority',expecte
 function fixture(kind:'ACTIVE'|'PREAUTH'='ACTIVE',commitFailure=false){
  let calls=0,committed=false,saved:unknown='unset'
  let effect:Effect={data:{changed:true}}
- const actor:Binding={kind,id,csrfDigest:digest(csrf),expiresAt:Date.now()+600000,sessionId:id,tenantId:id,userId:id,state:kind==='PREAUTH'?'PENDING_MFA':undefined}
- const tx:Transaction={async resolve(){return actor},async authorize(){assert.fail('the atomic SQL mutation owns authorization after its exclusive lock')},async stepUp(){assert.fail('the atomic SQL mutation enforces fresh step-up after its exclusive lock')},async auditFailure(){},async rateLimit(){return null},async reserve(_s,requestHash){return {replay:false,requestHash,oneTime:true,expiresAt:actor.expiresAt}},async discard(){},async complete(_s,_h,data,oneTime){assert.equal(oneTime,true);saved=data},async execute(){calls++;return effect}}
+ const bindingExpiry=Date.now()+600000
+ const actor:Binding={kind,id,csrfDigest:digest(csrf),absoluteExpiresAt:bindingExpiry,expiresAt:bindingExpiry,sessionId:id,tenantId:id,userId:id,state:kind==='PREAUTH'?'PENDING_MFA':undefined}
+ const tx:Transaction={async renewActivity(binding: {expiresAt:number}){return binding.expiresAt},async resolve(){return actor},async authorize(){assert.fail('the atomic SQL mutation owns authorization after its exclusive lock')},async stepUp(){assert.fail('the atomic SQL mutation enforces fresh step-up after its exclusive lock')},async auditFailure(){},async rateLimit(){return null},async reserve(_s,requestHash){return {replay:false,requestHash,oneTime:true,expiresAt:actor.expiresAt}},async discard(){},async complete(_s,_h,data,oneTime){assert.equal(oneTime,true);saved=data},async execute(){calls++;return effect}}
  const backend:Backend={async bootstrap(){},async transaction(work){const result=await work(tx);if(commitFailure)throw Error('private commit failure');committed=true;return result}}
  const handler=createAuthHandler(backend,origin)
  return {handle:(input:string=JSON.stringify(body))=>handler.handle(new Request(origin+'/auth/access',{method:'POST',headers:{Origin:origin,'Sec-Fetch-Site':'same-origin','Content-Type':'application/json','X-CSRF-Token':csrf,'Idempotency-Key':randomUUID(),Cookie:`${names.session}=${raw}; ${names.csrf}=${csrf}`},body:input}),'changeAccess'),get calls(){return calls},get committed(){return committed},get saved(){return saved},set effect(value:Effect){effect=value}}
@@ -24,7 +25,7 @@ test('AUTHZ HTTP accepts locators and CAS but rejects asserted tenant roles auth
 })
 test('AUTHZ PREAUTH cannot mutate and successful HTTP result remains one-time without cookies',async()=>{
  const pending=fixture('PREAUTH');assert.equal((await pending.handle()).status,401);assert.equal(pending.calls,0)
- const f=fixture(),response=await f.handle();assert.equal(response.status,200);assert.equal(f.committed,true);assert.equal(f.saved,null);assert.equal(response.headers.get('set-cookie'),null)
+ const f=fixture(),response=await f.handle();assert.equal(response.status,200);assert.equal(f.committed,true);assert.equal(f.saved,null);assert.equal(response.headers.getSetCookie().length,2)
 })
 test('AUTHZ cannot transition or clear ACTIVE from a malformed adapter or claim success on failed COMMIT',async()=>{
  const f=fixture();f.effect={data:{changed:true},transition:{kind:'PREAUTH',token:raw,csrf,expiresAt:Date.now()+10000}}

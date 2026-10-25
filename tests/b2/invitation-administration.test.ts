@@ -7,7 +7,8 @@ import {changeInvitation} from '../../lib/b2/invitation-administration.ts'
 import {openInvitationMail,matchesInvitationVerifier} from '../../lib/b2/invitation-secrets.ts'
 
 const id='11111111-1111-4111-8111-111111111111',foreign='22222222-2222-4222-8222-222222222222',origin='https://cleanops.test',csrf='e'.repeat(43)
-const binding:Binding={kind:'ACTIVE',id,tenantId:id,userId:id,sessionId:id,expiresAt:Date.now()+60000,csrfDigest:digest(csrf)}
+const bindingExpiry=Date.now()+60000
+const binding:Binding={kind:'ACTIVE',id,tenantId:id,userId:id,sessionId:id,absoluteExpiresAt:bindingExpiry,expiresAt:bindingExpiry,csrfDigest:digest(csrf)}
 const input={operation:'CREATE',display_name:'Synthetic invitee',email:'synthetic@example.invalid',reason:'Synthetic invitation'}
 function request(body:unknown=input){return new Request(origin+'/auth/users/invitations',{method:'POST',headers:{origin,'sec-fetch-site':'same-origin','content-type':'application/json','x-csrf-token':csrf,'idempotency-key':'synthetic-invitation-request',cookie:`${names.session}=${'a'.repeat(43)}; ${names.csrf}=${csrf}`},body:JSON.stringify(body)})}
 
@@ -23,13 +24,13 @@ test('invitation HTTP rejects asserted identities, roles, MFA/TTL and duplicate 
  assert.equal(connections,0)
 })
 
-test('invitation mutations complete one-time ownership only after success and never issue or clear a B1 session',async()=>{
+test('invitation mutations complete one-time ownership only after success and refresh but never rotate or clear a B1 session',async()=>{
  function backend(failCommit=false,transition=false):Backend{return {async bootstrap(){},async transaction(work){
-  const result=await work({resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data:{accepted:true},...(transition?{clearSession:true}:{})}),complete:async(_scope:string,_hash:string,data:unknown,oneTime:boolean)=>{assert.equal(data,null);assert.equal(oneTime,true)}} as unknown as Transaction)
+  const result=await work({renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>binding,rateLimit:async()=>null,reserve:async()=>({replay:false}),execute:async()=>({data:{accepted:true},...(transition?{clearSession:true}:{})}),complete:async(_scope:string,_hash:string,data:unknown,oneTime:boolean)=>{assert.equal(data,null);assert.equal(oneTime,true)}} as unknown as Transaction)
   if(failCommit)throw Error('private commit diagnostic');return result
  }}}
  const response=await createAuthHandler(backend(),origin).handle(request(),'changeUserInvitation')
- assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+ assert.equal(response.status,200);assert.equal(response.headers.getSetCookie().length,2);assert.ok(response.headers.getSetCookie().some(c=>c.startsWith(names.session+'='+'a'.repeat(43)+';')))
  assert.deepEqual((await response.json()).data,{accepted:true})
  for(const provider of [backend(true),backend(false,true)]){
   const failed=await createAuthHandler(provider,origin).handle(request(),'changeUserInvitation')

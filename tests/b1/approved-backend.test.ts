@@ -16,10 +16,10 @@ const now = 1_700_000_010_000, absolute = now + 86_400_000
 const raw = 'a'.repeat(43), csrf = 'b'.repeat(43), origin = 'https://cleanops.example'
 const dummy = hash('dummy proof never authenticates', { type: argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 })
 const unavailable = (e: unknown) => e instanceof AuthError && e.status === 503
-type Options = { foreign?: boolean; allowed?: boolean; stepUp?: boolean; commitFailure?: boolean; badPolicy?: boolean }
+type Options = { foreign?: boolean; allowed?: boolean; stepUp?: boolean; commitFailure?: boolean; badPolicy?: boolean; expiry?: number; touchUntil?: number; touchError?: boolean }
 async function fixture(options: Options = {}) {
   const calls: { name: string; values: unknown[]; connection:number }[] = [], releases: boolean[] = []
-  const committed = { revoked: 0, completed: 0, discarded: 0, failures: 0 }
+  const committed = { revoked: 0, completed: 0, discarded: 0, failures: 0, touches: 0, expiry: options.expiry ?? now + 30_000 }
   let staged = { ...committed }, counter = null as number | null
   const binding = { kind: 'ACTIVE', id: S, sessionId: S, tenantId: A, userId: U, csrfDigest: digest(csrf), expiresAt: now + 30_000 }
   let connects = 0
@@ -32,7 +32,8 @@ async function fixture(options: Options = {}) {
       if (sql === 'COMMIT') { if (options.commitFailure) throw Error('private commit failure'); Object.assign(committed, staged); return {} }
       let value: unknown = null
       if (name === 'security_policy') value = options.badPolicy ? { ...profile.values, argon_memory: 1024 } : profile.values
-      if (name === 'resolve_binding') value = binding
+      if (name === 'resolve_binding') value = { ...binding, expiresAt: staged.expiry }
+      if (name === 'touch_activity') { if (options.touchError) throw Error('private activity failure'); staged.touches++; staged.expiry = options.touchUntil ?? Math.min(absolute, now + 1_800_000) }
       if (name === 'active_summary') value = { state: 'ACTIVE', session_id: S, tenant_id: A, absolute_expires_at: new Date(absolute).toISOString() }
       if (name === 'binding_authorization') return { rows: [{ allowed: options.allowed ?? true, step_up: options.stepUp ?? true }] }
       if (name === 'current_identity') return { rows: [{ id: U, tenant_id: options.foreign ? B : A, display_name: 'User', email: 'user@example.invalid' }] }
@@ -132,7 +133,9 @@ test('real step-up TOTP keeps current session and absolute lifetime distinct fro
   const body = await response.json()
   assert.equal(body.data.session_id, S); assert.equal(body.data.tenant_id, A)
   assert.equal(body.data.absolute_expires_at, new Date(absolute).toISOString())
-  assert.equal(response.headers.get('set-cookie'), null)
+  assert.equal(response.headers.getSetCookie().length, 2)
+  assert.ok(response.headers.getSetCookie().some(c => c.startsWith(names.session + '=' + raw + ';')))
+  assert.equal(f.calls.some(c => c.name === 'touch_activity'), true)
   assert.equal(f.calls.some(c => c.name === 'issue_active_session'), false)
   const plain = digest(canonical({ challenge_id: C, method: 'TOTP', proof: code() }))
   const keyed = createHmac('sha256', Buffer.alloc(32, 1)).update(canonical(['B1_OWNED_REQUEST_V1', plain])).digest('hex')
@@ -152,7 +155,8 @@ test('real active TOTP confirmation returns ten recovery codes once, stores only
   assert.ok(body.data.codes.every((v: string) => /^[A-Z2-7]{26}$/.test(v)))
   assert.equal(f.calls.find(c => c.name === 'complete_owned')!.values[4], null)
   assert.equal(f.committed.completed, 1)
-  assert.equal(response.headers.get('set-cookie'), null)
+  assert.equal(response.headers.getSetCookie().length, 2)
+  assert.ok(response.headers.getSetCookie().some(c => c.startsWith(names.session + '=' + raw + ';')))
 })
 
 test('cursor cannot cross tenant/kind and abandoned reservations cannot commit', async () => {
@@ -212,4 +216,36 @@ test('D1 does not enable EMAIL OTP without D4; HTTP errors contain no proof or c
  assert.equal(response.headers.get('set-cookie'), null)
  assert.equal(f.calls.some(c => c.name === 'email_otp_material' || c.name === 'consume_email_otp'), false)
  assert.equal(f.calls.filter(c=>c.connection===f.calls.findLast(c=>c.name==='resolve_binding')?.connection).at(-1)?.name,'ROLLBACK')
+})
+
+
+test('approved adapter touches once after valid identity and rereads the persisted deadline before COMMIT', async () => {
+  const f=await fixture(),handler=createAuthHandler(f.backend,origin,()=>now)
+  const response=await handler.handle(new Request(origin+'/auth/me',{headers}),'getCurrentIdentity')
+  assert.equal(response.status,200);assert.equal(f.committed.touches,1)
+  const calls=f.calls.filter(c=>c.connection===1).map(c=>c.name)
+  assert.ok(calls.indexOf('touch_activity')>calls.indexOf('current_identity'))
+  assert.equal(calls[calls.indexOf('touch_activity')+1],'resolve_binding')
+  assert.equal(calls.at(-1),'COMMIT')
+  assert.ok(response.headers.getSetCookie().every(c=>c.includes('Max-Age=1800')))
+})
+
+test('expired bindings and failed or over-absolute persisted renewal never commit activity', async () => {
+  for(const options of [{expiry:now},{expiry:now-1},{touchError:true},{touchUntil:absolute+1}]){
+    const f=await fixture(options),handler=createAuthHandler(f.backend,origin,()=>now)
+    const response=await handler.handle(new Request(origin+'/auth/me',{headers}),'getCurrentIdentity')
+    assert.notEqual(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+    assert.equal(f.committed.touches,0)
+    assert.ok(f.calls.some(c=>c.name==='ROLLBACK'))
+  }
+})
+
+test('wrong GET CSRF and revoked-session operations do not refresh the approved adapter', async () => {
+  const f=await fixture(),handler=createAuthHandler(f.backend,origin,()=>now)
+  const badCookie=names.session+'='+raw+'; '+names.csrf+'='+'X'.repeat(43)
+  const response=await handler.handle(new Request(origin+'/auth/me',{headers:{...headers,cookie:badCookie}}),'getCurrentIdentity')
+  assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+  assert.equal(f.committed.touches,0)
+  const logout=await handler.handle(new Request(origin+'/auth/logout',{method:'POST',headers:{...headers,'idempotency-key':'fixture-logout-activity'}}),'logout')
+  assert.equal(logout.status,200);assert.equal(f.committed.touches,0);assert.equal(f.committed.revoked,1)
 })

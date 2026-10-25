@@ -6,13 +6,13 @@ import { readAdministrationUsers } from '../../lib/b2/users.ts'
 
 const id='11111111-1111-4111-8111-111111111111', tenant='22222222-2222-4222-8222-222222222222'
 const csrf='C'.repeat(43), cookie='S'.repeat(43), now=Date.now()
-const actor:Binding={kind:'ACTIVE',id,tenantId:tenant,userId:id,sessionId:id,csrfDigest:digest(csrf),expiresAt:now+60000}
+const actor:Binding={kind:'ACTIVE',id,tenantId:tenant,userId:id,sessionId:id,csrfDigest:digest(csrf),absoluteExpiresAt:now+60000,expiresAt:now+60000}
 const user={id,display_name:'Synthetic user',state:'ACTIVE',risk_class:'SENSITIVE',created_at:'2026-10-20T12:00:00Z'}
 const page={items:[user],next_after:null}
 function backend(result:unknown=page, commitFailure=false){
  let calls=0
  const value:Backend={bootstrap:async()=>{},async transaction(work){
-  const tx={resolve:async()=>actor,authorize:async()=>true,rateLimit:async()=>null,execute:async()=>{calls++;return {data:result}}} as unknown as Transaction
+  const tx={renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>actor,authorize:async()=>true,rateLimit:async()=>null,execute:async()=>{calls++;return {data:result}}} as unknown as Transaction
   const response=await work(tx);if(commitFailure)throw Error('private connection diagnostic');return response
  }}
  return {value,calls:()=>calls}
@@ -25,10 +25,10 @@ test('B2 strict HTTP validation rejects tenant/actor claims, unknown/duplicate q
  }
  assert.equal(b.calls(),0)
 })
-test('B2 successful directory read has no cookies and is only returned after commit; commit failures do not leak diagnostics',async()=>{
+test('B2 successful directory read refreshes existing cookies and is only returned after commit; commit failures do not leak diagnostics',async()=>{
  const b=backend(),handler=createAuthHandler(b.value,'https://cleanops.test')
  const response=await handler.handle(request('?search=Synthetic&state=ACTIVE&limit=1'),'listAdministrationUsers')
- assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.get('set-cookie'),null)
+ assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(response.headers.getSetCookie().length,2);assert.ok(response.headers.getSetCookie().some(c=>c.startsWith(names.session+'='+cookie+';')))
  assert.deepEqual((await response.json()).data,page)
  const failed=await createAuthHandler(backend(page,true).value,'https://cleanops.test').handle(request(),'listAdministrationUsers')
  assert.equal(failed.status,503);assert.ok(!(await failed.text()).includes('private connection'))
@@ -58,7 +58,7 @@ test('B2 resume reads only the current active session without issuing a cookie o
  const active={state:'ACTIVE',session_id:id,tenant_id:tenant,absolute_expires_at:new Date(now+30000).toISOString()}
  const resumed=()=>new Request('https://cleanops.test/auth/users/session',{headers:request().headers})
  const response=await createAuthHandler(backend(active).value,'https://cleanops.test').handle(resumed(),'getAdministrationSession')
- assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+ assert.equal(response.status,200);assert.equal(response.headers.getSetCookie().length,2)
  for(const invalid of [{...active,tenant_id:id},{...active,session_id:tenant},{...active,absolute_expires_at:new Date(now+120000).toISOString()},{...active,absolute_expires_at:new Date(now-1000).toISOString()}]){
   const rejected=await createAuthHandler(backend(invalid).value,'https://cleanops.test').handle(resumed(),'getAdministrationSession')
   assert.equal(rejected.status,503);assert.equal(rejected.headers.get('set-cookie'),null)

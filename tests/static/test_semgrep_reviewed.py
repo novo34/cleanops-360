@@ -99,10 +99,19 @@ class ReviewGuardTests(unittest.TestCase):
         self.manifest['context_sha256']['../escape.ts']='0'*64
         with self.assertRaises(ValueError):self.run_guard()
 
+    def historical_positions(self, entries):
+        result=copy.deepcopy(entries)
+        for row in result:
+            if row['id']=='FP-09':
+                self.assertEqual(row['start']['line'],640)
+                self.assertEqual(row['end']['line'],640)
+                row['start']['line']=row['end']['line']=628
+        return result
+
     def test_real_registry_has_exactly_the_four_inherited_production_exceptions(self):
         registry=guard.load_manifest()
         historical=json.loads((ROOT/'.semgrep/reviewed-findings.json').read_text())
-        self.assertEqual(registry['findings'],historical['findings'])
+        self.assertEqual(self.historical_positions(registry['findings']),historical['findings'])
         self.assertEqual(len(registry['findings']),4)
         self.assertEqual(len({guard.identity(row) for row in registry['findings']}),4)
         self.assertTrue(all(row['classification']=='confirmed_false_positive' for row in registry['findings']))
@@ -113,7 +122,7 @@ class ReviewGuardTests(unittest.TestCase):
         quality=guard.load_manifest(quality=True)
         scoped=guard.load_manifest()
         historical=json.loads((ROOT/'.semgrep/quality-reviewed-findings.json').read_text())
-        self.assertEqual(quality['findings'],historical['findings'])
+        self.assertEqual(self.historical_positions(quality['findings']),historical['findings'])
         self.assertEqual({row['id'] for row in quality['findings']},{f'FP-{i:02}' for i in range(1,18)})
         by_id={row['id']:row for row in quality['findings']}
         for row in scoped['findings']:self.assertEqual(by_id[row['id']],row)
@@ -126,9 +135,13 @@ class ReviewGuardTests(unittest.TestCase):
         (self.root/'.semgrep').mkdir(exist_ok=True)
         (self.root/name).write_bytes((ROOT/name).read_bytes())
         (self.root/'package-lock.json').write_bytes((ROOT/'package-lock.json').read_bytes())
+        for context in guard.R2_P2_CONTEXT:
+            target=self.root/context
+            target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes((ROOT/context).read_bytes())
         return self.root/name
 
-    def test_reconciliation_changes_only_lock_context_and_records_provenance(self):
+    def test_reconciliation_changes_only_exact_lock_and_p2_context_and_records_provenance(self):
         for quality in (False,True):
             path=self.copy_real_registry(quality)
             original=path.read_bytes(); historical=json.loads(original)
@@ -139,6 +152,14 @@ class ReviewGuardTests(unittest.TestCase):
             self.assertEqual(provenance['historical_lock_sha256'],guard.R2_LOCK_FROM)
             self.assertEqual(provenance['validated_lock_sha256'],guard.R2_LOCK_TO)
             historical['context_sha256']['package-lock.json']=guard.R2_LOCK_TO
+            historical['context_sha256'].update(guard.R2_P2_CONTEXT)
+            for row in historical['findings']:
+                if row['id']=='FP-09':row['start']['line']=row['end']['line']=640
+            review=provenance['p2_current_context']
+            self.assertIsNone(review['reviewed_commit'])
+            self.assertFalse(review['historical_approval_covers_new_code'])
+            self.assertEqual(review['validated_context_sha256'],guard.R2_P2_CONTEXT)
+            self.assertEqual(review['actual_scan_report_sha256'],guard.R2_P2_SCAN_SHA256['quality' if quality else 'scoped'])
             self.assertEqual(current,historical)
             self.assertEqual(path.read_bytes(),original)
 
@@ -169,8 +190,59 @@ class ReviewGuardTests(unittest.TestCase):
     def test_direct_historical_context_remains_expired(self):
         historical=json.loads((ROOT/'.semgrep/reviewed-findings.json').read_text())
         report={'version':historical['engine'],'results':copy.deepcopy(historical['findings']),'errors':[]}
+        with self.assertRaisesRegex(ValueError,'Review expired: lib/b1/approved-backend.ts'):
+            guard.evaluate(report,historical)
+        # The backend now expires first. Isolate the independent lock boundary
+        # without attributing any current-context review to the historical manifest.
+        historical['context_sha256']['lib/b1/approved-backend.ts']=guard.R2_P2_CONTEXT['lib/b1/approved-backend.ts']
         with self.assertRaisesRegex(ValueError,'Review expired: package-lock.json'):
             guard.evaluate(report,historical)
+
+
+    def test_p2_reconciliation_rejects_any_other_backend_bytes(self):
+        self.copy_real_registry()
+        with (self.root/'lib/b1/approved-backend.ts').open('ab') as stream:stream.write(b'\n')
+        with self.assertRaisesRegex(ValueError,'unauthorized P2 context'):guard.load_manifest(root=self.root)
+
+    def test_p2_reconciliation_pins_both_activity_trust_dependencies(self):
+        for name in ('lib/b1/private-adapter.ts','lib/b1/service.ts'):
+            self.copy_real_registry()
+            with (self.root/name).open('ab') as stream:stream.write(b'\n')
+            with self.assertRaisesRegex(ValueError,'P2 trust context changed'):guard.load_manifest(root=self.root)
+
+    def test_p2_old_position_does_not_consume_current_exception(self):
+        current=guard.load_manifest()
+        report={'version':current['engine'],'results':copy.deepcopy(current['findings']),'errors':[]}
+        row=next(row for row in report['results'] if row['id']=='FP-09')
+        row['start']['line']=row['end']['line']=628
+        with self.assertRaisesRegex(ValueError,'Stale exception'):guard.evaluate(report,current)
+
+    def test_p2_shift_does_not_accept_changed_columns_or_duplicate_matches(self):
+        for duplicate in (False,True):
+            current=guard.load_manifest()
+            report={'version':current['engine'],'results':copy.deepcopy(current['findings']),'errors':[]}
+            row=next(row for row in report['results'] if row['id']=='FP-09')
+            if duplicate:report['results'].append(copy.deepcopy(row))
+            else:row['start']['col']+=1
+            with self.assertRaises(ValueError):guard.evaluate(report,current)
+
+    def test_p2_missing_backend_context_cannot_reconcile(self):
+        self.copy_real_registry()
+        (self.root/'lib/b1/approved-backend.ts').unlink()
+        with self.assertRaisesRegex(ValueError,'Missing or escaping'):guard.load_manifest(root=self.root)
+
+    def test_p2_context_change_after_loading_is_rejected(self):
+        self.copy_real_registry()
+        current=guard.load_manifest(root=self.root)
+        # The actual evaluator rechecks the full pinned context, not load-time data.
+        with (self.root/'lib/b1/service.ts').open('ab') as stream:stream.write(b'\n')
+        for name in current['context_sha256']:
+            target=self.root/name
+            if not target.exists():
+                target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((ROOT/name).read_bytes())
+        report={'version':current['engine'],'results':copy.deepcopy(current['findings']),'errors':[]}
+        with self.assertRaisesRegex(ValueError,'Review expired'):guard.evaluate(report,current,self.root)
+
 
 
 if __name__=='__main__':

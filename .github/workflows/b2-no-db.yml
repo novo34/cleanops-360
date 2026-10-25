@@ -52,7 +52,7 @@ jobs:
         if: ${{ !cancelled() }}
       - run: npm run test:b1
         if: ${{ !cancelled() }}
-      - run: node --experimental-strip-types --test --test-isolation=none tests/b2/*.test.ts
+      - run: npm run test:b2
         if: ${{ !cancelled() }}
       - run: npm test
         if: ${{ !cancelled() }}

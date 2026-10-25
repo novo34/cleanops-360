@@ -30,6 +30,7 @@ export function verifiedActiveBinding(locked: LockedSession | null, now: number)
     kind: 'ACTIVE' as const, id: locked.bindingId, userId: locked.userId,
     tenantId: locked.tenantId, sessionId: locked.sessionId,
     csrfDigest: locked.csrfDigest, expiresAt: Math.min(locked.expiresAt, locked.idleExpiresAt),
+    absoluteExpiresAt: locked.expiresAt,
   })
 }
 

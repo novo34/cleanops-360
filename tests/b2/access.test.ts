@@ -6,7 +6,8 @@ import {readUserAccess} from '../../lib/b2/access.ts'
 import {createAuthHandler,names,digest,type Backend,type Transaction,type Binding} from '../../lib/b1/service.ts'
 
 const target='11111111-1111-4111-8111-111111111111',actor='22222222-2222-4222-8222-222222222222'
-const binding:Binding={kind:'ACTIVE',id:actor,sessionId:actor,userId:actor,tenantId:actor,csrfDigest:digest('e'.repeat(43)),expiresAt:Date.now()+60000}
+const bindingExpiry=Date.now()+60000
+const binding:Binding={kind:'ACTIVE',id:actor,sessionId:actor,userId:actor,tenantId:actor,csrfDigest:digest('e'.repeat(43)),absoluteExpiresAt:bindingExpiry,expiresAt:bindingExpiry}
 test('target-permission reads use a fixed SQL function with separate actor context and bound locators',async()=>{
  const calls:{sql:string;args:unknown[]}[]=[]
  const repository=createV4IdentityRepository({async connect(){return {async query(sql,args=[]){calls.push({sql,args});return {rows:[{value:true}]}},release(){}}}})
@@ -27,7 +28,7 @@ test('B2 access queries reject caller-supplied tenant, actor, role and duplicate
  assert.equal(calls,0)
 })
 test('a malformed access adapter cannot rotate or clear the current session on a read',async()=>{
- const backend:Backend={async bootstrap(){},async transaction(work){return work({resolve:async()=>binding,rateLimit:async()=>null,execute:async()=>({data:{target_user_id:target,action:'view',resource_kind:'documents',resource_id:null,allowed:true},clearSession:true})} as unknown as Transaction)}}
+ const backend:Backend={async bootstrap(){},async transaction(work){return work({renewActivity:async(binding: {expiresAt:number})=>binding.expiresAt,resolve:async()=>binding,rateLimit:async()=>null,execute:async()=>({data:{target_user_id:target,action:'view',resource_kind:'documents',resource_id:null,allowed:true},clearSession:true})} as unknown as Transaction)}}
  const response=await createAuthHandler(backend,'https://cleanops.test').handle(new Request('https://cleanops.test/auth/users/permissions/effective?target_user_id='+target+'&action=view&resource_kind=documents',{headers:{cookie:`${names.session}=${'c'.repeat(43)}; ${names.csrf}=${'e'.repeat(43)}`}}),'checkUserEffectiveAccess')
  assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null)
 })

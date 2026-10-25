@@ -121,6 +121,7 @@ async function fixture(options:Options={}) {
       recipient:'private-recipient@example.invalid',secret_ciphertext:'ciphertext-canary'}
     }
     else if(name==='record_security_event')value=null
+    else if(name==='touch_activity')value=null
     else throw err('unexpected fixture function '+name)
     return{rows:[{value}]}
    },
@@ -149,6 +150,10 @@ async function fixture(options:Options={}) {
 }
 const proof=()=>TOTP.generate({secret:Secret.fromUTF8('12345678901234567890'),algorithm:'SHA1',digits:6,period:30,timestamp:initialNow})
 function privateFree(text:string){for(const forbidden of ['private-recipient','ciphertext-canary','secret_ciphertext','key_version','otpauth://','grant_key'])assert.ok(!text.includes(forbidden),forbidden)}
+function refreshedCookies(response:Response){
+ assert.deepEqual(response.headers.getSetCookie().map(c=>c.split(';')[0]),[names.session+'='+raw,names.csrf+'='+csrf])
+ assert.ok(response.headers.getSetCookie().every(c=>c.includes('Path=/; Secure; SameSite=Lax; Max-Age=30')))
+}
 
 test('real Argon2 login creates a version-bound TOTP challenge, owned marker and PREAUTH cookie only after commit',async()=>{
  const f=await fixture({mode:'BOOTSTRAP'})
@@ -181,7 +186,7 @@ function primaryRollback(f:{calls:{connection:number;name:string}[];releases:boo
 test('step-up prepares TOTP only, replays safe descriptor and revalidates method generation on retry',async()=>{
  const f=await fixture({mode:'ACTIVE'}),key='step-up-key-for-test-123'
  const first=await f.request('startStepUp',{grant_id:'B1-SELF-05'},key)
- assert.equal(first.status,200);assert.equal(first.headers.get('set-cookie'),null)
+ assert.equal(first.status,200);refreshedCookies(first)
  const body=await first.text();privateFree(body)
  const again=await f.request('startStepUp',{grant_id:'B1-SELF-05'},key)
  assert.equal(again.status,200)
@@ -275,7 +280,7 @@ test('approved missing selection response exposes own locators only; concurrent 
   const text=await response.text();privateFree(text)
   assert.equal(JSON.parse(text).data.state,'TOTP_SELECTION_REQUIRED')
   assert.deepEqual(JSON.parse(text).data.methods.map((m:{method_id:string})=>m.method_id),[M,M2])
-  assert.equal(response.headers.get('set-cookie'),null)
+  refreshedCookies(response)
  }
  assert.equal(f.state.audits,0);assert.equal(f.state.counter,null)
  assert.equal(f.calls.some(c=>c.name==='issue_bound_challenge'||c.name==='consume_totp_cas'),false)
@@ -319,7 +324,8 @@ test('approved selector creates bound TOTP challenges in ACTIVE and proven PREAU
   const f=await fixture({mode,multiple:true})
   const input={totp_method_id:M2,...(mode==='ACTIVE'?{grant_id:'B1-SELF-05'}:{})}
   const response=await f.request('selectTotpMethod',input,'totp-select-http-key-123')
-  assert.equal(response.status,200);assert.equal(response.headers.get('set-cookie'),null)
+  assert.equal(response.status,200)
+  if(mode==='ACTIVE')refreshedCookies(response);else assert.equal(response.headers.get('set-cookie'),null)
   const body=await response.text();privateFree(body)
   assert.equal(JSON.parse(body).data.state,mode==='PREAUTH'?'PENDING_MFA':undefined)
   assert.equal(f.calls.find(c=>c.name==='issue_bound_challenge')!.values[2],M2)

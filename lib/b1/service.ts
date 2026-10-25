@@ -19,10 +19,12 @@ export type Binding = {
   tenantId?: string; userId?: string; sessionId?: string; absoluteExpiresAt?: number
 }
 export type Transition = { kind: 'PREAUTH' | 'ACTIVE'; token: string; csrf: string; expiresAt: number }
-export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean; trustedCookie?: { token: string; expiresAt: number } | null }
+export type Effect = { data: unknown; transition?: Transition; clearSession?: boolean; trustedCookie?: { token: string; expiresAt: number } | null; renewSessionUntil?: number }
 export interface Transaction {
   /** Must revalidate expiry, revocation, credential version, membership and tenant under locks. */
   resolve(cookies: Record<string, string>): Promise<Binding | null>
+  /** Renew only the verified current session; return its persisted, absolute-capped deadline. */
+  renewActivity(binding: Binding): Promise<number>
   /** Private, trusted actor; no identity/permission derived from payload or role names. */
   authorize(binding: Binding, rule: string, resource?: string): Promise<boolean>
   stepUp(binding: Binding, rule: string, resource?: string): Promise<boolean>
@@ -190,7 +192,20 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
         }
         const outcome = await backend.transaction(async tx => {
           const binding = await tx.resolve(received)
-          if (!binding || binding.expiresAt <= now() || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
+          if (!binding || binding.expiresAt <= now() || (binding.kind === 'ACTIVE' && typeof binding.absoluteExpiresAt === 'number' && binding.absoluteExpiresAt <= now()) || !stateAllowed(operationId, binding)) throw new AuthError(401, 'AUTH_INVALID')
+          const finish = async (effect: Effect): Promise<Effect> => {
+            if (effect.renewSessionUntil !== undefined || !valid(operation.responses['200'].content['application/json'].schema, { data: effect.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+            // A replay must not renew a session that the original operation ended or replaced.
+            const excluded = ['logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'resetPassword', 'adminResetMfa', 'authorizePasswordReset', 'revokeTrustedDevice', 'revokeAllTrustedDevices', 'adminRevokeTrustedDevices'].includes(operationId)
+            if (binding.kind !== 'ACTIVE' || excluded || effect.transition || effect.clearSession || (effect.data as Input).session_ended === true) return effect
+            // GET does not require a CSRF header, but cannot refresh an unverified CSRF cookie.
+            if (!received[names.csrf] || !safeEqual(digest(received[names.csrf]), binding.csrfDigest)) return effect
+            const absolute = binding.absoluteExpiresAt
+            if (typeof absolute !== 'number' || !Number.isSafeInteger(absolute) || absolute <= now()) throw new AuthError(401, 'AUTH_INVALID')
+            const until = await tx.renewActivity(binding)
+            if (!Number.isSafeInteger(until) || until <= now() || until > absolute) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
+            return { ...effect, renewSessionUntil: until }
+          }
           if(request.method!=='GET'&&(!safeEqual(request.headers.get('x-csrf-token')??'',received[names.csrf])||!safeEqual(digest(received[names.csrf]),binding.csrfDigest))){await tx.auditFailure(binding,'CSRF_DENIED');return new AuthError(403,'CSRF_INVALID')}
           if (operationId === 'selectTotpMethod') {
             if (binding.kind === 'ACTIVE' ? input.grant_id === undefined : input.grant_id !== undefined || input.resource_id !== undefined)
@@ -218,7 +233,7 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
                     !valid(operation.responses['200'].content['application/json'].schema, { data, meta: { correlation_id: correlation } }))
                   throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
               }
-              return { data: reservation.data, ...(['revokeTrustedDevice','revokeAllTrustedDevices'].includes(operationId)?{trustedCookie:null}:{}) } as Effect
+              return finish({ data: reservation.data, ...(['revokeTrustedDevice','revokeAllTrustedDevices'].includes(operationId)?{trustedCookie:null}:{}) })
             }
           }
           const effect = await tx.execute(operationId, input, binding)
@@ -262,12 +277,18 @@ export function createAuthHandler(backend: Backend, origin: string, now = () => 
             if (kind === 'PREAUTH' && expiresAt > now() + numeric('preauth_ttl') * 1000) throw new AuthError(503, 'INVALID_COOKIE_TRANSITION')
           }
           if (scope) await tx.complete(scope, requestHash, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')) ? null : effect.data, (['enrollTotp','confirmTotp','enrollEmail','confirmEmail','resendEmailEnrollment','recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operationId)||(operationId==='switchTenant'&&binding.kind==='PREAUTH')))
-          return effect
+          return finish(effect)
         }, { correlationId: correlation, operation: operationId })
         if (outcome instanceof AuthError) throw outcome
         if (!valid(operation.responses['200'].content['application/json'].schema, { data: outcome.data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
         const headers = new Headers()
         // Cookies are emitted only after the transaction promise confirms commit.
+        // A delayed response whose deadline passed must not overwrite a newer cookie with deletion.
+        if (outcome.renewSessionUntil !== undefined && outcome.renewSessionUntil > now()) {
+          const age = (outcome.renewSessionUntil - now()) / 1000
+          headers.append('Set-Cookie', cookie(names.session, received[names.session], age))
+          headers.append('Set-Cookie', cookie(names.csrf, received[names.csrf], age, false))
+        }
         if(outcome.trustedCookie===null)headers.append('Set-Cookie',cookie(names.trusted,'',0))
         else if(outcome.trustedCookie)headers.append('Set-Cookie',cookie(names.trusted,outcome.trustedCookie.token,(outcome.trustedCookie.expiresAt-now())/1000))
         if (outcome.transition) {

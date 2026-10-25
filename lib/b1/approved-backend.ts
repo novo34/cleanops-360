@@ -85,7 +85,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
       if (!object(policy) || canonical(policy) !== canonical(profile.values)) throw unavailable()
       const factors = createApprovedFactors(broker, deps.factors, correlation, now)
       const mail = deps.mail ? createEmailCeremony(broker, deps.mail, deps.factors.otpKey!, correlation, now) : undefined
-      let actor: Binding | undefined, raw = '', csrf = '', trustedToken = ''
+      let actor: Binding | undefined, raw = '', csrf = '', trustedToken = '', activityRenewed = false
       const reservations = new Map<string, Reservation>()
       // Do not persist an offline-guessable SHA fingerprint of six-digit proofs.
       const requestTag = (hash: string) => createHmac('sha256', deps.factors.auditKey).update(canonical(['B1_OWNED_REQUEST_V1', hash])).digest('hex')
@@ -97,7 +97,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         const latest = await broker.call('binding', [raw, csrf, actor.kind])
         if (!object(latest) || latest.id !== actor.id || latest.kind !== actor.kind ||
             (latest.tenantId ?? undefined) !== actor.tenantId || (latest.userId ?? undefined) !== actor.userId ||
-            latest.csrfDigest !== actor.csrfDigest || typeof latest.expiresAt !== 'number' || latest.expiresAt <= now()) throw invalid()
+            latest.csrfDigest !== actor.csrfDigest || latest.sessionId !== actor.sessionId || typeof latest.expiresAt !== 'number' || !Number.isSafeInteger(latest.expiresAt) || latest.expiresAt <= now()) throw invalid()
+        return latest.expiresAt
       }
       async function activeSummary(binding: Binding) {
         const data = await broker.call('activeSummary', [])
@@ -207,6 +208,17 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         return r
       }
       const tx: Transaction = {
+        async renewActivity(binding) {
+          owns(binding)
+          const absolute = binding.absoluteExpiresAt
+          if (binding.kind !== 'ACTIVE' || activityRenewed || typeof absolute !== 'number' || !Number.isSafeInteger(absolute) || absolute <= now() || !timingSafeEqual(hex(digest(csrf)), hex(binding.csrfDigest))) throw invalid()
+          activityRenewed = true
+          // SQL14 revalidates under its existing locks; never reconstruct idle expiry here.
+          await broker.call('touch', [])
+          const until = await resolveAgain()
+          if (until > absolute) throw unavailable()
+          return until
+        },
         async resolve(cookies) {
           if (actor) throw unavailable()
           const preferPreauth = ['verifyMfa', 'recoverMfa', 'confirmTotp', 'switchTenant', 'listAuthorizedTenants', 'enrollTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'resendOtp', 'selectTotpMethod'].includes(operationHint)

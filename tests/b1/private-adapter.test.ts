@@ -17,7 +17,7 @@ const unavailable = (e: unknown) => e instanceof AuthError && e.status === 503 &
 test('locked ACTIVE context is bound to its own tenant and shortest expiry', () => {
   assert.deepEqual(verifiedActiveBinding(valid, now), {
     kind: 'ACTIVE', tenantId: 'tenant-a', userId: 'user-a', sessionId: 'session-a',
-    id: 'binding-a', csrfDigest: 'digest', expiresAt: now + 10_000,
+    id: 'binding-a', csrfDigest: 'digest', expiresAt: now + 10_000, absoluteExpiresAt: now + 30_000,
   })
   assert.ok(Object.isFrozen(verifiedActiveBinding(valid, now)))
 })
