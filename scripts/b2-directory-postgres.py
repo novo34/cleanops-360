@@ -58,9 +58,9 @@ R3_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.r3-candidate.r
 R3_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.r3-candidate.review.py'
 R3_MANIFEST = 'docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json'
 R3_WORKFLOW = '.github/workflows/b2-acceptance-r2-postgres.yml'
-# Independent final barrier: reviewed workflow routing cannot enable native execution.
-# Removing it requires separate owner activation approval and new C/M/W/B bytes.
-R3_NATIVE_ENABLED = False
+# Owner-authorized capability; each execution still requires a new exact C/M/W/B review.
+# No environment variable or command-line option can grant that authorization.
+R3_NATIVE_ENABLED = True
 R3_CONTEXT = {
     'repository': 'novo34/cleanops-360', 'repositoryId': 1412999204,
     'pullRequest': 22, 'base': 'main', 'branch': 'codex/r3-sql5-controlled-preflight',
@@ -442,8 +442,8 @@ def main(scope='directory'):
         if scope == 'sql5-r3':
             selected = authorize_r3()
             report['authorization'] = selected['authorization']
-            # Publication is static only. Activation changes these reviewed bytes and
-            # requires another C/M/W authorization; tests never enable this gate.
+            # Activation is not execution permission. All authorization checks above
+            # must finish before the first transport import below.
             if not R3_NATIVE_ENABLED:
                 raise RuntimeError('R3_NATIVE_ACTIVATION_REQUIRED')
         else:

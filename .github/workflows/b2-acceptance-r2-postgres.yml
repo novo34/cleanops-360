@@ -34,8 +34,8 @@ jobs:
       endsWith(github.event.review.body, '; metadata only, no services or SQL.')) ||
       (startsWith(github.event.review.body, format('Execute owner-authorized SQL5-R3 candidate {0} manifest ', github.event.review.commit_id)) &&
       endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha)))))
-    # R3 routing is prepared; R3_NATIVE_ENABLED=False remains an independent
-    # barrier before transport, even for an otherwise exact C/M/W/B review.
+    # R3 capability requires a new exact C/M/W/B review in the canonical preflight;
+    # publishing this workflow, ordinary reviews and historical approvals grant none.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -150,7 +150,7 @@ jobs:
       - name: Verify exact SQL5-R2 approval before isolated PG16 execution
         if: github.event.pull_request.number == 12
         run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/b2-acceptance-r2-postgres.review.py
-      - name: R3 canonical entrypoint (native activation closed)
+      - name: R3 canonical entrypoint (new native authorization required)
         if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-R3 candidate ') && endsWith(github.event.review.body, '; native isolated validation only.')
         run: python scripts/b2-directory-postgres.py --package sql5-r3
       - name: Preserve sanitized evidence for the selected route

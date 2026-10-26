@@ -227,9 +227,14 @@ class R3ContractTests(unittest.TestCase):
         with patch.dict(os.environ,{'GITHUB_HEAD_REF':''}):
             self.assertTrue(runner.preflight(scope='sql5-r3'))
 
-    def test_valid_authorization_still_cannot_activate_native_in_this_delivery(self):
-        self.assertFalse(runner.R3_NATIVE_ENABLED)
-        self.assertEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+    def test_valid_authorization_reaches_only_intercepted_transport_boundary(self):
+        class TransportBoundaryReached(BaseException):pass
+        self.assertTrue(runner.R3_NATIVE_ENABLED)
+        # BaseException escapes main's operational Exception handler. The real
+        # loader, Docker, SQL and fixtures are never invoked, even on success.
+        with patch.object(runner,'load',side_effect=TransportBoundaryReached) as transport,contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(TransportBoundaryReached):runner.main('sql5-r3')
+            transport.assert_called_once_with('b2_original_b1_transport','scripts/pg-test-01.py')
         report=json.loads((self.root/'artifacts/b2-acceptance-r3/report.json').read_text())
         self.assertEqual(report['authorization']['base'],'4'*40)
 
@@ -238,7 +243,7 @@ class R3ContractTests(unittest.TestCase):
         for value in [None,'','short','5'*40]:
             with self.subTest(base=value):
                 self.event=json.loads(good);self.event['pull_request']['base']['sha']=value;self.write_event()
-                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+                self.reject_before_transport()
         self.event=json.loads(good)
         self.event['review']['body']=self.event['review']['body'].replace(' base '+'4'*40,'')
         self.write_event()
@@ -278,13 +283,31 @@ class R3ContractTests(unittest.TestCase):
                 self.assertEqual(self.reject_before_transport(),'CURRENT_R3_REFERENCES_REQUIRED')
                 self.assertNotIn('synthetic-private-value',(self.root/'artifacts/b2-acceptance-r3/report.json').read_text())
 
-    def test_native_flag_is_single_literal_false_in_reviewed_source(self):
+    def test_native_flag_is_single_literal_true_in_reviewed_source(self):
         import ast
         tree=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
         assignments=[node for node in ast.walk(tree) if isinstance(node,ast.Assign)
                      and any(isinstance(target,ast.Name) and target.id=='R3_NATIVE_ENABLED' for target in node.targets)]
         self.assertEqual(len(assignments),1)
-        self.assertIs(ast.literal_eval(assignments[0].value),False)
+        self.assertIs(ast.literal_eval(assignments[0].value),True)
+
+    def test_all_native_preconditions_precede_first_transport_import(self):
+        import ast
+        tree=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
+        body=next(node for node in main.body if isinstance(node,ast.Try)).body
+        self.assertIsInstance(body[0],ast.Assign)
+        self.assertEqual(body[0].value.func.id,'preflight')
+        self.assertIsInstance(body[1],ast.If)
+        self.assertEqual(body[1].body[0].value.func.id,'authorize_r3')
+        loads=[node for node in ast.walk(main) if isinstance(node,ast.Call)
+               and isinstance(node.func,ast.Name) and node.func.id=='load']
+        self.assertTrue(loads)
+        self.assertGreater(min(node.lineno for node in loads),body[1].end_lineno)
+        calls=[node for node in ast.walk(main) if isinstance(node,ast.Call)
+               and isinstance(node.func,ast.Attribute) and node.func.attr in {'docker','sql','fixtures','footprint'}]
+        self.assertTrue(calls)
+        self.assertGreater(min(node.lineno for node in calls),min(node.lineno for node in loads))
 
     def test_run_id_cannot_be_missing_or_fabricated(self):
         for value in ['', '0','-1','123x']:
@@ -328,8 +351,11 @@ class R3ContractTests(unittest.TestCase):
     def test_UTC_lifetime_boundaries_and_invalid_dates(self):
         for age,accepted in [(0,True),(899,True),(900,True),(900.001,False),(-0.001,False)]:
             with self.subTest(age=age),patch.object(runner.time,'time',return_value=self.now+age):
-                self.assertEqual(self.reject_before_transport(),
-                                 'R3_NATIVE_ACTIVATION_REQUIRED' if accepted else 'FRESH_R3_OWNER_REVIEW_REQUIRED')
+                if accepted:
+                    with patch.object(runner,'load',side_effect=AssertionError('NO_TRANSPORT')) as transport:
+                        self.assertEqual(runner.authorize_r3()['authorization']['base'],'4'*40)
+                        transport.assert_not_called()
+                else:self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
         for value in [None,0,'','not-a-date','2027-02-30T00:00:00Z','2027-01-15T08:00:00+00:00',
                       '2027-01-15T08:00:00','2027-01-15T08:00:00Z\n']:
             with self.subTest(timestamp=value):
@@ -357,7 +383,7 @@ class R3ContractTests(unittest.TestCase):
                 self.event=json.loads(pristine);target=self.event;parts=path.split('.')
                 for part in parts[:-1]:target=target[part]
                 target[parts[-1]]=value;self.write_event()
-                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+                self.reject_before_transport()
         self.event=json.loads(pristine);self.write_event()
 
     def test_wrong_or_missing_ci_environment_fails_closed(self):
@@ -368,7 +394,7 @@ class R3ContractTests(unittest.TestCase):
                           ('GITHUB_RUN_ATTEMPT','2'),('GITHUB_HEAD_REF','feat/b2-users-access'),
                           ('GITHUB_EVENT_PATH','/nonexistent-event'),('GITHUB_ACTIONS','false')]:
             with self.subTest(key=key,value=value),patch.dict(os.environ,{key:value}):
-                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+                self.reject_before_transport()
 
     def test_sensitive_bindings_fail_without_disclosing_values(self):
         for key in ['DATABASE_URL','PGPASSWORD','PGOPTIONS','OPENBAO_TOKEN','DB_HOST','VAULT_TOKEN']:
@@ -379,7 +405,7 @@ class R3ContractTests(unittest.TestCase):
     def test_missing_event_fields_do_not_infer_authority(self):
         for key in ['review','sender','repository','pull_request']:
             pristine=json.dumps(self.event);self.event.pop(key);self.write_event()
-            self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+            self.reject_before_transport()
             self.event=json.loads(pristine);self.write_event()
 
     def test_new_review_does_not_accept_historical_or_partial_approval(self):
@@ -397,7 +423,7 @@ class R3ContractTests(unittest.TestCase):
         for key,value in [('GITHUB_REF','refs/heads/main'),('GITHUB_WORKFLOW_REF','novo34/cleanops-360/other.yml@refs/pull/22/merge'),
                           ('GITHUB_SHA','3'*40),('GITHUB_WORKFLOW_SHA','short')]:
             with self.subTest(key=key),patch.dict(os.environ,{key:value}):
-                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+                self.reject_before_transport()
         with patch.object(runner,'git_bytes',side_effect=lambda ref,name,**kwargs:b'other workflow' if ref=='2'*40 else self.git_bytes(ref,name)):
             self.assertEqual(self.reject_before_transport(),'EXACT_R3_WORKFLOW_BYTES_REQUIRED')
 
@@ -414,7 +440,7 @@ class R3ContractTests(unittest.TestCase):
         for variant in variants:
             with self.subTest(variant=variant.get('scope')):
                 raw=json.dumps(variant).encode();path.write_bytes(raw);self.candidate[runner.R3_MANIFEST]=raw;self.refresh_review()
-                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+                self.reject_before_transport()
         path.write_text('{"files":{},"files":{}}');self.refresh_review()
         self.assertEqual(self.reject_before_transport(),'DUPLICATE_JSON_KEY')
         path.write_bytes(original);self.candidate[runner.R3_MANIFEST]=original;self.refresh_review()
@@ -540,10 +566,10 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertEqual(parser.get_postgresql_version()[0],16)
         self.assertEqual(parser.inspect(ROOT/runner.R3_SQL)['errors'],[])
 
-    def test_native_workflow_branch_is_explicitly_closed_and_has_single_entrypoint(self):
+    def test_native_workflow_requires_new_authorization_and_has_single_entrypoint(self):
         text=(ROOT/runner.R3_WORKFLOW).read_text()
-        self.assertFalse(runner.R3_NATIVE_ENABLED)
-        self.assertIn('R3_NATIVE_ENABLED=False remains an independent',text)
+        self.assertTrue(runner.R3_NATIVE_ENABLED)
+        self.assertIn('R3 capability requires a new exact C/M/W/B review',text)
         self.assertEqual(text.count('python scripts/b2-directory-postgres.py --package sql5-r3'),1)
         self.assertNotIn('pull_request_target:',text);self.assertNotIn('workflow_dispatch:',text)
 
@@ -889,7 +915,7 @@ class R3DiagnosticTests(unittest.TestCase):
         self.assertFalse(ActionsCondition(condition,self.context()).evaluate())
         self.assertTrue(ActionsCondition(condition,self.context(native)).evaluate())
         self.assertFalse(ActionsCondition(condition,self.context(r2)).evaluate())
-        self.assertFalse(runner.R3_NATIVE_ENABLED)
+        self.assertTrue(runner.R3_NATIVE_ENABLED)
 
     def test_prepared_native_route_rejects_ordinary_and_old_reviews(self):
         good=json.loads(json.dumps(self.event));good['pull_request']['base']['sha']='4'*40
