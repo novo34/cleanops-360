@@ -71,3 +71,16 @@ Nombres lógicos propuestos; sin endpoints implementados. Aplican columnas exten
 | CALC-ACTUAL | 16–18 | Comparar estimado/real; revisar rendimiento propuesto | REQ-CALC-011 | Snapshot aceptado y fuentes operativas existentes | CALC-09 | DESIGN_ONLY; depende de módulos reales |
 
 Backend verifica permisos de configuración, costes, margen y excepción por separado. UI no basta para denegar; aislamiento incluye exportación y consultas. Completar contratos efectivos y evidencia al implementar, no declarar cobertura por estas filas.
+
+### Flujos adicionales de la conciliación original
+
+| Feature | Fase | Acción UI / contrato lógico propuesto | REQ | Persistencia/efecto previsto | Pruebas | Estado |
+|---|---|---|---|---|---|---|
+| CALC-STRATEGY | 10 | Elegir estrategia/periodo y comparar líneas mixtas | 013/014/019 | Snapshot entradas/segmentos/desglose | CALC-11/12/13/18 | DESIGN_ONLY |
+| CALC-CLOSURE-TRAVEL | 10 | Simular cierres y transporte; revisar coste vs cobro | 015 | Calendario y componentes sin doble recuperación | CALC-15/16 | DESIGN_ONLY |
+| CALC-CONTRACT-TERMS | 10 | Editar garantía/cláusula/AGB; vista DE/FR/IT | 016/017/020 | Versión contractual propuesta en oferta | CALC-17/19/20 | DESIGN_ONLY; términos, no ejecución |
+| CALC-CHANGE | 11–18 | Proponer/aprobar/aplicar adenda y reajuste | 016/017 | Contrato/WE baseline + delta; sin efecto financiero implícito | CALC-19/20 | DESIGN_ONLY; depende de contratos/operación/finanzas |
+| CALC-INSIGHTS | 10; real 16–18 | Ver contribución/coste completo y motivos pérdida | 018 | Desglose y CRM tenant, fuentes reales posteriores | CALC-14/09 | DESIGN_ONLY |
+| CALC-ONBOARD | 10 | Asistente/mapear importación/revisar datos incompletos | 021/022 | Perfil/catálogo con procedencia y aprobación | CALC-21 | DESIGN_ONLY |
+
+IDs numéricos en esta tabla corresponden a REQ-CALC; no constituyen permisos HTTP definitivos. Semántica/errores y contratos mínimos de integración en API_SPEC; ausencia de productor no se cubre con datos simulados.
