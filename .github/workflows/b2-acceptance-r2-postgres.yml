@@ -9,12 +9,20 @@ jobs:
     # A commit-bound owner comment starts only this explicitly authorized validation.
     # No pull_request/push trigger: publishing evidence never repeats historical suites.
     if: >-
-      github.event.pull_request.number == 12 &&
+      (github.event.pull_request.number == 12 &&
       github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' &&
       github.event.pull_request.head.ref == 'feat/b2-users-access' &&
       github.event.review.user.login == github.repository_owner &&
       github.event.review.commit_id == github.event.pull_request.head.sha &&
-      github.event.review.body == 'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.'
+      github.event.review.body == 'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.') ||
+      (false && github.event.pull_request.number == 22 &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' &&
+      github.event.pull_request.head.ref == 'codex/r3-sql5-controlled-preflight' &&
+      github.event.review.user.id == 17856013 &&
+      github.event.review.commit_id == github.event.pull_request.head.sha)
+    # R3 activation intentionally CLOSED. A future reviewed change must bind real
+    # C/M/W and verify workflow eligibility/ref; PR publication cannot enable it.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -31,14 +39,19 @@ jobs:
         with:
           python-version: '3.12'
       - name: Verify exact approved dependencies and hosted scope without SQL
+        if: github.event.pull_request.number == 12
         run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/prepare-b2-composition-approval.py
       - name: Verify exact SQL5-R2 approval before isolated PG16 execution
+        if: github.event.pull_request.number == 12
         run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/b2-acceptance-r2-postgres.review.py
+      - name: R3 canonical entrypoint (native activation closed)
+        if: ${{ false }}
+        run: python scripts/b2-directory-postgres.py --package sql5-r3
       - name: Preserve actual sanitized SQL5-R2 evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: b2-acceptance-r2-pg16-sanitized
-          path: artifacts/b2-acceptance-r2/report.json
+          path: ${{ github.event.pull_request.number == 22 && 'artifacts/b2-acceptance-r3/report.json' || 'artifacts/b2-acceptance-r2/report.json' }}
           if-no-files-found: error
           retention-days: 7
