@@ -112,3 +112,14 @@ Extensiones candidatas de DATA_MODEL.md; no autorizan tablas nuevas. Todos con t
 | Comparación estimado-real | Comercial-Finanzas | DERIVED + USER_VISIBLE | Oferta/WorkEngagement → rentabilidad; propuesta de rendimiento | 16–18 | DESIGN_ONLY |
 
 Retención y legal hold existentes; sin borrado que rompa snapshots. Historial conservado al desactivar módulo; acceso sujeto a permisos. Reutilizar OfferVersion, SiteVisit, documentos, ComplianceRuleSet y fuentes operativas; el esquema físico sigue pendiente.
+
+### Objetos de continuación contractual y configuración
+
+| Objeto lógico / extensión | Owner | Gestión | Superficie / consumidor | Fase | Estado |
+|---|---|---|---|---|---|
+| Segmentos/calendario/componentes del snapshot | Oferta | SYSTEM_MANAGED + USER_VISIBLE | Desglose por estrategia, transporte, día y vigencia | 10 | DESIGN_ONLY |
+| Condiciones de garantía/reajuste/AGB | Comercial-Contratos | USER_MANAGED | Oferta → Condiciones/anexos/idioma y contrato → historial | 10 términos; 11/14 ejecución | DESIGN_ONLY |
+| Adenda/orden de cambio | Contratos-Operaciones | USER_MANAGED | Contrato/WE → cambios → delta, aprobar y aplicar | 11–18 | DESIGN_ONLY |
+| Motivo de pérdida y referencias de mercado | Comercial | USER_MANAGED | Oportunidad → cierre perdido; presupuesto → referencias con fecha | 10 | DESIGN_ONLY |
+
+Extender ciclo de vida de entidades existentes; ninguna fila exige una nueva tabla o un CRUD separado. Las once variables de inspección, perfiles y catálogos usan superficies ya descritas, con autor/fecha/procedencia, retención y permisos.
