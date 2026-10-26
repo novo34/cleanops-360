@@ -58,3 +58,16 @@
 ### Alcance E2E obligatorio para `WE-CREATE` / `REQ-TRC-WE-001`
 
 El test de trazabilidad deberá iniciar en la aceptación de una oferta por usuario autorizado, comprobar `Opportunity.Won` inmediato y auditado, `work_engagement_creation_status=PENDING` con botón de creación visible, probar prohibición de creación automática, ejecutar el botón como usuario autorizado, validar deduplicación/idempotencia, almacenar `WorkEngagement`, cambiar a `CREATED`, registrar auditoría y navegar a la ficha. Debe probar también fallo transaccional que mantiene `PENDING`, reintento seguro y ausencia de presunción de contrato firmado. Evidencia E2E UI + API + DB y prueba manual.
+
+## Presupuestos — extensión de diseño 2026-10-26
+
+Nombres lógicos propuestos; sin endpoints implementados. Aplican columnas extendidas y gates de la matriz principal.
+
+| Feature | Fase | Acción UI | REQ | Persistencia / consumidor | Pruebas diseñadas | Estado |
+|---|---|---|---|---|---|---|
+| CALC-CONFIG | 10 | Configurar/revisar perfil, catálogo y vigencia | REQ-CALC-001/002/003/010 | Perfil tenant versionado; motor de ofertas | CALC-01/07/08 | DESIGN_ONLY |
+| CALC-QUOTE | 10 | Raumbuch → calcular → comparar variante | REQ-CALC-004/005/006/007/012 | OfferVersion y snapshot | CALC-02/03/04/05/10 | DESIGN_ONLY |
+| CALC-ISSUE | 10 | Aprobar excepción, emitir PDF y aceptar versión | REQ-CALC-008/009/010 | Versionado, documentos, auditoría existentes | CALC-06/07/10 | DESIGN_ONLY |
+| CALC-ACTUAL | 16–18 | Comparar estimado/real; revisar rendimiento propuesto | REQ-CALC-011 | Snapshot aceptado y fuentes operativas existentes | CALC-09 | DESIGN_ONLY; depende de módulos reales |
+
+Backend verifica permisos de configuración, costes, margen y excepción por separado. UI no basta para denegar; aislamiento incluye exportación y consultas. Completar contratos efectivos y evidencia al implementar, no declarar cobertura por estas filas.
