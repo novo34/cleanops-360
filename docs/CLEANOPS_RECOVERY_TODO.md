@@ -443,6 +443,109 @@ Comando ejecutado: /tmp/cleanops-r3-parser-venv/bin/python -B scripts/parse-b1-s
 
 El cuerpo PR se actualizará con el SHA documental publicado y se solicitará nueva revisión independiente; sus resultados y CI real se registran en el PR para no crear autorreferencia en este commit. QG-1/QG-2 de esta intervención: sin cambios ejecutables ni mecanismos nuevos; QG-3 de aceptación continúa abierto. AUTH-GATE-05 OPEN, closedBackend conectado y protecciones históricas sin cambios. Cero PostgreSQL/Docker PostgreSQL/SQL ejecutado/OpenBao/migraciones/fixtures nativos/datos persistentes/despliegues/merge; no R4.
 
+
+#### R3 — Desbloqueo de gobernanza W/ref: evidencia y secuencia condicionada (2026-10-26)
+
+**Estado: OPEN/BLOCKED_FOR_NATIVE_VALIDATION; PR #22 DRAFT. DISEÑO Y LECTURA, NO AUTORIZACIÓN.** HEAD inicial de main: `975134a78621820bf3b790c392ab35726194ec66`; HEAD PR22: `f51cdd2df53d07825c5963e68f23abea7444dd23`. mergeable=true y mergeable_state=blocked; la capacidad de combinar árboles no concede permiso de merge. Esta actualización añade exclusivamente evidencia R3 al TODO y no cambia SQL5, fixture, manifiesto, harness, workflow, triggers, permisos o protecciones. Conserva todos los registros anteriores. QG-0: fuentes inspeccionadas AGENTS/política §§2–5/8, TODO, workflow SQL5, engineering-policy, harness y APIs/docs indicadas abajo; reutilizar mecanismo existente, no nueva arquitectura. Dueño PO/Engineering/Security; consumidor decisión del propietario y revisión independiente. Diff mínimo: un documento existente, sin archivos nuevos; pruebas de preservación por comparación de árboles/contenido. Rollback documental por revert normal, sin SQL ni force-push.
+
+##### 1. Protecciones observadas: no confundir mecanismos ni permisos
+
+| Fuente leída | Evidencia actual | Alcance y límite |
+|---|---|---|
+| GET branches/main | protected=true; protection.enabled=true; required_status_checks.enforcement_level=everyone; contexto engineering-policy; app_id=15368 (GitHub Actions) | PASS resumen de rama: el check es obligatorio. No acredita todos los detalles de protección clásica ni ausencia de bypass administrativo |
+| GET rulesets?includes_parents=true | Dos rulesets de repositorio devueltos: 25820330 temporal y 25879296 permanente, ambos ACTIVE | Lista solicitada con herencia; no se devolvieron otros rulesets. No sustituye lectura de protección clásica |
+| GET rulesets/25820330 y /25879296 | Ambos incluyen exclusivamente refs/heads/feat/foundation-bootstrap, feat/b1-auth-rbac-rls, docs/b1-v4-canonical-publication y feat/b1-http-flows; exclude=[]; update/deletion/non_fast_forward; bypass_actors=[]; current_user_can_bypass=never | PASS: inmovilizan las cuatro bases históricas, NO refs/heads/main. Su bypass vacío no demuestra bypass vacío en main |
+| GET branches/main/protection | 403 Resource not accessible by integration | NOT_VERIFIED para protección clásica completa. No ausencia de protección |
+| Subrecursos required_status_checks, required_pull_request_reviews, enforce_admins | También 403 Resource not accessible by integration | NOT_VERIFIED: strict/up-to-date, reviews requeridas, administradores, excepciones de revisión/push, conversaciones, force-push/borrado y demás ajustes detallados no se revalidan por esta conexión |
+| GET rules/branches/main | Rechazo del conector INVALID_ARGUMENT por endpoint no soportado; no respuesta efectiva de GitHub | CONNECTOR_UNSUPPORTED, no lista vacía de reglas efectivas ni 403 remoto. No se intentó eludir la conexión |
+
+Lectura de las cuatro ramas confirma protected=true y SHA intactos: foundation `8aeff94569cc9698c8e18ca8266515f51061faa2`; auth-rbac-rls `9f13c78d6c49194db1bd422db19128460f93f5fc`; publicación V4 `bd0de506d033f4c617d23c3be42fd325f21225f5`; http-flows `569975aab87c377248a7e9239cec237f5a20b9c6`. Ninguna escritura, desbloqueo ni prueba destructiva.
+
+**Solicitud de lectura al propietario, pendiente:** aportar export actual con Administration:read de `GET /repos/novo34/cleanops-360/branches/main/protection` y, si está disponible, `GET /repos/novo34/cleanops-360/rules/branches/main`, junto con lista heredada de rulesets. Debe acreditar checks/app/strict, requisito de PR/revisiones, descarte de reviews obsoletas, administradores/excepciones/bypass, conversaciones, restricciones de push, force-push/borrado y otros gates configurados. No proporcionar tokens ni credenciales. Las confirmaciones administrativas históricas se conservan como evidencia de su fecha, no como relectura actual. No autorizar una estrategia de integración basándose en un 403.
+
+##### 2. Selección documentada, evidencia histórica y W/ref todavía no observados
+
+Fuentes oficiales leídas y fijadas a github/docs@`02c25d16369fe27f9bdb28d1201f6b452f0d21dd`:
+- `data/reusables/actions/about-triggers.md`: busca workflows en el commit/ref asociado al evento y usa la versión de ese ref; algunos eventos exigen además presencia en default branch.
+- `content/actions/reference/workflows-and-actions/events-that-trigger-workflows.md#pull_request_review`: evento de review, GITHUB_REF=refs/pull/NUMERO/merge y GITHUB_SHA=último commit de ese merge ref; ese apartado no impone explícitamente default-branch presence.
+- `data/reusables/actions/workflow-ref-description.md` y `workflow-sha-description.md`: ref/ruta y commit de la definición realmente usada. Son conceptos distintos del checkout explícito y del blob del archivo.
+
+El path `.github/workflows/b2-acceptance-r2-postgres.yml` YA existe en main (2040 caracteres, versión R2); la versión del PR tiene 2967 caracteres. No falta registrar un path nuevo en main ni se ha demostrado que haya que fusionar la versión actualizada para seleccionarla. La lectura del endpoint de metadata `actions/workflows/391577171` fue rechazada por el conector; no se inventa su state administrativo.
+
+**Evidencia real disponible sin disparar nada:** run `39585052936`, evento pull_request_review, PR12, workflow_id 391577171, path SQL5-R2, API head_sha `96d2ada22845e7c7e3e1131f6ea814152c3be89b`. Job `119171778246` registra checkout explícito de ese mismo SHA. La base B1 `569975a...` no contiene ese workflow según GET contents (404); esto distingue selección del workflow de la mera lectura del archivo en esa base, pero no reconstruye por sí solo el estado histórico de la rama por defecto. No volver a ejecutar ese run ni consumir su autorización.
+
+Se descargó SOLO para lectura el artefacto sanitizado `12339033084` del run histórico: ZIP SHA-256 `e56ecc0e3df13778c0cc1e5d0daadddeb6a365551339cc32ff1d60744f3b678a`; report.json SHA-256 `2fb82c0bc1b3b24abb10824e4f95b8c48d4e8edcbcb9e3a20570ea86664426e9`, ambos iguales a la procedencia registrada. Sus claves son b2TechReady/checks/cleanup/existingIdentityAcceptance/functionalBrowser/image/result/runtime/scope; NO registra workflow_sha/workflow_ref ni GITHUB_WORKFLOW_SHA/GITHUB_WORKFLOW_REF. Los logs leídos tampoco contienen esos dos campos. Estado: **NOT_RECORDED**, no permiso para deducirlos. La API head_sha es metadata del run y el log acredita checkout; ninguno sustituye W. No extraer ni ejecutar código del ZIP.
+
+**Snapshot Git real para PR22, anterior a esta inserción documental:**
+
+| Símbolo | Valor observado o estado |
+|---|---|
+| B0, base main | 975134a78621820bf3b790c392ab35726194ec66 |
+| C0, HEAD PR22 | f51cdd2df53d07825c5963e68f23abea7444dd23 |
+| M0, SHA-256 del manifiesto actual | 4a694627864d89d2c9b96b863eb1efb5bdaf056cf0a77a3e7affe57f2d7021a9, inmutable en esta intervención |
+| Ref Git leído | GET git/ref/pull/22/merge devuelve refs/pull/22/merge |
+| V0, commit de prueba de merge creado por GitHub | 6abf0863a46bc872f8dbc0c6bb1df3d1a73ff513; NO es merge realizado en main |
+| Padres de V0 | B0 y C0, en ese orden |
+| Árbol de V0 y C0 | Ambos 3d9e6d4bb15c564047b2be6eee93fe82e04c85bc; el workflow de V0 coincide exactamente con C0 y difiere del de main |
+| W real de un runner PR22 | NOT_VALIDATED: no se lanzó ni observó un job que exporte su GITHUB_WORKFLOW_SHA |
+| workflow_ref real de un runner PR22 | NOT_VALIDATED: no se inventa desde V0, C0, head_sha o nombre del workflow |
+
+V0 demuestra disponibilidad de bytes en el ref Git asociado al evento, NO que un runner los haya seleccionado. Documentación y contenido son compatibles con selección pre-merge; no se acredita ejecución actual de W. Este commit documental cambiará C y normalmente el merge ref: V0/C0 son evidencia histórica, NO tupla para una autorización futura. Toda observación/autorización debe usar valores actuales después de finalizar y revisar los bytes.
+
+##### 3. Compatibilidad del contrato y defecto de una secuencia integración-primero
+
+El harness actual exige: repo/id/owner/evento/identidad/hosted exactos; review submitted de owner y estado commented; PR22 OPEN, base main, rama codex/r3-sql5-controlled-preflight; review.commit_id=PR.head.sha=checkout C; GITHUB_REF=refs/pull/22/merge; GITHUB_WORKFLOW_REF=novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/pull/22/merge; GITHUB_WORKFLOW_SHA=W=GITHUB_SHA; bytes de workflow en W iguales a los manifestados en C. M es SHA-256 del manifiesto completo, no commit ni blob.
+
+**Compatibilidad condicionada, no PASS observado:** si GitHub selecciona la definición desde el merge ref como describe la documentación del evento, V identifica el candidato natural a W y sus bytes satisfacen la comparación con C en este snapshot. La igualdad W=GITHUB_SHA y el ref literal se deben observar en el runner, no inferir de la metadata. Un W/ref de main/head distinto será rechazado; antes de proponer cualquier corrección se requiere evidencia del desajuste concreto. No relajar a wildcard ni falsear env. No hay defecto confirmado que justifique modificar hoy SQL/fixture/manifiesto/harness.
+
+**Incompatibilidad comprobada de orden:** “fusionar PR22 → activar → ejecutar una review de PR22” NO cumple el contrato actual: el merge cierra PR22 y el guard requiere OPEN; el ref de PR no sirve como identidad estable posterior a merge. No reutilizar C0, V0 o el permiso de PR22 cerrado. Si una evidencia futura obligara a integrar antes, haría falta una propuesta posterior que resuelva explícitamente contrato de PR abierto y gobernanza, no un cambio silencioso de rama/PR ni otro runner.
+
+Las tres barreras siguen intactas: false en alternativa de job R3, if false en paso nativo y R3_NATIVE_ENABLED=False. No se cambió ninguna en esta intervención.
+
+##### 4. Engineering-policy: distinguir readiness para merge de autorización para probar
+
+Quality de C0 PASS: https://github.com/novo34/cleanops-360/actions/runs/40355129627/job/121685411603 . Engineering-policy de C0 FAIL: https://github.com/novo34/cleanops-360/actions/runs/40355126385/job/121685404913 . El log registra checkout de main@975134a y un único error auténtico: casilla de seguridad/multiempresa/concurrencia/idempotencia aún no probadas. El workflow canónico usa pull_request_target solo para leer política desde base; no ejecuta código head. No se propone usarlo para R3.
+
+El resumen de protección hace ese check obligatorio para MERGE; no prueba un bloqueo general de Actions. El workflow SQL5 y su harness no consultan engineering-policy como condición técnica de ejecución. La política §5 exige QG-3 antes de merge/READY_FOR_PO/ACCEPTED, no proclamar todas las pruebas ya realizadas antes de poder probarlas. Mantener el FAIL veraz durante preparación y pruebas no equivale a bypass del required check: main sigue bloqueada.
+
+**Decisión procedimental pendiente del propietario:** confirmar expresamente una fase de observación y, posteriormente, una prueba nativa acotada antes del merge, mientras ese único FAIL permanece como gate de aceptación. Se exige Quality y estática vigentes, revisión independiente y autorización específica; no ignorar otros FAIL ni interpretar esto como permiso ya concedido. Si una norma adicional o protección no visible exigiera integración previa o check PASS antes de toda prueba, detener esa ruta y resolver la contradicción normativamente; jamás marcar una casilla falsa.
+
+La circularidad “necesito merge para observar W; necesito PostgreSQL para permitir merge” es **condicional**, no necesidad demostrada. La vía pre-merge evita el ciclo sin quitar protecciones. La alternativa integración-primero no es ejecutable con las restricciones y contrato actuales.
+
+##### 5. Alternativas y secuencia mínima PROPUESTA; no ejecutar sin decisiones separadas
+
+| Alternativa | Evaluación |
+|---|---|
+| Selección/observación y validación en PR22 abierto, integración main al final | Preferida, condicionada a observación autorizada y a lectura administrativa suficiente; respeta required check y contrato OPEN |
+| Integrar primero la versión cerrada para seleccionarla | No se demostró necesaria. Ahora bloqueada por engineering-policy y por la incompatibilidad OPEN tras merge. No ejecutar merge parcial, cherry-pick o bypass |
+| Deducir W de head_sha, checkout C o V0 sin observar runner | Rechazada: metadata/bytes no son medición de la definición usada |
+| Cambiar triggers/permisos, introducir otro workflow/runner, usar pull_request_target para head, env falsas o wildcard | Fuera de alcance/prohibida |
+| Desmarcar check obligatorio, usar privilegio admin, force-push o marcar PASS nativo inexistente | Prohibida; no propuesta de desbloqueo |
+
+**A — Observación no nativa, decisión y autorización propias.** Solicitud precisa al propietario: autorizar el diseño/revisión de una observación mínima dentro del MISMO job/workflow, conservando trigger pull_request_review:submitted y contents:read. Evento exclusivamente review comentada del owner, PR22/rama/repo/head exactos y texto de observación distinto de la autorización nativa. Registrar solo una whitelist no secreta: evento, ref, SHA de evento, GITHUB_WORKFLOW_REF/SHA, checkout C, hash M, PR/base/head, actor/id, run.id/attempt. Nunca volcar env/token ni importar harness/fixtures o llamar transporte/Docker/SQL/OpenBao. Las tres barreras NATIVAS continúan cerradas; la condición de observación debe ser distinta y mutuamente excluyente de la nativa. Salir después de guardar evidencia sanitizada. No añadir runner, workflow o permiso; cualquier actualización de bytes del workflow implica nueva integridad del manifiesto tras autorización y revisión, nunca editar el manifiesto histórico. Esto es una propuesta de cambio posterior, NO implementada ni una review enviada en esta intervención.
+
+Un job que permanece false no puede revelar su entorno; por ello solo lectura/API no cubre el dato ausente y hace falta autorización explícita de esa observación. No prometer observar W sin ningún cambio o evento. El diagnóstico no es activación ni permiso nativo. Si el modo de observación no resulta seleccionable o devuelve otro ref, registrar ese hecho y mantener bloqueo; proponer después la corrección mínima al contrato solo ante el desajuste confirmado.
+
+**B — Preparación/activación, autorización separada y todavía SIN ejecución.** Después de acreditar la resolución: solicitar permiso específico para preparar el cambio mínimo ya previsto de activación en el workflow/harness existentes, con gates de identidad/scope/hash intactos y sin alterar SQL/fixture. Publicar C_act, M_act, revisión independiente y checks estáticos. La sola publicación o review de código NO puede ejecutar PostgreSQL: solo el texto nativo exacto del propietario permitirá superar los guards. Mantener separado el texto de observación del texto de ejecución y probar su exclusión. No aplicar este cambio ahora.
+
+**C — Fijar la tupla FINAL y volver a observar, sin confundir W_diag con W_act.** Cambiar el workflow para activarlo cambia W y M: una observación de la versión de diagnóstico NO acredita el SHA final. Antes de autorizar SQL, finalizar todos los bytes, fijar base B_act, HEAD C_act, M_act y merge ref V_act; observar W_act/ref con modo no nativo autorizado de ESA misma definición final y sin llamar main nativo. Confirmar checkout C_act, W_act=SHA del evento, ref esperado, bytes de workflow en W_act iguales a C_act y los 34 hashes. Cualquier cambio de main/head/workflow/manifiesto, incluso documental, obliga a actualizar tupla y autorización; ninguna ventana de permiso abierto. No imponer artificiosamente C_act=W_act: C es checkout y W es definición, normalmente commit de merge para este evento.
+
+**D — Ejecución nativa, permiso NUEVO y explícito.** Solo con observación final válida y decisiones previas: propietario autoriza una ejecución exacta mediante la review real ligada a C_act, body literal del contrato `Execute owner-authorized SQL5-R3 candidate C manifest M workflow W; native isolated validation only.` con valores completos y scope SQL5_R3_ACCEPTANCE_HOSTED_EPHEMERAL_PG16. Debe cubrir dependencias SQL14/SQL1–4, candidato/fixture exactos, baseline sintético, runner GitHub-hosted, primer intento, PG16 propio efímero sin red/puertos/binds/volúmenes persistentes, roles/tenant/ACL/RLS/concurrencia/idempotencia/integridad, coste y limpieza sanitizada; no repetir suites históricas. No cambia ni consume aprobaciones anteriores. El preflight real comprueba otra vez la tupla antes de importar transporte. Divergencia o FAIL: parar, sin fallback.
+
+**E — Integración main, permiso SEPARADO y posterior a evidencia.** Registrar los resultados nativos reales por SHA/M/W, corregir FAIL solo con alcance y autorización nuevos, revisión independiente vigente y aceptación expresa de fingerprints. Marcar la casilla de engineering-policy únicamente con evidencia nativa auténtica; comprobar check remoto PASS y todos los controles de main ya leídos con acceso suficiente. Solicitar autorización explícita de merge sobre el SHA final; NO ejecutarla por este encargo. Después de un merge futuro autorizado: verificar main, obtener cierre formal R3 y solo entonces permitir R4. Una revisión técnica o aceptación del diseño no sustituye ninguno de esos permisos.
+
+##### 6. Decisiones exactas todavía requeridas al propietario
+
+1. Aportar lectura administrativa actual de main; no conceder bypass ni cambiar reglas para completar esa lectura.
+2. Aceptar o rechazar expresamente los cuatro fingerprints Gitleaks de fceffc3/manifiesto/líneas 34,35,46,49; siguen PENDIENTES, sin nuevas exclusiones.
+3. Aprobar o rechazar la vía pre-merge, con integración final posterior a pruebas y engineering-policy legítimamente FAIL solo por la casilla nativa durante preparación. No autorizar merge con ese FAIL.
+4. Autorizar separadamente el diseño/cambio y una observación no nativa exacta en el job existente, con whitelist y exclusión de servicios descritas en A. Sin ese permiso no ejecutar review de prueba ni modificar workflow.
+5. Tras ver evidencia de selección, autorizar preparación de activación acotada; revisión de C_act/M_act y observación final W_act/ref de esa versión. Ninguna autorización se presume de esta decisión documental.
+6. Emitir, solo entonces, permiso nativo exacto por C/M/W/scope/dependencias/fixture/aislamiento/limpieza; cualquier cambio invalida la tupla anterior.
+7. Tras pruebas/revisión vigentes y todos los controles satisfechos, autorizar por separado integración/merge y cierre. Si se exige integración previa, mantener bloqueo y solicitar antes una propuesta normativa/contractual revisada; esta intervención no cambia política ni protecciones.
+
+**Resultado de esta intervención:** PASS lectura de refs, bytes/contrato estático, rulesets visibles, resumen protegido de main y procedencia del artefacto histórico; NOT_VERIFIED protección clásica completa por 403; NOT_RECORDED W/ref histórico; NOT_VALIDATED W/ref real de PR22; FAIL legítimo engineering-policy, Quality PASS solo del SHA inicial citado; SKIP todo diagnóstico nuevo y ejecución nativa por falta de autorización. W/ref no queda activado ni certificado por publicar esta evidencia. Diff único TODO/R3, sin alterar otros módulos, cuerpo PR, SQL, fixture, manifiesto, harness, workflow, triggers, permisos o reglas. R3 OPEN/BLOCKED_FOR_NATIVE_VALIDATION, PR DRAFT, AUTH-GATE-05 OPEN y closedBackend conectado; sin PostgreSQL, SQL, Docker PostgreSQL, OpenBao, migraciones, fixtures nativos, despliegue, merge ni R4.
+
 - [ ] **R4 — Compatibilidad B1↔B2 y seguridad efectiva.** Confirmar firmas y permisos ejecutables, llamadas a funciones revocadas (AUD-013/024), comportamiento de aceptación de invitación y contrato `Idempotency-Key` (AUD-031); revisar tabla RLS/ACL de B2 (AUD-027) sin cambiar RLS a ciegas. Verificar audit trail entre tenants (AUD-033), caducidad absoluta y aceptación humana de parámetros (AUD-028), y contexto/performance (AUD-034). **Cierre:** defectos confirmados corregidos mínimamente, tests por tenant/rol, regresiones, contrato y autorización. No activar B1 ni B2 por este paso.
 - [ ] **R5 — Consolidar CI, runners y Playwright (AUD-002/003/014/042).** Identificar workflow único vigente y artefactos one-shot históricos, referencias de sus nombres/SHAs, consumidores, scripts y autorizaciones. Reutilizar mecanismos existentes y reducir solo armazones duplicados, sin cambiar la semántica de pruebas ni borrar logs/evidencias. Evaluar 35 configs Playwright por cobertura y selección real antes de retirar. **Cierre:** matriz old→new, no pérdida de casos/autorización/artefactos, CI local y remota equivalentes con gasto medido, rollback, nada huérfano.
 - [ ] **R6 — Retirar código obsoleto comprobado (AUD-008/021/024/036/039).** Solo después de tener sustitutos aceptados: grafo estático y referencias dinámicas de cada candidato; diferenciar runtime, tests, scripts manuales y revisiones de seguridad; migrar tests antes de borrar funciones o rutas. Los cuerpos efectivos de R14 y SQL histórico aprobado se conservan hasta la revisión formal correspondiente. **Cierre:** lista KEEP/REUSE/CONSOLIDATE/REMOVE por archivo, no referencias rotas, build/typecheck/seguridad/E2E pertinentes PASS.
