@@ -422,4 +422,251 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertNotIn('pull_request_target:',text);self.assertNotIn('workflow_dispatch:',text)
 
 
+class ActionsCondition:
+    """Evaluate this workflow's small expression subset, never Python eval.
+
+    This verifies Boolean routing under fixtures, not GitHub's actual W/ref.
+    YAML syntax is checked separately with the available YAML parser.
+    """
+    def __init__(self,text,context):
+        import re
+        text=text.strip()
+        if text.startswith('${{'):text=text[3:-2].strip()
+        pattern=r"'(?:[^']|'')*'|&&|\|\||==|!=|[(),]|[A-Za-z_][A-Za-z_0-9.]*|[0-9]+"
+        matches=list(re.finditer(pattern,text));self.tokens=[];at=0
+        for match in matches:
+            if text[at:match.start()].strip():raise ValueError('Unsupported condition')
+            self.tokens.append(match.group());at=match.end()
+        if text[at:].strip():raise ValueError('Unsupported condition')
+        self.at=0;self.context=context
+
+    def take(self,token):
+        if self.at<len(self.tokens) and self.tokens[self.at]==token:self.at+=1;return True
+        return False
+
+    def atom(self):
+        if self.take('('):
+            value=self.expression();assert self.take(')');return value
+        token=self.tokens[self.at];self.at+=1
+        if token.startswith("'"):return token[1:-1].replace("''", "'")
+        if token in ('true','false'):return token=='true'
+        if token.isdigit():return int(token)
+        if self.take('('):
+            args=[]
+            if not self.take(')'):
+                while True:
+                    args.append(self.expression())
+                    if self.take(')'):break
+                    assert self.take(',')
+            if token=='format':return args[0].format(*args[1:])
+            if token=='startsWith':return isinstance(args[0],str) and args[0].startswith(args[1])
+            if token=='endsWith':return isinstance(args[0],str) and args[0].endswith(args[1])
+            raise ValueError('Unsupported function')
+        value=self.context
+        for part in token.split('.'):value=value.get(part) if isinstance(value,dict) else None
+        return value
+
+    def comparison(self):
+        value=self.atom()
+        for op in ('==','!='):
+            if self.take(op):
+                other=self.atom();return value==other if op=='==' else value!=other
+        return value
+
+    def conjunction(self):
+        value=self.comparison()
+        while self.take('&&'):
+            other=self.comparison();value=bool(value) and bool(other)
+        return value
+
+    def expression(self):
+        value=self.conjunction()
+        while self.take('||'):
+            other=self.conjunction();value=bool(value) or bool(other)
+        return value
+
+    def evaluate(self):
+        value=self.expression();assert self.at==len(self.tokens);return bool(value)
+
+
+class R3DiagnosticTests(unittest.TestCase):
+    """Execute only the inline collector against synthetic data in tempdir.
+
+    Never submit a GitHub review, import a native fixture or run transport.
+    The sole subprocess is intercepted and must be a read-only Git HEAD query.
+    """
+    PREFIX='Observe owner-authorized SQL5-R3 workflow context candidate '
+
+    @classmethod
+    def setUpClass(cls):
+        import re,textwrap,ast
+        cls.workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        cls.job_condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',cls.workflow).group(1).split())
+        start=cls.workflow.index('      - name: Observe owner-authorized R3 workflow context without services')
+        block=cls.workflow[start:cls.workflow.index('      - name: Verify exact approved dependencies',start)]
+        cls.step_condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
+        cls.code=textwrap.dedent(block.split("          python - <<'PY'\n",1)[1].rsplit('          PY',1)[0])
+        cls.tree=ast.parse(cls.code)
+        # Reject an accidental process/API import before executing test code.
+        allowed={'hashlib','json','os','pathlib','re','subprocess'}
+        for node in ast.walk(cls.tree):
+            if isinstance(node,ast.Import):assert all(n.name in allowed for n in node.names)
+            if isinstance(node,ast.ImportFrom):assert node.module in allowed
+            if isinstance(node,ast.Call):
+                name=node.func.id if isinstance(node.func,ast.Name) else node.func.attr if isinstance(node.func,ast.Attribute) else ''
+                assert name not in {'eval','exec','__import__','load','connect','docker','sql','main','preflight','system','popen','Popen'}
+                if isinstance(node.func,ast.Attribute) and isinstance(node.func.value,ast.Name):
+                    if node.func.value.id=='os':raise AssertionError('No OS execution API permitted')
+                    if node.func.value.id=='subprocess':
+                        assert node.func.attr=='run'
+                        assert ast.literal_eval(node.args[0])==['git','--no-replace-objects','rev-parse','HEAD']
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)
+        for name in [runner.R3_MANIFEST,runner.R3_WORKFLOW]:
+            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,p)
+        self.event,self.env=event_context(22,runner.R3_CONTEXT['branch'],review=True)
+        self.event=json.loads(json.dumps(self.event))
+        self.event_path=self.root/'event.json'
+        self.env.update(GITHUB_EVENT_PATH=str(self.event_path),GITHUB_REPOSITORY_OWNER='novo34',
+                        GITHUB_REF='refs/pull/22/merge',GITHUB_SHA='2'*40,GITHUB_WORKFLOW_SHA='3'*40,
+                        GITHUB_WORKFLOW_REF='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/pull/22/merge',GITHUB_RUN_ID='123')
+        digest=hashlib.sha256((self.root/runner.R3_MANIFEST).read_bytes()).hexdigest()
+        self.event['review']['body']=self.PREFIX+'1'*40+f' manifest {digest}; metadata only, no services or SQL.'
+
+    def context(self,event=None,env=None):
+        event=self.event if event is None else event;env=self.env if env is None else env
+        return {'github':{'event':event,'event_name':env.get('GITHUB_EVENT_NAME'),
+                'repository':env.get('GITHUB_REPOSITORY'),'repository_id':env.get('GITHUB_REPOSITORY_ID'),
+                'repository_owner':env.get('GITHUB_REPOSITORY_OWNER'),'actor':env.get('GITHUB_ACTOR'),
+                'actor_id':env.get('GITHUB_ACTOR_ID'),'triggering_actor':env.get('GITHUB_TRIGGERING_ACTOR'),
+                'run_attempt':int(env.get('GITHUB_RUN_ATTEMPT','0')),'ref':env.get('GITHUB_REF')}}
+
+    def eligible(self,event=None,env=None):
+        return ActionsCondition(self.job_condition,self.context(event,env)).evaluate()
+
+    def collect(self,event=None,env=None,checkout=None):
+        event=self.event if event is None else event;env=self.env if env is None else env
+        self.event_path.write_text(json.dumps(event))
+        def git_only(args,**kwargs):
+            self.assertEqual(args,['git','--no-replace-objects','rev-parse','HEAD'])
+            self.assertTrue(kwargs['check']);self.assertTrue(kwargs['capture_output'])
+            return subprocess.CompletedProcess(args,0,stdout=(checkout or '1'*40)+'\n')
+        output=io.StringIO()
+        with contextlib.chdir(self.root),patch.dict(os.environ,env,clear=True),patch.object(subprocess,'run',side_effect=git_only) as commands,patch.object(runner,'load',side_effect=AssertionError('NO_NATIVE_TRANSPORT')) as transport,contextlib.redirect_stdout(output):
+            with self.assertRaises(SystemExit) as stopped:exec(compile(self.tree,'workflow-diagnostic-inline','exec'),{'__name__':'__main__'})
+            transport.assert_not_called()
+        path=self.root/'artifacts/b2-acceptance-r3/workflow-context.json'
+        report=json.loads(path.read_text()) if path.is_file() else None
+        return stopped.exception.code,report,output.getvalue(),commands.call_count
+
+    def test_synthetic_positive_keeps_C_event_and_W_distinct(self):
+        self.assertTrue(self.eligible())
+        self.assertTrue(ActionsCondition(self.step_condition,self.context()).evaluate())
+        code,report,stdout,count=self.collect();self.assertEqual(code,0);self.assertEqual(count,1)
+        self.assertEqual(report['result'],'OBSERVED');self.assertEqual(report['checkoutCommit'],'1'*40)
+        self.assertEqual(report['reviewCommit'],'1'*40);self.assertEqual(report['event']['sha'],'2'*40)
+        self.assertEqual(report['workflow']['sha'],'3'*40);self.assertEqual(report['nativeRefContract'],'MISMATCH')
+        self.assertEqual(report['nativeExecution'],'NOT_INVOKED')
+        self.assertEqual(json.loads(stdout),report)
+
+    def test_synthetic_merge_match_and_different_real_workflow_ref(self):
+        env=dict(self.env,GITHUB_WORKFLOW_SHA='2'*40)
+        self.assertEqual(self.collect(env=env)[1]['nativeRefContract'],'MATCH')
+        env['GITHUB_WORKFLOW_REF']='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/heads/main'
+        code,report,_,_=self.collect(env=env);self.assertEqual(code,0)
+        self.assertEqual(report['workflow']['ref'],env['GITHUB_WORKFLOW_REF'])
+        self.assertEqual(report['nativeRefContract'],'MISMATCH')
+
+    def test_job_and_runtime_reject_wrong_event_actor_or_scope(self):
+        mutations=[('action','edited'),('sender.id',9),('review.user.id',9),('review.user.login','bot'),
+                   ('review.state','approved'),('review.commit_id','4'*40),('pull_request.number',12),
+                   ('pull_request.state','closed'),('pull_request.base.ref','staging'),
+                   ('pull_request.base.repo.id',9),('pull_request.head.repo.id',9),
+                   ('pull_request.head.repo.full_name','other/repo'),('pull_request.head.repo.fork',True),
+                   ('pull_request.head.ref','feat/b2-users-access')]
+        for name,value in mutations:
+            with self.subTest(field=name):
+                e=json.loads(json.dumps(self.event));target=e;parts=name.split('.')
+                for part in parts[:-1]:target=target[part]
+                target[parts[-1]]=value
+                self.assertFalse(self.eligible(e));code,report,stdout,count=self.collect(e)
+                self.assertEqual(code,1);self.assertEqual(report['result'],'FAIL');self.assertEqual(count,0)
+                self.assertEqual(set(report),{'schemaVersion','scope','result','reason'})
+
+    def test_environment_reruns_and_unrelated_repository_are_rejected(self):
+        values=[('GITHUB_EVENT_NAME','push'),('GITHUB_EVENT_NAME','pull_request_target'),
+                ('GITHUB_EVENT_NAME','workflow_dispatch'),('GITHUB_REPOSITORY','other/repo'),
+                ('GITHUB_REPOSITORY_ID','9'),('GITHUB_REPOSITORY_OWNER','other'),
+                ('GITHUB_ACTOR','bot'),('GITHUB_ACTOR_ID','9'),('GITHUB_TRIGGERING_ACTOR','bot'),
+                ('GITHUB_RUN_ATTEMPT','2'),('GITHUB_REF','refs/heads/main')]
+        for key,value in values:
+            with self.subTest(key=key):
+                env=dict(self.env,**{key:value});self.assertFalse(self.eligible(env=env))
+                code,_,_,count=self.collect(env=env);self.assertEqual(code,1);self.assertEqual(count,0)
+        for key,value in [('RUNNER_ENVIRONMENT','self-hosted'),('GITHUB_ACTIONS','false'),('GITHUB_HEAD_REF','main')]:
+            self.assertEqual(self.collect(env=dict(self.env,**{key:value}))[0],1)
+
+    def test_exact_review_manifest_body_is_required_not_just_job_prefix(self):
+        original=self.event['review']['body']
+        for body in [original.replace(' manifest ',' manifest '+'0'*64+' '),original+' ',
+                     '@codex review','Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.',
+                     'Execute owner-authorized SQL5-R3 candidate '+'1'*40+' manifest '+'0'*64+' workflow '+'2'*40+'; native isolated validation only.']:
+            self.event['review']['body']=body
+            code,report,_,count=self.collect();self.assertEqual(code,1);self.assertEqual(count,0)
+            self.assertEqual(report['result'],'FAIL')
+        self.event['review']['body']=original
+
+    def test_missing_context_or_fabricated_references_never_fall_back(self):
+        for key in ['GITHUB_WORKFLOW_SHA','GITHUB_WORKFLOW_REF','GITHUB_SHA','GITHUB_RUN_ID']:
+            env=dict(self.env);env.pop(key);self.assertEqual(self.collect(env=env)[0],1)
+        for key,value in [('GITHUB_WORKFLOW_SHA','main'),('GITHUB_SHA','short'),('GITHUB_RUN_ID','0'),
+                          ('GITHUB_WORKFLOW_REF','other/repo/workflow.yml@refs/heads/main'),
+                          ('GITHUB_WORKFLOW_REF','novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/heads/arbitrary')]:
+            self.assertEqual(self.collect(env=dict(self.env,**{key:value}))[0],1)
+        self.assertEqual(self.collect(checkout='4'*40)[0],1)
+
+    def test_changed_workflow_or_manifest_is_rejected(self):
+        path=self.root/runner.R3_WORKFLOW;raw=path.read_bytes();path.write_bytes(raw+b'\n')
+        self.assertEqual(self.collect()[0],1);path.write_bytes(raw)
+        path=self.root/runner.R3_MANIFEST;raw=path.read_bytes();path.write_bytes(raw+b'\n')
+        self.assertEqual(self.collect()[0],1);path.write_bytes(raw)
+
+    def test_secret_values_and_payload_are_never_emitted(self):
+        env=dict(self.env,OPENBAO_TOKEN='SYNTHETIC_PRIVATE_DO_NOT_EMIT',DATABASE_URL='SYNTHETIC_PRIVATE_DO_NOT_EMIT')
+        code,report,stdout,_=self.collect(env=env);self.assertEqual(code,0)
+        self.assertNotIn('SYNTHETIC_PRIVATE_DO_NOT_EMIT',stdout+json.dumps(report))
+        self.assertNotIn('body',report);self.assertNotIn('user',report)
+        self.event['review']['body']='SYNTHETIC_PRIVATE_DO_NOT_EMIT'
+        code,report,stdout,_=self.collect(env=env);self.assertEqual(code,1)
+        self.assertNotIn('SYNTHETIC_PRIVATE_DO_NOT_EMIT',stdout+json.dumps(report))
+
+    def test_symlink_inputs_are_rejected_without_metadata(self):
+        path=self.root/runner.R3_MANIFEST;raw=path.read_bytes();path.unlink()
+        target=self.root/'outside-manifest';target.write_bytes(raw);path.symlink_to(target)
+        code,report,_,count=self.collect();self.assertEqual(code,1);self.assertEqual(count,0)
+        self.assertEqual(report['result'],'FAIL')
+
+    def test_R2_native_R3_and_diagnostic_routes_are_disjoint(self):
+        import re
+        r2,_=event_context();r2['review']={'commit_id':'1'*40,'user':{'login':'novo34','id':17856013},
+            'body':'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.'}
+        r2['pull_request']['head']['sha']='1'*40
+        self.assertTrue(self.eligible(r2))
+        self.assertFalse(ActionsCondition(self.step_condition,self.context(r2)).evaluate())
+        native=json.loads(json.dumps(self.event));native['review']['body']='Execute owner-authorized SQL5-R3 candidate '+'1'*40+' manifest '+'0'*64+' workflow '+'2'*40+'; native isolated validation only.'
+        self.assertFalse(self.eligible(native))
+        for name in ['Verify exact approved dependencies and hosted scope without SQL','Verify exact SQL5-R2 approval before isolated PG16 execution']:
+            at=self.workflow.index('      - name: '+name);block=self.workflow[at:].split('      - name:',2)[1]
+            condition=next(l.strip()[4:] for l in block.splitlines() if l.strip().startswith('if:'))
+            self.assertFalse(ActionsCondition(condition,self.context()).evaluate())
+            self.assertTrue(ActionsCondition(condition,self.context(r2)).evaluate())
+        at=self.workflow.index('      - name: R3 canonical entrypoint');block=self.workflow[at:].split('      - name:',2)[1]
+        condition=next(l.strip()[4:] for l in block.splitlines() if l.strip().startswith('if:'))
+        self.assertFalse(ActionsCondition(condition,self.context()).evaluate())
+        self.assertFalse(ActionsCondition(condition,self.context(native)).evaluate())
+        self.assertFalse(runner.R3_NATIVE_ENABLED)
+
+
 if __name__=='__main__':unittest.main()
