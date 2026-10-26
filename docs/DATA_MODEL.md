@@ -153,3 +153,18 @@ Se deriva del listado §117 del Product Master y requisitos de CRM/Radar/Opportu
 ## Entidad faltante detectada: `StaffingRequirement` (modelo lógico pendiente de implementación)
 
 Una obra/servicio o ventana de planificación podrá declarar necesidades de cobertura por fecha/franja, cantidad de personas, capacidades exigidas y restricciones normativas. `StaffingRequirement` pertenece a tenant y WorkEngagement/servicio, se vincula a propuestas y asignaciones, guarda versiones y auditoría; ningún motor publicará turnos sin comprobar disponibilidad, GAV/CCT y autorización de las asignaciones. La elección física de tablas/columnas es diseño pendiente, no migración ejecutada.
+
+## Ampliación lógica de presupuestos — 2026-10-26
+
+Fuente: SRS §13.1 REQ-CALC-001…012. DESIGN_ONLY, no DDL. Extender OfferVersion y SiteVisit; reutilizar ComplianceRuleSet, documentos, auditoría y controles tenant. Objetos lógicos candidatos, no tablas decididas:
+
+| Objeto / owner | Datos y ciclo | Consumidor / fase |
+|---|---|---|
+| Perfil de presupuesto / Comercial-Finanzas | Tenant, versión, parámetros con unidad/base/moneda, fuente, región/categoría, vigencia, revisión/aprobación; borrador → aprobado → sustituido, historia preservada | Configuración → Presupuestos / 10 |
+| Tarea y rendimiento / Comercial-Operaciones | Servicio, método/suelo/equipo, unidad, rendimiento, dificultad, origen y versión; valores propios separados de referencia | Catálogo y cálculo / 10 |
+| Raumbuch y posiciones / Comercial | Tenant, inmueble/visita, zonas, cantidades/tareas/frecuencias, cristales/caras, mediciones y anexos versionados | Visita y editor oferta / 9–10 |
+| Snapshot de cálculo / Oferta | OfferVersion, entradas resueltas copiadas, reglas/perfiles/rendimientos, calendario, motor/redondeo, desglose y resultados; sellado con versión emitida | Editor, comparación, PDF interno/cliente / 10 |
+| Excepción comercial / Oferta | Versión exacta, umbral, motivo, solicitante/aprobador y decisión; edición económica invalida aprobación anterior | Negociación / 10 |
+| Comparación estimado-real / Comercial-Finanzas | Snapshot aceptado y fuentes operativas por tarea/zona/periodo/alcance, cobertura/provisionalidad; rendimiento sugerido sujeto a aprobación | Rentabilidad / 16–18 |
+
+Vínculos y consultas deben incluir tenant; no referencias cruzadas a perfiles de otra empresa. No eliminar versiones referenciadas: aplicar retención/legal hold existentes y preservar reproducibilidad. Snapshot interno restringido independiente del PDF cliente. No duplicar salarios individuales ni timesheets: enlazar fuentes autorizadas y copiar solo lo necesario para evidencia económica conforme clasificación/retención. Costes reales no reescriben estimaciones. Diseño físico/API se concretará en la fase autorizada.
