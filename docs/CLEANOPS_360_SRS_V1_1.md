@@ -269,6 +269,38 @@ Plantillas: Baureinigung, Bauendreinigung, Fensterreinigung, Spezialreinigung, S
 
 ---
 
+## 13.1. Presupuestos y cálculo de rentabilidad — ampliación 2026-10-26
+
+Autorizada por el propietario para incorporación documental. Estado: `DESIGN_ONLY`; no implementado ni aceptado operativamente. Requisitos nuevos, sin renumerar REQ-OFF ni las 26 decisiones históricas. Detalle funcional y casos verificables en `OFFERS_AND_NEGOTIATION_SPEC.md`.
+
+**REQ-CALC-001 — Configuración por empresa.** Panel Configuración → Presupuestos con perfiles versionados de salarios y cargas, seguros, vacaciones, festivos, 13.º salario, horas productivas, gastos generales, materiales, equipos, transporte, márgenes, descuentos, impuestos, calendario, unidades y redondeo; sin constantes económicas ocultas.
+
+**REQ-CALC-002 — Vigencia y cumplimiento.** Cada parámetro tiene unidad, base de aplicación, moneda cuando proceda, origen, región/categoría, vigencia, autor y estado de revisión. Reutilizar ComplianceRuleSet; no activar reglas legales no verificadas ni permitir que un override rebaje mínimos obligatorios. Ausencia/conflicto normativo bloquea emitir la oferta afectada; se permite borrador marcado incompleto.
+
+**REQ-CALC-003 — Catálogo de rendimientos.** Catálogo tenant de servicios/tareas, unidades, métodos, superficies, maquinaria, dificultad y rendimientos versionados; distinguir m²/h, min/unidad y horas fijas. Valores importados son referencias revisables, nunca estándares legales ni valores propios acreditados automáticamente.
+
+**REQ-CALC-004 — Raumbuch.** Ficha de inmueble reutiliza SiteVisit/documentos: zonas/salas, cantidades, unidad, suelo, tareas, frecuencia, cristales y caras, accesibilidad, suciedad y exclusiones. Guardar medición/origen y revisión; impedir doble conteo de áreas y caras; permitir captura progresiva y anexo contractual versionado.
+
+**REQ-CALC-005 — Coste completo.** Calcular horas-persona y costes laborales, preparación, desplazamientos, materiales, maquinaria/amortización y gastos generales con desglose y bases explícitas. Cada coste se contabiliza una sola vez; diferenciar coste de hora pagada y productiva, tarifa de venta y coste. No usar salario neto como coste empresarial ni deducciones del empleado como sobrecoste patronal.
+
+**REQ-CALC-006 — Precio y negociación.** Mostrar coste total, precio neto, beneficio previsto, margen sobre venta y recargo sobre coste por separado; variantes de alcance/frecuencia/precio/descuento. Umbrales y precio de retirada configurables; excepción comercial exige permiso y motivo auditado, nunca omite controles legales. Si faltan costes, mostrar margen no disponible; bloquear emisión como cálculo completo, sin inventar cero.
+
+**REQ-CALC-007 — Recurrencia presupuestaria.** Calcular visitas y horas por calendario, frecuencia, inicio/fin, festivos, cierres y servicios periódicos. Distinguir mensualidad nivelada de cobro por intervenciones y mostrar reparto/reconciliación. No activar contrato, Planning ni facturación al simular; reutilizar sus motores cuando estén disponibles.
+
+**REQ-CALC-008 — Snapshots y ajustes.** Toda versión de oferta conserva entradas, ajustes justificados, versiones de reglas/perfiles/rendimientos, calendario, motor, política de redondeo y resultados. Cambios de configuración solo afectan nuevos cálculos solicitados; nunca alteran versiones emitidas/aceptadas. Control de concurrencia en borradores y ajustes por oferta dentro de límites normativos.
+
+**REQ-CALC-009 — Oferta y confidencialidad.** Vista previa y PDF incluyen emisor/cliente/inmueble, objeto, alcance/tareas/frecuencias, cantidades/unidades, precios/descuentos/impuestos/totales, calendario/plazos, condiciones de pago y validez, exclusiones y anexos versionados. Separar documento cliente de cálculo interno; no exportar salarios, costes ni márgenes sin permiso y selección explícita.
+
+**REQ-CALC-010 — Permisos y disponibilidad.** Aislar configuración/catálogos/cálculos/exportaciones por tenant. Separar permisos efectivos para configurar, ver costes, ver margen, presupuestar y aprobar excepciones. Disponibilidad comercial del módulo no concede permisos; desactivación conserva historial y acceso autorizado contractual, sin borrar datos ni modificar ofertas.
+
+**REQ-CALC-011 — Estimado frente a real.** Con módulos operativos aceptados, comparar snapshot aceptado con horas/costes reales por tarea/zona/periodo y alcance comparable; separar horas trabajadas/validadas/facturadas/cobradas e ingresos de caja. Mostrar desviaciones, cobertura de datos y rentabilidad provisional/final. Proponer nuevos rendimientos con evidencia y aprobación humana; no actualizar catálogo ni presupuestos automáticamente.
+
+**REQ-CALC-012 — Exactitud y aceptación.** Aritmética decimal, validación de unidades, denominadores, moneda y redondeo explícito; pruebas unitarias, integración y E2E UI→API→persistencia→PDF con aislamiento/permisos, vigencia, snapshots, concurrencia, recurrencia, descuento y ausencia de datos. La IA solo asiste; decisiones económicas siguen siendo humanas.
+
+Entrega secuencial: REQ-CALC-001…010/012 pertenecen al alcance presupuestario de fase 10; REQ-CALC-011 es integración posterior con fases 16–18, sin exigir construir esos módulos anticipadamente. Cierre presupuestario no equivale al cierre de rentabilidad real.
+
+---
+
 # 14. Conversión a WorkEngagement
 
 **REQ-WE-001.** Al ejecutar la acción `Accept` sobre una oferta (REQ-OFF-004), el sistema deberá transicionar de forma automática e inmediata la `Opportunity` asociada a `Won`, registrar la transición en el historial y auditar quién aceptó la oferta.
