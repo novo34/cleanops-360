@@ -35,6 +35,8 @@
 | `G-SVC-ONE` | `ONE_OFF_SERVICE_SPEC.md` | Flujo de servicio puntual completo con controles de facturación | Operations | Antes de activar servicio puntual | ABIERTO — evidencia pendiente |
 | `G-SVC-MAINT` | `MAINTENANCE_CONTRACT_SPEC.md` | Contrato mantenimiento, recurrencia y renovaciones controladas | Operations / Contracts | Antes de activar mantenimiento | ABIERTO — evidencia pendiente |
 
-**Total: 30 gates distintos.**
+| `COST-GATE-01` | `CLEANOPS_360_SRS_V1_1.md` §13.1; `OFFERS_AND_NEGOTIATION_SPEC.md` | Cálculo estimado reproducible con parámetros/fuentes aplicables aprobados y CALC-01…08/10 probados E2E, sin fugas de costes en PDF cliente | Comercial / Finance / Compliance / QA | Antes de aceptar cálculo presupuestario fase 10 o emitir ofertas calculadas reales | ABIERTO — diseño, implementación y evidencia pendientes |
+
+**Total: 31 gates distintos.**
 
 Se prohíbe aceptar un gate por coincidencia de palabras. La aceptación requiere evidencia, revisión de seguridad y, cuando corresponda, pruebas reales con la funcionalidad integrada.
