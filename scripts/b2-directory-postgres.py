@@ -58,7 +58,8 @@ R3_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.r3-candidate.r
 R3_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.r3-candidate.review.py'
 R3_MANIFEST = 'docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json'
 R3_WORKFLOW = '.github/workflows/b2-acceptance-r2-postgres.yml'
-# Deliberately closed in this static delivery, independently of any event/review.
+# Independent final barrier: reviewed workflow routing cannot enable native execution.
+# Removing it requires separate owner activation approval and new C/M/W/B bytes.
 R3_NATIVE_ENABLED = False
 R3_CONTEXT = {
     'repository': 'novo34/cleanops-360', 'repositoryId': 1412999204,
@@ -184,6 +185,8 @@ def execution_context(scope):
                     and review['commit_id'] == pr['head']['sha']):
                 raise RuntimeError('EXACT_OWNER_REVIEW_REQUIRED')
             if scope == 'sql5-r3':
+                if not re.fullmatch(r'[1-9][0-9]*', env.get('GITHUB_RUN_ID', '')):
+                    raise RuntimeError('EXACT_R3_RUN_REQUIRED')
                 submitted = review.get('submitted_at')
                 try:
                     if not isinstance(submitted, str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z', submitted):
@@ -217,10 +220,11 @@ def authorize_r3():
         raise RuntimeError('EXACT_R3_MANIFEST_REQUIRED')
     candidate = event['review']['commit_id']
     workflow = os.environ.get('GITHUB_WORKFLOW_SHA', '')
-    if not all(re.fullmatch(r'[0-9a-f]{40}', value or '') for value in (candidate, workflow)):
+    base = event['pull_request']['base'].get('sha', '')
+    if not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{40}', value) for value in (candidate, workflow, base)):
         raise RuntimeError('EXACT_R3_REFERENCE_REQUIRED')
     digest = hashlib.sha256(raw).hexdigest()
-    expected_body = f'Execute owner-authorized SQL5-R3 candidate {candidate} manifest {digest} workflow {workflow}; native isolated validation only.'
+    expected_body = f'Execute owner-authorized SQL5-R3 candidate {candidate} manifest {digest} workflow {workflow} base {base}; native isolated validation only.'
     if event['review']['body'] != expected_body:
         raise RuntimeError('NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
     head = subprocess.run(['git','--no-replace-objects','rev-parse','HEAD'], cwd=ROOT, capture_output=True)
@@ -241,6 +245,24 @@ def authorize_r3():
             raise RuntimeError('UNEXPECTED_FIXED_DEPENDENCY_CHANGE')
     if git_bytes(workflow, R3_WORKFLOW, fetch_workflow=True) != artifact_bytes(R3_WORKFLOW):
         raise RuntimeError('EXACT_R3_WORKFLOW_BYTES_REQUIRED')
+    # W is an exact merge snapshot, never a mutable-ref replacement for C or B.
+    try:
+        parents = subprocess.run(['git','--no-replace-objects','rev-list','--parents','-n','1',workflow],
+                                 cwd=ROOT, capture_output=True, timeout=15)
+        if parents.returncode or parents.stdout.split() != [value.encode() for value in (workflow, base, candidate)]:
+            raise RuntimeError('EXACT_R3_MERGE_PARENTS_REQUIRED')
+        expected_refs = {b'refs/heads/main':base.encode(),
+                         ('refs/heads/'+R3_CONTEXT['branch']).encode():candidate.encode(),
+                         b'refs/pull/22/merge':workflow.encode()}
+        refs = subprocess.run(['git','--no-replace-objects','ls-remote','--exit-code',
+            'https://github.com/novo34/cleanops-360.git',*(name.decode() for name in expected_refs)],
+            cwd=ROOT, capture_output=True, timeout=30)
+        lines = [line.split(b'\t') for line in refs.stdout.splitlines()]
+        if (refs.returncode or len(lines) != 3 or any(len(line) != 2 for line in lines)
+                or {name:sha for sha,name in lines} != expected_refs):
+            raise RuntimeError('CURRENT_R3_REFERENCES_REQUIRED')
+    except (OSError, subprocess.SubprocessError):
+        raise RuntimeError('CURRENT_R3_REFERENCES_REQUIRED') from None
     historical_raw = git_bytes(COMPOSITION_REFERENCE, COMPOSITION_MANIFEST)
     if (hashlib.sha256(historical_raw).hexdigest() != COMPOSITION_MANIFEST_SHA
             or artifact_bytes(COMPOSITION_MANIFEST) != historical_raw):
@@ -282,7 +304,7 @@ def authorize_r3():
     if execution_context('sql5-r3') != event:
         raise RuntimeError('UNCHANGED_R3_REVIEW_CONTEXT_REQUIRED')
     return {'tests':R3_FIXTURE, 'packages':['access','users'], 'authorization':{
-        'candidate':candidate, 'manifestSha256':digest, 'workflow':workflow,
+        'candidate':candidate, 'manifestSha256':digest, 'workflow':workflow, 'base':base,
         'reviewId':event['review']['id'], 'reviewBodySha256':hashlib.sha256(expected_body.encode()).hexdigest(),
         'runId':os.environ.get('GITHUB_RUN_ID'), 'attempt':1,
     }}

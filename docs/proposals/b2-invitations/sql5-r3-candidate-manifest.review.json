@@ -20,7 +20,7 @@
     "sql5R2Sha256": "eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9"
   },
   "files": {
-    ".github/workflows/b2-acceptance-r2-postgres.yml": "f3b78481073e0b423749bbaf5099a9ed225ab12e5098b6d9c4f14d10cdcf24fd",
+    ".github/workflows/b2-acceptance-r2-postgres.yml": "8bd460cf4e0103f2c7c83bc27577f39126754d76b91979690ac37c841147f5fb",
     "docs/RBAC_PERMISSIONS.md": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3",
     "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json": "b459e9ec99c17da411fef8d482a50c8feb6f565f89ae44b456162b71aecc0b2d",
     "docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json": "79a06ff669f518c8534252a2314ffc5e79553eb470c4ccb8cff4ef4957403e5d",
@@ -49,7 +49,7 @@
     "playwright.b2-access-postgres.config.ts": "83237058780991aad9c93f2b094c9f504e1d6116d1766b8840559c1d24c440bf",
     "playwright.b2-users-postgres.config.ts": "5b7259656591d0a4e9a4ae47dde3ba1dc7a939c9d58a0a637337f4ae0df18798",
     "scripts/b2-browser-backend.ts": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272",
-    "scripts/b2-directory-postgres.py": "596d7a37fa721edda6d5313606e0398d21bcd8cebe26852900fb5ac2db6f7f01",
+    "scripts/b2-directory-postgres.py": "a5e90240a8a73addebde0ceab3295c7e327f785052d9cbe148fc57a3252e883f",
     "scripts/b2-real-browser-server.mjs": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944",
     "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
     "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",

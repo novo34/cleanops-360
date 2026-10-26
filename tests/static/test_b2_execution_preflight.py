@@ -169,6 +169,7 @@ class R3ContractTests(unittest.TestCase):
             ['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT)
             for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
         self.event,env=event_context(22,runner.R3_CONTEXT['branch'],review=True)
+        self.event['pull_request']['base']['sha']='4'*40
         env.update(GITHUB_REF='refs/pull/22/merge',GITHUB_WORKFLOW_SHA='2'*40,GITHUB_SHA='2'*40,
                    GITHUB_WORKFLOW_REF='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/pull/22/merge',GITHUB_RUN_ID='123')
         self.event_path=self.root/'event.json';env['GITHUB_EVENT_PATH']=str(self.event_path)
@@ -191,12 +192,20 @@ class R3ContractTests(unittest.TestCase):
         raise AssertionError('Unexpected Git reference')
 
     def git_head(self,args,**kwargs):
+        if args==['git','--no-replace-objects','rev-list','--parents','-n','1','2'*40]:
+            return subprocess.CompletedProcess(args,0,stdout=('2'*40+' '+'4'*40+' '+'1'*40+'\n').encode())
+        if 'ls-remote' in args:
+            self.assertEqual(args,['git','--no-replace-objects','ls-remote','--exit-code',
+                'https://github.com/novo34/cleanops-360.git','refs/heads/main',
+                'refs/heads/'+runner.R3_CONTEXT['branch'],'refs/pull/22/merge'])
+            return subprocess.CompletedProcess(args,0,stdout=(
+                '4'*40+'\trefs/heads/main\n'+'1'*40+'\trefs/heads/'+runner.R3_CONTEXT['branch']+'\n'+'2'*40+'\trefs/pull/22/merge\n').encode())
         self.assertEqual(args,['git','--no-replace-objects','rev-parse','HEAD'])
         return subprocess.CompletedProcess(args,0,stdout=b'1'*40+b'\n')
 
     def refresh_review(self):
         raw=(self.root/runner.R3_MANIFEST).read_bytes()
-        self.event['review']['body']=f"Execute owner-authorized SQL5-R3 candidate {'1'*40} manifest {hashlib.sha256(raw).hexdigest()} workflow {'2'*40}; native isolated validation only."
+        self.event['review']['body']=f"Execute owner-authorized SQL5-R3 candidate {'1'*40} manifest {hashlib.sha256(raw).hexdigest()} workflow {'2'*40} base {'4'*40}; native isolated validation only."
         self.write_event()
 
     def write_event(self):self.event_path.write_text(json.dumps(self.event))
@@ -221,6 +230,66 @@ class R3ContractTests(unittest.TestCase):
     def test_valid_authorization_still_cannot_activate_native_in_this_delivery(self):
         self.assertFalse(runner.R3_NATIVE_ENABLED)
         self.assertEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+        report=json.loads((self.root/'artifacts/b2-acceptance-r3/report.json').read_text())
+        self.assertEqual(report['authorization']['base'],'4'*40)
+
+    def test_base_is_mandatory_exact_and_bound_in_review(self):
+        good=json.dumps(self.event)
+        for value in [None,'','short','5'*40]:
+            with self.subTest(base=value):
+                self.event=json.loads(good);self.event['pull_request']['base']['sha']=value;self.write_event()
+                self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+        self.event=json.loads(good)
+        self.event['review']['body']=self.event['review']['body'].replace(' base '+'4'*40,'')
+        self.write_event()
+        self.assertEqual(self.reject_before_transport(),'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
+
+    def test_W_must_have_exact_B_then_C_as_its_only_parents(self):
+        for parents in [('2'*40,'1'*40,'4'*40),('2'*40,'5'*40,'1'*40),
+                        ('2'*40,'4'*40),('2'*40,'4'*40,'1'*40,'5'*40)]:
+            def changed(args,**kwargs):
+                if 'rev-list' in args:return subprocess.CompletedProcess(args,0,stdout=(' '.join(parents)+'\n').encode())
+                return self.git_head(args,**kwargs)
+            with self.subTest(parents=parents),patch.object(runner.subprocess,'run',side_effect=changed):
+                self.assertEqual(self.reject_before_transport(),'EXACT_R3_MERGE_PARENTS_REQUIRED')
+
+    def test_current_refs_must_match_all_three_pinned_commits(self):
+        good=self.git_head(['git','--no-replace-objects','ls-remote','--exit-code',
+            'https://github.com/novo34/cleanops-360.git','refs/heads/main',
+            'refs/heads/'+runner.R3_CONTEXT['branch'],'refs/pull/22/merge']).stdout
+        variants=[good.replace(value.encode(),b'5'*40) for value in ['1'*40,'2'*40,'4'*40]]
+        variants += [b'',b'malformed\n',good.splitlines(True)[0]*3,good+good.splitlines(True)[0]]
+        for output in variants:
+            def changed(args,**kwargs):
+                if 'ls-remote' in args:return subprocess.CompletedProcess(args,0,stdout=output)
+                return self.git_head(args,**kwargs)
+            with self.subTest(output=output),patch.object(runner.subprocess,'run',side_effect=changed):
+                self.assertEqual(self.reject_before_transport(),'CURRENT_R3_REFERENCES_REQUIRED')
+
+    def test_unavailable_refs_fail_without_logging_remote_output(self):
+        for failure in [subprocess.CompletedProcess([],1,stdout=b'',stderr=b'synthetic-private-value'),
+                        subprocess.TimeoutExpired('git',30),OSError('synthetic-private-value')]:
+            def changed(args,**kwargs):
+                if 'ls-remote' in args:
+                    if isinstance(failure,Exception):raise failure
+                    return failure
+                return self.git_head(args,**kwargs)
+            with self.subTest(failure=type(failure).__name__),patch.object(runner.subprocess,'run',side_effect=changed):
+                self.assertEqual(self.reject_before_transport(),'CURRENT_R3_REFERENCES_REQUIRED')
+                self.assertNotIn('synthetic-private-value',(self.root/'artifacts/b2-acceptance-r3/report.json').read_text())
+
+    def test_native_flag_is_single_literal_false_in_reviewed_source(self):
+        import ast
+        tree=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        assignments=[node for node in ast.walk(tree) if isinstance(node,ast.Assign)
+                     and any(isinstance(target,ast.Name) and target.id=='R3_NATIVE_ENABLED' for target in node.targets)]
+        self.assertEqual(len(assignments),1)
+        self.assertIs(ast.literal_eval(assignments[0].value),False)
+
+    def test_run_id_cannot_be_missing_or_fabricated(self):
+        for value in ['', '0','-1','123x']:
+            with self.subTest(run=value),patch.dict(os.environ,{'GITHUB_RUN_ID':value}):
+                self.assertEqual(self.reject_before_transport(),'EXACT_R3_RUN_REQUIRED')
 
     def test_missing_merge_object_rejects_before_transport_even_with_exact_review(self):
         def available(reference,name,**kwargs):
@@ -473,8 +542,8 @@ class R3SqlArtifactTests(unittest.TestCase):
 
     def test_native_workflow_branch_is_explicitly_closed_and_has_single_entrypoint(self):
         text=(ROOT/runner.R3_WORKFLOW).read_text()
-        self.assertIn('(false && github.event.pull_request.number == 22',text)
-        self.assertIn('if: ${{ false }}',text)
+        self.assertFalse(runner.R3_NATIVE_ENABLED)
+        self.assertIn('R3_NATIVE_ENABLED=False remains an independent',text)
         self.assertEqual(text.count('python scripts/b2-directory-postgres.py --package sql5-r3'),1)
         self.assertNotIn('pull_request_target:',text);self.assertNotIn('workflow_dispatch:',text)
 
@@ -625,17 +694,19 @@ class ActionsCondition:
     def conjunction(self):
         value=self.comparison()
         while self.take('&&'):
-            other=self.comparison();value=bool(value) and bool(other)
+            other=self.comparison();value=other if value else value
         return value
 
     def expression(self):
         value=self.conjunction()
         while self.take('||'):
-            other=self.conjunction();value=bool(value) or bool(other)
+            other=self.conjunction();value=value if value else other
         return value
 
-    def evaluate(self):
-        value=self.expression();assert self.at==len(self.tokens);return bool(value)
+    def evaluate_value(self):
+        value=self.expression();assert self.at==len(self.tokens);return value
+
+    def evaluate(self):return bool(self.evaluate_value())
 
 
 class R3DiagnosticTests(unittest.TestCase):
@@ -804,8 +875,10 @@ class R3DiagnosticTests(unittest.TestCase):
         r2['pull_request']['head']['sha']='1'*40
         self.assertTrue(self.eligible(r2))
         self.assertFalse(ActionsCondition(self.step_condition,self.context(r2)).evaluate())
-        native=json.loads(json.dumps(self.event));native['review']['body']='Execute owner-authorized SQL5-R3 candidate '+'1'*40+' manifest '+'0'*64+' workflow '+'2'*40+'; native isolated validation only.'
-        self.assertFalse(self.eligible(native))
+        native=json.loads(json.dumps(self.event));native['pull_request']['base']['sha']='4'*40
+        native['review']['body']='Execute owner-authorized SQL5-R3 candidate '+'1'*40+' manifest '+'0'*64+' workflow '+'2'*40+' base '+'4'*40+'; native isolated validation only.'
+        self.assertTrue(self.eligible(native))
+        self.assertFalse(ActionsCondition(self.step_condition,self.context(native)).evaluate())
         for name in ['Verify exact approved dependencies and hosted scope without SQL','Verify exact SQL5-R2 approval before isolated PG16 execution']:
             at=self.workflow.index('      - name: '+name);block=self.workflow[at:].split('      - name:',2)[1]
             condition=next(l.strip()[4:] for l in block.splitlines() if l.strip().startswith('if:'))
@@ -814,8 +887,34 @@ class R3DiagnosticTests(unittest.TestCase):
         at=self.workflow.index('      - name: R3 canonical entrypoint');block=self.workflow[at:].split('      - name:',2)[1]
         condition=next(l.strip()[4:] for l in block.splitlines() if l.strip().startswith('if:'))
         self.assertFalse(ActionsCondition(condition,self.context()).evaluate())
-        self.assertFalse(ActionsCondition(condition,self.context(native)).evaluate())
+        self.assertTrue(ActionsCondition(condition,self.context(native)).evaluate())
+        self.assertFalse(ActionsCondition(condition,self.context(r2)).evaluate())
         self.assertFalse(runner.R3_NATIVE_ENABLED)
+
+    def test_prepared_native_route_rejects_ordinary_and_old_reviews(self):
+        good=json.loads(json.dumps(self.event));good['pull_request']['base']['sha']='4'*40
+        good['review']['body']='Execute owner-authorized SQL5-R3 candidate '+'1'*40+' manifest '+'0'*64+' workflow '+'2'*40+' base '+'4'*40+'; native isolated validation only.'
+        self.assertTrue(self.eligible(good))
+        for body in ['@codex review','LGTM','',good['review']['body'].replace(' base '+'4'*40,''),
+                     good['review']['body'].replace('4'*40,'5'*40)]:
+            event=json.loads(json.dumps(good));event['review']['body']=body
+            with self.subTest(body=body):self.assertFalse(self.eligible(event))
+        for key,value in [('GITHUB_ACTOR','other'),('GITHUB_ACTOR_ID','9'),('GITHUB_RUN_ATTEMPT','2'),
+                          ('GITHUB_EVENT_NAME','push'),('GITHUB_TRIGGERING_ACTOR','other')]:
+            with self.subTest(key=key):self.assertFalse(self.eligible(good,dict(self.env,**{key:value})))
+
+    def test_artifact_routing_distinguishes_R2_diagnostic_and_native_reports(self):
+        block=self.workflow[self.workflow.index('      - name: Preserve sanitized evidence'):]
+        expressions={line.strip().split(': ',1)[0]:line.strip().split(': ',1)[1]
+                     for line in block.splitlines() if line.strip().startswith(('name: ${{','path: ${{'))}
+        native=json.loads(json.dumps(self.event));native['review']['body']='Execute owner-authorized SQL5-R3 candidate '
+        r2=json.loads(json.dumps(self.event));r2['pull_request']['number']=12
+        for event,name,path in [(self.event,'b2-r3-workflow-context','artifacts/b2-acceptance-r3/workflow-context.json'),
+            (native,'b2-acceptance-r3-pg16-sanitized','artifacts/b2-acceptance-r3/report.json'),
+            (r2,'b2-acceptance-r2-pg16-sanitized','artifacts/b2-acceptance-r2/report.json')]:
+            with self.subTest(name=name):
+                self.assertEqual(ActionsCondition(expressions['name'],self.context(event)).evaluate_value(),name)
+                self.assertEqual(ActionsCondition(expressions['path'],self.context(event)).evaluate_value(),path)
 
 
 if __name__=='__main__':unittest.main()
