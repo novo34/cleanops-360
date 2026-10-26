@@ -1,0 +1,104 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout (v4.2.2)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Node.js (v4.4.0)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Dependency vulnerability audit
+        run: npm audit --audit-level=high
+      - name: Install Semgrep (v1.177.0)
+        run: python -m pip install --disable-pip-version-check semgrep==1.177.0
+      - name: Static security analysis (Semgrep v1.177.0, local ruleset 1.2.0)
+        run: |
+          python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
+          python scripts/check-semgrep-reviewed.py --quality
+      - name: Verify Semgrep findings on unsafe and safe fixtures
+        run: |
+          semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-unsafe.json .semgrep/cleanops-foundation/unsafe.ts
+          semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-safe.json .semgrep/cleanops-foundation/safe.ts
+          semgrep scan --config .semgrep/cleanops-foundation.yml --json --metrics=off --output /tmp/semgrep-sql.json .semgrep/fixtures/sql-taint.ts
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          unsafe = json.loads(Path("/tmp/semgrep-unsafe.json").read_text())
+          safe = json.loads(Path("/tmp/semgrep-safe.json").read_text())
+          for name, data in (("unsafe", unsafe), ("safe", safe)):
+              if data.get("errors"):
+                  raise SystemExit(f"{name} scan errors: {data['errors']}")
+          ids = {finding["check_id"].split(".")[-1] for finding in unsafe["results"]}
+          expected = {"cleanops-dangerous-eval", "cleanops-child-process-shell", "cleanops-sql-string-interpolation", "cleanops-ssrf-user-url", "cleanops-sql-taint", "cleanops-code-execution-import", "cleanops-unsafe-innerhtml", "cleanops-hardcoded-secret"}
+          missing = expected - ids
+          if missing:
+              raise SystemExit(f"Missing required positive findings: {sorted(missing)}; got {sorted(ids)}")
+          if safe["results"]:
+              raise SystemExit(f"Safe fixture triggered findings: {safe['results']}")
+          print("Semgrep fixtures verified: expected findings and zero safe findings")
+          sql = json.loads(Path("/tmp/semgrep-sql.json").read_text())
+          if sql.get("errors"):
+              raise SystemExit(f"SQL regression scan errors: {sql['errors']}")
+          lines = Path(".semgrep/fixtures/sql-taint.ts").read_text().splitlines()
+          expected_lines = {i + 2 for i, line in enumerate(lines) if "// ruleid: cleanops-sql-taint" in line}
+          actual_lines = {finding["start"]["line"] for finding in sql["results"] if finding["check_id"].split(".")[-1] == "cleanops-sql-taint"}
+          if actual_lines != expected_lines or len(sql["results"]) != len(expected_lines):
+              raise SystemExit(f"SQL regressions: expected {sorted(expected_lines)}, got {sorted(actual_lines)}")
+          print(f"SQL taint regressions verified: {len(expected_lines)} unsafe findings and no safe findings")
+          PY
+      - name: Secret scanning (Gitleaks v2)
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate CycloneDX SBOM (@cyclonedx/cyclonedx-npm v6.0.1)
+        run: npm run sbom
+      - name: Validate CycloneDX SBOM
+        run: |
+          node -e '
+            const fs = require("fs");
+            const sbom = JSON.parse(fs.readFileSync("sbom.cdx.json", "utf8"));
+            if (sbom.bomFormat !== "CycloneDX" || !/^1\./.test(sbom.specVersion)) throw new Error("Invalid CycloneDX metadata");
+            if (!sbom.metadata?.component?.name || !Array.isArray(sbom.components) || sbom.components.length === 0) throw new Error("Incomplete SBOM metadata or components");
+            if (!sbom.components.some(({ name }) => name === "next")) throw new Error("SBOM does not contain the runtime dependency next");
+            if (sbom.metadata.timestamp || sbom.serialNumber) throw new Error("SBOM is not reproducible");
+          '
+
+      - name: Upload SBOM artifact (v6.0.0)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: cleanops-360-sbom-${{ github.sha }}
+          path: sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Report validation scope
+        if: always()
+        run: |
+          echo "Static quality only. Native unit/integration/build/browser: SKIP in this workflow; no functional acceptance." >> "$GITHUB_STEP_SUMMARY"
+          echo "Use the existing B1 synthetic staging workflow with an exact owner review authorization for isolated validation." >> "$GITHUB_STEP_SUMMARY"

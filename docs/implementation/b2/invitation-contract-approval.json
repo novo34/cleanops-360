@@ -1,0 +1,10 @@
+{
+  "ownerApproved": true,
+  "referenceCommit": "3ea4ec890fd05a59ae803f005e29cad713d1e5e8",
+  "contractPath": "docs/proposals/b2-users/INVITATION_CONTRACT.review.md",
+  "sha256": "63d01265908831372bd1e3e423867dc8b0be5c0a3fc000b060ad279e8ba48d5a",
+  "parametersApproved": true,
+  "implementationAuthorized": true,
+  "sqlExecutionAuthorized": false,
+  "realEmailOrDeploymentAuthorized": false
+}

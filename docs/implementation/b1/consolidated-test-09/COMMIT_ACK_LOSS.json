@@ -1,0 +1,422 @@
+{
+  "source": "5e3f9c2caf3485538c7242a2233ab736b30d1515",
+  "run": 39115769557,
+  "job": 117641126332,
+  "scope": "PG-TEST-01-CONSOLIDATED-09",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact09-blob-sha256-full-diff-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated09",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "09-owner-definer-pinned-path-no-PUBLIC",
+      "status": "PASS"
+    },
+    {
+      "name": "09-broker-not-assumable-login",
+      "status": "PASS"
+    },
+    {
+      "name": "09-execute-matrix-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-direct-reservation-table-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-delete-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-insert-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-broker-assumption-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-direct-entry-denied-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-execute-matrix-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-direct-reservation-table-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-delete-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-insert-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-broker-assumption-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-execute-matrix-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-direct-reservation-table-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-delete-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-insert-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-broker-assumption-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-direct-entry-denied-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-execute-matrix-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-direct-reservation-table-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-delete-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-insert-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-broker-assumption-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-direct-entry-denied-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-execute-matrix-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-direct-reservation-table-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-delete-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-direct-reservation-insert-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-no-broker-assumption-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-direct-entry-denied-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-real-bootstrap",
+      "status": "PASS"
+    },
+    {
+      "name": "09-invalid-csrf",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-invalid-malformed-key",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-invalid-unknown-bootstrap",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-bootstrap-is-not-ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "09-bootstrap-is-not-reset-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "09-owned-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "09-no-marker-after-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "09-one-time-response-plaintext-forbidden",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "09-owned-completion",
+      "status": "PASS"
+    },
+    {
+      "name": "09-one-time-replay-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "09-same-key-changed-request-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "09-foreign-owner-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "09-new-xid-cannot-finish",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "09-new-xid-cannot-discard",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "09-concurrent-reservation-one-winner",
+      "status": "PASS"
+    },
+    {
+      "name": "09-expire-synthetic-bootstrap",
+      "status": "PASS"
+    },
+    {
+      "name": "09-expired-bootstrap-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "Browser-PG-actual reset COMMIT acknowledgement loss never emits success or permits duplicate reset",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "DURABLE_COMMIT_ACK_LOST",
+          "REPLAY_DENIED",
+          "FRESH_LOGIN"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "PASS",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output."
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "RESET_AND_RECOVERY_REGRESSION",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-09",
+    "ownerApproved": true,
+    "referenceHead": "e2d8dfcc05711d39d647a703085999ba704ada81",
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/09/schema.review.sql",
+    "candidate": {
+      "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+      "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+    },
+    "approvalSource": "Explicit owner SQL09 Y CONTINUACION B1 authorization in this conversation,2026-10-18",
+    "scope": "Only exact SQL09, new isolated synthetic PG16 Docker; no additional SQL/ACL, production, SMTP, deployment, merge or runtime activation."
+  },
+  "candidate": {
+    "gitBlob": "641886171bc24557ff5f49ae6bc7564036efc6b0",
+    "sha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a"
+  },
+  "prior08": {
+    "run": 39111607391,
+    "PASS": 134,
+    "realE2E": 23,
+    "reexecuted": false
+  },
+  "submittedSqlSha256": "660331857de2ea2d1f4c4dfa850361b73f37b807694054b9e0e03acb5d29786a",
+  "newUIE2E": "EXECUTED_SQL09_RESET_COMMIT_ACK_LOSS_REAL_BROWSER",
+  "b1RequirementsAccepted": 0,
+  "result": "PASS",
+  "fullB1Result": "OPEN_NOT_ACCEPTED"
+}

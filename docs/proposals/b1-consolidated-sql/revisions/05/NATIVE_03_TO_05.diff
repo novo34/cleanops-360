@@ -1,0 +1,43 @@
+--- CONSOLIDATED-03-NATIVE-TESTED
++++ CONSOLIDATED-05-REVIEW-ONLY
+@@ -649,7 +649,7 @@
+  AND m.created_at+make_interval(secs=>identity_private.cfg('enrollment_ttl'))>statement_timestamp();
+ END $fn$;
+ GRANT DELETE ON app.idempotency_records TO cleanops_auth_broker;
+-GRANT DELETE ON identity_private.security_log TO cleanops_auth_broker;
++REVOKE DELETE ON identity_private.security_log FROM cleanops_auth_broker;
+ CREATE FUNCTION auth_api.gc_ephemeral() RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+ BEGIN
+@@ -660,7 +660,7 @@
+  DELETE FROM identity_private.csrf_bootstrap WHERE expires_at<=statement_timestamp();
+  DELETE FROM identity_private.ceremony_idempotency WHERE expires_at<=statement_timestamp();
+  DELETE FROM app.idempotency_records WHERE expires_at<=statement_timestamp();
+- DELETE FROM identity_private.security_log WHERE expires_at<=statement_timestamp();
++ PERFORM identity_private.purge_expired_security_log();
+  DELETE FROM identity_private.rate_buckets WHERE window_start<statement_timestamp()-make_interval(secs=>identity_private.cfg('rate_bucket_retention'));
+ END $fn$;
+ CREATE FUNCTION auth_api.active_summary() RETURNS jsonb
+@@ -1511,4 +1511,22 @@
+ -- Existing issue_active_session + factor CAS reused; no alternate issuer/grant.
+ -- END SOURCE D1
+ 
++-- REVIEW ONLY fragment. Generator embeds this once in the full consolidation.
++CREATE ROLE cleanops_security_log_purger NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
++GRANT USAGE ON SCHEMA identity_private TO cleanops_security_log_purger;
++GRANT DELETE ON identity_private.security_log TO cleanops_security_log_purger;
++GRANT SELECT(expires_at) ON identity_private.security_log TO cleanops_security_log_purger;
++CREATE POLICY security_log_purger_read_expired ON identity_private.security_log
++ FOR SELECT TO cleanops_security_log_purger USING (expires_at<=statement_timestamp());
++CREATE POLICY security_log_purger_delete_expired ON identity_private.security_log
++ FOR DELETE TO cleanops_security_log_purger USING (expires_at<=statement_timestamp());
++CREATE FUNCTION identity_private.purge_expired_security_log() RETURNS void
++LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $purge$
++ DELETE FROM identity_private.security_log WHERE expires_at<=statement_timestamp()
++$purge$;
++ALTER FUNCTION identity_private.purge_expired_security_log() OWNER TO cleanops_security_log_purger;
++REVOKE ALL ON FUNCTION identity_private.purge_expired_security_log() FROM PUBLIC,
++ cleanops_runtime,cleanops_identity_service,cleanops_mail_worker,cleanops_auth_maintenance;
++GRANT EXECUTE ON FUNCTION identity_private.purge_expired_security_log() TO cleanops_auth_broker;
++
+ COMMIT;

@@ -1,0 +1,200 @@
+name: B1 synthetic staging preparation
+on:
+  pull_request:
+    paths:
+      - 'deploy/staging/**'
+      - 'scripts/*staging*'
+      - 'tests/static/test_staging_synthetic.py'
+      - '.github/workflows/b1-staging-synthetic.yml'
+  pull_request_review:
+    types: [submitted]
+permissions:
+  contents: read
+jobs:
+  preparation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: node --test --test-isolation=none scripts/test-staging-archive.mjs
+      - run: python3 scripts/staging-sql14.py
+      - name: Report validation scope
+        if: always()
+        run: |
+          echo "Isolated PostgreSQL/OpenBao and foundation integration are SKIP on pull requests; hash/archive checks are not functional acceptance." >> "$GITHUB_STEP_SUMMARY"
+  scope:
+    # Reuses the existing commit-bound owner review authorization pattern.
+    # A fresh explicit review is required; reruns, PR/push and other actors fail closed.
+    if: >-
+      github.repository == 'novo34/cleanops-360' &&
+      github.event_name == 'pull_request_review' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.review.user.login == github.repository_owner &&
+      github.actor == github.repository_owner &&
+      github.run_attempt == 1 &&
+      github.event.review.commit_id == github.event.pull_request.head.sha &&
+      (github.event.review.body == format('Execute owner-authorized R2 isolated CI {0}; foundation migration, unit/build/browser, synthetic PG16 and OpenBao only; no deployment or production.', github.event.review.commit_id) ||
+       github.event.review.body == format('Validate owner-authorized R2 offline CI {0}; B1/B2 unit tests only; no SQL, services, migrations, build or deployment.', github.event.review.commit_id))
+    runs-on: ubuntu-latest
+    outputs:
+      authorized: ${{ steps.authorization.outputs.authorized }}
+      offline_authorized: ${{ steps.authorization.outputs.offline_authorized }}
+    steps:
+      - id: authorization
+        env:
+          NATIVE_AUTHORIZED: ${{ github.event.review.body == format('Execute owner-authorized R2 isolated CI {0}; foundation migration, unit/build/browser, synthetic PG16 and OpenBao only; no deployment or production.', github.event.review.commit_id) }}
+        run: |
+          echo "authorized=$NATIVE_AUTHORIZED" >> "$GITHUB_OUTPUT"
+          echo "offline_authorized=true" >> "$GITHUB_OUTPUT"
+  offline:
+    needs: scope
+    if: needs.scope.outputs.offline_authorized == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.review.commit_id }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - name: Verify offline and native authorization boundaries
+        run: python3 -B -m unittest discover -s tests/static -p test_staging_synthetic.py -k OfflineAuthorization -v
+      - id: b1
+        run: npm run test:b1:offline
+      - id: b2
+        run: npm run test:b2
+      - name: Report offline results without functional native claims
+        if: always()
+        env:
+          B1_RESULT: ${{ steps.b1.outcome }}
+          B2_RESULT: ${{ steps.b2.outcome }}
+        run: |
+          for suite in B1 B2; do
+            if [ "$suite" = B1 ]; then outcome="$B1_RESULT"; else outcome="$B2_RESULT"; fi
+            case "$outcome" in success) result=PASS;; failure) result=FAIL;; *) result=SKIP;; esac
+            echo "$suite offline: $result" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "Native validation requires its separate exact authorization; skipped native jobs are not PASS." >> "$GITHUB_STEP_SUMMARY"
+  foundation-native:
+    needs: [scope, offline]
+    if: needs.scope.outputs.authorized == 'true' && needs.offline.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cleanops_test
+          POSTGRES_USER: cleanops
+          POSTGRES_PASSWORD: cleanops_dev_only
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U cleanops -d cleanops_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://cleanops:cleanops_dev_only@127.0.0.1:5433/cleanops_test
+      CLEANOPS_TEST_DATABASE_URL: postgresql://cleanops:cleanops_dev_only@127.0.0.1:5433/cleanops_test
+    steps:
+      - name: Checkout (v4.2.2)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.review.commit_id }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup Node.js (v4.4.0)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: B1 transport regression (native authorization only)
+        env:
+          DATABASE_URL: ''
+          CLEANOPS_TEST_DATABASE_URL: ''
+        run: node --experimental-strip-types --test --test-isolation=none tests/b1/browser-server-cleanup.test.ts tests/b1/custody-deadline.test.ts tests/b1/openbao-keys.test.ts
+      - name: Migrate isolated PostgreSQL
+        run: npm run db:migrate
+      - name: Unit and PostgreSQL integration tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium Firefox WebKit browser engines
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Browser matrix CSP smoke (production server)
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 > /tmp/cleanops-next.log 2>&1 &
+          NEXT_PID=$!
+          trap 'kill "$NEXT_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 1
+          done
+          npx playwright test e2e/csp.spec.ts
+      - name: Dashboard demo browser regression (synthetic data only)
+        env:
+          CLEANOPS_DEMO_URL: http://127.0.0.1:3117
+        run: |
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3117 > /tmp/cleanops-demo-next.log 2>&1 &
+          DEMO_NEXT_PID=$!
+          trap 'kill "$DEMO_NEXT_PID" 2>/dev/null || true' EXIT
+          ready=no
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:3117/demo > /dev/null; then ready=yes; break; fi
+            sleep 1
+          done
+          test "$ready" = yes
+          npx playwright test --config=playwright.dashboard.config.ts
+      - name: Upload browser test traces on failure
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: cleanops-360-browser-traces-${{ github.sha }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+  synthetic-native:
+    needs: [scope, offline]
+    if: needs.scope.outputs.authorized == 'true' && needs.offline.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.review.commit_id }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: python3 -m unittest discover -s tests/static -p test_staging_synthetic.py -v
+      - run: node --test --test-isolation=none scripts/test-staging-archive.mjs
+      - run: python3 scripts/staging-sql14.py
+      - run: python3 scripts/test-staging-postgres.py
+      - run: python3 scripts/test-staging-openbao-image.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: staging-synthetic-image-redacted
+          path: artifacts/staging-synthetic/
+          retention-days: 7

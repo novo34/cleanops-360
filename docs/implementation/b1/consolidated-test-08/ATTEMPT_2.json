@@ -1,0 +1,992 @@
+{
+  "source": "dbb482ad05e7ae113976a4d5951171ed085023c8",
+  "run": 39110893346,
+  "job": 117626611026,
+  "scope": "PG-TEST-01-CONSOLIDATED-08",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact08-blob-sha256-full-diff-acl-precheck",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated08",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "07-broker-nonlogin-nobypass",
+      "status": "PASS"
+    },
+    {
+      "name": "07-exact-new-column-privileges",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-credential-key-update",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-security-log-read-delete",
+      "status": "PASS"
+    },
+    {
+      "name": "07-all31-tables-forced-RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-binding-owner-forced-RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "08-broker-exact-binding-DML",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-login-can-inherit-broker",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reader-owner-definer-path-public-revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-direct-privileges-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-select-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-delete-cross-subject-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-insert-cross-subject-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-broker-assumption-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-owner-assumption-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reader-execute-only-identity-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-direct-privileges-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-select-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-delete-cross-subject-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-insert-cross-subject-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-broker-assumption-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-owner-assumption-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reader-execute-only-identity-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-direct-privileges-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-select-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-delete-cross-subject-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-insert-cross-subject-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-broker-assumption-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-owner-assumption-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reader-execute-only-identity-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-direct-privileges-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-select-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-delete-cross-subject-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-insert-cross-subject-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-broker-assumption-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-owner-assumption-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reader-execute-only-identity-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-direct-privileges-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "08-no-binding-select-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-delete-cross-subject-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-binding-insert-cross-subject-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-broker-assumption-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-owner-assumption-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reader-execute-only-identity-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "08-synthetic-recovery-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "08-password-proof-before-recovery",
+      "status": "PASS"
+    },
+    {
+      "name": "08-independent-password-proof-before-recovery",
+      "status": "PASS"
+    },
+    {
+      "name": "08-recovery-creates-bound-preauth",
+      "status": "PASS"
+    },
+    {
+      "name": "08-bound-preauth-usable",
+      "status": "PASS"
+    },
+    {
+      "name": "08-recovery-never-directly-active",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-reused-recovery-and-old-preauth-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-revoked-independent-preauth-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-new-password-proof-is-not-recovery-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "08-password-only-context-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-forged-preauth-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-other-tenant-still-usable",
+      "status": "PASS"
+    },
+    {
+      "name": "08-other-tenant-independent-context",
+      "status": "PASS"
+    },
+    {
+      "name": "08-marker-tenant-user-version-bound",
+      "status": "PASS"
+    },
+    {
+      "name": "08-age-owned-preauth-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "08-expired-bound-preauth-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-gc-no-password-fallback",
+      "status": "PASS"
+    },
+    {
+      "name": "08-abandoned-recovery-binding-survives",
+      "status": "PASS"
+    },
+    {
+      "name": "08-abandon-restart-new-password-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "08-abandon-restart-cannot-enroll",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-abandon-existing-password-context-still-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "08-no-cross-tenant-marker-created",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reader-unknown-ticket-safe-null",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reader-malformed-ticket-safe-null",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-synthetic-independent-subject",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-independent-attestation-password",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-independent-attestation-wrong-purpose",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-reader-exact-private-projection",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-reader-rejects-MFA_RESET",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-invalid-recovery-cannot-CAS",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-invalid-proof-retains-ticket",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-stale-CAS-cannot-consume-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-native-reader-CAS-one-transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-consumed-ticket-material-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-replay-cannot-CAS",
+      "status": "PASS"
+    },
+    {
+      "name": "08-reset-native-version-proof-audit-atomic",
+      "status": "PASS"
+    },
+    {
+      "name": "Browser-PG-EMAIL multiple authorized methods for the same verified recipient do not block login",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "VERIFY"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL enrollment first proof and committed login through real UI API PG",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "PASSWORD",
+          "BEGIN",
+          "DELIVER",
+          "INVALID",
+          "RESEND_ENROLLMENT",
+          "CONFIRM"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL ACTIVE enrollment requires independent step-up for begin and confirmation",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "BEGIN_STEPUP",
+          "CONFIRM_STEPUP",
+          "FIRST_EMAIL_PROOF"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL rate limiting precedes the per-challenge ceiling and blocks a later valid proof",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "EXHAUST"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL login rejects invalid proof and reenables safe retry after real resend",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "COOLDOWN",
+          "RESEND",
+          "REVOKED_CHALLENGE",
+          "OLD_PROOF",
+          "CURRENT_PROOF",
+          "STEPUP"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL expired database challenge never creates a session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "EXPIRED_PROOF"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL uncertain synthetic transport quarantines and cannot redeliver",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "UNCERTAIN"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL definitive transient rejection retries persisted ciphertext with stable delivery identity",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "TRANSIENT",
+          "RETRY"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL recipient revoked after issue prevents delivery and session issuance",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "REVOKED"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL lost COMMIT rolls back session and proof and permits retry through real UI",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "FAILED_COMMIT",
+          "RETRY"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-EMAIL real API rejects CSRF and forged authority and concurrent proof has one winner",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "LOGIN",
+          "NEGATIVES",
+          "CSRF_403",
+          "FORGED_422",
+          "RACE_200_401",
+          "SQL_42501"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_BACKEND",
+          "LOGIN",
+          "TOTP",
+          "IDENTITY",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "REVOKE_INDIVIDUAL",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "STEPUP",
+          "BULK_RESULT",
+          "LOGOUT",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real first enrollment confirms SHA256 with CAS, recovery codes and committed session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_ENROLLMENT",
+          "LOGIN_NO_METHOD",
+          "ENROLL_PENDING",
+          "INVALID_FIRST_CODE",
+          "CONFIRM_FIRST_CODE",
+          "ONE_TIME_REPLAY_DENIED",
+          "LOGIN_AFTER_LOGOUT",
+          "VERIFY_ENROLLED_METHOD_AFTER_LOGIN",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real ACTIVE additional enrollment requires both grants and preserves rate limiting",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_ADDITIONAL_ENROLLMENT",
+          "STEPUP_ENROLL_05",
+          "DENY_WITHOUT_CONFIRM_GRANT",
+          "STEPUP_CONFIRM_06",
+          "WAIT_COUNTER_WINDOW",
+          "CONFIRM_ADDITIONAL_METHOD",
+          "EXPLICIT_MULTI_METHOD_LOGIN",
+          "SELECT_STATUS_200",
+          "VERIFY_STATUS_429",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real authorized multi-method selection commits a session for a separate synthetic account",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_MULTIPLE_ACCOUNT",
+          "SELECT_AUTHORIZED_METHOD",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real recovery code rotates restricted PREAUTH and requires new first factor before session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "INVALID",
+          "RECOVER",
+          "REENROLL",
+          "FIRST_FACTOR"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real recovery COMMIT failure rolls back code and revocations before a safe retry",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "COMMIT_FAILURE",
+          "RETRY"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real expired password proof cannot consume a recovery code",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "EXPIRED"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-real concurrent recovery requests have one winner and never create ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "CONCURRENT",
+          "RESULT_200_401"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-a separate password-only session must not take over an in-progress recovery enrollment",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "INDEPENDENT_PASSWORD_LOGIN",
+          "INDEPENDENT_LOGIN_DENIED"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-concurrent first-factor confirmations complete only the authorized recovery once",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "CONCURRENT_CONFIRM",
+          "CONFIRM_200_401"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-abandoned expired recovery cannot reopen password-only enrollment",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "SETUP",
+          "ABANDONED_RESTART"
+        ],
+        "testLineNumbers": []
+      }
+    },
+    {
+      "name": "Browser-PG-lost first-factor COMMIT retains recovery binding and allows only the bound retry",
+      "status": "FAIL",
+      "detail": {
+        "attemptStatuses": [
+          "failed"
+        ],
+        "phases": [
+          "SETUP",
+          "FIRST_FACTOR_COMMIT_FAILURE"
+        ],
+        "testLineNumbers": [
+          193
+        ]
+      }
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "FAIL",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output."
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "RECOVERY_BINDING_AND_EMAIL_REGRESSION",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-08",
+    "ownerApproved": true,
+    "referenceHead": "98e6faf40397eeb55e21b5a372794121d195e43d",
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/08/schema.review.sql",
+    "candidate": {
+      "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+      "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2"
+    },
+    "approvalSource": "Explicit owner authorization SQL08 Y ACELERACION DE B1 in this conversation, 2026-10-18",
+    "scope": "Exact SQL08 including previously reviewed reset-material reader; new isolated PG16 Docker, synthetic only. No additional SQL/ACL, SMTP, production, deployment, merge or runtime activation.",
+    "requiredSecurityGate": "Service logins cannot directly SELECT/INSERT/DELETE recovery bindings or assume broker; real recovery browser takeover regression must pass."
+  },
+  "candidate": {
+    "gitBlob": "a585147fa19452de0f28d9c1d7542b3d77b058f7",
+    "sha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2"
+  },
+  "prior07": {
+    "run": 39102962461,
+    "PASS": 253,
+    "reexecuted": false
+  },
+  "recoverySecurityRegression": {
+    "run": 39109078160,
+    "previousResult": "FAIL"
+  },
+  "submittedSqlSha256": "566777536442e5ebe40a0fe7022eceb412c6089c23dfb9094611f934006780a2",
+  "newUIE2E": "EXECUTED_SQL08_RECOVERY_AND_EMAIL_REAL_BROWSER",
+  "b1RequirementsAccepted": 0,
+  "result": "FAIL",
+  "fullB1Result": "OPEN_NOT_ACCEPTED"
+}

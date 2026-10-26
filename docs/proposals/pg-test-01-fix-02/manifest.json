@@ -1,0 +1,26 @@
+{
+  "status": "REVIEW_ONLY_NOT_AUTHORIZED_NOT_INSTALLED",
+  "request": "PG-TEST-01-PATCH-02",
+  "failureRun": 39007099487,
+  "executionHead": "4b9a021ae61060d9c102a32a0992319bd7e67da0",
+  "changes": [
+    {
+      "path": "docs/proposals/pg-test-01-fix-02/b1-x.syntax-only.review.sql",
+      "gitBlob": "4a8f9c696c33ad615901c6e10c915604b410e74b",
+      "sha256": "356b2218a18423601941e4b9340f2ab67a4ea190a29aa07527ff942d7f62cd34"
+    },
+    {
+      "path": "docs/proposals/pg-test-01-fix-02/b1-x.persist.review.sql",
+      "gitBlob": "930c1a1bab7ff4e24ca81ffb8b3bb419941838c0",
+      "sha256": "e5e1610d2bebb367021126fb102e5a96538301171e1c739120e91769482d35d2"
+    },
+    {
+      "path": "docs/proposals/pg-test-01-fix-02/d1.persist.review.sql",
+      "gitBlob": "2e2770f93a6d607ea96e2aab85c13232866574cd",
+      "sha256": "8525d3dac8af82284638032e9514ad3e196b0ff65a8a0775694b2274ca9ca1cb"
+    }
+  ],
+  "sqlExecuted": false,
+  "activationAuthorized": false,
+  "authGate05": "OPEN"
+}

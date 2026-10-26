@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "tests": 18,
+  "failures": 0,
+  "errors": 0,
+  "postgresql_executed": false,
+  "sql_parser_or_plpgsql_compiler_used": false,
+  "migrations_executed": 0,
+  "grants_activated": 0,
+  "production_identities_used": 0,
+  "auth_gate_05": "OPEN",
+  "limitations": [
+    "SQL checks are lexical/inventory/reference checks, not full PostgreSQL grammar or semantic compilation",
+    "No RLS/lock/mail/browser execution; must pass isolated PostgreSQL integration later",
+    "Proposed numeric security values remain subject to benchmarking and review"
+  ]
+}

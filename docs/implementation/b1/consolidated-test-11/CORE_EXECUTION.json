@@ -1,0 +1,2130 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-11",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact11-blob-sha256-full-reviewed-diff-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated11",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_rules",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_roles",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_role_memberships",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_resources",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_access_role(uuid,text,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-revoke_access_assignment(text,uuid,uuid,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-access_detail(uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-effective_access(text,text,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-exact-new-owner-definer-searchpath-public",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-service-not-owner-or-bypass",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-synthetic-operator-and-revoked-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-missing-owned-reservation-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "SQL11-foreign-tenant-context-cannot-use-actor-reservation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-reactivation-no-overdelegation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-reactivation-leaves-role-revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-reactivation-target-no-gained-permission",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-denial-audit-durable-private-server-actor",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-authorized-role-creation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-success-audit-server-derived-before-after",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-stale-CAS-durable-denial",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-stale-CAS-audit-persists",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-synthetic-fresh-stepup-after-policy-change",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-functional-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-rollback-no-effect-or-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-old-role-entrypoint-execution-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL11-synthetic-owned-marker-in-original-transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-other-backend-xid-marker-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "SQL11-synthetic-marker-expiry",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-expired-marker-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "SQL11-synthetic-explicit-operator-power",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-legitimate-reactivation-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-legitimate-reactivation-is-effective",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-canonical-matrix-synthetic-resource-fixtures",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-authoritative-graph",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-project-grant-applies-to-document",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-resource-move",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-move-removes-prior-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-cross-tenant-parent-rejected",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "23503"
+      }
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-cycle",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-cycle-fails-closed",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_rules",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_rules-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_roles",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_roles-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_role_memberships",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_role_memberships-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-forced-RLS-access_resources",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-SELECT-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-no-direct-write-access_resources-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_user_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_access_role(uuid,text,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_access_role(uuid,text,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_membership(uuid,uuid,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-revoke_access_assignment(text,uuid,uuid,bigint,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-revoke_access_assignment(text,uuid,uuid,bigint,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-access_detail(uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-access_detail(uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-exact-definer-effective_access(text,text,uuid)",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-execute-effective_access(text,text,uuid)-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-exact-new-owner-definer-searchpath-public",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-new-execute-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-service-not-owner-or-bypass",
+      "status": "PASS"
+    },
+    {
+      "name": "Browser-PG-AUTHZ real Manage Access user override DENY defeats role ALLOW in an already ACTIVE target session",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ role membership starts and expires in PostgreSQL while the target session remains ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ role rule edits are effective immediately and never authorize a foreign resource",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ role creation uses policy CAS and stale simultaneous changes never add a second role",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200",
+          "HTTP_ACCESS_409"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ revoking a role denies its grants in existing sessions without revoking unrelated sessions",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "TARGET_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "ACCESS_FORM_FILLED",
+          "ACCESS_SUBMITTED",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_200",
+          "HTTP_USER_200"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ failed COMMIT rolls back rule policy audit and owned result before concurrent one-winner retry",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "ACTOR_LOGIN",
+          "HTTP_LOGIN_200",
+          "HTTP_VERIFY_200",
+          "HTTP_USER_200",
+          "ACCESS_FORM_VISIBLE",
+          "HTTP_ACCESS_403",
+          "HTTP_VERIFY_200",
+          "HTTP_ACCESS_503",
+          "HTTP_ACCESS_200",
+          "HTTP_ACCESS_409"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-AUTHZ password PREAUTH with operator roles never exposes access details or permits changes",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "Browser-PG-real UI password, TOTP, persisted session, step-up, revocation and logout",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ],
+        "phases": [
+          "INIT_BACKEND",
+          "LOGIN",
+          "TOTP",
+          "IDENTITY",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "REVOKE_INDIVIDUAL",
+          "SESSIONS_FIRST",
+          "SESSIONS_NEXT",
+          "STEPUP",
+          "BULK_RESULT",
+          "LOGOUT",
+          "CLEANUP",
+          "CLEANUP_DONE"
+        ],
+        "testLineNumbers": [],
+        "setupSqlstates": []
+      }
+    },
+    {
+      "name": "EMAIL-real-browser-process",
+      "status": "PASS",
+      "detail": "No HTTP mocks, injected cookies, external SMTP or raw secret-bearing output."
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all31-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "AUTHZ_REAL_VERTICAL",
+  "authorization": {
+    "ownerApproved": true,
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/11/schema.review.sql",
+    "candidate": {
+      "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+      "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e"
+    },
+    "scope": "Exact SQL11 contract/ACL and fresh isolated PostgreSQL16 Docker with synthetic data. No additional SQL/ACL, production, SMTP, deployment, merge or runtime activation.",
+    "runtime": "closedBackend",
+    "B1": "OPEN",
+    "AUTH-GATE-05": "OPEN"
+  },
+  "candidate": {
+    "gitBlob": "3f13bb1132c5b1ffdd35d4993bb9aa2ca3c75f06",
+    "sha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e"
+  },
+  "submittedSqlSha256": "54f9c0d94441ed3f72f6dc1c3d4d9bca1b9f0072a7d0f7c6059debe80eea9d6e",
+  "sqlDiagnostics": [
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "P0001"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for function set_access_role"
+    },
+    {
+      "sqlstate": "P0001"
+    },
+    {
+      "sqlstate": "P0001"
+    },
+    {
+      "sqlstate": "23503"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    },
+    {
+      "sqlstate": "42501",
+      "category": "permission denied for schema app"
+    }
+  ],
+  "rbacDecisionMatrix": {
+    "canonical": "docs/RBAC_PERMISSIONS.md",
+    "roles": 10,
+    "resources": 23,
+    "validActionResourceCells": 145,
+    "statesPerCell": 7,
+    "evaluations": 10150,
+    "scope": "Real effective_access in non-superuser identity service with existing ACTIVE target session. All explicit grants are synthetic; no productive defaults or permission policy inferred from role labels."
+  },
+  "newUIE2E": "EXECUTED_SQL11_AUTHZ_REAL_BROWSER",
+  "b1RequirementsAccepted": 0,
+  "result": "PASS",
+  "fullB1Result": "OPEN_NOT_ACCEPTED",
+  "source": "a6ab3a851fffa729b97ceedf868857b93c44d105",
+  "run": 39124614341
+}

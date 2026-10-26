@@ -1,0 +1,991 @@
+{
+  "status": "PASS",
+  "sourceCommit": "3c874e18c8ded227af28aef536efaf4a5b2edab2",
+  "reviewCommit": "3ea4ec890fd05a59ae803f005e29cad713d1e5e8",
+  "run": "https://github.com/novo34/cleanops-360/actions/runs/39561579073",
+  "job": 119093857936,
+  "artifact": 12327249954,
+  "checks": [
+    {
+      "name": "exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-container-network-none-no-ports-no-bind-or-volume",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-SQL14",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres-function-body-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-B2-functions-and-EXECUTE",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "B1-approved-12h24h-existing-session-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-access-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-users-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-access-synthetic-scoped-fixtures",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-helper-not-executable-by-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-helper-cannot-impersonate-directly",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-target-access-is-not-actor-access",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-read-preserves-actor-context",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-foreign-or-absent-indistinguishable-00000000-0000-4000-8000-000000000005",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0002"
+      }
+    },
+    {
+      "name": "B2-target-foreign-or-absent-indistinguishable-f87d302d-e430-44d2-89dc-b2f676321455",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0002"
+      }
+    },
+    {
+      "name": "B2-catalogue-does-not-offer-overdelegation",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-access-synthetic-fresh-stepup",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-role-assignment-no-overdelegation",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-refused-role-change-durable-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-access-synthetic-operator-document-power",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-catalogue-assignable-after-real-grant",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-audited-role-assignment",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-role-change-durable-before-after-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-access-positive-ui-stepup",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-browser-real Manage Access projects role names, queries target authority and persists an audited explicit deny",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "name": "B2-real-browser-process",
+      "status": "PASS",
+      "detail": "Real private backend and persisted PostgreSQL; raw output suppressed."
+    },
+    {
+      "name": "B2-UI-change-has-actor-reason-before-after-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-synthetic-browser-deny-cleanup",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-synthetic-explicit-deny",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-explicit-deny-beats-allows",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-synthetic-expiry-and-membership-revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-expiry-and-revocation-effective",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-synthetic-scheduled-access",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-future-access-not-effective",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-synthetic-disabled-user",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-disabled-user-no-effective-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-target-synthetic-user-restored",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-canonical-matrix-synthetic-resource-fixtures",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-1-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-2-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-3-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-4-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-5-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-6-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-7-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-8-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-9-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-role-label-has-no-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-explicit-scoped-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-explicit-grants-allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-same-tenant-outside-scope-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-foreign-tenant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-individual-denies",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-individual-explicit-deny-beats-role",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-expire-grants",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-expired-grants-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-synthetic-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-matrix-10-revoked-membership-denied-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-authoritative-graph",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-project-grant-applies-to-document",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-resource-move",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-move-removes-prior-authority",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-cross-tenant-parent-rejected",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "23503"
+      }
+    },
+    {
+      "name": "SQL11-hierarchy-synthetic-cycle",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL11-hierarchy-cycle-fails-closed",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-active-permissions-and-cross-block-reader-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-fresh-stepup-assign-role",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-owned-assign-role",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-audit-assign-role",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-role-access-before-revoke",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-fresh-stepup-revoke-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-owned-revoke-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-audit-revoke-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-role-access-revoked-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-fresh-stepup-individual-allow",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-owned-individual-allow",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-audit-individual-allow",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-individual-allow-effective",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-fresh-stepup-revoke-individual",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-owned-revoke-individual",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-audit-revoke-individual",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-individual-revoked-in-existing-session",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-existing-memberships-and-view-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-identity-no-direct-state-update",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-user-owned-reservation-required",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0001"
+      }
+    },
+    {
+      "name": "B2-user-no-edit-grant-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-synthetic-scoped-edit-power",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-fresh-MFA-required",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-existing-B1-stepup-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-stale-profile-CAS-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-profile-edited-through-owned-function",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-profile-version-advanced",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-profile-audit-private-server-actor",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-denials-have-durable-redacted-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-foreign-tenant-invisible",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-rollback-restores-profile-and-audit",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-rollback-version-and-audit-unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-rollback-profile-confirmed",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-synthetic-self-edit-for-real-concurrency",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-real-concurrent-CAS-one-winner",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-concurrent-write-not-lost",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-synthetic-tenant-lifecycle-p",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-synthetic-tenant-lifecycle-q",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-disable-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-subject-authority-disabled",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-roles-and-grants-retained-True",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-revoked-session-stays-denied-True",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-combined-foreign-subject-stays-invisible-True",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0002"
+      }
+    },
+    {
+      "name": "B2-user-own-tenant-sessions-revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-own-tenant-trust-preauth-challenge-revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-other-membership-and-lifecycle-untouched",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-reenable-requires-fresh-login",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-subject-authority-reactivated",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-roles-and-grants-retained-False",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-revoked-session-stays-denied-False",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-combined-foreign-subject-stays-invisible-False",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "P0002"
+      }
+    },
+    {
+      "name": "B2-user-ABA-state-cycle-has-new-version",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-old-session-not-resurrected",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-user-other-tenant-session-still-valid",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-positive-ui-stepup",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-browser-real administrative profile edit and tenant state changes persist with revoked sessions",
+      "status": "PASS",
+      "detail": {
+        "attemptStatuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "name": "B2-real-browser-process",
+      "status": "PASS",
+      "detail": "Real private backend and persisted PostgreSQL; raw output suppressed."
+    },
+    {
+      "name": "B2-user-UI-profile-and-state-audits-durable",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-self-disable-can-complete-owned-result",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-user-self-disabled-session-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "B2-user-one-time-completions-store-no-response",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-required-browser-access",
+      "status": "PASS"
+    },
+    {
+      "name": "B2-combined-required-browser-userChange",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "previousEvidencePreserved": [
+    "first-authorized-execution.json",
+    "r2-authorized-execution.json"
+  ],
+  "b2TechReady": false,
+  "remaining": [
+    "Invitation implementation and separately authorized SQL/ACL/fixtures",
+    "Independent review and phase gates"
+  ],
+  "localB1Regression": {
+    "status": "FAIL",
+    "reason": "Local dependencies unavailable (including otpauth); a local server cleanup test also failed. This does not supersede hosted CI results."
+  }
+}

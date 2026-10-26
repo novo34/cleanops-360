@@ -1,0 +1,61 @@
+{
+  "id": "B1-HOSTINGER-SYNTHETIC-01",
+  "scope": "STAGING_SYNTHETIC",
+  "source": "5c74fcbe8b972940d7033cc7a6665a48e847264b",
+  "stagingBase": "c85b49870f31efd802216d778b1808c3cc4c4509",
+  "locationPolicy": "HOSTINGER_NON_SWISS_ALLOWED_SYNTHETIC_ONLY",
+  "country": "OUTSIDE_SWITZERLAND_EXACT_COUNTRY_UNCONFIRMED",
+  "deployState": "PREPARED_NOT_DEPLOYED",
+  "costs": "NO_NEW_RESOURCES_AUTHORIZED",
+  "resources": "EXISTING_SHARED_TEST_VPS_CAPACITY_UNMEASURED",
+  "openbao": {
+    "mode": "OPTIONAL_SAME_VPS_PROFILE",
+    "profile": "synthetic-custody",
+    "viability": "CONDITIONAL_ON_FRESH_CAPACITY_AND_ISOLATION_MEASUREMENTS",
+    "separateVmRequired": false,
+    "productionQuorum": null,
+    "productionCustodyAccepted": false
+  },
+  "compose": {
+    "base": "deploy/staging/compose.yaml",
+    "overlays": [
+      "compose.openbao.yaml",
+      "compose.ingress.yaml"
+    ],
+    "optionalAlternative": "compose.prebuilt.yaml",
+    "offlineConsolidator": "scripts/prepare-staging-synthetic.py --compose-out NEW_FILE --include-ingress",
+    "dokployBranch": "staging",
+    "dokployComposePath": "deploy/staging/compose.yaml",
+    "autodeploy": "OFF",
+    "changedOnHost": false
+  },
+  "record": "deploy/staging/RESOURCE_RECORD.json",
+  "formalSwissRecord": "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json",
+  "tools": {
+    "exactSqlInstaller": "scripts/staging-sql14.py",
+    "syntheticBackup": "scripts/staging-maintenance.py",
+    "authenticatedArchive": "scripts/staging-archive.mjs",
+    "readiness": "scripts/staging-bao-health.mjs",
+    "onlineSmoke": "scripts/staging-online-check.mjs",
+    "browserBoundary": "playwright.staging.config.ts",
+    "manual": "deploy/staging/PO_STAGING_RECORD.json"
+  },
+  "pending": [
+    "Explicit VPS access and deployment authorization",
+    "Fresh CPU/memory/disk/architecture/network/other-project inventory",
+    "TLS and staging-only secret material; exact existing policy/rendered hashes",
+    "Selective reviewed integration into permanent staging and consolidated Compose approval",
+    "Actual Traefik network/HTTPS entrypoint/certificate resolver names",
+    "Optional exact SQL14 fresh install permission; no modified SQL/ACL",
+    "AUTH-GATE-05 decision and express activation before online functional login/MFA"
+  ],
+  "acceptance": {
+    "functionalStaging": "PREPARED_NOT_EXECUTED; closed-boundary smoke is not complete B1 E2E",
+    "productionSwiss": "PENDING_UNCHANGED_CANONICAL_REQUIREMENTS",
+    "B1": "42/44",
+    "PR006": "OPEN",
+    "PR007": "OPEN",
+    "AUTH_GATE_05": "OPEN",
+    "runtime": "closedBackend"
+  }
+}

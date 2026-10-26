@@ -1,0 +1,49 @@
+name: B1 remaining OTP abuse real PostgreSQL
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: read
+jobs:
+  recovery-pg:
+    if: github.event.pull_request.number == 7 && github.event.before == '4b8c43a9c1e1df51b85b39bcbc2ea06bdd75372b' && github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.head_ref == 'feat/b1-http-flows'
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [compat]
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      B1_REMAINING_GROUP: ${{ matrix.group }}
+      DATABASE_URL: ''
+      CLEANOPS_TEST_DATABASE_URL: ''
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:b1
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Install isolated QR decoder
+        if: contains(fromJSON('["enrollment","email","recovery","compat"]'), matrix.group)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zbar-tools
+      - name: Install actual authenticator applications
+        if: matrix.group == 'compat'
+        run: sudo apt-get install -y --no-install-recommends keepassxc oathtool
+      - run: python3 scripts/pg-b1-remaining.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: b1-remaining-${{ matrix.group }}-redacted
+          path: artifacts/pg-consolidated-11/report.json
+          retention-days: 7

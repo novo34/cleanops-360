@@ -1,0 +1,23 @@
+test_approved_values_not_changed_or_invented (__main__.ClosureChecks.test_approved_values_not_changed_or_invented) ... ok
+test_credentials_and_codes_limits (__main__.ClosureChecks.test_credentials_and_codes_limits) ... ok
+test_every_string_bounded_or_constant (__main__.ClosureChecks.test_every_string_bounded_or_constant) ... ok
+test_grant_targets_exist_and_no_public_execute (__main__.ClosureChecks.test_grant_targets_exist_and_no_public_execute) ... ok
+test_methods_csrf_and_path_parameters (__main__.ClosureChecks.test_methods_csrf_and_path_parameters) ... ok
+test_no_sql_placeholders (__main__.ClosureChecks.test_no_sql_placeholders) ... ok
+test_refs_and_schemas (__main__.ClosureChecks.test_refs_and_schemas) ... ok
+test_requirements_exist (__main__.ClosureChecks.test_requirements_exist) ... ok
+test_rules_approved_functional_not_active (__main__.ClosureChecks.test_rules_approved_functional_not_active) ... ok
+test_sql_all_custom_callees_defined (__main__.ClosureChecks.test_sql_all_custom_callees_defined) ... ok
+test_sql_all_tables_policy_covered (__main__.ClosureChecks.test_sql_all_tables_policy_covered) ... ok
+test_sql_bulk_ownership_and_current_exclusion (__main__.ClosureChecks.test_sql_bulk_ownership_and_current_exclusion) ... ok
+test_sql_ceremony_counter_and_consumption (__main__.ClosureChecks.test_sql_ceremony_counter_and_consumption) ... ok
+test_sql_dollar_quotes_and_transaction (__main__.ClosureChecks.test_sql_dollar_quotes_and_transaction) ... ok
+test_sql_no_privilege_bypass_or_business_seeds (__main__.ClosureChecks.test_sql_no_privilege_bypass_or_business_seeds) ... ok
+test_stepup_binding (__main__.ClosureChecks.test_stepup_binding) ... ok
+test_thirteen_and_no_admin (__main__.ClosureChecks.test_thirteen_and_no_admin) ... ok
+test_unknown_foreign_selectors_rejected (__main__.ClosureChecks.test_unknown_foreign_selectors_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.158s
+
+OK

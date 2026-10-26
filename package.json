@@ -1,0 +1,48 @@
+{
+  "name": "cleanops-360",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sbom": "cyclonedx-npm --output-file sbom.cdx.json --output-format json --output-reproducible",
+    "db:migrate": "node scripts/migrate-postgres.mjs",
+    "test:b1": "node --experimental-strip-types --test --test-isolation=none tests/b1/*.test.ts",
+    "test:b2": "node --experimental-strip-types --test --test-isolation=none tests/b2/*.test.ts",
+    "test:b1:offline": "node --experimental-strip-types --test --test-isolation=none tests/b1/access-broker.test.ts tests/b1/access-http.test.ts tests/b1/approved-backend.test.ts tests/b1/approved-factors.test.ts tests/b1/ceremony-contract.test.ts tests/b1/ceremony-preparation.test.ts tests/b1/closure-traceability.test.ts tests/b1/consolidated-execution.test.ts tests/b1/consolidated-sql.test.ts tests/b1/contracts.test.ts tests/b1/custody-composition.test.ts tests/b1/d1-broker.test.ts tests/b1/demo-model.test.ts tests/b1/design-directions.test.ts tests/b1/email-ceremony.test.ts tests/b1/enrollment-backend.test.ts tests/b1/extension-contract.test.ts tests/b1/extension-sql-review.test.ts tests/b1/mail-delivery-plan.test.ts tests/b1/mail-dispatch-store.test.ts tests/b1/mail-envelope.test.ts tests/b1/mail-worker.test.ts tests/b1/password-admission.test.ts tests/b1/password.test.ts tests/b1/pg-identity-driver.test.ts tests/b1/pg-test-01-review.test.ts tests/b1/private-adapter.test.ts tests/b1/private-operations.test.ts tests/b1/proxy-origin.test.ts tests/b1/rate-limit.test.ts tests/b1/recovery-http.test.ts tests/b1/reset-http.test.ts tests/b1/selector-json-limit.test.ts tests/b1/sequential-status.test.ts tests/b1/service.test.ts tests/b1/totp-candidate.test.ts tests/b1/totp-orchestration.test.ts tests/b1/totp-selection-contract.test.ts tests/b1/totp-selection-labels.test.ts tests/b1/totp-sha256-rfc.test.ts tests/b1/totp.test.ts tests/b1/trusted-http.test.ts tests/b1/ui-request-keys.test.ts tests/b1/v4-broker.test.ts"
+  },
+  "dependencies": {
+    "argon2": "0.44.0",
+    "lucide-react": "0.468.0",
+    "maplibre-gl": "6.15.0",
+    "next": "16.4.3",
+    "otpauth": "9.4.1",
+    "pg": "8.16.3",
+    "qrcode": "1.5.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "swr": "2.3.6"
+  },
+  "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.1",
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.0.0",
+    "@types/pg": "8.15.5",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.71.1",
+    "@typescript-eslint/parser": "^8.71.1",
+    "eslint": "^9.0.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "typescript": "^5.0.0",
+    "vitest": "5.0.3"
+  }
+}

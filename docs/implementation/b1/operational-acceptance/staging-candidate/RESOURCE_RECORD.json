@@ -1,0 +1,164 @@
+{
+  "id": "B1-OPER-STAGING-01",
+  "status": "DRAFT_MISSING_REAL_RESOURCE_DESIGNATIONS_NOT_AUTHORIZED",
+  "b1Source": "c6e95bef9626fb26f88a93068fd206523a4433eb",
+  "stagingSource": "c85b49870f31efd802216d778b1808c3cc4c4509",
+  "privateInventoryReference": null,
+  "privateInventorySha256": null,
+  "resources": {
+    "BAO-PRIMARY": {
+      "resourceId": null,
+      "owner": null,
+      "operator": null,
+      "country": null,
+      "privateResidenceEvidence": null,
+      "storageAndSupportBoundary": null,
+      "costLimit": null,
+      "approved": false
+    },
+    "B1-WORKLOAD": {
+      "resourceId": null,
+      "owner": null,
+      "operator": null,
+      "country": null,
+      "privateResidenceEvidence": null,
+      "storageAndSupportBoundary": null,
+      "costLimit": null,
+      "approved": false
+    },
+    "BACKUP-CH": {
+      "resourceId": null,
+      "owner": null,
+      "operator": null,
+      "country": null,
+      "privateResidenceEvidence": null,
+      "storageAndSupportBoundary": null,
+      "costLimit": null,
+      "approved": false
+    },
+    "RESTORE-CH": {
+      "resourceId": null,
+      "owner": null,
+      "operator": null,
+      "country": null,
+      "privateResidenceEvidence": null,
+      "storageAndSupportBoundary": null,
+      "costLimit": null,
+      "approved": false
+    },
+    "PO-REVIEW": {
+      "resourceId": null,
+      "owner": null,
+      "operator": null,
+      "country": null,
+      "privateResidenceEvidence": null,
+      "storageAndSupportBoundary": null,
+      "costLimit": null,
+      "approved": false
+    }
+  },
+  "custody": {
+    "principal": {
+      "designation": "PROJECT_OWNER_CONFIRMED",
+      "github": "novo34",
+      "privateIdentityReference": null
+    },
+    "secondary": null,
+    "third": null,
+    "proposedScheme": "SHAMIR_2_OF_3_IF_THREE_INDEPENDENT_CUSTODIANS_DESIGNATED",
+    "chosenScheme": null,
+    "shares": null,
+    "threshold": null,
+    "shareBackupLocationReferences": [],
+    "approved": false
+  },
+  "people": {
+    "independentSecurityReviewer": null,
+    "productOwnerTester": null,
+    "verifiedRecipientAuthority": null,
+    "recoveryAttestationAuthority": null,
+    "humanPolicyAdministrator": null
+  },
+  "openbao": {
+    "pinnedRelease": "v2.7.1",
+    "architecture": null,
+    "assetSha256": null,
+    "independentSigningTrustEvidence": null,
+    "advisoryReviewReference": null,
+    "rendererInputsReference": null,
+    "renderedArtifactHashes": {},
+    "privateRouteReference": null,
+    "certificateSanAndCaInventoryReference": null,
+    "diskEncryptionEvidence": null,
+    "auditStorageRetentionAndAlertsReference": null,
+    "swapAndCoreDumpsDisabledEvidence": null,
+    "clockSynchronizationEvidence": null
+  },
+  "secrets": {
+    "valuesMustNeverBeRecorded": true,
+    "pgBootstrapFileExpected": "/opt/cleanops360/secrets/postgres_bootstrap_password",
+    "pgBootstrapFileObserved": "NOT_CHECKED",
+    "injectionProcedureReference": null,
+    "workloadAndBackupIdentityInventoryReference": null
+  },
+  "backup": {
+    "snapshotIntervalSeconds": null,
+    "pgBaseBackupCadence": "DAILY_CANONICAL",
+    "continuousWalArchiveEvidence": null,
+    "retentionDays": null,
+    "immutabilityReference": null,
+    "consistentRecoveryCheckpointProcedure": null,
+    "rpoTargetSeconds": 900,
+    "rtoTargetSeconds": 14400,
+    "approved": false
+  },
+  "limits": {
+    "tokenTtlSeconds": null,
+    "tokenMaxTtlSeconds": null,
+    "secretIdTtlSeconds": null,
+    "perKeyEncryptBudget": null,
+    "rotationReviewIntervalDays": null
+  },
+  "deployment": {
+    "branch": "staging",
+    "dokployProject": "cleanops-360",
+    "dokployEnvironment": "staging",
+    "dokployService": "cleanops-staging",
+    "composePath": "deploy/staging/compose.yaml",
+    "autodeploy": "OFF_REQUIRED_NOT_OBSERVED_ON_HOST",
+    "hostingerCountry": null,
+    "hostingerDeploymentAuthorized": false,
+    "privateTestExecutionAuthorized": false,
+    "runtimeMustRemain": "closedBackend",
+    "publicPortsAllowed": false,
+    "dnsChangesAllowed": false,
+    "externalSmtpAllowed": false
+  },
+  "freshTargetForceRestore": {
+    "authorized": false,
+    "targetId": null,
+    "verifiedSnapshotSha256": null,
+    "originalQuorumWitnessReference": null
+  },
+  "approval": {
+    "decision": "NOT_REQUESTABLE_UNTIL_REQUIRED_FIELDS_COMPLETE",
+    "owner": null,
+    "securityReviewer": null,
+    "signedAt": null,
+    "exactScopeAndManifestReference": null,
+    "stagingIntegrationAuthorized": false,
+    "provisioningAuthorized": false,
+    "sql14FreshInstallAuthorized": false,
+    "existingExactOpenBaoPolicyInstallationAuthorized": false,
+    "operationalDrillAuthorized": false,
+    "manualReviewSessionAuthorized": false
+  },
+  "acceptance": {
+    "B1": "OPEN",
+    "PR006": "OPEN",
+    "PR007": "OPEN",
+    "AUTH_GATE_05": "OPEN",
+    "accepted": 42,
+    "total": 44
+  }
+}

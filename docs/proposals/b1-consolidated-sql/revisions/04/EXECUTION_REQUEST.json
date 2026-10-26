@@ -1,0 +1,14 @@
+{
+  "authorizationRequested": "PG-TEST-01-CONSOLIDATED-04",
+  "ownerApproved": false,
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/04/schema.review.sql",
+    "gitBlob": "f2c3c7c1f0859b9a6e0e2ed2c701f3c5d060774c",
+    "sha256": "81538c713e7e031a5acdc0b374f36a55e34ded733d9d08c99bc363c606d61083"
+  },
+  "securityChange": "GRANT SELECT(expires_at) ON identity_private.security_log TO cleanops_auth_broker;",
+  "scope": "NEW isolated PG16 Docker, synthetic data, exact complete candidate only, no public ports/shared volumes. Re-run installation and full authorized battery, including gc_ephemeral and minimum column-ACL assertions. Preserve originals and remove owned resources.",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN"
+}

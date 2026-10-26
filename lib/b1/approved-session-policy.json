@@ -1,0 +1,1 @@
+{"id":"B1-SESSION-OWNER-2026-10-18","source":"docs/canonical/auth-review/SESSION-OWNER-RESOLUTION-2026-10-18.md","absolute_sensitive":43200,"absolute_operational":86400,"idle_sensitive":1800,"idle_operational":28800,"mostRestrictiveAcrossRoles":true,"productionActivationAuthorized":false}

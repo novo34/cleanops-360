@@ -1,0 +1,160 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-14",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact14-approved-blob-sha256-full-diff-ACL-RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated14",
+      "status": "FAIL",
+      "detail": "SQL returned successfully but expected definitions did not persist. Unmodified candidate may end ROLLBACK."
+    },
+    {
+      "name": "failed-install-transaction-rolled-back",
+      "status": "FAIL"
+    },
+    {
+      "name": "failed-install-roles-rolled-back",
+      "status": "FAIL"
+    },
+    {
+      "name": "service-ACL-and-SECURITY-DEFINER",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "RLS-21-tables",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "multi-tenant-binding",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "row-lock-concurrency",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "rollback-and-COMMIT-failure",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-data-backup-restore",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-X-credential-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "B1-X-global-TOTP-counter-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-locked-material-and-challenge-generation",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-concurrent-consume",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-native-worker",
+      "status": "BLOCKED",
+      "detail": "Installation prerequisite failed; no additional SQL installed"
+    },
+    {
+      "name": "recovery-trust-AUTHZ-native",
+      "status": "BLOCKED",
+      "detail": "Installation prerequisite failed; no additional SQL installed"
+    },
+    {
+      "name": "new-UI-API-PG-E2E",
+      "status": "BLOCKED",
+      "detail": "Installation prerequisite failed; no additional SQL installed"
+    },
+    {
+      "name": "new-rollback-concurrency-restore",
+      "status": "BLOCKED",
+      "detail": "Installation prerequisite failed; no additional SQL installed"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "increment": "SQL14_DIRECTED_NATIVE_AND_REAL_BROWSER",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-14",
+    "ownerApproved": true,
+    "referenceHead": "f71852d9c2d0adcf8c204a68461a68046874d28f",
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
+    "candidate": {
+      "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+      "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
+    },
+    "scope": "Exact SQL14 only, NEW isolated PostgreSQL16 Docker, synthetic data, no public ports/shared volumes.20 native+8 additional real scenarios and directed regression. No additional SQL/ACL, production, deployment, merge, external SMTP or real infrastructure.",
+    "runtime": "closedBackend",
+    "B1": "OPEN",
+    "AUTH-GATE-05": "OPEN"
+  },
+  "candidate": {
+    "gitBlob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
+  },
+  "submittedSqlSha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+  "result": "FAIL",
+  "fullB1Result": "OPEN_NOT_ACCEPTED",
+  "source": "e1c852f072b099eac3dc0c63acd1eadc01b9ba07",
+  "run": 39140866640,
+  "job": 117714834056
+}

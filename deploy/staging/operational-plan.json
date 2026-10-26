@@ -1,0 +1,172 @@
+{
+  "id": "B1-OPER-STAGING-01",
+  "state": "PREPARED_NOT_AUTHORIZED_NOT_DEPLOYED",
+  "kind": "REVIEWABLE_DEPLOYMENT_PLAN_NOT_COMPOSE_OVERRIDE",
+  "b1Source": "c6e95bef9626fb26f88a93068fd206523a4433eb",
+  "stagingBase": "c85b49870f31efd802216d778b1808c3cc4c4509",
+  "target": {
+    "branch": "staging",
+    "dokployUrl": "https://dokploy.nuvurent.com",
+    "project": "cleanops-360",
+    "environment": "staging",
+    "service": "cleanops-staging",
+    "composePath": "deploy/staging/compose.yaml",
+    "autodeploy": "OFF",
+    "desiredOrigin": "https://cleanops.nuvurent.com",
+    "originAndIngressApproval": "PENDING_NO_PUBLIC_ROUTE_AUTHORIZED"
+  },
+  "integration": {
+    "status": "PENDING_EXPLICIT_AUTHORIZATION_NO_BRANCH_MOVED",
+    "method": "Reviewed new commit or cherry-pick on permanent staging, no force/rebase or branch switch in Dokploy; no whole-branch merge implied",
+    "exactSourceBlobs": [
+      {
+        "path": "lib/b1/pg-identity-driver.ts",
+        "sourceBlob": "ba89c647d87ecc434eef1b104aec30279d904a4e",
+        "expectedStagingBlob": "7d3503f2d2562c551ce58ccf7eb022ff657f173f"
+      },
+      {
+        "path": "tests/b1/pg-identity-driver.test.ts",
+        "sourceBlob": "49c7670ac9f4b3d3d979e85630ac8e0c0f54bfeb",
+        "expectedStagingBlob": "fb3b8a7716e32c81596683043710e3a729e16b27"
+      },
+      {
+        "path": "tests/static/test_b1_custody_harness_wiring.py",
+        "sourceBlob": "d34497a281d9fdc615415cada1996bd883103fbd",
+        "expectedStagingBlob": "aa4e132ffccf472db612221d437dd65ca2fc3f14"
+      },
+      {
+        "path": "docs/implementation/b1/recovery/2026-10-19-integration.json",
+        "sourceBlob": "316891ca8c2c06191b97ded362d5d612f63d79d2",
+        "expectedStagingBlob": null
+      },
+      {
+        "path": "docs/implementation/b1/recovery/2026-10-19.json",
+        "sourceBlob": "a475eefe39c7abfa1579790b737fe743d984f584",
+        "expectedStagingBlob": null
+      }
+    ],
+    "alreadyIdentical": [
+      {
+        "path": "lib/b1/custody-composition.ts",
+        "blob": "9e44d5a88162141529dcd5607699e27252af02c6"
+      },
+      {
+        "path": "scripts/openbao-b1-integration.ts",
+        "blob": "ce7c3f5a134897168ff00d0e56ab4a14e319a7e8"
+      },
+      {
+        "path": "tests/b1/custody-composition.test.ts",
+        "blob": "128e6f0066350d612ea68b18e7e420c411623239"
+      },
+      {
+        "path": "tests/static/test_b1_openbao_integration.py",
+        "blob": "8a47656a9d73961a116cbe2c08f6b900a7a53501"
+      }
+    ],
+    "preserveStagingArtifacts": [
+      {
+        "path": ".dockerignore",
+        "blob": "80d08b18eb66ca6761eaa026fcc194c1e0963fb8"
+      },
+      {
+        "path": ".github/workflows/staging-b1-integration.yml",
+        "blob": "de60e20b52ed8b5745336904e107a8bfd11f9f8a"
+      },
+      {
+        "path": ".github/workflows/staging-preflight.yml",
+        "blob": "0fed2383be8e6af5cb649ef795fcaaff2f98b93f"
+      },
+      {
+        "path": "deploy/staging/.dockerignore",
+        "blob": "19c9d62b7a47469e213aef4380f2c37f91cb8f4f"
+      },
+      {
+        "path": "deploy/staging/.env.example",
+        "blob": "48ae205eb927b770637e08bf429efcba68178859"
+      },
+      {
+        "path": "deploy/staging/Dockerfile",
+        "blob": "ce53f077b0a011da3f38e4f6c6f5f832568dff21"
+      },
+      {
+        "path": "deploy/staging/README.md",
+        "blob": "00ebb258427ab06434f5e4229554c928052524c2"
+      },
+      {
+        "path": "deploy/staging/compose.yaml",
+        "blob": "1b8946311809c9ec764ace40df23a9eecf668e78"
+      },
+      {
+        "path": "scripts/staging-compose-check.py",
+        "blob": "7ee89d17c93375cd8371e85e4c2b3a12dbb6ec4b"
+      }
+    ],
+    "omitFeatureOneShotWorkflows": [
+      ".github/workflows/b1-openbao-integration.yml"
+    ],
+    "additionalPreparationArtifacts": [
+      "docs/implementation/b1/operational-acceptance/staging-candidate/",
+      "deploy/staging/operational-plan.json"
+    ],
+    "requiredPostIntegrationChecks": [
+      "Exact blob/hash comparison against this plan",
+      "staging-compose-check.py and docker compose config -q",
+      "Existing lint/typecheck/unit suites",
+      "B1 fixture Chromium only if integrated source differs from tested technical source; otherwise link immutable existing result",
+      "Private PG16/OpenBao operational REC01-12 against named Swiss resources after explicit approval"
+    ]
+  },
+  "services": {
+    "webAndPg": {
+      "composeSource": "c85b49870f31efd802216d778b1808c3cc4c4509",
+      "composeBlob": "1b8946311809c9ec764ace40df23a9eecf668e78",
+      "runtime": "closedBackend",
+      "publicPorts": [],
+      "migrationsOrSqlAutoinstall": false,
+      "pgRuntimeUsesBootstrap": false,
+      "healthMeaning": "Login UI responds only; not functional auth acceptance"
+    },
+    "openbao": {
+      "deploymentMode": "Existing native release/template candidate on named dedicated Swiss VM, NOT silently added to web Compose",
+      "templateSource": "c6e95bef9626fb26f88a93068fd206523a4433eb",
+      "templateBlob": "2e4b521bab8feddf2bfa63fc133832e325c82321",
+      "releasePinBlob": "039c8e464e08bfb7f78f289de4ef710f264a8b84",
+      "executableConfig": "PENDING_APPROVED_NONSECRET_RENDER_INPUTS_AND_HASHES",
+      "raftPath": "/var/lib/openbao/raft",
+      "auditPath": "/var/log/openbao/audit.json",
+      "tlsDirectory": "/run/openbao-tls",
+      "privateApiPort": 8200,
+      "privatePeerPort": 8201,
+      "publicPorts": [],
+      "persistentEncryptedStorageRequired": true,
+      "memorySwapAndCoreDumpsDisabledRequired": true
+    },
+    "b1PrivateWorkload": {
+      "mode": "Existing isolated private composition only; public runtime unchanged",
+      "resource": null,
+      "identityAndSecretInjection": null,
+      "knownLimitation": "Synthetic test IPC/Unix socket is not an operational credential/TLS provisioning design; stop if host requires new security contract",
+      "browserHasKeyAccess": false
+    },
+    "backupAndRestore": {
+      "resources": [
+        "BACKUP-CH",
+        "RESTORE-CH"
+      ],
+      "walAndBackupAutomationPresentInWebCompose": false,
+      "procedure": "docs/implementation/b1/operational-acceptance/staging-candidate/RUNBOOK.md"
+    }
+  },
+  "securityInvariants": {
+    "sql14Blob": "1971a9fdc5c1f3fd1fcb5f6706459678e5399256",
+    "sql14Sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa",
+    "sqlAclAndApprovedContractsUnchanged": true,
+    "closedBackendUnchanged": true,
+    "externalSmtp": false,
+    "publicDnsOrPorts": false,
+    "productionData": false,
+    "mergeMain": false,
+    "deployAuthorized": false
+  },
+  "authorizationRecord": "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json"
+}

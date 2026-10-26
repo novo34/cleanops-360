@@ -1,0 +1,131 @@
+{
+  "scope": "PG-TEST-01",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-V4",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42601",
+        "message": "syntax error at end of input",
+        "verified_source_diagnostic": "ERROR:  42601: syntax error at end of input\nLINE 9:  IF absolute_seconds<>CASE WHEN risk='SENSITIVE' THEN identi...\n                                                        ^\nLOCATION:  scanner_yyerror, scan.l:1236\n"
+      }
+    },
+    {
+      "name": "install-B1-X",
+      "status": "BLOCKED",
+      "detail": "Dependency installation failed; original SQL not modified."
+    },
+    {
+      "name": "install-D1",
+      "status": "BLOCKED",
+      "detail": "Dependency installation failed; original SQL not modified."
+    },
+    {
+      "name": "failed-install-transaction-rolled-back",
+      "status": "PASS"
+    },
+    {
+      "name": "failed-install-roles-rolled-back",
+      "status": "PASS"
+    },
+    {
+      "name": "service-ACL-and-SECURITY-DEFINER",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "RLS-21-tables",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "multi-tenant-binding",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "row-lock-concurrency",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "rollback-and-COMMIT-failure",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-data-backup-restore",
+      "status": "BLOCKED",
+      "detail": "V4 schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-X-credential-CAS",
+      "status": "BLOCKED",
+      "detail": "Exact approved overlay not installed; no replacement/guard removal authorized."
+    },
+    {
+      "name": "B1-X-global-TOTP-counter-CAS",
+      "status": "BLOCKED",
+      "detail": "Exact approved overlay not installed; no replacement/guard removal authorized."
+    },
+    {
+      "name": "D1-locked-material-and-challenge-generation",
+      "status": "BLOCKED",
+      "detail": "Exact approved overlay not installed; no replacement/guard removal authorized."
+    },
+    {
+      "name": "D1-concurrent-consume",
+      "status": "BLOCKED",
+      "detail": "Exact approved overlay not installed; no replacement/guard removal authorized."
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+  "cleanup": "PASS",
+  "result": "FAIL",
+  "provenance": {
+    "head": "d4f02d453aa1bdc72950faab03b49f9b28f2c4f4",
+    "run": 38957446332,
+    "job": 117163764450
+  }
+}

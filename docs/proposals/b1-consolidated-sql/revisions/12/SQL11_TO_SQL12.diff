@@ -1,0 +1,56 @@
+--- authorized-SQL11
++++ REVIEW-ONLY-SQL12
+@@ -2444,4 +2444,53 @@
+ REVOKE EXECUTE ON FUNCTION auth_api.set_role_access_rule(uuid,uuid,text,text,uuid,text,timestamptz,timestamptz,bigint,uuid) FROM cleanops_identity_service;
+ REVOKE EXECUTE ON FUNCTION auth_api.revoke_access_assignment(text,uuid,uuid,bigint,uuid) FROM cleanops_identity_service;
+ 
++-- REVIEW ONLY: owned tenant selection with real cookie/CSRF rotation; no session issuance.
++CREATE FUNCTION auth_api.select_tenant_rotated_owned(raw_preauth text,new_cookie_hash bytea,new_csrf_hash bytea,target_tenant uuid,key_hash bytea,request_hash bytea,corr uuid) RETURNS jsonb
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++DECLARE q identity_private.preauth; selected_user uuid; rejected boolean:=false;
++BEGIN
++ q:=identity_private.checked_preauth(raw_preauth);
++ IF q.state<>'SELECTION' OR q.tenant_id IS NOT NULL OR q.user_id IS NOT NULL OR q.factor_verified_at IS NOT NULL
++ OR q.origin_tenant_id IS NOT NULL OR q.origin_session_id IS NOT NULL
++ OR new_cookie_hash IS NULL OR octet_length(new_cookie_hash)<>32 OR new_cookie_hash=q.cookie_digest
++ OR new_csrf_hash IS NULL OR octet_length(new_csrf_hash)<>32 OR new_csrf_hash=q.csrf_digest
++ OR target_tenant IS NULL OR corr IS NULL OR key_hash IS NULL OR octet_length(key_hash)<>32
++ OR request_hash IS NULL OR octet_length(request_hash)<>32
++ THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++ PERFORM 1 FROM identity_private.ceremony_idempotency AS r
++ WHERE r.binding_digest=q.cookie_digest AND r.operation='switchTenant' AND r.key_digest=key_hash AND r.request_digest=request_hash
++ AND r.state='PENDING' AND r.one_time_result AND r.owner_backend=pg_backend_pid() AND r.owner_xid=pg_current_xact_id()
++ AND r.expires_at>clock_timestamp() FOR UPDATE;
++ IF NOT FOUND THEN RAISE EXCEPTION 'RESERVATION_NOT_OWNED';END IF;
++ BEGIN
++  PERFORM identity_private.lock_memberships(q.principal_id,ARRAY[target_tenant]);
++  PERFORM 1 FROM app.policy_versions AS p WHERE p.tenant_id=target_tenant FOR SHARE;
++  IF NOT FOUND THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501';END IF;
++  -- Revalidate the held marker after target/policy lock waits, before effects.
++  IF NOT EXISTS(SELECT 1 FROM identity_private.ceremony_idempotency AS r
++   WHERE r.binding_digest=q.cookie_digest AND r.operation='switchTenant' AND r.key_digest=key_hash AND r.request_digest=request_hash
++   AND r.state='PENDING' AND r.one_time_result AND r.owner_backend=pg_backend_pid() AND r.owner_xid=pg_current_xact_id()
++   AND r.expires_at>clock_timestamp())
++  THEN RAISE EXCEPTION 'RESERVATION_NOT_OWNED';END IF;
++  PERFORM auth_api.select_tenant(raw_preauth,target_tenant,corr);
++  IF clock_timestamp()>=q.expires_at
++  OR q.credential_version IS DISTINCT FROM (SELECT c.credential_version FROM identity_private.credentials AS c WHERE c.principal_id=q.principal_id)
++  THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++  UPDATE identity_private.preauth AS p SET cookie_digest=new_cookie_hash,csrf_digest=new_csrf_hash
++  WHERE p.id=q.id AND p.principal_id=q.principal_id AND p.cookie_digest=q.cookie_digest AND p.csrf_digest=q.csrf_digest
++  AND p.tenant_id=target_tenant AND p.state IN('PENDING_MFA','ENROLLMENT_REQUIRED') AND p.factor_verified_at IS NULL
++  RETURNING p.user_id INTO selected_user;
++  IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++  PERFORM identity_private.append_audit(target_tenant,selected_user,'auth.tenant.selected',q.id,1,corr);
++ EXCEPTION WHEN insufficient_privilege THEN rejected:=true;
++ END;
++ -- The caller records its trusted keyed denial and discards its existing owned
++ -- reservation in the outer transaction. Never return a target existence/state.
++ IF rejected THEN RETURN jsonb_build_object('selected',false,'error','POLICY_DENIED');END IF;
++ RETURN jsonb_build_object('selected',true,'binding_id',q.id);
++END $fn$;
++ALTER FUNCTION auth_api.select_tenant_rotated_owned(text,bytea,bytea,uuid,bytea,bytea,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION auth_api.select_tenant_rotated_owned(text,bytea,bytea,uuid,bytea,bytea,uuid) FROM PUBLIC;
++GRANT EXECUTE ON FUNCTION auth_api.select_tenant_rotated_owned(text,bytea,bytea,uuid,bytea,bytea,uuid) TO cleanops_identity_service;
++
+ COMMIT;

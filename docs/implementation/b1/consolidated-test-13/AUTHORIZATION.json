@@ -1,0 +1,12 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-13",
+  "ownerApproved": true,
+  "referenceHead": "0bf1bc28740dbbeb16bd0dada2064e0d019ee8a4",
+  "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/13/schema.review.sql",
+  "candidate": {"gitBlob":"7a2df8463e6c1a45b2a2c9005187c0269d2cf423","sha256":"a052d028206d004b17c375bc56868d86c4014fc4dd72e0d78d8fdb49b741b279"},
+  "scope": "Only this exact SQL13 blob installed in NEW isolated PostgreSQL16 Docker, synthetic fixtures, no public ports/shared volumes. No other SQL/ACL, production, SMTP, deployment, merge or runtime activation.",
+  "sessionPolicy": {"sensitiveAbsoluteSeconds":43200,"operationalAbsoluteSeconds":86400,"sensitiveIdleSeconds":1800,"operationalIdleSeconds":28800,"allSensitiveRoles":true,"mostRestrictiveAcrossRoles":true,"serverAuthorityOnly":true},
+  "runtime":"closedBackend",
+  "B1":"OPEN",
+  "AUTH-GATE-05":"OPEN"
+}

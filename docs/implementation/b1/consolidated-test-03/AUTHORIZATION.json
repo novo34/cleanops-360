@@ -1,0 +1,64 @@
+{
+  "authorization": "PG-TEST-01-CONSOLIDATED-03",
+  "ownerApproved": true,
+  "sourceHead": "433a5081bff2f7642a989b670a3e2b79e956dbeb",
+  "candidate": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/schema.review.sql",
+    "gitBlob": "7290c09ab32b74fecc4c39dc5d91a3bbc7f2723e",
+    "sha256": "07e6637d1d39b50962bc2a034416f8e43bdbb0ec775234a20d12998bf58ec779"
+  },
+  "fullDiff": {
+    "path": "docs/proposals/b1-consolidated-sql/revisions/03/APPROVED_TO_03.diff",
+    "sha256": "20501ce3609b8c3b8a5fb190055a62e68bd7d11c00aff3a51cbc73ad7d007397"
+  },
+  "originalSources": [
+    {
+      "name": "V4",
+      "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "sha256": "79f8c7a1a4165e2c1f08448ab12cadd43ff46a53d928970d77d261a878303b70"
+    },
+    {
+      "name": "B1-X",
+      "path": "docs/proposals/b1-v4-extension/review-only.sql",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "sha256": "49fcce0b89a1da59639dd0ee6d0c71206af5935ce28743fe70843783137df90f"
+    },
+    {
+      "name": "D1",
+      "path": "docs/proposals/b1-ceremony-material/review-only.sql",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "sha256": "446aa1513c9b413bf3bc9007206b5705f730d7d64a91f1c1f19b5b7a9783321b"
+    },
+    {
+      "name": "D1-ACL",
+      "path": "docs/proposals/b1-ceremony-material/approval-matrix.json",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "sha256": "abb97c7895983fbd061af6137d93a26f56bdf2eb9b954d01ea1984bf6b895ef3"
+    }
+  ],
+  "scope": {
+    "postgresMajor": 16,
+    "docker": "NEW_EPHEMERAL_OWN_LABEL",
+    "network": "none",
+    "publicPorts": false,
+    "sharedVolumes": false,
+    "data": "SYNTHETIC_ONLY",
+    "preexistingResources": "READ_ONLY_INVENTORY_NEVER_MUTATE"
+  },
+  "constraints": [
+    "Any changed SQL hash or extra privileges",
+    "Existing/shared/staging/production database changes",
+    "Production keys or data",
+    "External SMTP",
+    "Deployment",
+    "Merge",
+    "Backend runtime activation",
+    "B1 or AUTH-GATE-05 closure"
+  ],
+  "authority": "Explicit owner authorization in this session, exact consolidated 03 only; no additional SQL or ACL installation.",
+  "runtime": "closedBackend",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "automaticClosureAuthorized": false
+}

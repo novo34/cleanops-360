@@ -1,0 +1,268 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-01",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized-consolidated-blob-sha256-diff-acl",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "function-bodies-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated",
+      "status": "FAIL",
+      "detail": {
+        "sqlstate": "42601",
+        "message": "syntax error at end of input",
+        "verified_source_diagnostic": "psql:<stdin>:1462: ERROR:  42601: syntax error at end of input\nLINE 27:  OR m.state<>CASE WHEN purpose='ENROLLMENT' THEN 'PENDING' E...\n                                                    ^\nLOCATION:  scanner_yyerror, scan.l:1236\n"
+      }
+    },
+    {
+      "name": "failed-install-transaction-rolled-back",
+      "status": "PASS"
+    },
+    {
+      "name": "failed-install-roles-rolled-back",
+      "status": "PASS"
+    },
+    {
+      "name": "service-ACL-and-SECURITY-DEFINER",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "RLS-21-tables",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "multi-tenant-binding",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "row-lock-concurrency",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "rollback-and-COMMIT-failure",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-data-backup-restore",
+      "status": "BLOCKED",
+      "detail": "Authorized consolidated schema failed atomic installation; no test objects/privileges substituted."
+    },
+    {
+      "name": "B1-X-credential-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "B1-X-global-TOTP-counter-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-locked-material-and-challenge-generation",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "D1-concurrent-consume",
+      "status": "BLOCKED",
+      "detail": "Authorized candidate did not install; no additional SQL modifications authorized."
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "credential-CAS-concurrent-one-winner",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    },
+    {
+      "name": "global-TOTP-CAS-concurrent-one-winner",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    },
+    {
+      "name": "D1-method-version-revalidation",
+      "status": "BLOCKED",
+      "detail": "Mandatory protocol scenario has not executed; full PG-TEST-01 cannot pass."
+    },
+    {
+      "name": "authentication-MFA-sessions",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "roles-ACL-SECURITY-DEFINER",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "RLS-positive-negative-two-tenants",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "credential-and-global-TOTP-CAS",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "owned-reservations-and-method-revalidation",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "concurrency-and-row-locks",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "functional-rollback-and-COMMIT-failure",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    },
+    {
+      "name": "backup-restore-integrity",
+      "status": "BLOCKED",
+      "detail": "Authorized schema unavailable after installation prerequisite/failure; no replacement SQL/ACL installed."
+    }
+  ],
+  "image": "postgres@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea",
+  "cleanup": "PASS",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-01",
+    "ownerApproved": true,
+    "sourceHead": "29d23f0ec109e157a4d4db71182f38a01cef4c04",
+    "candidate": {
+      "path": "docs/proposals/b1-consolidated-sql/schema.review.sql",
+      "gitBlob": "7507a29dc58c27fa4b9ab7f3b6dd628397485c9a",
+      "sha256": "42169677305df68612d44a6c0f0a4b4bafe1ec142d041e9a9a0e426d84e97863"
+    },
+    "fullDiff": {
+      "path": "docs/proposals/b1-consolidated-sql/FULL.diff",
+      "sha256": "42aff60d9c4c77a495f5517f44a42bfdbc3713b18b5f3852ae2e271023e51d54"
+    },
+    "originalSources": [
+      {
+        "name": "V4",
+        "path": "docs/canonical/auth-review/v4/b1-review-only.sql",
+        "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+        "sha256": "79f8c7a1a4165e2c1f08448ab12cadd43ff46a53d928970d77d261a878303b70"
+      },
+      {
+        "name": "B1-X",
+        "path": "docs/proposals/b1-v4-extension/review-only.sql",
+        "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+        "sha256": "49fcce0b89a1da59639dd0ee6d0c71206af5935ce28743fe70843783137df90f"
+      },
+      {
+        "name": "D1",
+        "path": "docs/proposals/b1-ceremony-material/review-only.sql",
+        "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+        "sha256": "446aa1513c9b413bf3bc9007206b5705f730d7d64a91f1c1f19b5b7a9783321b"
+      },
+      {
+        "name": "D1-ACL",
+        "path": "docs/proposals/b1-ceremony-material/approval-matrix.json",
+        "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+        "sha256": "abb97c7895983fbd061af6137d93a26f56bdf2eb9b954d01ea1984bf6b895ef3"
+      }
+    ],
+    "scope": {
+      "postgresMajor": 16,
+      "docker": "NEW_EPHEMERAL_OWN_LABEL",
+      "network": "none",
+      "publicPorts": false,
+      "sharedVolumes": false,
+      "data": "SYNTHETIC_ONLY",
+      "preexistingResources": "READ_ONLY_INVENTORY_NEVER_MUTATE"
+    },
+    "constraints": [
+      "Any changed SQL hash or extra privileges",
+      "Existing/shared/staging/production database changes",
+      "Production keys or data",
+      "External SMTP",
+      "Deployment",
+      "Merge",
+      "Backend runtime activation",
+      "B1 or AUTH-GATE-05 closure"
+    ],
+    "authority": "Explicit owner authorization in this session, bound to candidate Git blob 7507a29dc58c27fa4b9ab7f3b6dd628397485c9a. No changed SQL/ACL may be installed.",
+    "runtime": "closedBackend",
+    "b1": "OPEN",
+    "authGate05": "OPEN",
+    "automaticClosureAuthorized": false
+  },
+  "candidate": {
+    "gitBlob": "7507a29dc58c27fa4b9ab7f3b6dd628397485c9a",
+    "sha256": "42169677305df68612d44a6c0f0a4b4bafe1ec142d041e9a9a0e426d84e97863",
+    "bytes": 118510
+  },
+  "submittedSqlSha256": "42169677305df68612d44a6c0f0a4b4bafe1ec142d041e9a9a0e426d84e97863",
+  "result": "FAIL",
+  "mandatoryProductScenariosComplete": false,
+  "mandatoryProtocolCases": {
+    "credential-CAS-concurrent-one-winner": "BLOCKED",
+    "global-TOTP-CAS-concurrent-one-winner": "BLOCKED",
+    "D1-method-version-revalidation": "BLOCKED",
+    "full-authentication-MFA-transitions": "BLOCKED",
+    "owned-reservations-concurrent-consume": "BLOCKED"
+  },
+  "b1RequirementsComplete": {
+    "count": 0,
+    "total": 44,
+    "basis": "No complete real B1 requirement accepted by this run."
+  },
+  "provenance": {
+    "head": "b8a00e4e6d9f3906e8642bd7cc5ef21c573ede99",
+    "run": 39036655470,
+    "job": 117407776015,
+    "url": "https://github.com/novo34/cleanops-360/actions/runs/39036655470"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "result": "SKIP_BEFORE_SQL",
+  "run": "https://github.com/novo34/cleanops-360/actions/runs/39584858298",
+  "sourceCommit": "a3ad5b3e19bc552ce80b115b09e9ba5866dfba96",
+  "nativeChecksExecuted": 0,
+  "postgresCreated": false,
+  "sqlExecuted": false,
+  "cleanup": "NOT_NEEDED_NO_CONTAINER_CREATED",
+  "sanitizedLog": [
+    "Verify exact approved dependencies and hosted scope without SQL: FAIL",
+    "RuntimeError: HOSTED_CI_SCOPE_REQUIRED",
+    "SQL5-R2 execution: SKIP",
+    "Artifact upload: FAIL_NO_REPORT_CREATED"
+  ],
+  "cause": "pull_request_review supplies the branch through github.event.pull_request.head.ref, not GITHUB_HEAD_REF. The wrapper now maps that same branch after exact repository/ref/review-commit checks; no guard or approved SQL/fixture/runner bytes changed."
+}

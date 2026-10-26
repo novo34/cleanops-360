@@ -1,0 +1,1156 @@
+{
+  "scope": "PG-TEST-01-CONSOLIDATED-07-NEW-CONTRACTS",
+  "b1": "OPEN",
+  "authGate05": "OPEN",
+  "runtime": "closedBackend",
+  "artifacts": [
+    {
+      "name": "V4",
+      "gitBlob": "a06dc23cbc889382b30924a1edc4cead66eeb3e0",
+      "verified": true
+    },
+    {
+      "name": "B1-X",
+      "gitBlob": "1499e90389b6e7c4d94b1dd17ed35cd4b539d436",
+      "verified": true
+    },
+    {
+      "name": "D1",
+      "gitBlob": "6454a7551e61e5857ef39090b24b93fcbdb03bb1",
+      "verified": true
+    },
+    {
+      "name": "D1-ACL",
+      "gitBlob": "50590047d35467b2473945731384ae3da5729f28",
+      "verified": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "authorized-four-blobs",
+      "status": "PASS"
+    },
+    {
+      "name": "exact07-blob-sha256-diff-acl-precheck",
+      "status": "PASS"
+    },
+    {
+      "name": "new-container-network-none-no-ports-no-volumes",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres16-ready",
+      "status": "PASS"
+    },
+    {
+      "name": "install-consolidated07",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-verifier-login-only",
+      "status": "PASS"
+    },
+    {
+      "name": "07-broker-nonlogin-nobypass",
+      "status": "PASS"
+    },
+    {
+      "name": "07-exact-new-column-privileges",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-credential-key-update",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-security-log-read-delete",
+      "status": "PASS"
+    },
+    {
+      "name": "07-all30-tables-forced-RLS",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_maintenance",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_maintenance",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "07-no-broker-membership-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-caller-version-write-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "07-no-direct-private-helper-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "catalog30-forced-RLS-tables",
+      "status": "PASS"
+    },
+    {
+      "name": "catalog96-functions44-policies",
+      "status": "PASS"
+    },
+    {
+      "name": "all-functions-pinned-path",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-0",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-0-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-0-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-0-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-1",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-1-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-1-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-1-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-2",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-2-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-2-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-2-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-3",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-3-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-3-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-3-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-4",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-4-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-4-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-4-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-5",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-5-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-5-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-5-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-6",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-6-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-6-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-6-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-7",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-7-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-7-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-7-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-8",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-8-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-8-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-8-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-9",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-9-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-9-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-9-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-10",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-10-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-10-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-10-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-11",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-11-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-11-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-11-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-12",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-12-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-12-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-12-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-13",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-13-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-13-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-13-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-14",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-14-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-14-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-14-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-15",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-15-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-15-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-15-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-16",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-16-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-16-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-16-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-17",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-17-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-17-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-17-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-18",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-18-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-18-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-18-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-19",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-19-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-19-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-19-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-20",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-20-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-20-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-20-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-21",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-21-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-21-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-21-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-22",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-22-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-22-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-22-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-23",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-23-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-23-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-23-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-24",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-24-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-24-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-24-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-25",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-25-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-25-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-25-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-26",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-26-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-26-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-26-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-27",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-27-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-27-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-27-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-28",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-28-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-28-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-28-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "new-function-owner-acl-29",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-29-identity",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-29-mail",
+      "status": "PASS"
+    },
+    {
+      "name": "new-execute-matrix-29-verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "no-direct-new-table-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "no-bypass-role-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "no-inherited-table-access-pgtest_identity",
+      "status": "PASS"
+    },
+    {
+      "name": "direct-recipient-denied-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "assume-broker-denied-pgtest_identity",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "no-direct-new-table-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "no-bypass-role-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "no-inherited-table-access-pgtest_mail",
+      "status": "PASS"
+    },
+    {
+      "name": "direct-recipient-denied-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "assume-broker-denied-pgtest_mail",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "no-direct-new-table-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "no-bypass-role-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "no-inherited-table-access-pgtest_verifier",
+      "status": "PASS"
+    },
+    {
+      "name": "direct-recipient-denied-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "assume-broker-denied-pgtest_verifier",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "no-direct-new-table-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "no-bypass-role-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "no-inherited-table-access-pgtest_runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "direct-recipient-denied-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "assume-broker-denied-pgtest_runtime",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "legacy-worker-claim-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "legacy-email-issue-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "AUTHZ-default-deny-view",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-create",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-edit",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-approve",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-delete",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-export",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-default-deny-manage_permissions",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-server-resource-catalog",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-approved-access-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-authorized-resource",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-cross-tenant-resource-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-deny-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "AUTHZ-deny-over-allow",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-not-a-login-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-register-without-stepup-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "fixture-fresh-stepup",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-register-real",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-valid-active-only",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-expire-synthetic-clock-row",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-expired-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "admin-reset-without-RBAC-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-admin-explicit-grants-not-role-name",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-1",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-role-create",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-2",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-role-positive-permission",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-3",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-role-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-authorized-access-detail",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-4",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-user-override",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-5",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-revoke-user-rule",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-6",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-revoke-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-7",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-revoke-role",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-8",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-admin-revoke-authorized",
+      "status": "PASS"
+    },
+    {
+      "name": "trust-own-list",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-independent-MFA-reset-attestation",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-8",
+      "status": "PASS"
+    },
+    {
+      "name": "admin-MFA-reset-with-independent-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "admin-reset-receipt-replay-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-password-reset-attestation",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-8",
+      "status": "PASS"
+    },
+    {
+      "name": "admin-password-reset-authorization-no-password-access",
+      "status": "PASS"
+    },
+    {
+      "name": "password-reset-CAS-after-current-admin-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "password-reset-receipt-replay-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-current-factor-policy-8",
+      "status": "PASS"
+    },
+    {
+      "name": "RBAC-policy-CAS-one-winner",
+      "status": "PASS",
+      "detail": {
+        "winners": 1,
+        "sqlstates": []
+      }
+    },
+    {
+      "name": "synthetic-recovery-batch-and-factor",
+      "status": "PASS"
+    },
+    {
+      "name": "recovery-password-verified-preauth",
+      "status": "PASS"
+    },
+    {
+      "name": "recovery-wrong-code-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "recovery-CAS-one-winner",
+      "status": "PASS",
+      "detail": {
+        "winners": 1,
+        "sqlstates": [
+          "42501"
+        ]
+      }
+    },
+    {
+      "name": "recovery-state-restricted-no-session",
+      "status": "PASS"
+    },
+    {
+      "name": "recovery-does-not-issue-ACTIVE",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "recovery-old-factor-and-code-revoked",
+      "status": "PASS"
+    },
+    {
+      "name": "tenant-rotation-original-verified-preauth",
+      "status": "PASS"
+    },
+    {
+      "name": "tenant-rotation-owned-membership",
+      "status": "PASS"
+    },
+    {
+      "name": "tenant-rotation-old-binding-denied",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "tenant-rotation-never-inherits-factor",
+      "status": "PASS"
+    },
+    {
+      "name": "tenant-rotation-preserves-password-proof-deadline",
+      "status": "PASS"
+    },
+    {
+      "name": "permission-stale-policy-denied-no-effects",
+      "status": "PASS"
+    },
+    {
+      "name": "denied-policy-unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "credential-CAS-new-contract-concurrency",
+      "status": "PASS",
+      "detail": {
+        "winners": 1,
+        "sqlstates": []
+      }
+    },
+    {
+      "name": "EMAIL-real-Argon-and-verified-recipient-setup",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-real-AEAD-committed-worker-enrollment-delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-wrong-code-retains-pending",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-first-code-activates-CAS-and-replay-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-verified-factor-persists-session-after-COMMIT",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-native-claim-COMMIT-failure-no-send-no-effect",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-native-concurrent-dispatch-one-send",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-native-finish-COMMIT-loss-does-not-redeliver",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-real-stepup-revalidates-current-session",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-uncertain-delivery-durable-quarantine",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-quarantine-retained-after-expiry-and-GC",
+      "status": "PASS"
+    },
+    {
+      "name": "EMAIL-pending-expiry-GC-preserves-kind-invariant",
+      "status": "PASS"
+    },
+    {
+      "name": "create-owned-restore-db",
+      "status": "PASS"
+    },
+    {
+      "name": "backup-restore-all30-tables-integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "image": "postgres@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "cleanup": "PASS",
+  "authorization": {
+    "authorization": "PG-TEST-01-CONSOLIDATED-07",
+    "ownerApproved": true,
+    "referenceHead": "ac0a068467cdc2d0de812684655c5d72a3a46ebe",
+    "candidatePath": "docs/proposals/b1-consolidated-sql/revisions/07/schema.review.sql",
+    "candidate": {
+      "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+      "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456"
+    },
+    "approvalSource": "Explicit owner authorization CONSOLIDATED-07 in this conversation,2026-10-18",
+    "scope": "NEW isolated PostgreSQL16Docker; synthetic only; exact approved SQL/ACL, all previous failed cases and native negatives. No extra SQL/ACL installation, production, runtime, external SMTP, deployment or merge."
+  },
+  "candidate": {
+    "status": "PASS_STATIC_PREINSTALL_SCOPE",
+    "gitBlob": "099345e43c03a2ee3759fa0c2d5ef875121621fc",
+    "sha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
+    "bytes": 187018,
+    "exactDeltaReproduced": true,
+    "newGrants": [
+      "GRANT UPDATE(version) ON app.policy_versions TO cleanops_auth_broker;",
+      "GRANT UPDATE(credential_version) ON identity_private.credentials TO cleanops_auth_broker;"
+    ],
+    "newDirectServiceGrants": [],
+    "newPublicSQLSignatures": [],
+    "newPrivateHelper": "identity_private.lock_pair_nowait(uuid,uuid)",
+    "RLS_Owners_Memberships_Unchanged": true,
+    "broker": "NOLOGIN_NOBYPASSRLS_NO_SERVICE_MEMBERSHIP",
+    "limits": "Static proof of exact bounded delta, not native ACL/tenant/concurrency proof. Native negative gate required immediately after install."
+  },
+  "prior06": {
+    "run": 39101669219,
+    "PASS": 210,
+    "FAIL": 19
+  },
+  "prior294": {
+    "run": 39068144839,
+    "reexecuted": false
+  },
+  "submittedSqlSha256": "4c304916a76a700e37a069c947426874d73dace0016f3d2a5d3504ce9ba05456",
+  "newFunctionInventory": 30,
+  "newUIE2E": "NOT_IMPLEMENTED_NOT_EXECUTED",
+  "b1RequirementsAccepted": 0,
+  "result": "PASS",
+  "fullB1Result": "OPEN_NOT_ACCEPTED"
+}

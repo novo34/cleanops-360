@@ -1,0 +1,128 @@
+--- approved06
++++ review07
+@@ -392,7 +392,7 @@
+  OR idle_seconds<>(CASE WHEN risk='SENSITIVE' THEN 1800 ELSE 28800 END) THEN RAISE EXCEPTION 'RISK_POLICY_MISMATCH'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM app.users u JOIN app.organizations o ON o.id=u.tenant_id WHERE u.tenant_id=q.tenant_id AND u.id=q.user_id AND u.state='ACTIVE' AND o.state='ACTIVE') THEN RAISE EXCEPTION 'INVALID_SUBJECT'; END IF;
+  IF q.origin_session_id IS NOT NULL THEN
+-  SELECT user_id INTO origin_user FROM app.sessions WHERE tenant_id=q.origin_tenant_id AND id=q.origin_session_id FOR UPDATE;
++  SELECT user_id INTO origin_user FROM app.sessions WHERE tenant_id=q.origin_tenant_id AND id=q.origin_session_id FOR NO KEY UPDATE;
+   IF NOT identity_private.valid_session(q.origin_tenant_id,q.origin_session_id,origin_user) OR NOT identity_private.rule_allowed(q.tenant_id,'B1-SELF-08') THEN RAISE EXCEPTION 'INVALID_SWITCH'; END IF;
+  END IF;
+  SELECT credential_version INTO cv FROM identity_private.credentials WHERE principal_id=q.principal_id;
+@@ -519,7 +519,7 @@
+ DECLARE c identity_private.tx_context; n integer;
+ BEGIN
+  c:=identity_private.context();
+- PERFORM s.id FROM app.sessions s WHERE s.tenant_id=c.tenant_id AND s.user_id=c.user_id AND s.id IN(c.session_id,target) ORDER BY s.id FOR UPDATE;
++ PERFORM s.id FROM app.sessions s WHERE s.tenant_id=c.tenant_id AND s.user_id=c.user_id AND s.id IN(c.session_id,target) ORDER BY s.id FOR NO KEY UPDATE;
+  c:=identity_private.guard('B1-SELF-03');
+  IF NOT EXISTS(SELECT 1 FROM app.sessions WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND id=target) THEN RAISE EXCEPTION 'RESOURCE_NOT_FOUND' USING ERRCODE='P0002'; END IF;
+  UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND id=target AND state='ACTIVE'; GET DIAGNOSTICS n=ROW_COUNT;
+@@ -530,7 +530,7 @@
+ DECLARE c identity_private.tx_context; n integer;
+ BEGIN
+  c:=identity_private.context();
+- PERFORM s.id FROM app.sessions s WHERE s.tenant_id=c.tenant_id AND s.user_id=c.user_id ORDER BY s.id FOR UPDATE;
++ PERFORM s.id FROM app.sessions s WHERE s.tenant_id=c.tenant_id AND s.user_id=c.user_id ORDER BY s.id FOR NO KEY UPDATE;
+  c:=identity_private.guard('B1-SELF-04',true);
+  UPDATE app.sessions SET state='REVOKED',revoked_at=clock_timestamp() WHERE tenant_id=c.tenant_id AND user_id=c.user_id AND id<>c.session_id AND state='ACTIVE'; GET DIAGNOSTICS n=ROW_COUNT;
+  PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'self_sessions.revoke_other_own_sessions',NULL,n,corr); RETURN n;
+@@ -655,9 +655,10 @@
+ CREATE FUNCTION auth_api.gc_ephemeral() RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+ BEGIN
+- UPDATE app.auth_outbox SET payload_ciphertext=decode('','hex'),state='CANCELLED',lease_until=NULL,claim_digest=NULL WHERE expires_at<=statement_timestamp() AND state NOT IN('SENT','CANCELLED');
++ UPDATE app.auth_outbox SET state='QUARANTINED',lease_until=NULL,claim_digest=NULL WHERE state IN('CLAIMED','DISPATCHING') AND (expires_at<=clock_timestamp() OR lease_until<=clock_timestamp());
++ UPDATE app.auth_outbox SET payload_ciphertext=decode('','hex'),state='CANCELLED',lease_until=NULL,claim_digest=NULL WHERE expires_at<=statement_timestamp() AND state NOT IN('SENT','CANCELLED','QUARANTINED');
+  UPDATE app.mfa_challenges SET state='EXPIRED',proof_digest=NULL WHERE expires_at<=statement_timestamp() AND state='ISSUED';
+- UPDATE app.mfa_methods SET state='REVOKED',secret_ciphertext=decode('','hex'),key_version='PURGED' WHERE state='PENDING' AND created_at+make_interval(secs=>identity_private.cfg('enrollment_ttl'))<=statement_timestamp();
++ UPDATE app.mfa_methods SET state='REVOKED',secret_ciphertext=CASE WHEN kind='TOTP' THEN decode('','hex') ELSE NULL END,key_version=CASE WHEN kind='TOTP' THEN 'PURGED' ELSE NULL END WHERE state='PENDING' AND created_at+make_interval(secs=>identity_private.cfg('enrollment_ttl'))<=statement_timestamp();
+  UPDATE identity_private.preauth SET state='REVOKED' WHERE expires_at<=statement_timestamp() AND state NOT IN('CONSUMED','REVOKED');
+  DELETE FROM identity_private.csrf_bootstrap WHERE expires_at<=statement_timestamp();
+  DELETE FROM identity_private.ceremony_idempotency WHERE expires_at<=statement_timestamp();
+@@ -798,7 +799,7 @@
+  SELECT * INTO s FROM app.sessions WHERE tenant_id=c.tenant_id AND id=c.session_id AND user_id=c.user_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  p:=s.principal_id; PERFORM identity_private.lock_principal(p);
+- SELECT * INTO s FROM app.sessions WHERE tenant_id=c.tenant_id AND id=c.session_id AND user_id=c.user_id FOR UPDATE;
++ SELECT * INTO s FROM app.sessions WHERE tenant_id=c.tenant_id AND id=c.session_id AND user_id=c.user_id FOR NO KEY UPDATE;
+  IF NOT FOUND OR s.principal_id IS DISTINCT FROM p THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  PERFORM identity_private.lock_memberships(p,ARRAY[c.tenant_id]);
+  IF NOT identity_private.valid_session(c.tenant_id,c.session_id,c.user_id)
+@@ -816,7 +817,7 @@
+  IF NOT FOUND THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  PERFORM identity_private.lock_principal(initial.principal_id);
+  IF initial.origin_session_id IS NOT NULL THEN
+-  SELECT * INTO origin FROM app.sessions WHERE tenant_id=initial.origin_tenant_id AND id=initial.origin_session_id FOR UPDATE;
++  SELECT * INTO origin FROM app.sessions WHERE tenant_id=initial.origin_tenant_id AND id=initial.origin_session_id FOR NO KEY UPDATE;
+   IF NOT FOUND OR origin.principal_id<>initial.principal_id THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501'; END IF;
+  END IF;
+  SELECT * INTO q FROM identity_private.preauth WHERE id=initial.id FOR UPDATE;
+@@ -1536,6 +1537,8 @@
+ -- BEGIN E1 CONSOLIDATED REVIEW ONLY
+ -- E1 source for a SINGLE fresh-install candidate. REVIEW ONLY; never install alone.
+ -- New privileges/contracts below require exact owner approval. No initial grants/data.
++GRANT UPDATE(version) ON app.policy_versions TO cleanops_auth_broker;
++GRANT UPDATE(credential_version) ON identity_private.credentials TO cleanops_auth_broker;
+ CREATE ROLE cleanops_recipient_verifier NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+ GRANT USAGE ON SCHEMA auth_api TO cleanops_recipient_verifier;
+ CREATE TABLE app.verified_recipients (
+@@ -1916,7 +1919,8 @@
+  SELECT * INTO r FROM identity_private.reset_tickets WHERE token_digest=token_hash AND purpose='PASSWORD';
+  IF NOT FOUND THEN RETURN false;END IF;initial:=r;
+  SELECT principal_id INTO admin_principal FROM app.users WHERE tenant_id=r.tenant_id AND id=r.admin_user_id;
+- FOR p IN SELECT DISTINCT v FROM unnest(ARRAY[r.principal_id,admin_principal]) v WHERE v IS NOT NULL ORDER BY v LOOP PERFORM identity_private.lock_principal(p);END LOOP;
++ IF admin_principal IS NULL THEN PERFORM identity_private.lock_principal(r.principal_id);
++ ELSE PERFORM identity_private.lock_pair_nowait(r.principal_id,admin_principal);END IF;
+  SELECT array_agg(tenant_id ORDER BY tenant_id) INTO ts FROM app.users WHERE principal_id=r.principal_id;
+  PERFORM identity_private.lock_memberships(r.principal_id,ts);
+  SELECT * INTO r FROM identity_private.reset_tickets WHERE id=r.id FOR UPDATE;
+@@ -1950,7 +1954,7 @@
+  SELECT * INTO r FROM identity_private.reset_tickets WHERE token_digest=ticket_hash AND user_id=target AND purpose='MFA_RESET';
+  subject:=r.principal_id;
+  IF actor IS NULL OR subject IS NULL OR actor=subject THEN RETURN false;END IF;
+- FOR p IN SELECT v FROM unnest(ARRAY[actor,subject]) v ORDER BY v LOOP PERFORM identity_private.lock_principal(p);END LOOP;
++ PERFORM identity_private.lock_pair_nowait(actor,subject);
+  c:=identity_private.context();
+  IF r.tenant_id IS DISTINCT FROM c.tenant_id OR target=c.user_id OR corr IS NULL OR reason IS NULL OR length(reason) NOT BETWEEN 1 AND 500 THEN RETURN false;END IF;
+  PERFORM identity_private.lock_memberships(subject,ARRAY[c.tenant_id]);
+@@ -2103,7 +2107,7 @@
+  SELECT s.principal_id INTO actor FROM identity_private.tx_context x JOIN app.sessions s ON(s.tenant_id,s.id)=(x.tenant_id,x.session_id) WHERE x.backend_pid=pg_backend_pid() AND x.transaction_id=pg_current_xact_id();
+  SELECT * INTO r FROM identity_private.reset_tickets WHERE token_digest=ticket_hash AND user_id=target AND purpose='PASSWORD';
+  IF actor IS NULL OR r.principal_id IS NULL OR actor=r.principal_id THEN RETURN false;END IF;
+- FOR p IN SELECT v FROM unnest(ARRAY[actor,r.principal_id]) v ORDER BY v LOOP PERFORM identity_private.lock_principal(p);END LOOP;
++ PERFORM identity_private.lock_pair_nowait(actor,r.principal_id);
+  c:=identity_private.context();
+  IF r.tenant_id IS DISTINCT FROM c.tenant_id OR target=c.user_id OR corr IS NULL OR reason IS NULL OR length(reason) NOT BETWEEN 1 AND 500 THEN RETURN false;END IF;
+  PERFORM identity_private.lock_memberships(r.principal_id,ARRAY[c.tenant_id]);
+@@ -2116,6 +2120,21 @@
+  PERFORM identity_private.append_audit(c.tenant_id,c.user_id,'auth.password.reset_authorize',target,1,corr);RETURN true;
+  -- Operator approves only the proof receipt. Never receives or chooses the password.
+  -- Consumer requires unchanged policy, live approving session and fresh factor again.
++END $fn$;
++
++-- Internal only. Caller may already hold its own principal due to middleware;
++-- NOWAIT on a second principal prevents reciprocal administration deadlocks.
++CREATE FUNCTION identity_private.lock_pair_nowait(actor uuid,subject uuid) RETURNS void
++LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
++BEGIN
++ PERFORM identity_private.require_enabled();
++ IF actor IS NULL OR subject IS NULL OR actor=subject THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++ PERFORM 1 FROM identity_private.principals p WHERE p.id=ANY(ARRAY[actor,subject]) AND p.state='ACTIVE' ORDER BY p.id FOR UPDATE NOWAIT;
++ IF (SELECT count(*) FROM identity_private.principals WHERE id=ANY(ARRAY[actor,subject]) AND state='ACTIVE')<>2 THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++ PERFORM 1 FROM identity_private.credentials c WHERE c.principal_id=ANY(ARRAY[actor,subject]) ORDER BY c.principal_id FOR UPDATE NOWAIT;
++ IF (SELECT count(*) FROM identity_private.credentials WHERE principal_id=ANY(ARRAY[actor,subject]))<>2 THEN RAISE EXCEPTION 'AUTH_INVALID' USING ERRCODE='42501';END IF;
++ -- 55P03 means rollback the WHOLE transaction; never continue effects or blindly retry
++ -- a transport/COMMIT uncertainty. No public grant or lower isolation level.
+ END $fn$;
+ 
+ ALTER FUNCTION auth_api.record_verified_recipient(uuid,uuid,bigint,bytea,uuid,timestamptz,uuid) OWNER TO cleanops_auth_broker;
+@@ -2204,6 +2223,8 @@
+ ALTER FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) OWNER TO cleanops_auth_broker;
+ REVOKE ALL ON FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) FROM PUBLIC;
+ GRANT EXECUTE ON FUNCTION auth_api.authorize_password_reset(uuid,bytea,text,uuid) TO cleanops_identity_service;
++ALTER FUNCTION identity_private.lock_pair_nowait(uuid,uuid) OWNER TO cleanops_auth_broker;
++REVOKE ALL ON FUNCTION identity_private.lock_pair_nowait(uuid,uuid) FROM PUBLIC;
+ REVOKE EXECUTE ON FUNCTION auth_api.claim_mail(bytea),auth_api.finish_mail(uuid,uuid,bytea,boolean) FROM cleanops_mail_worker;
+ REVOKE EXECUTE ON FUNCTION auth_api.consume_email_otp(text,uuid,bytea,uuid),auth_api.email_otp_material(text,uuid) FROM cleanops_identity_service;
+ COMMIT;
