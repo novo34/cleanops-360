@@ -156,15 +156,15 @@ Los diseños de pantalla y nombres de comandos de los documentos derivados son *
 
 ### Fase 10 — Offers + Negotiation
 
-**Resultado de negocio:** Ofertas versionadas y negociación humana.
+**Resultado de negocio:** Presupuestos rentables reproducibles, ofertas versionadas y negociación humana.
 
-**UI/UX que se prueba:** Editor de oferta, versiones, Accept/Counter/Maintain.
+**UI/UX que se prueba:** Configuración tenant, catálogo/rendimientos, Raumbuch, editor y desglose, variantes, umbrales, PDF, versiones y Accept/Counter/Maintain.
 
 **Backend/API y efecto verificable:** versions/approval, precios seguros y aceptaciones auditadas.
 
 **Entidades clave:** `offers,offer_versions,tenders,tender_positions`.
 
-**Requisitos de origen:** REQ-OFF-001, REQ-OFF-005, REQ-DOC-020.
+**Requisitos de origen:** REQ-OFF-001, REQ-OFF-005, REQ-DOC-020, REQ-CALC-001…010/012. Cierre presupuestario requiere CALC-01…08/10 según OFFERS_AND_NEGOTIATION_SPEC.md y COST-GATE-01. No autoriza iniciar esta fase ahora.
 
 **Cierre de la fase:** aplicar `DELIVERY_PLAYBOOK.md` y `PHASE_ACCEPTANCE_TEMPLATE.md`, con pruebas reales UI→API→persistencia, permisos, errores y auditoría. La fase se acepta solo con evidencia.
 
@@ -342,3 +342,9 @@ Auth: fijar timeout absoluto y pruebas de sesiones antes de aceptar F1. Infraest
 - `REQ-FILE-020`: validación segura y almacenamiento de fotografías operativos **antes de fase 9 Visitas**; fase 13 extiende a planos y documentación técnica.
 - `REQ-SVC-001`: G-SVC-ONE se acepta **antes de activar** servicios puntuales; su entrega se integra entre fases 13–18 según dependencias, sin un corte arbitrario de numeración.
 - `REQ-SVC-002`: G-SVC-MAINT se acepta **antes de activar** mantenimiento; la ejecución de renovaciones y cobro debe demostrar el flujo contractual completo.
+
+## Dependencias presupuestarias — 2026-10-26
+
+Fase 9 aporta medición progresiva reutilizable por Raumbuch; fase 10 completa cálculo estimado sin crear otro CRM ni planificador. Las reglas laborales/fiscales necesarias para emitir una oferta se verifican antes de usar sus perfiles; no diferir este control a G-CMP de Planning ni adelantar toda la fase de personal. COST-GATE-01 se registra en IMPLEMENTATION_GATES.md.
+
+REQ-CALC-011 y CALC-09: se integran secuencialmente con horas reales (fase 16), validación contractual (17) y costes/ingresos (18). Cada fase acepta solo su capacidad disponible, muestra datos ausentes/provisionales y preserva baseline; cierre completo de rentabilidad real en fase 18 con evidencia conjunta. No abrir varios módulos para completar esta ampliación documental.
