@@ -45,3 +45,10 @@ a809604eb087199236116bc2d99384e19c8ea1e5:tests/b1/approved-backend.test.ts:gener
 a809604eb087199236116bc2d99384e19c8ea1e5:tests/b1/enrollment-backend.test.ts:generic-api-key:38
 a809604eb087199236116bc2d99384e19c8ea1e5:tests/b1/private-operations.test.ts:generic-api-key:15
 a809604eb087199236116bc2d99384e19c8ea1e5:scripts/pg05-browser-backend.ts:generic-api-key:429
+
+# R3: four public SHA-256 artifact digests, verified against the immutable composition.
+# Exact commit/file/rule/line only; no path/rule-wide exception or native authorization.
+fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:34
+fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:35
+fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:46
+fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:49
