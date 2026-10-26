@@ -65,6 +65,105 @@
 - **Exclusiones permanentes del cierre R2:** AUTH-GATE-05 OPEN; closedBackend conectado. PostgreSQL/OpenBao reales, SQL/migraciones, concurrencia real, validaciones nativas/RLS y aceptación operativa B1/B2 continúan pendientes de autorizaciones y gates propios; limitación conocida del parser MapLibre. No se autoriza despliegue, activación de backend, levantamiento de protecciones ni inicio de R3 con este documento.
 
 - [ ] **R3 — Reparación mínima SQL5 (AUD-010/011/023).** Preservar R1/R2/R3 originales y sus hashes. Crear **un único candidato corregido** a partir de R2, aplicar sustitución literal segura (evitar expansión JS `$'`), verificar SQL íntegro hasta el único `COMMIT`, sintaxis PostgreSQL/PLpgSQL y manifiesto; reutilizar scripts de parseo/revisión existentes y añadir la cobertura faltante, sin duplicar harness ni guards. Resolver el desacuerdo rama/alcance mediante diseño de ejecución canónico; no falsear variables. **Cierre estático:** hashes nuevos, diff justificado, revisión independiente y *nueva autorización explícita* por commit+manifiesto. **Cierre nativo:** solo después de autorización, una ejecución de PG16 efímero aislado con fixtures sintéticos, concurrencia y limpieza; PASS/FAIL/SKIP documentados. Hasta entonces SQL5 BLOCKED. No ejecutar R3 corrupto.
+
+### R3 — Preflight y STOP-AND-DESIGN (2026-10-26)
+
+**Estado: OPEN / BLOCKED_FOR_DESIGN; después, BLOCKED_FOR_NATIVE_VALIDATION.** El encargo del propietario autoriza preflight, TODO y reparación estática mínima, no ejecución nativa ni cierre. R0/R1/R2 conservan sus cierres y todos sus registros. R4 no se inicia. Este checklist amplía exclusivamente R3.
+
+#### Fase 1 — Preflight y trazabilidad
+
+- [x] HEAD remoto inicial verificado por GET branches/main: `975134a78621820bf3b790c392ab35726194ec66`; R2 DONE formal en este TODO. La copia local estaba en `22ab611b156f26848994483a4e8e29b86bac10d2`: no se usa como base ni se sobreescribe.
+- [x] Autoridad inspeccionada: AGENTS.md, ENGINEERING_QUALITY_POLICY.md §§1–6/8, DELIVERY_PLAYBOOK.md, IMPLEMENTATION_GATES.md, ROADMAP.md y plantilla PR. Alcance AUD-010/011/023; AUTH-GATE-05 OPEN, closedBackend conectado; autorizaciones históricas no transferibles.
+- [x] Inventario SQL5-R1/R2 en main y R3 en commit histórico `aff420f40d37e1e6a44942e80c7ff70fadd612ba`, rama review/b2-sql5-r3-regex-fix actualmente `80c426896d0ed42113462ae38e4499c245f18ef2`. R3 no existe en el árbol main inspeccionado. Se conservaron los originales remotos sin escritura.
+- [x] Bytes y Git blob verificados recalculando SHA-1 del objeto y SHA-256 del contenido UTF-8; rutas relativas a docs/proposals/b2-invitations:
+
+| Artefacto histórico | Bytes | Git blob | SHA-256 |
+|---|---:|---|---|
+| 005-invitation-acceptance.review.sql (R1, main) | 27732 | a4d81e6d0397d3c13146a81b13d7033a68ca94aa | 490e916ccfbca8c5584fd689ee21b3deaa2d90bdb08ae93db390e0f97e47dd83 |
+| 005-invitation-acceptance.r2.review.sql (main) | 29591 | a5eb322b7ff134482579754e7663612fd525e820 | eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9 |
+| 005-invitation-acceptance.r3.review.sql (aff420f) | 42122 | 071c594695df537576029474f5bd2fe1bfce042a | 14f1f9ba932e1f3f88e8fcbfa9226378ad801618abec532301bac40a8e63d62b |
+| sql5-r3-manifest.review.json (aff420f) | 693 | 67bbf69db969b91e0c4c484ff4f8e91e845294f1 | 483a8cba21c199fb4507e5b6b0ff493477d1808ec9feacfc6a21709cc0d9e052 |
+
+- [x] Inspeccionados manifiestos SQL5-R2/R3; runner scripts/b2-acceptance-r2-postgres.review.py y runner R3 histórico; fixture acceptance-tests.r2.review.py y fixture R3 histórico; autorización R3 y report.json históricos. Fixture R3 SHA-256 `02b5922a9b02ed0c0a4c93009fb455e3b7f75ce9e68e1f8429a66ff23cc6c68a`; runner R3 `d0b1bd3d3354b8eb5f238ab524adf13092adea719e299253d5e89e76e306085a`. Sus AST Python son válidos; no se importaron fixtures.
+- [x] Consumidores/mecanismos inspeccionados: scripts/b2-directory-postgres.py, scripts/prepare-b2-composition-approval.py, tests/static/test_b2_execution_preflight.py, scripts/parse-b1-sql.py, workflows B2 acceptance R2 y preflight R3 histórico. Dependencias declaradas: B1 SQL14 → B2 SQL1/SQL2/SQL3 → SQL4 → SQL5 y fixtures; la suite SQL4 histórica no debe repetirse.
+- [x] AUD-010 reproducido exactamente: una llamada JavaScript String.replace con replacement de texto que contiene el token `$'` reproduce byte por byte el SQL R3 histórico desde R2. Inserta el sufijo posterior al match y luego vuelve a añadirlo. Primera divergencia offset 17106; COMMIT; en offsets 29693 y 42114 (base cero). Incluye regex truncada, cola duplicada y SQL después del primer COMMIT. No son defectos independientes a reparar sobre R3.
+- [x] AUD-011 confirmado: preflight canónico exige feat/b2-users-access; la rama R3 histórica no cumple. El reporte conservado cuenta 9 PASS/1 FAIL/8 SKIP y postgresStarted=false/sqlExecuted=false/nativeExecutionAuthorizationConsumed=false; se atribuye al reporte histórico, no a una ejecución nueva.
+- [x] AUD-023 / reutilización: scripts/b2-r3-review-preflight.review.py en 80c4268 declara “Duplicates only its preflight checks” y copia los guards de bindings externos, autorización B2, hashes B2, SQL14 y sesión B1. SHA-256 `205b60e638a8ef9fd93e0ed55e8ac81121f36d3d642a257836cc839f55e908bc`; blob `b483b03705314a9a6570396704c9915b338bd744`. Se verifica duplicación real; la clasificación AUD-023 del encargo no constituye una auditoría PostgreSQL.
+- [x] Riesgos/diff/rollback: cambiar el harness altera el artefacto a01 del manifiesto de composición, hash `d968c9621cbd6327d9ce473b434b9bceebb58669c9cb4c60f79306f37027e00b`. prepare-b2-composition-approval.py exige los bytes históricos; no basta permitir otra rama. No modificar aprobaciones anteriores. Esta entrega solo amplía el TODO; rollback por revert documental normal, sin SQL ni force-push.
+
+#### Fase 2 — Diseño mínimo y bloqueo demostrado
+
+- [x] Seleccionar R2 como futura base; no editar el R3 corrupto. Sustitución localizada única: predicado regex `^(?:[a-f0-9]{2}){29,512}$` por longitud 58…1024, paridad cero y regex `^[a-f0-9]+$`, conservando coalesce y el resto de la expresión. No modificar firmas, permisos, owners ni RLS.
+- [x] Reproducción positiva/negativa temporal con Node: replacement string genera exactamente R3; replacement callback conserva literalmente el dólar, produce 29704 bytes, un COMMIT y sufijo intacto. Solo demostración en memoria; no candidato publicado ni validación PostgreSQL.
+- [x] Determinar corrupción completa mediante reproducción exacta de todo el archivo, no solo primer match. No hay justificación para conservar la cola insertada.
+- [x] **STOP-AND-DESIGN obligatorio:** encargo §5 y política §4 ante duplicación de guards. No incorporar el preflight paralelo ni crear otro runner/wrapper. QG-0 bloquea implementación hasta revisión del owner técnico del plan de consolidación.
+- [x] Alternativas: reutilizar sin cambios rechaza R3; copiar guard/runner perpetúa duplicación; falsear GITHUB_HEAD_REF/identidad/contexto está prohibido; ampliar ramas globalmente debilita alcance. Extender el preflight canónico con configuración explícita es la alternativa propuesta, pero requiere resolver su vínculo de bytes con la composición histórica.
+- [ ] Revisar y aprobar diseño de consolidación: un solo guard canónico de entorno/identidad/evento/rama y un entrypoint SQL5; perfil R3 exacto vinculado a commit, artefactos, manifiesto y scope. Mantener rechazo por defecto, controles históricos y aislamiento. Definir cómo verificar el harness actualizado sin reutilizar la autorización de bytes antiguos; no reescribir manifiestos históricos.
+- [ ] Fijar consumidores y migración de runners existentes, pruebas equivalentes y rollback antes de cambiar el harness. Retener las copias históricas solo como evidencias, fuera de ejecución. No ampliar R5 ni publicar segunda arquitectura.
+- [ ] Confirmar que toda nueva dependencia está dentro del alcance autorizado; STOP-AND-DESIGN ante nueva duplicación o dependencia fuera de alcance.
+
+#### Fase 3 — Implementación (PENDIENTE tras resolver diseño)
+
+- [ ] Crear un único candidato corregido desde R2 en esta única rama R3 basada en main actualizado. Originales históricos inmutables; una sola propuesta activa.
+- [ ] Reutilizar herramientas existentes; añadir solo regresiones imprescindibles con owner B2/QA, consumidor y propiedad probada; ningún harness, workflow o wrapper nuevo de conveniencia.
+- [ ] Resolver configuración por mecanismo canónico sin falsear GITHUB_HEAD_REF, evento, identidad, autorización o contexto alojado.
+- [ ] Preservar funciones, contratos B1/B2, owners, roles, GRANT/REVOKE, ACL/RLS; no cambiar backend ni funcionalidad no relacionada.
+
+#### Fase 4 — Validación estática (PENDIENTE del candidato)
+
+- [ ] Verificar archivo completo, BEGIN y único COMMIT final; inspeccionar contenido anterior/posterior, sin SQL ejecutable añadido tras COMMIT.
+- [ ] Validar comillas simples, escapes/literales, dollar-quotes, bloques PL/pgSQL y delimitadores; detectar regex truncadas, duplicaciones y truncamientos.
+- [ ] Comparar semántica relevante: firmas de funciones, tablas, índices, dependencias y referencias resueltas contra SQL14/SQL1–4.
+- [ ] Verificar owners, roles, GRANT, REVOKE, ACL y restricciones RLS sin debilitamiento.
+- [ ] Probar sustitución literal positiva/negativa, incluyendo reproducción de corrupción histórica y ausencia de contenido insertado.
+- [ ] Probar rechazo de manifiesto incompleto/alterado, hash incorrecto, fixture ajeno y autorización de otro commit/SHA.
+- [ ] Probar rechazo de rama/evento/repositorio/identidad/runner no autorizado y bindings externos, antes de cargar transporte; no falsear contexto real.
+- [ ] Ejecutar tests estáticos seguros existentes y regresiones mínimas, registrando comandos y salidas por SHA.
+- [x] Limitación actual: pglast no instalado (find_spec=false). scripts/parse-b1-sql.py usa parse_sql/parse_plpgsql PG16 y adapta RETURN NEXT para OUT; no valida catálogo/tipos/privilegios/planificación dinámica. No se instaló parser ni PostgreSQL. Parseo PostgreSQL/PLpgSQL: SKIP, nunca sustituido por análisis textual.
+- [ ] Registrar cobertura real del parser disponible y sus adaptaciones como NOT_VALIDATED/SKIP según corresponda. Estático no equivale a nativo.
+
+#### Fase 5 — Evidencias y revisión
+
+- [ ] Nuevo manifiesto del candidato; SHA-256 de cada artefacto y del manifiesto, procedencia y diff mínimo; nunca usar la autorización histórica de aff420f.
+- [ ] Comprobar integridad de originales y conservar manifiestos, aprobaciones, fixtures y evidencia de FAIL históricos.
+- [ ] Completar matriz requisito → implementación única → consumidor → prueba → evidencia por SHA; sin archivos huérfanos.
+- [x] QG-0 documental: objetivo R3/preflight; fuentes y consumidores arriba; reuse/extend preferidos, copia rechazada; diff único TODO, owner PO/Engineering, consumidor equipo de recuperación, prueba preservación histórica/checklist; reversión documental. QG-0 de código: BLOCKED_FOR_DESIGN.
+- [x] QG-1/QG-2 de esta entrega: sin cambios funcionales, duplicación nueva ni mecanismos nuevos; STOP aplicado al descubrir duplicación existente.
+- [ ] QG-1/QG-2 del candidato: causa raíz corregida y seguridad preservada, sin autorizar ejecuciones reales.
+- [ ] Checklist QG-3 previo a aceptación: inventario y diff revisados, trazabilidad, pruebas auténticas, referencias, seguridad, revisión independiente vigente y decisión del propietario. No aceptación anticipada.
+- [ ] Publicar esta evidencia/checklist en PR en borrador, con fichas exactas de gobernanza; registrar commit final y solicitar revisión independiente Codex sobre ese SHA.
+- [ ] Tras desbloqueo, publicar candidato estáticamente validado y manifiesto en el mismo PR acotado; revisión independiente renovada si cambia SHA.
+- [x] Coste de esta investigación: cero Actions solicitadas manualmente, pruebas locales AST/texto/hash/Node; CI automática del PR se registrará según resultados reales. No elevar checks no observados a PASS.
+
+| Requisito | Implementación/consumidor inspeccionado | Prueba y estado de esta intervención |
+|---|---|---|
+| AUD-010 integridad | SQL5 R2/R3; fixture SQL5 | PASS reproducción exacta Node; FAIL integridad del histórico; candidato pendiente |
+| AUD-011 contexto | preflight B2; runners SQL5; workflow R2 | PASS comprobación estática de rechazo por rama; ejecución CI SKIP |
+| AUD-023 reutilización | preflight B2 y preflight R3 histórico | PASS identificación AST de cinco guards duplicados; consolidación BLOCKED |
+| Trazabilidad | manifiesto/autoridad histórica | PASS hashes/blobs R1/R2/R3 y hash manifiesto histórico; nuevo manifiesto SKIP |
+| Sintaxis | parser B1 PG16 / AST Python | PASS seis AST; PostgreSQL/PLpgSQL SKIP por parser ausente |
+| Seguridad real | transporte B1/B2; SQL14/SQL4/SQL5 | SKIP nativo, ACL/RLS efectivos y concurrencia; no autorizados |
+
+Reproducción ejecutada fuera del repositorio: `node /tmp/cleanops-r3-inspect/diagnose.cjs`. Algoritmo reproducible: leer R2 UTF-8; buscar una vez el texto `coalesce(method->>'ciphertext','') !~ '^(?:[a-f0-9]{2}){29,512}$'`; reemplazar por `(length(coalesce(method->>'ciphertext','')) NOT BETWEEN 58 AND 1024 OR length(coalesce(method->>'ciphertext','')) % 2 <> 0 OR coalesce(method->>'ciphertext','') !~ '^[a-f0-9]+$')`. Comparar String.replace(texto, replacement) con R3 completo: igualdad exacta. Comparar con String.replace(texto, () => replacement): un COMMIT y sufijo de R2 intacto. Seis `ast.parse` locales sobre harness, runners R2/R3, preflight R3, fixture R3 y test_b2_execution_preflight; sin llamar main/preflight ni transporte. Hashes calculados con hashlib.sha256(bytes), blobs con SHA-1 de cabecera Git + bytes; cotejados contra API de árboles fijada por SHA. Los temporales no son artefactos canónicos ni una suite incorporada.
+
+#### Fase 6 — Gate nativo posterior (TODO; nueva autorización obligatoria, NO EJECUTAR)
+
+- [ ] Autorización nueva del propietario vinculada a commit exacto, SHA-256, manifiesto, fixtures, dependencias, rama/evento y alcance; las anteriores no autorizan bytes nuevos.
+- [ ] PostgreSQL 16 efímero autorizado, fixtures sintéticos y entorno alojado aislado.
+- [ ] Aislamiento multiempresa y roles; ACL/RLS reales.
+- [ ] Concurrencia simultánea e integridad de datos/idempotencia con efectos únicos.
+- [ ] Limpieza verificada y evidencias sanitizadas de ejecución.
+- [ ] Corregir cualquier FAIL dentro de autorización; revisión independiente renovada del SHA final y evidencia.
+
+#### Fase 7 — Cierre posterior (TODO; autorización expresa obligatoria)
+
+- [ ] QG-3 final y dictamen independiente vigente.
+- [ ] Autorización expresa del propietario para merge y aceptación.
+- [ ] Merge autorizado y verificación posterior de main, sin modificar rulesets 25879296/25820330 ni cuatro bases congeladas.
+- [ ] Actualización formal R3 a DONE únicamente tras gates completos y aceptación; solo entonces desbloqueo secuencial R4.
+
+**Resultado de esta entrega:** bloqueo STOP-AND-DESIGN demostrado y checklist preparado; candidato/manifest nuevo/SHA de candidato no emitidos. Cero SQL real, PostgreSQL, Docker PostgreSQL, OpenBao, migraciones, fixtures ejecutados, datos persistentes, despliegues, merge o R4 iniciados por esta intervención. Las verificaciones de sintaxis de Python y la reproducción de texto no acreditan seguridad ni sintaxis nativa PostgreSQL.
+
 - [ ] **R4 — Compatibilidad B1↔B2 y seguridad efectiva.** Confirmar firmas y permisos ejecutables, llamadas a funciones revocadas (AUD-013/024), comportamiento de aceptación de invitación y contrato `Idempotency-Key` (AUD-031); revisar tabla RLS/ACL de B2 (AUD-027) sin cambiar RLS a ciegas. Verificar audit trail entre tenants (AUD-033), caducidad absoluta y aceptación humana de parámetros (AUD-028), y contexto/performance (AUD-034). **Cierre:** defectos confirmados corregidos mínimamente, tests por tenant/rol, regresiones, contrato y autorización. No activar B1 ni B2 por este paso.
 - [ ] **R5 — Consolidar CI, runners y Playwright (AUD-002/003/014/042).** Identificar workflow único vigente y artefactos one-shot históricos, referencias de sus nombres/SHAs, consumidores, scripts y autorizaciones. Reutilizar mecanismos existentes y reducir solo armazones duplicados, sin cambiar la semántica de pruebas ni borrar logs/evidencias. Evaluar 35 configs Playwright por cobertura y selección real antes de retirar. **Cierre:** matriz old→new, no pérdida de casos/autorización/artefactos, CI local y remota equivalentes con gasto medido, rollback, nada huérfano.
 - [ ] **R6 — Retirar código obsoleto comprobado (AUD-008/021/024/036/039).** Solo después de tener sustitutos aceptados: grafo estático y referencias dinámicas de cada candidato; diferenciar runtime, tests, scripts manuales y revisiones de seguridad; migrar tests antes de borrar funciones o rutas. Los cuerpos efectivos de R14 y SQL histórico aprobado se conservan hasta la revisión formal correspondiente. **Cierre:** lista KEEP/REUSE/CONSOLIDATE/REMOVE por archivo, no referencias rotas, build/typecheck/seguridad/E2E pertinentes PASS.
