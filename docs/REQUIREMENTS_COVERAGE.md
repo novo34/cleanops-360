@@ -204,3 +204,20 @@ Cada fila exige trazabilidad completa y prueba de backend consumido desde UI, sa
 | REQ-CALC-012 | 10 | Exactitud y aceptación | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
 
 CALC-01…10 son casos diseñados, no evidencia PASS. Cierre de fase 10 no cierra REQ-CALC-011 ni módulos operativos.
+
+## Conciliación integral del original — ampliación
+
+| Requisito | Fase | Alcance | Fuente | Estado |
+|---|---|---|---|---|
+| REQ-CALC-013 | 10 | Estrategias y salidas | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-014 | 10 | Coste laboral temporal | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-015 | 10 | Cierres y transporte | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-016 | 10 diseño; efectos 11–18 según dependencia | Garantía y modificaciones contractuales | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-017 | 10 diseño; efectos 11–18 según dependencia | Reajustes por normativa | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-018 | 10 diseño; efectos 11–18 según dependencia | Contribución e inteligencia comercial | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-019 | 10 | Rendimientos contextualizados | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-020 | 10 | Documento comercial completo | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-021 | 10 | Importación y configuración inicial | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-022 | 10 | Cierre verificable del diseño | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+
+CALC-11…21 añaden cobertura diseñada, no PASS. Filas de alcance 10 diseño/efectos posteriores deben dividirse por capacidad antes de aceptar; nunca cerrar requisito integral con una plantilla o mock.
