@@ -102,3 +102,19 @@ El inventario completo por UI, comando, entidad, permiso y prueba se mantiene en
 | `REC-05` | `POST /invoices/{id}/issue` | Factura borrador elegible aprobada; check duplicados | Factura emitida registrada, envío independiente | Horas disputadas, duplicado, falta aprobación | `REC-E2E-05` |
 
 > **Límite de esta especificación:** los campos de negocio exactos (DTO) no se inventan aquí. Cada slice requiere schema OpenAPI tipado, ejemplos de request/response, errores por campo, pagination y tests de contrato comprobados antes de ser aprobado como implementable.
+
+## Presupuestos: contrato de trabajo previo al slice — REQ-CALC-001…022
+
+Extender comandos de oferta existentes, no otro servicio paralelo. Nombres siguientes lógicos propuestos; HTTP/OpenAPI/persistencia definitivos antes de codificar.
+
+| Acción/consumidor UI | Entrada mínima | Respuesta/efecto | Control obligatorio |
+|---|---|---|---|
+| Configuración/asistente | Perfil o catálogo, parámetros tipados, base/unidad/moneda/vigencia/fuente/revisión, versión esperada | Borrador/revisión/activación versionada sin mutar snapshots | Permiso configurar separado de ver datos personales; reglas obligatorias prevalecen |
+| Raumbuch/editor → calcular | Objeto/visita, IDs estables zona/tarea/línea, estrategia, cantidad/unidad/rendimiento/factores, periodo/recurrencia/ancla/timezone, turnos, perfiles/reglas/versiones, cargos/desc./método precio | Desglose coste/contribución/beneficio/neto/impuesto/bruto, denominadores, cobertura y diagnósticos; snapshot reproducible | Contexto tenant del servidor; validar unidad/base/denominador, fuentes, vigencia y coste incluido |
+| Simulador → comparar | Variantes completas y periodo/alcance comparable | Tabla de deltas de alcance/horas/coste/neto/margen; sin activar contrato/planning | No copiar solo resultados ni emitir acusación legal por precio |
+| Negociación → aprobar excepción | Versión exacta, límite, motivo e identidad aprobadora | Decisión auditada inválida al cambiar economía/versión | Permiso específico; no supera mínimos legales |
+| Oferta → revisar/PDF/aceptar | expected_version, snapshot, idioma/plantilla/anexos/AGB/cláusulas y audiencia | Nueva versión; PDF público filtrado o interno autorizado; flujo Accept existente intacto | Idempotencia y concurrencia; costes/secretos excluidos cliente; emisión distinta de envío |
+| Contrato → proponer/aplicar cambio | Baseline exacta, delta/garantía/cláusula, fecha/preaviso y consentimiento/tope | Propuesta/aprobación; aplicación en módulos posteriores autorizados | No efecto de cobro por ClientInstruction; no modificación retroactiva |
+| Rentabilidad → consultar/proponer rendimiento | Baseline, objeto/tarea/periodo/alcance y fuentes reales autorizadas | Estimado-real con cobertura y propuesta revisable | Separar horas/ingreso/caja; no actualizar catálogo automáticamente |
+
+Diagnósticos lógicos: parámetro faltante/no aprobado/fuera de vigencia, unidad/base incompatible, regla en conflicto, rendimiento/denominador inválido, versión obsoleta, aprobación requerida/caducada, fuentes reales incompletas. Fijar códigos/localización y política de error antes de slice; no filtrar existencia de otro tenant. Auditoría conserva actor/versiones/decisión; no volcar salarios ni claves de alarma a logs generales. Definir idempotencia y validación transaccional para mutaciones, límite de tamaño de variantes y calendario, y política de retry sin duplicar envío/emisión.
