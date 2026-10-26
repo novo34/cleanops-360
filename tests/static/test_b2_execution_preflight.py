@@ -219,6 +219,44 @@ class R3ContractTests(unittest.TestCase):
         self.assertFalse(runner.R3_NATIVE_ENABLED)
         self.assertEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
 
+    def test_missing_merge_object_rejects_before_transport_even_with_exact_review(self):
+        def available(reference,name):
+            if reference=='2'*40:
+                raise RuntimeError('EXACT_GIT_OBJECT_REQUIRED')
+            return self.git_bytes(reference,name)
+        with patch.object(runner,'git_bytes',side_effect=available):
+            self.assertEqual(self.reject_before_transport(),'EXACT_GIT_OBJECT_REQUIRED')
+
+    def test_observation_permission_cannot_become_native_permission(self):
+        digest=hashlib.sha256((self.root/runner.R3_MANIFEST).read_bytes()).hexdigest()
+        self.event['review']['body']=f"Observe owner-authorized SQL5-R3 workflow context candidate {'1'*40} manifest {digest}; metadata only, no services or SQL."
+        self.write_event()
+        self.assertEqual(self.reject_before_transport(),'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
+
+    def test_old_commit_and_workflow_permissions_are_not_renewed_by_a_new_review(self):
+        good=self.event['review']['body']
+        for old in [good.replace('1'*40,'ad6b1975e3d1aa9baac6b467b5e39634b3cbf577'),
+                    good.replace('2'*40,'9f2df5c3cf4a15ddc463d564a8823f42dc90139d')]:
+            with self.subTest(body=old):
+                self.event['review']['body']=old;self.write_event()
+                self.assertEqual(self.reject_before_transport(),'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
+
+    @unittest.expectedFailure
+    def test_pending_activation_must_reject_expired_review_before_native_gate(self):
+        # Known unmet requirement, not a PASS or a native authorization.
+        self.event['review']['submitted_at']='2000-01-01T00:00:00Z';self.write_event()
+        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+
+    @unittest.expectedFailure
+    def test_pending_activation_must_reject_future_review_before_native_gate(self):
+        self.event['review']['submitted_at']='2999-01-01T00:00:00Z';self.write_event()
+        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+
+    @unittest.expectedFailure
+    def test_pending_activation_must_require_review_timestamp_before_native_gate(self):
+        self.event['review'].pop('submitted_at',None);self.write_event()
+        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+
     def test_all_context_mutations_fail_before_transport(self):
         changes=[('repository.id',9),('repository.full_name','other/repo'),('repository.owner.id',9),
                  ('sender.login','other'),('pull_request.number',12),('pull_request.state','closed'),
@@ -420,6 +458,39 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertIn('if: ${{ false }}',text)
         self.assertEqual(text.count('python scripts/b2-directory-postgres.py --package sql5-r3'),1)
         self.assertNotIn('pull_request_target:',text);self.assertNotIn('workflow_dispatch:',text)
+
+
+class R3MergeObjectAvailabilityTests(unittest.TestCase):
+    def test_heads_and_tags_fetch_does_not_fetch_merge_but_exact_ref_fetch_preserves_C(self):
+        # Local Git objects only, no GitHub event, network, SQL or transport.
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);origin=root/'origin.git';checkout=root/'checkout'
+            identity=dict(os.environ,GIT_AUTHOR_NAME='Static test',GIT_AUTHOR_EMAIL='static@example.invalid',
+                          GIT_COMMITTER_NAME='Static test',GIT_COMMITTER_EMAIL='static@example.invalid')
+            def git(where,*args,data=None,check=True):
+                return subprocess.run(['git','--no-replace-objects',*args],cwd=where,input=data,
+                                      capture_output=True,check=check,env=identity)
+            git(root,'init','--bare',str(origin));git(root,'init',str(checkout))
+            blob=git(origin,'hash-object','-w','--stdin',data=b'workflow fixture only\n').stdout.strip()
+            tree=git(origin,'mktree',data=b'100644 blob '+blob+b'\tworkflow.yml\n').stdout.strip().decode()
+            base=git(origin,'commit-tree',tree,'-m','base').stdout.strip().decode()
+            candidate=git(origin,'commit-tree',tree,'-p',base,'-m','candidate').stdout.strip().decode()
+            workflow=git(origin,'commit-tree',tree,'-p',base,'-p',candidate,'-m','merge').stdout.strip().decode()
+            git(origin,'update-ref','refs/heads/main',base)
+            git(origin,'update-ref','refs/heads/'+runner.R3_CONTEXT['branch'],candidate)
+            git(origin,'update-ref','refs/pull/22/merge',workflow)
+            git(checkout,'remote','add','origin',str(origin))
+            git(checkout,'fetch','--no-tags','origin','+refs/heads/*:refs/remotes/origin/*','+refs/tags/*:refs/tags/*')
+            git(checkout,'checkout','--detach',candidate)
+            self.assertNotEqual(git(checkout,'cat-file','-e',workflow+'^{commit}',check=False).returncode,0)
+            # Exercise the real helper, allowing its existing exact path only.
+            path=runner.R3_WORKFLOW
+            with patch.object(runner,'ROOT',checkout):
+                with self.assertRaisesRegex(RuntimeError,'EXACT_GIT_OBJECT_REQUIRED'):
+                    runner.git_bytes(workflow,path)
+            git(checkout,'fetch','--no-tags','origin','refs/pull/22/merge')
+            self.assertEqual(git(checkout,'show',workflow+':workflow.yml').stdout,b'workflow fixture only\n')
+            self.assertEqual(git(checkout,'rev-parse','HEAD').stdout.strip().decode(),candidate)
 
 
 class ActionsCondition:
