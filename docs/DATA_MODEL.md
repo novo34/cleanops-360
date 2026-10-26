@@ -168,3 +168,19 @@ Fuente: SRS §13.1 REQ-CALC-001…012. DESIGN_ONLY, no DDL. Extender OfferVersio
 | Comparación estimado-real / Comercial-Finanzas | Snapshot aceptado y fuentes operativas por tarea/zona/periodo/alcance, cobertura/provisionalidad; rendimiento sugerido sujeto a aprobación | Rentabilidad / 16–18 |
 
 Vínculos y consultas deben incluir tenant; no referencias cruzadas a perfiles de otra empresa. No eliminar versiones referenciadas: aplicar retención/legal hold existentes y preservar reproducibilidad. Snapshot interno restringido independiente del PDF cliente. No duplicar salarios individuales ni timesheets: enlazar fuentes autorizadas y copiar solo lo necesario para evidencia económica conforme clasificación/retención. Costes reales no reescriben estimaciones. Diseño físico/API se concretará en la fase autorizada.
+
+### Contratos de datos para la revisión integral — REQ-CALC-013…022
+
+DESIGN_ONLY; extender objetos anteriores. Antes de DDL/API fijar los siguientes mínimos y su consumidor:
+
+| Objeto existente/extensión lógica | Campos/relaciones y responsabilidad | Consumidor/fase |
+|---|---|---|
+| Perfil/catálogo | Tipo de valor (normativo/estimación/referencia), unidad/base, moneda, revisión; coste variable/fijo/directo/estructura, regla de inclusión/asignación; rendimiento base/rango/propio, muestra y factores ya incluidos | Configuración y cálculo, 10 |
+| Inmueble/Raumbuch | IDs estables zona/tarea/línea; once factores; partes contratante/beneficiario/intermediario/pagador y direcciones; acceso privado separado de anexos | Visita/editor/PDF, 9–10 |
+| Snapshot OfferVersion | Estrategia por línea, modo calendario/factor, recurrencia/ancla/timezone, turnos y segmentos por regla/vigencia, cantidad física/servicio, horas-persona/duración, coste/venta/contribución y denominadores; versión del algoritmo | Editor y futuras fuentes operativas, 10 |
+| Transporte/equipos del cálculo | Kilómetros/periodo/ida-vuelta, costes fijos/variables/km, ocupantes/horas, reparto entre objetos, base de facturación e inclusión; no requiere entidad flota nueva | Oferta, 10; catálogo flota futuro opcional |
+| Cláusula/garantía | Versión AGB/idioma/anexos, condiciones garantía/coste riesgo, fórmula y componente reajustable, fechas/preaviso/límites y evidencia contractual | Oferta 10; contrato 11/14 y finanzas 18 |
+| Adenda/orden de cambio | Referencia a contrato/WE y baseline/línea aceptada, delta, tarifa/modalidad/tope, estado/versión/actor y aprobación; aplicación idempotente separada de ClientInstruction | Condiciones en 10; efectos 11–18 |
+| Comparación/CRM | Tipo/zona/motivo pérdida; ingresos/costes/perímetro comparable; contribución vs beneficio; propuesta rendimiento revisada con fuentes, horas trabajadas/validadas y estados financieros separados | Comercial 10 y fuentes reales 16–18 |
+
+No almacenar solo el resultado final o índices de hoja: impediría reproducir, revisar una partida y comparar alcance real. Referencias a versión exacta y copias mínimas históricas no deben romperse con catálogos editados. No existe en este documento autorización de tablas adicionales ni módulo nómina/flota.
