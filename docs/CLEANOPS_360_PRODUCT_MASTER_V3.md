@@ -2063,3 +2063,9 @@ El nombre canónico del checklist es `MANUAL_TEST_CHECKLISTS.md`; los archivos o
 El requisito de dotación enlaza necesidades de personal por servicio/franja con Planning Engine; su detalle normativo se define en SRS §19 y DATA_MODEL, no crea un segundo planificador.
 
 # FIN
+
+## Ampliación de presupuestos autorizada — 2026-10-26
+
+El módulo Offers + Negotiation incorpora panel de configuración tenant, Raumbuch, catálogo de tareas/rendimientos, cálculo reproducible de costes/precios, recurrencia presupuestaria, variantes, límites de negociación, oferta PDF y snapshots históricos. La comparación estimado/real se integra al aceptar los módulos operativos correspondientes, sin adelantarlos. Los requisitos únicos son REQ-CALC-001…012 del SRS §13.1 y su desarrollo en OFFERS_AND_NEGOTIATION_SPEC.md; este apartado no duplica sus reglas.
+
+Estado DESIGN_ONLY. Los cinco Google Sheets del curso alemán no han podido leerse (acceso no autorizado); no son fórmulas ni valores validados. Parámetros salariales, legales y fiscales deberán contrastarse con fuentes vigentes para el lugar/categoría/fecha antes de activarlos. No se modifica el orden de módulos ni se autoriza código, SQL, despliegue, merge o cierre de gates.
