@@ -58,3 +58,29 @@
 ### Alcance E2E obligatorio para `WE-CREATE` / `REQ-TRC-WE-001`
 
 El test de trazabilidad deberá iniciar en la aceptación de una oferta por usuario autorizado, comprobar `Opportunity.Won` inmediato y auditado, `work_engagement_creation_status=PENDING` con botón de creación visible, probar prohibición de creación automática, ejecutar el botón como usuario autorizado, validar deduplicación/idempotencia, almacenar `WorkEngagement`, cambiar a `CREATED`, registrar auditoría y navegar a la ficha. Debe probar también fallo transaccional que mantiene `PENDING`, reintento seguro y ausencia de presunción de contrato firmado. Evidencia E2E UI + API + DB y prueba manual.
+
+## Presupuestos — extensión de diseño 2026-10-26
+
+Nombres lógicos propuestos; sin endpoints implementados. Aplican columnas extendidas y gates de la matriz principal.
+
+| Feature | Fase | Acción UI | REQ | Persistencia / consumidor | Pruebas diseñadas | Estado |
+|---|---|---|---|---|---|---|
+| CALC-CONFIG | 10 | Configurar/revisar perfil, catálogo y vigencia | REQ-CALC-001/002/003/010 | Perfil tenant versionado; motor de ofertas | CALC-01/07/08 | DESIGN_ONLY |
+| CALC-QUOTE | 10 | Raumbuch → calcular → comparar variante | REQ-CALC-004/005/006/007/012 | OfferVersion y snapshot | CALC-02/03/04/05/10 | DESIGN_ONLY |
+| CALC-ISSUE | 10 | Aprobar excepción, emitir PDF y aceptar versión | REQ-CALC-008/009/010 | Versionado, documentos, auditoría existentes | CALC-06/07/10 | DESIGN_ONLY |
+| CALC-ACTUAL | 16–18 | Comparar estimado/real; revisar rendimiento propuesto | REQ-CALC-011 | Snapshot aceptado y fuentes operativas existentes | CALC-09 | DESIGN_ONLY; depende de módulos reales |
+
+Backend verifica permisos de configuración, costes, margen y excepción por separado. UI no basta para denegar; aislamiento incluye exportación y consultas. Completar contratos efectivos y evidencia al implementar, no declarar cobertura por estas filas.
+
+### Flujos adicionales de la conciliación original
+
+| Feature | Fase | Acción UI / contrato lógico propuesto | REQ | Persistencia/efecto previsto | Pruebas | Estado |
+|---|---|---|---|---|---|---|
+| CALC-STRATEGY | 10 | Elegir estrategia/periodo y comparar líneas mixtas | 013/014/019 | Snapshot entradas/segmentos/desglose | CALC-11/12/13/18 | DESIGN_ONLY |
+| CALC-CLOSURE-TRAVEL | 10 | Simular cierres y transporte; revisar coste vs cobro | 015 | Calendario y componentes sin doble recuperación | CALC-15/16 | DESIGN_ONLY |
+| CALC-CONTRACT-TERMS | 10 | Editar garantía/cláusula/AGB; vista DE/FR/IT | 016/017/020 | Versión contractual propuesta en oferta | CALC-17/19/20 | DESIGN_ONLY; términos, no ejecución |
+| CALC-CHANGE | 11–18 | Proponer/aprobar/aplicar adenda y reajuste | 016/017 | Contrato/WE baseline + delta; sin efecto financiero implícito | CALC-19/20 | DESIGN_ONLY; depende de contratos/operación/finanzas |
+| CALC-INSIGHTS | 10; real 16–18 | Ver contribución/coste completo y motivos pérdida | 018 | Desglose y CRM tenant, fuentes reales posteriores | CALC-14/09 | DESIGN_ONLY |
+| CALC-ONBOARD | 10 | Asistente/mapear importación/revisar datos incompletos | 021/022 | Perfil/catálogo con procedencia y aprobación | CALC-21 | DESIGN_ONLY |
+
+IDs numéricos en esta tabla corresponden a REQ-CALC; no constituyen permisos HTTP definitivos. Semántica/errores y contratos mínimos de integración en API_SPEC; ausencia de productor no se cubre con datos simulados.

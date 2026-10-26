@@ -185,3 +185,39 @@ Cada fila exige trazabilidad completa y prueba de backend consumido desde UI, sa
 | REQ-SEC-030 | 20 | El Security Center deberá permitir consultar eventos e incidentes autorizados, auditorías y evidencia de pruebas de recuperac | SRS V1.1 | DESIGN_ONLY; E2E pendiente |
 | REQ-AUD-001 | 20 | Las acciones relevantes sobre seguridad, permisos, asignaciones, cierres, facturas y estados contractuales deberán registrar  | SRS V1.1 | DESIGN_ONLY; E2E pendiente |
 | REQ-OPS-001 | 20 | El endurecimiento de producción deberá verificar restauración, protección de interfaz/API, aislamiento, evidencias de pruebas | SRS V1.1 | DESIGN_ONLY; E2E pendiente |
+
+## Ampliación de presupuestos — 2026-10-26
+
+| Requisito | Fase | Alcance | Fuente | Estado |
+|---|---|---|---|---|
+| REQ-CALC-001 | 10 | Configuración por empresa | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-002 | 10 | Vigencia y cumplimiento | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-003 | 10 | Catálogo de rendimientos | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-004 | 10 | Raumbuch | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-005 | 10 | Coste completo | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-006 | 10 | Precio y negociación | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-007 | 10 | Recurrencia presupuestaria | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-008 | 10 | Snapshots y ajustes | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-009 | 10 | Oferta y confidencialidad | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-010 | 10 | Permisos y disponibilidad | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-011 | 16–18 | Estimado frente a real | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+| REQ-CALC-012 | 10 | Exactitud y aceptación | SRS §13.1; OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; implementación, integración y E2E pendientes |
+
+CALC-01…10 son casos diseñados, no evidencia PASS. Cierre de fase 10 no cierra REQ-CALC-011 ni módulos operativos.
+
+## Conciliación integral del original — ampliación
+
+| Requisito | Fase | Alcance | Fuente | Estado |
+|---|---|---|---|---|
+| REQ-CALC-013 | 10 | Estrategias y salidas | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-014 | 10 | Coste laboral temporal | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-015 | 10 | Cierres y transporte | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-016 | 10 diseño; efectos 11–18 según dependencia | Garantía y modificaciones contractuales | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-017 | 10 diseño; efectos 11–18 según dependencia | Reajustes por normativa | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-018 | 10 diseño; efectos 11–18 según dependencia | Contribución e inteligencia comercial | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-019 | 10 | Rendimientos contextualizados | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-020 | 10 | Documento comercial completo | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-021 | 10 | Importación y configuración inicial | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+| REQ-CALC-022 | 10 | Cierre verificable del diseño | SRS §13.1; matriz original en OFFERS_AND_NEGOTIATION_SPEC.md | DESIGN_ONLY; pruebas funcionales NOT_RUN |
+
+CALC-11…21 añaden cobertura diseñada, no PASS. Filas de alcance 10 diseño/efectos posteriores deben dividirse por capacidad antes de aceptar; nunca cerrar requisito integral con una plantilla o mock.
