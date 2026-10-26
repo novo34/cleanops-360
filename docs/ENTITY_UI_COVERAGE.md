@@ -97,3 +97,18 @@ Completar owner domain concreto, acciones `created/read/updated by`, permisos, l
 - No afirmar que las superficies o entidades existan: toda esta matriz es especificación documental.
 
 | `StaffingRequirement` | planificación/operaciones | USER_VISIBLE | Planificación → Requisitos de dotación: alta, edición, competencias, cobertura y cambios por turno/proyecto | G-EMP / 12 | DESIGN_ONLY |
+
+## Objetos lógicos de presupuestos — diseño 2026-10-26
+
+Extensiones candidatas de DATA_MODEL.md; no autorizan tablas nuevas. Todos con tenant, versionado y permisos efectivos.
+
+| Objeto | Owner | Gestión | Superficie / consumidor | Fase | Estado |
+|---|---|---|---|---|---|
+| Perfil de presupuesto | Comercial-Finanzas | USER_MANAGED | Configuración → Presupuestos → editar, revisar, activar | 10 | DESIGN_ONLY |
+| Tarea/rendimiento | Comercial-Operaciones | USER_MANAGED | Catálogo → servicios y rendimientos → revisar historial | 10 | DESIGN_ONLY |
+| Raumbuch/posiciones | Comercial | USER_MANAGED | Visita/inmueble → zonas/tareas → anexo oferta | 9–10 | DESIGN_ONLY |
+| Snapshot de cálculo | Oferta | SYSTEM_MANAGED + USER_VISIBLE | Oferta → desglose interno e historial; PDF cliente filtrado | 10 | DESIGN_ONLY |
+| Excepción comercial | Oferta | USER_MANAGED | Negociación → solicitar/aprobar para versión exacta | 10 | DESIGN_ONLY |
+| Comparación estimado-real | Comercial-Finanzas | DERIVED + USER_VISIBLE | Oferta/WorkEngagement → rentabilidad; propuesta de rendimiento | 16–18 | DESIGN_ONLY |
+
+Retención y legal hold existentes; sin borrado que rompa snapshots. Historial conservado al desactivar módulo; acceso sujeto a permisos. Reutilizar OfferVersion, SiteVisit, documentos, ComplianceRuleSet y fuentes operativas; el esquema físico sigue pendiente.
