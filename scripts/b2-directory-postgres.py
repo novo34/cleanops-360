@@ -15,6 +15,7 @@ import secrets
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 APPROVED = {
@@ -122,9 +123,28 @@ def artifact_bytes(name):
     return current.read_bytes()
 
 
-def git_bytes(reference, name):
+def git_bytes(reference, name, *, fetch_workflow=False):
     if not re.fullmatch(r'[0-9a-f]{40}', reference or '') or name not in R3_FILES | {R3_MANIFEST, 'docs/proposals/b2-invitations/005-invitation-acceptance.r2.review.sql'}:
         raise RuntimeError('EXACT_GIT_REFERENCE_REQUIRED')
+    if fetch_workflow:
+        if name != R3_WORKFLOW or reference != os.environ.get('GITHUB_WORKFLOW_SHA'):
+            raise RuntimeError('EXACT_R3_WORKFLOW_FETCH_REQUIRED')
+        try:
+            present = subprocess.run(['git','--no-replace-objects','cat-file','-e',reference+'^{commit}'],
+                                     cwd=ROOT, capture_output=True, timeout=15)
+            if present.returncode:
+                fetched = subprocess.run(['git','--no-replace-objects','fetch','--no-tags',
+                    '--no-recurse-submodules','--no-write-fetch-head','--no-auto-maintenance',
+                    'https://github.com/novo34/cleanops-360.git',reference],
+                    cwd=ROOT, capture_output=True, timeout=60)
+                if fetched.returncode:
+                    raise RuntimeError('EXACT_R3_WORKFLOW_FETCH_FAILED')
+            verified = subprocess.run(['git','--no-replace-objects','rev-parse','--verify',reference+'^{commit}'],
+                                      cwd=ROOT, capture_output=True, timeout=15)
+            if verified.returncode or verified.stdout.strip() != reference.encode():
+                raise RuntimeError('EXACT_R3_WORKFLOW_OBJECT_REQUIRED')
+        except (OSError, subprocess.SubprocessError):
+            raise RuntimeError('EXACT_R3_WORKFLOW_FETCH_FAILED') from None
     result = subprocess.run(['git','--no-replace-objects','show',reference+':'+name], cwd=ROOT, capture_output=True)
     if result.returncode:
         raise RuntimeError('EXACT_GIT_OBJECT_REQUIRED')
@@ -163,6 +183,17 @@ def execution_context(scope):
                     and review['state'] == 'commented' and type(review['id']) is int and review['id'] > 0
                     and review['commit_id'] == pr['head']['sha']):
                 raise RuntimeError('EXACT_OWNER_REVIEW_REQUIRED')
+            if scope == 'sql5-r3':
+                submitted = review.get('submitted_at')
+                try:
+                    if not isinstance(submitted, str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z', submitted):
+                        raise ValueError('UTC_TIMESTAMP_REQUIRED')
+                    timestamp = datetime.strptime(submitted, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+                    age = time.time() - timestamp
+                    if not 0 <= age <= 900:
+                        raise ValueError('REVIEW_OUTSIDE_15_MINUTES')
+                except (ValueError, OverflowError, OSError):
+                    raise RuntimeError('FRESH_R3_OWNER_REVIEW_REQUIRED') from None
             if scope != 'sql5-r3' and not (scope == 'combined' and review['body'] ==
                     'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.'):
                 raise RuntimeError('EXACT_OWNER_REVIEW_REQUIRED')
@@ -208,7 +239,7 @@ def authorize_r3():
             raise RuntimeError('EXACT_R3_BUNDLE_BYTES_REQUIRED')
         if name in R3_FIXED_DEPENDENCIES and expected != R3_FIXED_DEPENDENCIES[name]:
             raise RuntimeError('UNEXPECTED_FIXED_DEPENDENCY_CHANGE')
-    if git_bytes(workflow, R3_WORKFLOW) != artifact_bytes(R3_WORKFLOW):
+    if git_bytes(workflow, R3_WORKFLOW, fetch_workflow=True) != artifact_bytes(R3_WORKFLOW):
         raise RuntimeError('EXACT_R3_WORKFLOW_BYTES_REQUIRED')
     historical_raw = git_bytes(COMPOSITION_REFERENCE, COMPOSITION_MANIFEST)
     if (hashlib.sha256(historical_raw).hexdigest() != COMPOSITION_MANIFEST_SHA
@@ -247,6 +278,9 @@ def authorize_r3():
             and contract.get('sha256') == '63d01265908831372bd1e3e423867dc8b0be5c0a3fc000b060ad279e8ba48d5a'):
         raise RuntimeError('PRIOR_INVITATION_CONTRACT_REQUIRED')
     ast.parse(artifact_bytes(R3_FIXTURE), filename=R3_FIXTURE)
+    # Git acquisition and provenance checks must not extend the review lifetime.
+    if execution_context('sql5-r3') != event:
+        raise RuntimeError('UNCHANGED_R3_REVIEW_CONTEXT_REQUIRED')
     return {'tests':R3_FIXTURE, 'packages':['access','users'], 'authorization':{
         'candidate':candidate, 'manifestSha256':digest, 'workflow':workflow,
         'reviewId':event['review']['id'], 'reviewBodySha256':hashlib.sha256(expected_body.encode()).hexdigest(),

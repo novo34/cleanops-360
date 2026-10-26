@@ -49,7 +49,7 @@
     "playwright.b2-access-postgres.config.ts": "83237058780991aad9c93f2b094c9f504e1d6116d1766b8840559c1d24c440bf",
     "playwright.b2-users-postgres.config.ts": "5b7259656591d0a4e9a4ae47dde3ba1dc7a939c9d58a0a637337f4ae0df18798",
     "scripts/b2-browser-backend.ts": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272",
-    "scripts/b2-directory-postgres.py": "0aae0dbec4f7aa17549f803b1276765cd88242f6d1b501c402fccbf649d5c5f3",
+    "scripts/b2-directory-postgres.py": "596d7a37fa721edda6d5313606e0398d21bcd8cebe26852900fb5ac2db6f7f01",
     "scripts/b2-real-browser-server.mjs": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944",
     "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
     "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",

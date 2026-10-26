@@ -176,11 +176,14 @@ class R3ContractTests(unittest.TestCase):
         patch.object(runner,'ROOT',self.root).start()
         patch.dict(os.environ,env,clear=True).start()
         patch.object(runner,'git_bytes',side_effect=self.git_bytes).start()
+        self.now=1800000000
+        patch.object(runner.time,'time',return_value=self.now).start()
+        self.event['review']['submitted_at']=runner.datetime.fromtimestamp(self.now,runner.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         patch.object(runner,'fixture_reference_bytes',side_effect=lambda p:self.candidate[p['tests']]).start()
         patch.object(runner.subprocess,'run',side_effect=self.git_head).start()
         self.refresh_review()
 
-    def git_bytes(self,reference,name):
+    def git_bytes(self,reference,name,**kwargs):
         if reference=='1'*40:return self.candidate[name]
         if reference==runner.COMPOSITION_REFERENCE:return self.historical[name]
         if reference=='2'*40 and name==runner.R3_WORKFLOW:return self.candidate[name]
@@ -220,7 +223,7 @@ class R3ContractTests(unittest.TestCase):
         self.assertEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
 
     def test_missing_merge_object_rejects_before_transport_even_with_exact_review(self):
-        def available(reference,name):
+        def available(reference,name,**kwargs):
             if reference=='2'*40:
                 raise RuntimeError('EXACT_GIT_OBJECT_REQUIRED')
             return self.git_bytes(reference,name)
@@ -241,21 +244,37 @@ class R3ContractTests(unittest.TestCase):
                 self.event['review']['body']=old;self.write_event()
                 self.assertEqual(self.reject_before_transport(),'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
 
-    @unittest.expectedFailure
     def test_pending_activation_must_reject_expired_review_before_native_gate(self):
-        # Known unmet requirement, not a PASS or a native authorization.
         self.event['review']['submitted_at']='2000-01-01T00:00:00Z';self.write_event()
-        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+        self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
 
-    @unittest.expectedFailure
     def test_pending_activation_must_reject_future_review_before_native_gate(self):
         self.event['review']['submitted_at']='2999-01-01T00:00:00Z';self.write_event()
-        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+        self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
 
-    @unittest.expectedFailure
     def test_pending_activation_must_require_review_timestamp_before_native_gate(self):
         self.event['review'].pop('submitted_at',None);self.write_event()
-        self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
+        self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
+
+    def test_UTC_lifetime_boundaries_and_invalid_dates(self):
+        for age,accepted in [(0,True),(899,True),(900,True),(900.001,False),(-0.001,False)]:
+            with self.subTest(age=age),patch.object(runner.time,'time',return_value=self.now+age):
+                self.assertEqual(self.reject_before_transport(),
+                                 'R3_NATIVE_ACTIVATION_REQUIRED' if accepted else 'FRESH_R3_OWNER_REVIEW_REQUIRED')
+        for value in [None,0,'','not-a-date','2027-02-30T00:00:00Z','2027-01-15T08:00:00+00:00',
+                      '2027-01-15T08:00:00','2027-01-15T08:00:00Z\n']:
+            with self.subTest(timestamp=value):
+                self.event['review']['submitted_at']=value;self.write_event()
+                self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
+
+    def test_fetch_or_provenance_cannot_extend_review_lifetime(self):
+        with patch.object(runner.time,'time',side_effect=[self.now,self.now,self.now+901]):
+            self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
+
+    def test_environment_timestamps_cannot_renew_expired_review(self):
+        self.event['review']['submitted_at']='2000-01-01T00:00:00Z';self.write_event()
+        with patch.dict(os.environ,{'REVIEW_SUBMITTED_AT':'2027-01-15T08:00:00Z','AUTHORIZATION_EXPIRES_AT':'2999-01-01T00:00:00Z'}):
+            self.assertEqual(self.reject_before_transport(),'FRESH_R3_OWNER_REVIEW_REQUIRED')
 
     def test_all_context_mutations_fail_before_transport(self):
         changes=[('repository.id',9),('repository.full_name','other/repo'),('repository.owner.id',9),
@@ -310,7 +329,7 @@ class R3ContractTests(unittest.TestCase):
                           ('GITHUB_SHA','3'*40),('GITHUB_WORKFLOW_SHA','short')]:
             with self.subTest(key=key),patch.dict(os.environ,{key:value}):
                 self.assertNotEqual(self.reject_before_transport(),'R3_NATIVE_ACTIVATION_REQUIRED')
-        with patch.object(runner,'git_bytes',side_effect=lambda ref,name:b'other workflow' if ref=='2'*40 else self.git_bytes(ref,name)):
+        with patch.object(runner,'git_bytes',side_effect=lambda ref,name,**kwargs:b'other workflow' if ref=='2'*40 else self.git_bytes(ref,name)):
             self.assertEqual(self.reject_before_transport(),'EXACT_R3_WORKFLOW_BYTES_REQUIRED')
 
     def test_manifest_missing_extra_schema_hash_and_json_errors(self):
@@ -342,7 +361,7 @@ class R3ContractTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'INVALID_BUNDLE_PATH'):runner.artifact_bytes('../outside')
 
     def test_new_bundle_approval_cannot_erase_historical_provenance(self):
-        with patch.object(runner,'git_bytes',side_effect=lambda ref,name:b'wrong' if ref==runner.COMPOSITION_REFERENCE else self.git_bytes(ref,name)):
+        with patch.object(runner,'git_bytes',side_effect=lambda ref,name,**kwargs:b'wrong' if ref==runner.COMPOSITION_REFERENCE else self.git_bytes(ref,name)):
             self.assertEqual(self.reject_before_transport(),'IMMUTABLE_HISTORICAL_MANIFEST_REQUIRED')
         original=self.historical['scripts/b2-directory-postgres.py'];self.historical['scripts/b2-directory-postgres.py']=b'changed historical harness'
         self.assertEqual(self.reject_before_transport(),'EXACT_HISTORICAL_BYTES_REQUIRED')
@@ -491,6 +510,65 @@ class R3MergeObjectAvailabilityTests(unittest.TestCase):
             git(checkout,'fetch','--no-tags','origin','refs/pull/22/merge')
             self.assertEqual(git(checkout,'show',workflow+':workflow.yml').stdout,b'workflow fixture only\n')
             self.assertEqual(git(checkout,'rev-parse','HEAD').stdout.strip().decode(),candidate)
+
+
+class R3WorkflowFetchTests(unittest.TestCase):
+    def test_exact_SHA_acquisition_uses_fixed_repository_and_preserves_checkout(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'source';checkout=root/'checkout'
+            source.mkdir();checkout.mkdir()
+            real_run=subprocess.run;calls=[]
+            def git(where,*args):
+                return real_run(['git','--no-replace-objects',*args],cwd=where,check=True,capture_output=True)
+            git(source,'init');path=source/runner.R3_WORKFLOW;path.parent.mkdir(parents=True)
+            path.write_bytes(b'name: static workflow fixture\n');git(source,'add','.')
+            git(source,'-c','user.name=Static test','-c','user.email=static@example.invalid','commit','-m','C')
+            candidate=git(source,'rev-parse','HEAD').stdout.strip()
+            git(checkout,'init');git(checkout,'fetch','--no-tags',str(source),candidate.decode())
+            git(checkout,'checkout','--detach',candidate.decode())
+            git(source,'-c','user.name=Static test','-c','user.email=static@example.invalid','commit','--allow-empty','-m','W')
+            workflow=git(source,'rev-parse','HEAD').stdout.strip().decode()
+            def local_only(args,**kwargs):
+                calls.append(args)
+                self.assertEqual(args[:2],['git','--no-replace-objects'])
+                if 'fetch' in args:
+                    self.assertEqual(args[-2:],['https://github.com/novo34/cleanops-360.git',workflow])
+                    self.assertIn('--no-write-fetch-head',args);self.assertIn('--no-recurse-submodules',args)
+                    self.assertIn('--no-auto-maintenance',args)
+                    args=args[:-2]+[str(source),workflow]  # Substitute only the network boundary.
+                return real_run(args,**kwargs)
+            with patch.object(runner,'ROOT',checkout),patch.dict(os.environ,{'GITHUB_WORKFLOW_SHA':workflow}),patch.object(runner.subprocess,'run',side_effect=local_only):
+                self.assertEqual(runner.git_bytes(workflow,runner.R3_WORKFLOW,fetch_workflow=True),path.read_bytes())
+                self.assertEqual(sum('fetch' in args for args in calls),1)
+                calls.clear()
+                self.assertEqual(runner.git_bytes(workflow,runner.R3_WORKFLOW,fetch_workflow=True),path.read_bytes())
+                self.assertFalse(any('fetch' in args for args in calls))
+            self.assertEqual(git(checkout,'rev-parse','HEAD').stdout.strip(),candidate)
+            self.assertEqual(git(checkout,'for-each-ref','refs/heads','refs/remotes').stdout,b'')
+
+    def test_fetch_failure_timeout_or_wrong_object_never_verifies(self):
+        workflow='2'*40
+        bad='synthetic-private-value'
+        failures=[subprocess.CompletedProcess([],1,stdout=b'',stderr=bad.encode()),
+                  subprocess.TimeoutExpired('git',60,stderr=bad.encode()),OSError(bad)]
+        with patch.dict(os.environ,{'GITHUB_WORKFLOW_SHA':workflow}):
+            for failure in failures:
+                sequence=[subprocess.CompletedProcess([],1),failure]
+                with self.subTest(failure=type(failure).__name__),patch.object(runner.subprocess,'run',side_effect=sequence):
+                    with self.assertRaisesRegex(RuntimeError,'^EXACT_R3_WORKFLOW_FETCH_FAILED$'):
+                        runner.git_bytes(workflow,runner.R3_WORKFLOW,fetch_workflow=True)
+            for code,output in [(1,b''),(0,b'3'*40),(0,b'')]:
+                sequence=[subprocess.CompletedProcess([],1),subprocess.CompletedProcess([],0),
+                          subprocess.CompletedProcess([],code,stdout=output)]
+                with self.subTest(code=code,output=output),patch.object(runner.subprocess,'run',side_effect=sequence):
+                    with self.assertRaisesRegex(RuntimeError,'^EXACT_R3_WORKFLOW_OBJECT_REQUIRED$'):
+                        runner.git_bytes(workflow,runner.R3_WORKFLOW,fetch_workflow=True)
+
+    def test_fetch_cannot_select_mutable_ref_other_SHA_or_other_file(self):
+        with patch.dict(os.environ,{'GITHUB_WORKFLOW_SHA':'2'*40}),patch.object(runner.subprocess,'run',side_effect=AssertionError('NO_FETCH')):
+            for reference,name in [('refs/pull/22/merge',runner.R3_WORKFLOW),('3'*40,runner.R3_WORKFLOW),('2'*40,runner.R3_SQL)]:
+                with self.subTest(reference=reference,name=name),self.assertRaises(RuntimeError):
+                    runner.git_bytes(reference,name,fetch_workflow=True)
 
 
 class ActionsCondition:
