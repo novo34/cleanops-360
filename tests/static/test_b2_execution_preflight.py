@@ -1253,7 +1253,9 @@ os._exit(int(sys.argv[4]))
         job=workflow.split('  aud031-reservation-probe:',1)[1]
         preflight=job.split('- name: Validate approved caller',1)[1].split('      - uses:',1)[0]
         self.assertNotIn('secrets.',preflight)
-        self.assertNotIn('secrets:',workflow.split('  pull_request_review:',1)[0])
+        declaration=workflow.split('  pull_request_review:',1)[0]
+        self.assertIn('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',declaration)
+        self.assertNotIn('secrets: inherit',workflow)
         self.assertIn('environment: cleanops-native-auth-probe',job)
         script=textwrap.dedent(preflight.split("python -I - <<'PY'\n",1)[1].split('\n          PY',1)[0])
         function=next(n for n in ast.parse(script).body if isinstance(n,ast.FunctionDef))
@@ -1279,5 +1281,23 @@ os._exit(int(sys.argv[4]))
                  'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
         condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
         self.assertFalse(ActionsCondition(condition,context).evaluate())
+
+    def test_nominal_secret_empty_value_denies_before_signing_or_API(self):
+        import ast,textwrap,types
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        probe=workflow.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        body=next(n.body for n in ast.parse(script).body if isinstance(n,ast.Try))
+        # Execute the actual empty-key check only; never sign or contact GitHub.
+        assign=next(n for n in body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='key' for t in n.targets))
+        deny=next(n for n in body if isinstance(n,ast.If) and isinstance(n.test,ast.UnaryOp) and isinstance(n.test.operand,ast.Name) and n.test.operand.id=='key')
+        code=compile(ast.Module(body=[assign,deny],type_ignores=[]),'<empty-key-gate>','exec')
+        for values in ({},{'NATIVE_AUTH_KEY':''}):
+            with self.subTest(values=values),self.assertRaisesRegex(RuntimeError,'KEY_REQUIRED'):
+                exec(code,{'os':types.SimpleNamespace(environ=dict(values))})
+        # Environment protection is enforced by GitHub before the job runner;
+        # its reviewer/ref policy cannot be proved by this local syntax check.
+        self.assertIn('environment: cleanops-native-auth-probe',workflow)
+        self.assertIn('required: true',workflow.split('  pull_request_review:',1)[0])
 
 if __name__=='__main__':unittest.main()

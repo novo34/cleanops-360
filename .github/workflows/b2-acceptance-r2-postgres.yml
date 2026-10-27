@@ -5,6 +5,9 @@ on:
       reservation_probe:
         type: boolean
         default: false
+    secrets:
+      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:
+        required: true
   pull_request_review:
     types: [submitted]
 permissions:
@@ -193,6 +196,9 @@ jobs:
     # Environment must exist with owner approval, no administrator bypass,
     # only the exact immutable caller tag (no branch), and no repository copy
     # of the private key. No configuration or caller is installed by this file.
+    # The future pinned caller passes this ONE declared name explicitly (never
+    # inherit). Environment value takes precedence; a general repository copy
+    # is NOT an acceptable final configuration and must be removed before runs.
     environment: cleanops-native-auth-probe
     permissions:
       contents: read
