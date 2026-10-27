@@ -271,8 +271,25 @@ jobs:
                   return api('POST','/repos/novo34/cleanops-360/git/refs',{'ref':ref,'sha':sha})
               def attempt(run):
                   barrier.wait()
-                  try:return reserve(dict(auth,runId=run),create)
+                  # Per-attempt state: the shared last_http cannot explain a race.
+                  outcome={'http':None,'denial':'NO_RESPONSE','confirmed':False}
+                  def observed_create(ref,sha):
+                      status,response=create(ref,sha)
+                      outcome['http']=status
+                      if isinstance(response,dict):outcome['denial']=response.get('denialClass','NONE')
+                      return status,response
+                  try:
+                      receipt=reserve(dict(auth,runId=run),observed_create)
+                      outcome['confirmed']=True
+                      return receipt
                   except RuntimeError:return None
+                  finally:
+                      status=outcome['http']
+                      http=str(status) if type(status) is int and 100<=status<=599 else 'NONE'
+                      denial=outcome['denial']
+                      if type(denial) is not str or denial not in ('NO_RESPONSE','NONE','RULESET_DENIED','INTEGRATION_DENIED','WORKFLOW_DENIED','OTHER_HTTP_ERROR'):
+                          denial='OTHER_HTTP_ERROR'
+                      print(f'PROBE attempt={run}; confirmed={outcome["confirmed"]}; http={http}; denial={denial}')
               with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                   results=list(pool.map(attempt,('1','2')))
               winners=[r for r in results if r]
@@ -327,8 +344,13 @@ jobs:
                   try:
                       value=json.loads(error.read())
                       denied=isinstance(value.get('message'),str) and value['message'].startswith('Repository rule violations found')
-                  except Exception:denied=False
-                  return error.code,{'rulesetDenied':denied}
+                      message=value.get('message')
+                      classification='RULESET_DENIED' if denied else 'OTHER_HTTP_ERROR'
+                      if not denied and type(message) is str:
+                          if message=='Resource not accessible by integration':classification='INTEGRATION_DENIED'
+                          elif message.startswith('refusing to allow a GitHub App to create or update workflow '):classification='WORKFLOW_DENIED'
+                  except Exception:denied=False;classification='OTHER_HTTP_ERROR'
+                  return error.code,{'rulesetDenied':denied,'denialClass':classification}
           try:
               source=pathlib.Path('trusted/scripts/b2-directory-postgres.py')
               if hashlib.sha256(source.read_bytes()).hexdigest()!='8947fc69cb279b8f0ad16747435bd1223954403be3ba83fc1dcd66707855b05e':

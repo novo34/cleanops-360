@@ -1247,6 +1247,32 @@ os._exit(int(sys.argv[4]))
         with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
             exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300))
 
+    def test_race_reports_each_attempt_without_leaking_response_or_network_error(self):
+        exercise,_=self.probe_function()
+        marker='SENSITIVE_RESPONSE_JWT_TOKEN_PRIVATE_KEY'
+        for statuses in ((403,403),(403,422),(201,403),(409,500),(200,201)):
+            lock=__import__('threading').Lock();pending=list(statuses)
+            def api(*args):
+                with lock:status=pending.pop()
+                return status,{'message':marker,'token':marker,'denialClass':marker}
+            output=io.StringIO()
+            with contextlib.redirect_stdout(output),self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
+                exercise(api,runner.reserve_aud031,self.auth)
+            lines=output.getvalue().splitlines()
+            self.assertEqual(len(lines),2)
+            self.assertEqual({line.split(';')[0] for line in lines},{'PROBE attempt=1','PROBE attempt=2'})
+            self.assertEqual(sorted(int(line.split('http=')[1].split(';')[0]) for line in lines),sorted(statuses))
+            for line in lines:
+                self.assertNotIn(marker,line)
+                self.assertIn('confirmed=False;',line)
+                self.assertTrue(line.endswith('denial=OTHER_HTTP_ERROR'))
+        def offline(*args):raise TimeoutError(marker)
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
+            exercise(offline,runner.reserve_aud031,self.auth)
+        self.assertEqual(output.getvalue().count('confirmed=False; http=NONE; denial=NO_RESPONSE'),2)
+        self.assertNotIn(marker,output.getvalue())
+
     def test_environment_caller_guard_rejects_untrusted_identity_route_event_and_SHA(self):
         import ast,textwrap,re
         workflow=(ROOT/runner.R3_WORKFLOW).read_text()
@@ -1355,13 +1381,33 @@ os._exit(int(sys.argv[4]))
                 opener.return_value.open.side_effect=error
                 try:
                     status,value=namespace['api']('GET','/app/installations/175934135')
-                    self.assertEqual((status,value),(401,{'rulesetDenied':False}))
+                    self.assertEqual((status,value),(401,{'rulesetDenied':False,'denialClass':'OTHER_HTTP_ERROR'}))
                     namespace['report_failure'](RuntimeError('INSTALLATION_REQUIRED'))
                 except urllib.error.URLError as caught:
                     namespace['report_failure'](caught)
             self.assertNotIn(marker,output.getvalue())
             expected='code=INSTALLATION_REQUIRED; last_http=401' if isinstance(error,urllib.error.HTTPError) else 'code=UNEXPECTED_ERROR; last_http=NONE'
             self.assertIn(expected,output.getvalue())
+
+    def test_probe_denial_catalog_from_HTTP_errors_is_sanitized(self):
+        import ast,textwrap,urllib.request,urllib.error
+        probe=(ROOT/runner.R3_WORKFLOW).read_text().split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        fn=next(n for n in ast.parse(script).body if isinstance(n,ast.FunctionDef) and n.name=='api')
+        namespace={'urllib':urllib,'json':json,'token':'synthetic-only','diagnostic':{}}
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<HTTP-catalog>','exec'),namespace)
+        marker='SENSITIVE_SENTINEL_TOKEN'
+        for message,expected in [('Repository rule violations found: '+marker,'RULESET_DENIED'),
+                                 ('Resource not accessible by integration','INTEGRATION_DENIED'),
+                                 ('refusing to allow a GitHub App to create or update workflow '+marker,'WORKFLOW_DENIED'),
+                                 (marker,'OTHER_HTTP_ERROR')]:
+            error=urllib.error.HTTPError('https://api.github.com/test',403,marker,{},io.BytesIO(json.dumps({'message':message,'token':marker}).encode()))
+            with patch('urllib.request.build_opener') as opener:
+                opener.return_value.open.side_effect=error
+                status,value=namespace['api']('POST','/repos/novo34/cleanops-360/git/refs',{})
+            self.assertEqual(status,403)
+            self.assertEqual(value,{'rulesetDenied':expected=='RULESET_DENIED','denialClass':expected})
+            self.assertNotIn(marker,json.dumps(value))
 
     def test_nominal_secret_empty_value_denies_before_signing_or_API(self):
         import ast,textwrap,types
