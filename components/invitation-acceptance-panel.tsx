@@ -3,6 +3,7 @@ import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {TotpEnrollmentQr} from './totp-enrollment-qr'
 
 export function InvitationAcceptancePanel(){
+ const acceptKey=useRef<string|null>(null)
  const link=useRef<{invitation_id:string;token:string}|null>(null)
  const [state,setState]=useState<'INITIAL'|'MFA_REQUIRED'|'READY'|'ACCEPTED'>('INITIAL')
  const [uri,setUri]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false)
@@ -25,13 +26,15 @@ export function InvitationAcceptancePanel(){
   try{
    const csrf=document.cookie.split(';').map(p=>p.trim()).find(p=>p.startsWith('__Host-cleanops_invitation_csrf='))?.split('=')[1]??''
    const operation=String(input.operation);delete input.operation
-   const response=await fetch('/auth/invitations/'+(({PREPARE:'prepare',FACTOR:'factor',ACCEPT:'accept'} as Record<string,string>)[operation]),{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-csrf-token':csrf,'idempotency-key':crypto.randomUUID()},body:JSON.stringify(input)})
+   const key=operation==='ACCEPT'?(acceptKey.current??=crypto.randomUUID()):crypto.randomUUID()
+   const response=await fetch('/auth/invitations/'+(({PREPARE:'prepare',FACTOR:'factor',ACCEPT:'accept'} as Record<string,string>)[operation]),{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-csrf-token':csrf,'idempotency-key':key},body:JSON.stringify(input)})
    delete input.password;delete input.token
    const result=await response.json()
    if(!response.ok)throw new Error(response.status===503?'La aceptación no está disponible todavía.':'No se pudo verificar la invitación. Comprueba el enlace y tus datos.')
    if(!['MFA_REQUIRED','READY','ACCEPTED'].includes(result.data?.state))throw new Error('Respuesta no disponible.')
    setState(result.data.state);setUri(result.data.provisioning_uri??'')
-   if(result.data.state==='ACCEPTED')link.current=null
+   if(operation==='PREPARE')acceptKey.current=null
+   if(result.data.state==='ACCEPTED'){link.current=null;acceptKey.current=null}
   }catch(error){setMessage(error instanceof Error?error.message:'No se pudo completar la solicitud.')}
   finally{delete input.password;delete input.token;setBusy(false)}
  }

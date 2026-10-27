@@ -43,7 +43,7 @@ export function createInvitationAcceptanceHandler(ceremony:Ceremony,publicOrigin
    }
    const cap=cookies.get(names.capability)??'',csrf=cookies.get(names.csrf)??'',proof=request.headers.get('x-csrf-token')??''
    if(![cap,csrf,proof].every(v=>pattern.test(v))||!timingSafeEqual(Buffer.from(csrf),Buffer.from(proof)))throw new AuthError(403,'AUTH_FORBIDDEN')
-   const result=input.operation==='FACTOR'?await ceremony.factor(cap,csrf,String(input.proof),correlation):await ceremony.accept(cap,csrf,correlation)
+   const result=input.operation==='FACTOR'?await ceremony.factor(cap,csrf,String(input.proof),correlation):await ceremony.accept(cap,csrf,request.headers.get('idempotency-key')??'',correlation)
    if(result instanceof AuthError)throw result
    if(result.state==='ACCEPTED'){headers.append('Set-Cookie',cookie(names.capability,'',0));headers.append('Set-Cookie',cookie(names.csrf,'',0,false))}
    return respond({data:result,correlation_id:correlation})
