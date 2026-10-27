@@ -5,9 +5,6 @@ on:
       reservation_probe:
         type: boolean
         default: false
-    secrets:
-      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:
-        required: false
   pull_request_review:
     types: [submitted]
 permissions:
@@ -190,12 +187,45 @@ jobs:
   aud031-reservation-probe:
     # Call this FILE via uses: owner/repo/path@APPROVED_SHA, never a relative
     # path/branch/merge ref. Caller addition needs separate reviewed publication.
-    if: inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.actor_id == '17856013' && github.run_attempt == 1
+    if: inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Environment must exist with owner approval, no administrator bypass,
+    # only the exact immutable caller tag (no branch), and no repository copy
+    # of the private key. No configuration or caller is installed by this file.
+    environment: cleanops-native-auth-probe
     permissions:
       contents: read
     steps:
+      - name: Validate approved caller before loading code or using the key
+        env:
+          APPROVED_CALLER_SHA: ${{ vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA }}
+          CALLER_REPOSITORY: ${{ github.repository }}
+          CALLER_REPOSITORY_ID: ${{ github.repository_id }}
+          CALLER_ACTOR_ID: ${{ github.actor_id }}
+          CALLER_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          CALLER_EVENT: ${{ github.event_name }}
+          CALLER_REF: ${{ github.ref }}
+          CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          CALLER_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          CALLER_SHA: ${{ github.sha }}
+          CALLER_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python -I - <<'PY'
+          import os,re
+          def approved_caller(values):
+              expected=values.get('APPROVED_CALLER_SHA','')
+              if not re.fullmatch('[0-9a-f]{40}',expected):return False
+              fixed={'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
+                     'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34',
+                     'CALLER_EVENT':'workflow_dispatch','CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller',
+                     'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller',
+                     'CALLER_ATTEMPT':'1','CALLER_SHA':expected,'CALLER_WORKFLOW_SHA':expected}
+              return all(values.get(k)==v for k,v in fixed.items())
+          if not approved_caller(os.environ):
+              print('FAIL approved caller context required; no credentials used')
+              raise SystemExit(1)
+          PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: novo34/cleanops-360

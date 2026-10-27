@@ -1209,7 +1209,8 @@ os._exit(int(sys.argv[4]))
         import ast, concurrent.futures, threading, textwrap
         workflow=(ROOT/runner.R3_WORKFLOW).read_text()
         job=workflow.split('  aud031-reservation-probe:',1)[1]
-        script=textwrap.dedent(job.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        probe=job.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
         tree=ast.parse(script)
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='exercise')
         namespace={'concurrent':concurrent,'threading':threading,'hashlib':hashlib}
@@ -1245,5 +1246,38 @@ os._exit(int(sys.argv[4]))
         def offline(*args):raise TimeoutError('must never escape as success')
         with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
             exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300))
+
+    def test_environment_caller_guard_rejects_untrusted_identity_route_event_and_SHA(self):
+        import ast,textwrap,re
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        preflight=job.split('- name: Validate approved caller',1)[1].split('      - uses:',1)[0]
+        self.assertNotIn('secrets.',preflight)
+        self.assertNotIn('secrets:',workflow.split('  pull_request_review:',1)[0])
+        self.assertIn('environment: cleanops-native-auth-probe',job)
+        script=textwrap.dedent(preflight.split("python -I - <<'PY'\n",1)[1].split('\n          PY',1)[0])
+        function=next(n for n in ast.parse(script).body if isinstance(n,ast.FunctionDef))
+        namespace={'re':re};exec(compile(ast.Module(body=[function],type_ignores=[]),'<caller-guard>','exec'),namespace)
+        guard=namespace['approved_caller']
+        good={'APPROVED_CALLER_SHA':'a'*40,'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
+              'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34','CALLER_EVENT':'workflow_dispatch',
+              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller',
+              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller',
+              'CALLER_ATTEMPT':'1','CALLER_SHA':'a'*40,'CALLER_WORKFLOW_SHA':'a'*40}
+        self.assertTrue(guard(good))
+        for key in good:
+            with self.subTest(key=key):
+                self.assertFalse(guard({k:v for k,v in good.items() if k!=key}))
+                self.assertFalse(guard(dict(good,**{key:'unapproved'})))
+        for event in ('pull_request_review','pull_request','push','workflow_run'):
+            self.assertFalse(guard(dict(good,CALLER_EVENT=event)))
+        self.assertFalse(guard(dict(good,CALLER_WORKFLOW_SHA='b'*40)))
+        self.assertFalse(guard(dict(good,CALLER_SHA='b'*40)))
+        self.assertFalse(guard(dict(good,CALLER_ATTEMPT='2')))
+        context={'inputs':{'reservation_probe':True},'github':{'repository':'novo34/cleanops-360','repository_id':'1412999204',
+                 'actor_id':'17856013','run_attempt':1,'event_name':'pull_request_review','ref':'refs/pull/23/merge',
+                 'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
+        condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
+        self.assertFalse(ActionsCondition(condition,context).evaluate())
 
 if __name__=='__main__':unittest.main()
