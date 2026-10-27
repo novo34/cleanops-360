@@ -35,6 +35,7 @@ jobs:
       (startsWith(github.event.review.body, format('Execute owner-authorized SQL5-R3 candidate {0} manifest ', github.event.review.commit_id)) &&
       endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha))))) ||
       (false && github.event_name == 'pull_request_review' && github.event.action == 'submitted' &&
+      github.event.pull_request.number == 23 &&
       github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' &&
       github.repository_owner == 'novo34' && github.actor == 'novo34' && github.actor_id == '17856013' &&
       github.triggering_actor == 'novo34' && github.run_attempt == 1 &&
@@ -168,7 +169,7 @@ jobs:
         if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-R3 candidate ') && endsWith(github.event.review.body, '; native isolated validation only.')
         run: python scripts/b2-directory-postgres.py --package sql5-r3
       - name: AUD031 canonical entrypoint (DISABLED; separate owner authorization required)
-        if: false && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+        if: false && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
         run: python scripts/b2-directory-postgres.py --package sql5-aud031
       - name: Preserve sanitized evidence for the selected route
         if: always()

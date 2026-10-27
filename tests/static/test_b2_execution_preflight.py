@@ -977,6 +977,7 @@ class Aud031ContractTests(unittest.TestCase):
             self.candidate[name]=raw
             path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
         self.historical={name:subprocess.check_output(['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT) for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
+        self.previous_sources={name:subprocess.check_output(['git','--no-replace-objects','show','735b7fc59ea261183e1cf0a801b49b6e0ca81f65:'+name],cwd=ROOT) for name in ('scripts/b2-directory-postgres.py',runner.R3_WORKFLOW)}
         self.context={**runner.AUD031_CONTEXT,'pullRequest':23} # synthetic, never production context
         self.event,env=event_context(23,self.context['branch'],review=True)
         self.event['pull_request']['base']['sha']='4'*40
@@ -1064,7 +1065,8 @@ class Aud031ContractTests(unittest.TestCase):
     def test_real_manifest_hashes_and_pending_owner_decisions(self):
         manifest=json.loads((ROOT/runner.AUD031_MANIFEST).read_bytes())
         self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
-        self.assertIsNone(manifest['context']['pullRequest'])
+        self.assertEqual(manifest['context']['pullRequest'],23)
+        self.assertEqual(manifest['context'],runner.AUD031_CONTEXT)
         self.assertEqual(set(manifest['files']),runner.AUD031_FILES)
         for name,digest in manifest['files'].items():
             raw=self.candidate[name]
@@ -1079,10 +1081,36 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertIn('FOR UPDATE',sql)
         self.assertIn('accept_key_digest=CASE WHEN id=c.id THEN key_hash',sql)
         self.assertIn('AUD031_FRESH_INSTALL_REQUIRED',sql)
-        for label in ('AUD031-rollback-key-and-audit','AUD031-legacy-null-denies-both','AUD031-expired-consumed-denies-both','AUD031-other-key-conflict','AUD031-effective-execute-roles','AUD031-no-extra-grantees'):
+        for label in ('AUD031-rollback-key-and-audit','AUD031-legacy-null-denies-both','AUD031-expired-consumed-denies-both','AUD031-other-key-conflict','AUD031-effective-execute-roles','AUD031-no-extra-grantees','AUD031-revoked-capability-denies-consumption','AUD031-first-consumption-no-B1-session'):
             self.assertIn(label,fixture.decode())
         self.assertIn('different-key-race',fixture.decode())
         self.assertIn('tenant-B-same-key',fixture.decode())
+
+    def test_push_PR_open_and_R3_review_cannot_start_R4_job(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
+        self.assertNotIn('workflow_dispatch:',source)
+        self.assertNotIn('pull_request_target:',source)
+        self.assertNotIn('\n  push:',source)
+        self.assertNotIn('\n  pull_request:',source)
+        route=source.split('(false && github.event_name',1)[1].split('    # R3 capability',1)[0]
+        self.assertIn('github.event.pull_request.number == 23',route)
+        self.assertIn('SQL5-AUD031',route)
+        step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
+        self.assertIn('if: false && github.event.pull_request.number == 23',step)
+        # Even an exact synthetic owner review must stop before transport import.
+        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_R3_harness_controls_and_workflow_routes_are_unchanged(self):
+        import ast
+        old=ast.parse(self.previous_sources['scripts/b2-directory-postgres.py'])
+        current=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        def r3_assignments(tree):
+            return [ast.dump(n) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id.startswith('R3_') for t in n.targets)]
+        self.assertEqual(r3_assignments(current),r3_assignments(old))
+        historical=self.previous_sources[runner.R3_WORKFLOW].decode()
+        current=(ROOT/runner.R3_WORKFLOW).read_text()
+        self.assertEqual(current.split('(false && github.event_name',1)[0],historical.split('(false && github.event_name',1)[0])
+        self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
 
     def test_workflow_R4_entrypoint_remains_literal_disabled(self):
         source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')

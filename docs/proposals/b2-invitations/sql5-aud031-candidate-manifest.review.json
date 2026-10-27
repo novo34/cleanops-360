@@ -4,7 +4,7 @@
   "context": {
     "repository": "novo34/cleanops-360",
     "repositoryId": 1412999204,
-    "pullRequest": null,
+    "pullRequest": 23,
     "base": "main",
     "branch": "codex/r4-aud-031",
     "event": "pull_request_review",
@@ -20,7 +20,7 @@
     "sql5R2Sha256": "eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9"
   },
   "files": {
-    ".github/workflows/b2-acceptance-r2-postgres.yml": "d258ffd92c6bf3ed5d382ebb6a9d68a00f5205b63410b418771c312c984dbe49",
+    ".github/workflows/b2-acceptance-r2-postgres.yml": "e9b1665723f75b588c8b76f2a04761dbb260d2af3e3e5c989351a33dd8f79568",
     "components/invitation-acceptance-panel.tsx": "8133970313aa6983dc3064b527252536f7dc4f57e9c94054ec7c05165cbe0590",
     "docs/RBAC_PERMISSIONS.md": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3",
     "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json": "b459e9ec99c17da411fef8d482a50c8feb6f565f89ae44b456162b71aecc0b2d",
@@ -40,7 +40,7 @@
     "docs/proposals/b2-invitations/004-invitation-administration.review.sql": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
     "docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql": "06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471",
     "docs/proposals/b2-invitations/005-invitation-acceptance.r3-candidate.review.sql": "b017fed6d5c3f7590fb1e36f8655332ad26a8ad4b4c673edb7dea90e676d44b2",
-    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "b60157ceb7fba51796be832ee3e516a21feb69efd3d36a0abd32fe50542e6756",
+    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "256d26c1d3695cc2058870d6f8d51e856b22c803116bae4fb9bedc6a845c2f19",
     "docs/proposals/b2-invitations/acceptance-tests.r3-candidate.review.py": "aa05424abb1cacc3da418d65cd2137d8c305d639eb0032e9a7ebc47659fbccbb",
     "docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json": "907d691791d73be42d03db266b5e7ad92c5c5ead098a29134f022709aa6e6b97",
     "docs/proposals/b2-users/001-directory.review.sql": "8a380379b392536bb986136c997833c57ca4e482de3c418b389b898245e8e31f",
@@ -56,14 +56,14 @@
     "playwright.b2-access-postgres.config.ts": "83237058780991aad9c93f2b094c9f504e1d6116d1766b8840559c1d24c440bf",
     "playwright.b2-users-postgres.config.ts": "5b7259656591d0a4e9a4ae47dde3ba1dc7a939c9d58a0a637337f4ae0df18798",
     "scripts/b2-browser-backend.ts": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272",
-    "scripts/b2-directory-postgres.py": "894751f0e3b02da9270c3365feea1a55f829576478535d14e974e064116a63e7",
+    "scripts/b2-directory-postgres.py": "36534b66658c4edee279384a988028a35b54e73628ddfbb72c7426776c59c2e2",
     "scripts/b2-real-browser-server.mjs": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944",
     "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
     "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "d002bb2bc006670fe541892f9898c95ac0dd28be6a972cc93e4c0ea8a9fd4b92"
+    "tests/static/test_b2_execution_preflight.py": "d6ce30732817429447a6f52c09e9fb7a63720878482ecd62b2eff38bd1be63a1"
   },
   "contractApproved": false,
   "executionAuthorized": false

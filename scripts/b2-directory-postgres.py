@@ -102,7 +102,7 @@ AUD031_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.aud031-can
 AUD031_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py'
 AUD031_MANIFEST = 'docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json'
 AUD031_NATIVE_ENABLED = False
-AUD031_CONTEXT = {**R3_CONTEXT, 'pullRequest': None, 'branch': 'codex/r4-aud-031'}
+AUD031_CONTEXT = {**R3_CONTEXT, 'pullRequest': 23, 'branch': 'codex/r4-aud-031'}
 AUD031_FILES = R3_FILES | {R3_MANIFEST, AUD031_SQL, AUD031_FIXTURE,
     'lib/b1/v4-broker.ts', 'lib/b2/invitation-acceptance.ts', 'lib/b2/invitation-acceptance-http.ts',
     'components/invitation-acceptance-panel.tsx', 'tests/b2/invitation-acceptance.test.ts',

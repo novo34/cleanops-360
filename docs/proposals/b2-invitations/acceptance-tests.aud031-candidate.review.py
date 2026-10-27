@@ -78,6 +78,10 @@ def run(b):
     b.check('SQL5-wrong-CSRF-denied',f"SELECT auth_api.invitation_factor_material({q(cap)},repeat('a',43),'{uuid.uuid4()}') IS NULL;",'t',service)
     factor=f"WITH m AS MATERIALIZED(SELECT auth_api.invitation_factor_material({q(cap)},{q(csrf)},'{uuid.uuid4()}') v) SELECT auth_api.invitation_factor_cas({q(cap)},{q(csrf)},(v->>'generation')::bigint,(v->>'policy_version')::bigint,NULL,floor(extract(epoch FROM clock_timestamp())/30)::bigint,'{uuid.uuid4()}') FROM m;"
     b.check('SQL5-native-factor-CAS',factor,'t',service)
+    # Revoke READY capability, then roll back before first consumption.
+    before_revocation=effects(b.A,invite,email)
+    b.check('AUD031-revoked-capability-denies-consumption',f"BEGIN;UPDATE identity_private.invitation_acceptances SET state='REVOKED',password_hash=NULL,secret_ciphertext=NULL WHERE tenant_id='{b.A}' AND invitation_id='{invite}';SET LOCAL ROLE {service};SELECT NOT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},{accept_key},'{uuid.uuid4()}');SELECT NOT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},{other_key},'{uuid.uuid4()}');ROLLBACK;",'t\nt')
+    b.record('AUD031-revoked-capability-rollback-preserves-effects','PASS' if effects(b.A,invite,email)==before_revocation else 'FAIL')
     # READY makes these denials isolate key length/null validation from MFA state.
     for name,key_expr in [('null','NULL'),('short',"decode(repeat('01',31),'hex')"),('long',"decode(repeat('01',33),'hex')")]:
         b.check('AUD031-invalid-digest-'+name,f"SELECT NOT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},{key_expr},'{uuid.uuid4()}');",'t',service)
@@ -104,6 +108,7 @@ def run(b):
     b.record('SQL5-R3-parallel-race','PASS' if race_ok else 'FAIL')
     b.check('SQL5-R3-parallel-unique-mutate',f"SELECT (SELECT count(*) FROM app.users u JOIN identity_private.principals p ON p.id=u.principal_id WHERE p.email_normalized={q(email)})=1 AND (SELECT count(*) FROM app.audit_logs WHERE resource_id='{invite}' AND action='users.invitation.accept')=1;",'t')
     after_accept=effects(b.A,invite,email)
+    b.check('AUD031-first-consumption-no-B1-session',f"SELECT NOT EXISTS(SELECT 1 FROM app.sessions s JOIN identity_private.principals p ON p.id=s.principal_id WHERE p.email_normalized={q(email)});",'t')
     b.check('SQL5-consumed-idempotent-no-recreation',f"SELECT auth_api.consume_invitation_acceptance({q(cap)},{q(csrf)},{accept_key},'{uuid.uuid4()}');",'t',service)
     b.check('SQL5-active-only-in-invited-tenant',f"SELECT count(*)=1 AND bool_and(u.tenant_id='{b.A}' AND u.state='ACTIVE') FROM app.users u JOIN identity_private.principals p ON p.id=u.principal_id WHERE p.email_normalized={q(email)};",'t')
     b.check('SQL5-activation-audited-once',f"SELECT count(*)=1 FROM app.audit_logs WHERE resource_id='{invite}' AND action='users.invitation.accept';",'t')
