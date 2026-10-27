@@ -1263,10 +1263,12 @@ os._exit(int(sys.argv[4]))
         guard=namespace['approved_caller']
         good={'APPROVED_CALLER_SHA':'a'*40,'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
               'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34','CALLER_EVENT':'workflow_dispatch',
-              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller',
-              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller',
+              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller-diag1',
+              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-diag1',
               'CALLER_ATTEMPT':'1','CALLER_SHA':'a'*40,'CALLER_WORKFLOW_SHA':'a'*40}
         self.assertTrue(guard(good))
+        self.assertFalse(guard(dict(good,CALLER_REF='refs/tags/cleanops-native-auth-probe-caller')))
+        self.assertFalse(guard(dict(good,CALLER_WORKFLOW_REF='novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller')))
         for key in good:
             with self.subTest(key=key):
                 self.assertFalse(guard({k:v for k,v in good.items() if k!=key}))
