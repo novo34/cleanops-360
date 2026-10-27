@@ -20,7 +20,7 @@
     "sql5R2Sha256": "eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9"
   },
   "files": {
-    ".github/workflows/b2-acceptance-r2-postgres.yml": "e9b1665723f75b588c8b76f2a04761dbb260d2af3e3e5c989351a33dd8f79568",
+    ".github/workflows/b2-acceptance-r2-postgres.yml": "276401246db2477eca9f80537289b27cfd93d6a952da57e179fd3badd233720f",
     "components/invitation-acceptance-panel.tsx": "8133970313aa6983dc3064b527252536f7dc4f57e9c94054ec7c05165cbe0590",
     "docs/RBAC_PERMISSIONS.md": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3",
     "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json": "b459e9ec99c17da411fef8d482a50c8feb6f565f89ae44b456162b71aecc0b2d",
@@ -63,7 +63,7 @@
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "7eef2515086bcdd907fcbf5d03e48c6b8c709297fd62a771a67efe7e52f86766"
+    "tests/static/test_b2_execution_preflight.py": "fb4ecf2d129a912c62b95385f7a56f6aeed0c7e20be67476c33cbbcc0ace753c"
   },
   "contractApproved": false,
   "executionAuthorized": false

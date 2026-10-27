@@ -1109,7 +1109,7 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertEqual(r3_assignments(current),r3_assignments(old))
         historical=self.previous_sources[runner.R3_WORKFLOW].decode()
         current=(ROOT/runner.R3_WORKFLOW).read_text()
-        self.assertEqual(current.split('(false && github.event_name',1)[0],historical.split('(false && github.event_name',1)[0])
+        self.assertEqual(current.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0],historical.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0])
         self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
 
     def test_workflow_R4_entrypoint_remains_literal_disabled(self):
@@ -1204,5 +1204,46 @@ os._exit(int(sys.argv[4]))
             self.assertEqual(child.returncode,exit_code)
             with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
                 runner.reserve_aud031(dict(auth,runId='999'),self.create)
+
+    def probe_function(self):
+        import ast, concurrent.futures, threading, textwrap
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        script=textwrap.dedent(job.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        tree=ast.parse(script)
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='exercise')
+        namespace={'concurrent':concurrent,'threading':threading,'hashlib':hashlib}
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<trusted-probe-test>','exec'),namespace)
+        return namespace['exercise'],job
+
+    def test_reusable_probe_consumes_canonical_reservation_without_native_import(self):
+        exercise,job=self.probe_function()
+        methods=[]
+        def api(method,path,payload=None):
+            methods.append(method)
+            if method=='POST':return self.create(payload['ref'],payload['sha'])
+            if method in ('PATCH','DELETE'):return 422,{'rulesetDenied':True}
+            self.assertIn('/git/ref/tags/',path)
+            ref=path.split('/git/ref/',1)[1]
+            sha=self.git('rev-parse','refs/'+ref).stdout.strip().decode()
+            return 200,{'object':{'sha':sha}}
+        exercise(api,runner.reserve_aud031,self.auth)
+        self.assertEqual(methods.count('PATCH'),1);self.assertEqual(methods.count('DELETE'),1)
+        self.assertNotIn('contents: write',job)
+        self.assertIn('ref: c5fdb70264429dfb11ed353649221910eb83d21c',job)
+        self.assertNotIn('secrets: inherit',job)
+        self.assertNotIn('github.event.pull_request.head.sha',job)
+        self.assertNotIn('python scripts/b2-directory-postgres.py',job)
+
+    def test_probe_rejects_unconfirmed_protection_and_network_failures(self):
+        exercise,_=self.probe_function()
+        def api(method,path,payload=None):
+            if method=='POST':return self.create(payload['ref'],payload['sha'])
+            return 200,{}
+        with self.assertRaisesRegex(RuntimeError,'PROTECTION_DENIAL_NOT_CONFIRMED'):
+            exercise(api,runner.reserve_aud031,self.auth)
+        def offline(*args):raise TimeoutError('must never escape as success')
+        with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
+            exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300))
 
 if __name__=='__main__':unittest.main()
