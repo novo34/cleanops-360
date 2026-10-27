@@ -1000,6 +1000,63 @@ El propietario debe autorizar separadamente UNA ejecución pre-merge por C_act/M
 - **Verificación y reversión:** comparación de diff y árbol debe confirmar un único archivo documental cambiado y metadata, informe archivado intacto, Quality/engineering-policy y Codex exactos del SHA de cierre. No se repiten servicios ni suites nativas; esos pasos SKIP en esta intervención. Para reabrir R3, registrar motivo y decisión autorizada, restaurar casilla/estado con commit documental normal y conservar historia; ningún SQL inverso ni force-push. Una aprobación de merge futura no se presume de esta aceptación.
 
 - [ ] **R4 — Compatibilidad B1↔B2 y seguridad efectiva.** Confirmar firmas y permisos ejecutables, llamadas a funciones revocadas (AUD-013/024), comportamiento de aceptación de invitación y contrato `Idempotency-Key` (AUD-031); revisar tabla RLS/ACL de B2 (AUD-027) sin cambiar RLS a ciegas. Verificar audit trail entre tenants (AUD-033), caducidad absoluta y aceptación humana de parámetros (AUD-028), y contexto/performance (AUD-034). **Cierre:** defectos confirmados corregidos mínimamente, tests por tenant/rol, regresiones, contrato y autorización. No activar B1 ni B2 por este paso.
+
+### R4 — Continuación Cloud, 2026-10-27 (sin publicación)
+
+**IN_PROGRESS / aceptación y validación nativa bloqueadas.** Base exacta
+`f79056811026b04d669281d7c8366104fd7b6fe3`; revisados ese commit y
+`9d98a1c0c712cc0d36b032d5ab2afde8d5668c35`. No se reabre R0–R3 ni se inicia
+R5–R9. Esta inspección propia no constituye revisión independiente.
+
+**QG-0 previo a editar:** aceptación de invitación B2, MFA y aislamiento existentes
+(REQ-AUTH-001/002, REQ-SEC-020); timeout separado REQ-AUTH-045/REQ-SEC-021.
+Ruta reutilizada: panel → handler → ceremonia → broker parametrizado → candidato
+SQL5; fixture → harness/workflow existentes, desactivados para AUD031.
+Inventariados esos consumidores, contratos B1/B2, SQL14 y SQL1–5, manifiesto y
+suite estática. Decisión extend/reuse: mejorar la fixture existente y su hash;
+registrar resultados aquí. Sin archivos nuevos, runners, contratos, roles,
+ACL/RLS o cambios de runtime. Riesgos: no confundir comprobaciones de bytes y
+transporte simulado con garantías nativas, no reutilizar permisos R3 y no emitir
+material privado en evidencias. Reversión: restaurar conjuntamente fixture y
+manifiesto al SHA base; conservar este registro histórico; nunca SQL inverso.
+
+| Hallazgo, en orden | Comprobación concreta | Resultado / siguiente dependencia |
+|---|---|---|
+| AUD-031 | Handler/ceremonia transmiten clave; broker usa `(text,text,bytea,uuid)` igual al candidato; digest SHA-256 con dominio propio. SQL valida capacidad/CSRF, tenant derivado, generación, política y vencimiento; serializa por destinatario y bloquea invitación/capacidad antes de consumir. | Coherencia estática comprobada; mismo digest devuelve éxito sin otra mutación, otro digest genera conflicto, digest legado nulo deniega. Eficacia concurrente SKIP. |
+| AUD-031, cobertura | La fixture solo contaba usuario y auditoría tras carrera/replay. | Ampliada en origen: compara filas completas de principal, credencial, usuarios, MFA, recursos, sesiones, invitación, capacidades, outbox y auditoría antes/después de rollback, replay y denegaciones; comprueba también preservación del tenant original tras escenarios adicionales. No imprime snapshots. Nuevas aserciones nativas preparadas, NO ejecutadas. |
+| AUD-013/024 | SQL14 revoca cinco mutadores de acceso directos; búsqueda de llamadas en `lib`, `scripts`, `tests` y consumidor `approved-backend.ts`. | Consumidor activo usa `changeAccessOwned`; llamadas directas localizadas en `tests/b1/access-broker.test.ts`, con pool simulado. No confirmado fallo activo por esos mutadores. Entradas históricas del broker conservadas; retirada corresponde a R6. No se afirma compatibilidad de todo el catálogo ni permisos efectivos sin PG. |
+| AUD-027 | SQL14 incluye ENABLE/FORCE RLS y política broker para tablas base; segundo bloque incluye `access_resources`, `access_roles`, `access_role_memberships`, `access_rules`. SQL1–4 usan contexto servidor y filtros tenant. | No confirmada ausencia de RLS de esas tablas. Política broker `true` requiere validar aislamiento dentro de funciones; no prueba aislamiento por sí sola. Catálogo/ACL efectivas y casos tenant/rol SKIP; ninguna política modificada. |
+| AUD-033 | `issue_session` SQL14 escribe `tenant.switch.out` con tenant/usuario de origen y `tenant.switch.in` con destino; misma correlación y transacción. SQL5 inserta auditoría con `c.tenant_id`. | No confirmado defecto por mezclar ambos tenants en esas inserciones. Nuevas comparaciones de fixture incluyen auditoría entre tenants. Validación nativa de cambio de empresa y rollback SKIP; no se declara AUD-033 cerrado. |
+| AUD-028 | `valid_session` limita absoluta e inactividad; `touch_activity` usa LEAST con absoluta. `security-values.json` conserva `absolute_sensitive=28800` y `absolute_operational=86400` como PROPOSED_BENCHMARK_REQUIRED. | Propuesta concreta pendiente: 8h/24h absolutas por riesgo, sujetas a pruebas y aceptación; no habilitadas por esta revisión. Parámetros de invitación ya tienen `parametersApproved=true` en su aprobación histórica: no se pide aprobarlos otra vez. El nuevo contrato de replay AUD-031 sí sigue pendiente. |
+| AUD-034 | `context()` revalida sesión por backend/xid; SQL1 invoca `effective_access` por recurso, SQL2 vuelve al evaluador canónico y contexto. | Trabajo repetido visible en código; impacto de rendimiento NO medido. No introducir caché que elimine revalidación. Preparado siguiente análisis autorizado: EXPLAIN/mediciones con volumen sintético y comprobación de política/tenant, solo tras permiso nativo propio. |
+
+**Contrato AUD-031 propuesto, no aceptado:** clave ASCII `[A-Za-z0-9._:-]{8,128}`;
+ámbito de replay = capacidad de aceptación autenticada, sin selector de tenant;
+mismo digest confirma el consumo mientras la capacidad/política/generación sigan
+válidas; otro digest produce HTTP409 genérico; consumo legado sin digest deniega
+ambas claves; vencimiento deniega sin renovar plazo. Commit incierto conserva
+clave y cookies para reintentar; éxito HTTP elimina cookies y conduce al login,
+sin emitir sesión B1. No se promete recuperación del navegador tras borrar esas
+cookies ni soporte de identidad existente sin prueba de factores previa.
+Candidato de instalación limpia, no migración ni instalación junto a SQL5-R3.
+
+**Evidencia local de esta intervención:**
+
+- PASS: `node --experimental-strip-types --test --test-isolation=none tests/b2/*.test.ts`: 48/48; `npm run test:b1:offline`: 242/242; `npm run typecheck`; ESLint acotado a los seis archivos TS/TSX publicados de AUD031.
+- PASS: `python -m unittest discover -s tests/static -p test_b2_execution_preflight.py`: 76 casos, 75 PASS / 1 SKIP por ausencia de pglast. No acredita gramática PostgreSQL. AST Python de fixture y todos los hashes del manifiesto comprobados; flags de aprobación/ejecución siguen false.
+- FAIL inicial de preparación: suite estática sin objetos históricos locales (2 failures, 45 errors, 1 skip). Resuelto recuperando por SHA `3ea4ec8`, `147dac3`, `0eb651f`; posterior ejecución anterior PASS. No se modificó el guard ni se sustituyeron objetos por archivos actuales.
+- SKIP: SQL, PG/OpenBao, migraciones, fixtures/concurrencia nativa, catálogo/ACL/RLS efectivos, E2E, benchmark, CI remota y revisión independiente. Sin servicios, commits nuevos, push, PR, merge, despliegue o cambios de protecciones. Históricos R3 y candidato SQL intactos.
+
+**Decisiones pendientes exactas:** aceptar o corregir el contrato AUD031 anterior;
+autorizar publicación del diff de esta rama para revisión independiente en GitHub
+(commit/push y, si procede, PR borrador). Después de revisar bytes finales,
+configurar y revisar contexto PR/W/ref y emitir autorización NUEVA por C/M/W/B,
+scope `SQL5_AUD031_ACCEPTANCE_HOSTED_EPHEMERAL_PG16`, dependencias/fixture exactas,
+intento y limpieza: este registro NO activa ninguna barrera. Aceptación de 8h/24h
+absolutas requiere validación de seguridad antes de Auth productiva; no concede
+permiso de habilitar backend. QG-3, dictamen independiente y aceptación PO siguen
+pendientes; R4 permanece abierto y AUTH-GATE-05 intacto.
+
 - [ ] **R5 — Consolidar CI, runners y Playwright (AUD-002/003/014/042).** Identificar workflow único vigente y artefactos one-shot históricos, referencias de sus nombres/SHAs, consumidores, scripts y autorizaciones. Reutilizar mecanismos existentes y reducir solo armazones duplicados, sin cambiar la semántica de pruebas ni borrar logs/evidencias. Evaluar 35 configs Playwright por cobertura y selección real antes de retirar. **Cierre:** matriz old→new, no pérdida de casos/autorización/artefactos, CI local y remota equivalentes con gasto medido, rollback, nada huérfano.
 - [ ] **R6 — Retirar código obsoleto comprobado (AUD-008/021/024/036/039).** Solo después de tener sustitutos aceptados: grafo estático y referencias dinámicas de cada candidato; diferenciar runtime, tests, scripts manuales y revisiones de seguridad; migrar tests antes de borrar funciones o rutas. Los cuerpos efectivos de R14 y SQL histórico aprobado se conservan hasta la revisión formal correspondiente. **Cierre:** lista KEEP/REUSE/CONSOLIDATE/REMOVE por archivo, no referencias rotas, build/typecheck/seguridad/E2E pertinentes PASS.
 - [ ] **R7 — Documentación y estado real.** Anotar contadores 41/44 versus 42/44 sin alterar registros históricos; actualizar coverage AUTH como IMPLEMENTED_NOT_VALIDATED cuando corresponda; alinear contratos, códigos de requisitos, ownership y fuentes canónicas. **Cierre:** documento↔código↔prueba↔aprobación trazable, sin duplicar autoridades, gates abiertos documentados.

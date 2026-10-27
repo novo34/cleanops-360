@@ -14,7 +14,7 @@ test('invitation capability digest is purpose separated and rejects noncanonical
 test('acceptance consumes only the invitation capability in one B1 transaction; no issuer call exists',async()=>{
  const calls:string[]=[]
  const acceptance=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);return {rows:[{value:true}]}},release(){}}}},deps)
- assert.deepEqual(await acceptance.accept(token,token),{state:'ACCEPTED'})
+ assert.deepEqual(await acceptance.accept(token,token,'synthetic-acceptance-key'),{state:'ACCEPTED'})
  assert.equal(calls[0],'BEGIN ISOLATION LEVEL READ COMMITTED');assert.equal(calls.at(-1),'COMMIT')
  assert.equal(calls.length,3);assert.ok(calls[1].startsWith('SELECT auth_api.consume_invitation_acceptance('))
 })
@@ -58,8 +58,73 @@ test('new invitee chooses a real Argon2 credential and proves B1-encrypted SHA25
  const totp=new TOTP({secret:Secret.fromBase32(uri.searchParams.get('secret')!),algorithm:'SHA256',digits:6,period:30})
  assert.deepEqual(await ceremony.factor(prepared.capability.token,token,totp.generate({timestamp:now})),{state:'READY'})
  assert.equal(counter,Math.floor(now/30000))
- assert.deepEqual(await ceremony.accept(prepared.capability.token,token),{state:'ACCEPTED'})
+ assert.deepEqual(await ceremony.accept(prepared.capability.token,token,'synthetic-acceptance-key'),{state:'ACCEPTED'})
  assert.equal(calls.filter(c=>c==='COMMIT').length,3)
  assert.ok(!calls.some(c=>/issue_session|new_preauth|begin_verified_context/.test(c)))
  key.fill(0)
+})
+
+test('ACCEPT malformed capability, CSRF or correlation never opens a transaction',async()=>{
+ let connections=0
+ const ceremony=createInvitationAcceptance({async connect(){connections++;throw Error('unexpected connection')}},deps)
+ for(const args of [['invalid',token,'11111111-1111-4111-8111-111111111111'],[token,'invalid','11111111-1111-4111-8111-111111111111'],[token,token,'00000000-0000-0000-0000-000000000000']] as const){
+  const result=await ceremony.accept(args[0],args[1],'synthetic-acceptance-key',args[2])
+  assert.ok(result instanceof AuthError&&result.status===401)
+ }
+ assert.equal(connections,0)
+})
+
+test('SQL false is a committed generic ACCEPT denial, never a successful acceptance',async()=>{
+ const calls:string[]=[],releases:boolean[]=[]
+ const ceremony=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);return {rows:[{value:false}]}},release(discard){releases.push(Boolean(discard))}}}},deps)
+ const result=await ceremony.accept(token,token,'synthetic-acceptance-key')
+ assert.ok(result instanceof AuthError&&result.status===401)
+ assert.equal(calls.length,3);assert.equal(calls.at(-1),'COMMIT');assert.deepEqual(releases,[false])
+})
+
+test('ACCEPT SQL or COMMIT failures roll back, discard the connection and expose only 503',async()=>{
+ for(const failedAt of ['consume_invitation_acceptance','COMMIT']){
+  const calls:string[]=[],releases:boolean[]=[]
+  const ceremony=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);if(failedAt==='COMMIT'?sql==='COMMIT':sql.includes(failedAt))throw Error('private database diagnostic');return {rows:[{value:true}]}},release(discard){releases.push(Boolean(discard))}}}},deps)
+  await assert.rejects(ceremony.accept(token,token,'synthetic-acceptance-key'),error=>error instanceof AuthError&&error.status===503&&!error.message.includes('private database diagnostic'))
+  assert.equal(calls.at(-1),'ROLLBACK');assert.deepEqual(releases,[true])
+  assert.equal(calls.filter(sql=>sql.includes('consume_invitation_acceptance')).length,1)
+ }
+})
+
+test('malformed SQL ACCEPT results roll back instead of being interpreted as truthy success',async()=>{
+ for(const value of ['true',null,{},1]){
+  const calls:string[]=[],releases:boolean[]=[]
+  const ceremony=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);return {rows:[{value}]}},release(discard){releases.push(Boolean(discard))}}}},deps)
+  await assert.rejects(ceremony.accept(token,token,'synthetic-acceptance-key'),error=>error instanceof AuthError&&error.status===503)
+  assert.equal(calls.at(-1),'ROLLBACK');assert.ok(!calls.includes('COMMIT'));assert.deepEqual(releases,[true])
+ }
+})
+
+test('failure to release after committed ACCEPT fails closed without attempting another consume',async()=>{
+ const calls:string[]=[]
+ const ceremony=createInvitationAcceptance({async connect(){return {async query(sql){calls.push(sql);return {rows:[{value:true}]}},release(){throw Error('private pool diagnostic')}}}},deps)
+ await assert.rejects(ceremony.accept(token,token,'synthetic-acceptance-key'),error=>error instanceof AuthError&&error.status===503&&!error.message.includes('private pool diagnostic'))
+ assert.equal(calls.at(-1),'COMMIT');assert.ok(!calls.includes('ROLLBACK'))
+ assert.equal(calls.filter(sql=>sql.includes('consume_invitation_acceptance')).length,1)
+})
+
+test('ACCEPT passes a domain-separated key digest on its existing transaction',async()=>{
+ const keys:Buffer[]=[]
+ const ceremony=createInvitationAcceptance({async connect(){return {async query(sql,values=[]){if(sql.includes('consume_invitation_acceptance')){assert.equal(values.length,4);keys.push(Buffer.from(values[2] as Buffer));}return {rows:[{value:true}]}},release(){}}}},deps)
+ await ceremony.accept(token,token,'synthetic-acceptance-key')
+ await ceremony.accept(token,token,'synthetic-acceptance-key')
+ await ceremony.accept(token,token,'another-acceptance-key')
+ assert.equal(keys[0].length,32);assert.deepEqual(keys[0],keys[1]);assert.notDeepEqual(keys[0],keys[2])
+ // This verifies transport, not database replay/concurrency semantics.
+})
+
+test('ACCEPT rejects malformed keys without connecting and preserves broker conflict rollback',async()=>{
+ let connections=0
+ const calls:string[]=[]
+ const ceremony=createInvitationAcceptance({async connect(){connections++;return {async query(sql){calls.push(sql);if(sql.includes('consume_invitation_acceptance'))throw {code:'P0001',message:'IDEMPOTENCY_MISMATCH'};return {rows:[]}},release(){}}}},deps)
+ const invalid=await ceremony.accept(token,token,'short')
+ assert.ok(invalid instanceof AuthError&&invalid.status===400);assert.equal(connections,0)
+ await assert.rejects(ceremony.accept(token,token,'synthetic-acceptance-key'),error=>error instanceof AuthError&&error.status===409)
+ assert.equal(calls.at(-1),'ROLLBACK')
 })

@@ -13,6 +13,8 @@ import unittest
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
+# R3 positives use its canonical immutable snapshot, even after an R4 commit.
+R3_SNAPSHOT='8559870130a47833ab13f7cd677ccf38dd8450c4'
 spec=importlib.util.spec_from_file_location('b2_preflight',ROOT/'scripts/b2-directory-postgres.py')
 runner=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
@@ -37,6 +39,7 @@ class PreflightTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
+        self.git_binary=shutil.which('git');self.assertIsNotNone(self.git_binary)
         paths=list(runner.APPROVED)+[
             'docs/implementation/b2/directory-authorization.json',
             'docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json',
@@ -45,10 +48,12 @@ class PreflightTests(unittest.TestCase):
             'scripts/pg11-rbac-matrix.py']
         for scope,package in runner.PACKAGES.items():paths.extend([package['sql'],package['tests'],f'docs/implementation/b2/{scope}-authorization.json'])
         for name in paths:
-            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True)
+            # Stage exact committed bytes rather than CRLF-converted Windows files.
+            destination.write_bytes(subprocess.check_output([self.git_binary,'--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         self.addCleanup(patch.stopall)
         patch.object(runner,'ROOT',self.root).start()
-        patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:subprocess.check_output(['git','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT)).start()
+        patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:subprocess.check_output([self.git_binary,'--no-replace-objects','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT)).start()
         event,env=event_context()
         event_path=self.root/'event.json';event_path.write_text(json.dumps(event))
         env['GITHUB_EVENT_PATH']=str(event_path)
@@ -117,10 +122,11 @@ class PreflightTests(unittest.TestCase):
         owner=json.loads((ROOT/'docs/proposals/b2-integration/AUTHORIZATION.review.json').read_text())
         owner.update(ownerApproved=True,referenceCommit='1'*40)
         for name in owner['artifacts'].values():
-            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True)
+            destination.write_bytes(subprocess.check_output([self.git_binary,'--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         owner['sha256'][next(iter(owner['sha256']))]='0'*64
         path.write_text(json.dumps(owner))
-        with patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:(ROOT/package['tests']).read_bytes()), patch.object(runner.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout=b'not historical bytes')):
+        with patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:(self.root/package['tests']).read_bytes()), patch.object(runner.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout=b'not historical bytes')):
             with self.assertRaisesRegex(RuntimeError,'EXACT_COMPOSITION_BYTES_REQUIRED'):
                 runner.authorize_composition()
         owner['artifacts']['extra']='unreviewed.sql';owner['sha256']['extra']='0'*64
@@ -161,7 +167,8 @@ class R3ContractTests(unittest.TestCase):
         self.root=Path(self.temp.name)
         self.candidate={}
         for name in runner.R3_FILES | {runner.R3_MANIFEST}:
-            raw=(ROOT/name).read_bytes();self.candidate[name]=raw
+            # Preserve canonical provenance without changing runtime hash validation.
+            raw=subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT);self.candidate[name]=raw
             destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
         # Obtain provenance from actual immutable Git objects, never from the
         # changed working harness or a second embedded copy of that harness.
@@ -226,6 +233,10 @@ class R3ContractTests(unittest.TestCase):
         self.assertEqual(len(runner.R3_FILES),34)
         with patch.dict(os.environ,{'GITHUB_HEAD_REF':''}):
             self.assertTrue(runner.preflight(scope='sql5-r3'))
+
+    def test_R4_working_harness_cannot_reuse_historical_R3_manifest(self):
+        (self.root/'scripts/b2-directory-postgres.py').write_bytes((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        self.assertEqual(self.reject_before_transport(),'EXACT_R3_BUNDLE_BYTES_REQUIRED')
 
     def test_valid_authorization_reaches_only_intercepted_transport_boundary(self):
         class TransportBoundaryReached(BaseException):pass
@@ -451,7 +462,12 @@ class R3ContractTests(unittest.TestCase):
             self.assertEqual(self.reject_before_transport(),'EXACT_R3_BUNDLE_BYTES_REQUIRED');path.write_bytes(original)
         path=self.root/runner.R3_SQL;raw=path.read_bytes();path.unlink()
         self.assertEqual(self.reject_before_transport(),'BUNDLE_FILE_REQUIRED')
-        destination=self.root/'target';destination.write_bytes(raw);path.symlink_to(destination)
+        destination=self.root/'target';destination.write_bytes(raw)
+        try:path.symlink_to(destination)
+        except OSError as error:
+            if getattr(error,'winerror',None)==1314:
+                self.skipTest('Windows symlink privilege unavailable; native symlink guard NOT_VALIDATED')
+            raise
         self.assertEqual(self.reject_before_transport(),'BUNDLE_SYMLINK_FORBIDDEN')
         with self.assertRaisesRegex(RuntimeError,'INVALID_BUNDLE_PATH'):runner.artifact_bytes('../outside')
 
@@ -498,10 +514,10 @@ class R3SqlArtifactTests(unittest.TestCase):
         for key,name in old['artifacts'].items():
             raw=runner.git_bytes(runner.COMPOSITION_REFERENCE,name)
             self.assertEqual(hashlib.sha256(raw).hexdigest(),old['sha256'][key])
-            if name!='scripts/b2-directory-postgres.py':self.assertEqual(raw,(ROOT/name).read_bytes())
+            if name!='scripts/b2-directory-postgres.py':self.assertEqual(raw,subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         manifest=json.loads((ROOT/runner.R3_MANIFEST).read_bytes())
         self.assertEqual(set(manifest['files']),runner.R3_FILES)
-        for name,digest in manifest['files'].items():self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        for name,digest in manifest['files'].items():self.assertEqual(hashlib.sha256(subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT)).hexdigest(),digest)
         with self.assertRaisesRegex(RuntimeError,'EXACT_GIT_REFERENCE_REQUIRED'):runner.git_bytes('main',runner.R3_SQL)
         with self.assertRaisesRegex(RuntimeError,'EXACT_GIT_REFERENCE_REQUIRED'):runner.git_bytes('1'*40,'../outside')
 
@@ -535,7 +551,7 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertEqual(safe,(ROOT/runner.R3_SQL).read_text())
 
     def test_fixture_only_rebinds_candidate_path_from_immutable_r3(self):
-        raw=(ROOT/runner.R3_FIXTURE).read_bytes()
+        raw=subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+runner.R3_FIXTURE],cwd=ROOT)
         restored=raw.replace(b'005-invitation-acceptance.r3-candidate.review.sql',b'005-invitation-acceptance.r3.review.sql')
         self.assertEqual(hashlib.sha256(restored).hexdigest(),'02b5922a9b02ed0c0a4c93009fb455e3b7f75ce9e68e1f8429a66ff23cc6c68a')
         import ast
@@ -771,7 +787,7 @@ class R3DiagnosticTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         for name in [runner.R3_MANIFEST,runner.R3_WORKFLOW]:
-            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,p)
+            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         self.event,self.env=event_context(22,runner.R3_CONTEXT['branch'],review=True)
         self.event=json.loads(json.dumps(self.event))
         self.event_path=self.root/'event.json'
@@ -890,7 +906,11 @@ class R3DiagnosticTests(unittest.TestCase):
 
     def test_symlink_inputs_are_rejected_without_metadata(self):
         path=self.root/runner.R3_MANIFEST;raw=path.read_bytes();path.unlink()
-        target=self.root/'outside-manifest';target.write_bytes(raw);path.symlink_to(target)
+        target=self.root/'outside-manifest';target.write_bytes(raw)
+        try:path.symlink_to(target)
+        except OSError as error:
+            if getattr(error,'winerror',None)==1314:self.skipTest('Windows symlink privilege unavailable: NOT_VALIDATED')
+            raise
         code,report,_,count=self.collect();self.assertEqual(code,1);self.assertEqual(count,0)
         self.assertEqual(report['result'],'FAIL')
 
@@ -942,5 +962,342 @@ class R3DiagnosticTests(unittest.TestCase):
                 self.assertEqual(ActionsCondition(expressions['name'],self.context(event)).evaluate_value(),name)
                 self.assertEqual(ActionsCondition(expressions['path'],self.context(event)).evaluate_value(),path)
 
+
+
+class Aud031ContractTests(unittest.TestCase):
+    """Synthetic authorization only; native transport and SQL are never loaded."""
+    git_bytes=R3ContractTests.git_bytes
+    write_event=R3ContractTests.write_event
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.candidate={}
+        for name in runner.AUD031_FILES | {runner.AUD031_MANIFEST}:
+            raw=(ROOT/name).read_bytes() if name in {'scripts/b2-directory-postgres.py',runner.R3_WORKFLOW,'tests/static/test_b2_execution_preflight.py',runner.AUD031_SQL,runner.AUD031_FIXTURE,runner.AUD031_MANIFEST} else subprocess.check_output(['git','--no-replace-objects','show','HEAD:'+name],cwd=ROOT)
+            self.candidate[name]=raw
+            path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+        self.historical={name:subprocess.check_output(['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT) for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
+        self.previous_sources={name:subprocess.check_output(['git','--no-replace-objects','show','735b7fc59ea261183e1cf0a801b49b6e0ca81f65:'+name],cwd=ROOT) for name in ('scripts/b2-directory-postgres.py',runner.R3_WORKFLOW)}
+        self.context={**runner.AUD031_CONTEXT,'pullRequest':23} # synthetic, never production context
+        self.event,env=event_context(23,self.context['branch'],review=True)
+        self.event['pull_request']['base']['sha']='4'*40
+        env.update(GITHUB_REF='refs/pull/23/merge',GITHUB_WORKFLOW_SHA='2'*40,GITHUB_SHA='2'*40,GITHUB_WORKFLOW_REF='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/pull/23/merge',GITHUB_RUN_ID='123')
+        self.event_path=self.root/'event.json';env['GITHUB_EVENT_PATH']=str(self.event_path)
+        self.now=1800000000
+        self.event['review']['submitted_at']=runner.datetime.fromtimestamp(self.now,runner.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        self.addCleanup(patch.stopall)
+        patch.object(runner,'ROOT',self.root).start()
+        patch.object(runner,'AUD031_CONTEXT',self.context).start()
+        patch.dict(os.environ,env,clear=True).start()
+        patch.object(runner.time,'time',return_value=self.now).start()
+        patch.object(runner,'git_bytes',side_effect=self.git_bytes).start()
+        patch.object(runner,'fixture_reference_bytes',side_effect=lambda p:self.candidate[p['tests']]).start()
+        patch.object(runner.subprocess,'run',side_effect=self.git_head).start()
+        self.manifest=json.loads(self.candidate[runner.AUD031_MANIFEST])
+        self.manifest.update(context=self.context,contractApproved=True,executionAuthorized=True)
+        self.refresh_review()
+
+    def git_head(self,args,**kwargs):
+        if 'rev-list' in args:return subprocess.CompletedProcess(args,0,stdout=('2'*40+' '+'4'*40+' '+'1'*40+'\n').encode())
+        if 'ls-remote' in args:
+            self.assertEqual(args[-3:],['refs/heads/main','refs/heads/'+self.context['branch'],'refs/pull/23/merge'])
+            return subprocess.CompletedProcess(args,0,stdout=('4'*40+'\trefs/heads/main\n'+'1'*40+'\trefs/heads/'+self.context['branch']+'\n'+'2'*40+'\trefs/pull/23/merge\n').encode())
+        self.assertEqual(args,['git','--no-replace-objects','rev-parse','HEAD'])
+        return subprocess.CompletedProcess(args,0,stdout=b'1'*40+b'\n')
+
+    def refresh_review(self):
+        raw=(json.dumps(self.manifest,indent=2)+'\n').encode()
+        (self.root/runner.AUD031_MANIFEST).write_bytes(raw);self.candidate[runner.AUD031_MANIFEST]=raw
+        self.event['review']['body']=f"Execute owner-authorized SQL5-AUD031 candidate {'1'*40} manifest {hashlib.sha256(raw).hexdigest()} workflow {'2'*40} base {'4'*40}; native isolated validation only."
+        self.write_event()
+
+    def reject_before_transport(self):
+        with patch.object(runner,'load',side_effect=AssertionError('NO_NATIVE_TRANSPORT')) as transport,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.main('sql5-aud031'),1);transport.assert_not_called()
+        report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
+        self.assertEqual(report['cleanup'],'SKIP');self.assertEqual(report['result'],'FAIL')
+        return report['checks'][0]['detail']
+
+    def test_exact_synthetic_review_selects_existing_harness_fixture_but_native_is_disabled(self):
+        selected=runner.authorize_r3('sql5-aud031')
+        self.assertEqual(selected['tests'],runner.AUD031_FIXTURE)
+        self.assertEqual(selected['authorization']['base'],'4'*40)
+        self.assertIs(runner.AUD031_NATIVE_ENABLED,False)
+        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_unconfigured_production_context_rejects_before_transport(self):
+        with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
+            self.assertIn('AUD031_REVIEW_CONTEXT_NOT_CONFIGURED',self.reject_before_transport())
+
+    def test_pending_flags_and_non_boolean_values_never_authorize(self):
+        for field in ('contractApproved','executionAuthorized'):
+            for value in (False,None,1,'true'):
+                with self.subTest(field=field,value=value):
+                    self.manifest[field]=value;self.refresh_review()
+                    self.assertIn('AUD031_EXACT_OWNER_APPROVAL_REQUIRED',self.reject_before_transport())
+            self.manifest[field]=True
+
+    def test_R3_reviews_and_reused_C_M_W_B_are_not_R4_authority(self):
+        body=self.event['review']['body']
+        for changed in (body.replace('SQL5-AUD031','SQL5-R3'),body.replace('1'*40,'3'*40),body.replace('2'*40,'3'*40),body.replace('4'*40,'3'*40),body.replace('manifest ','manifest f')):
+            with self.subTest(body=changed):
+                self.event['review']['body']=changed;self.write_event()
+                self.assertIn('NEW_R3_C_M_W_AUTHORIZATION_REQUIRED',self.reject_before_transport())
+
+    def test_old_PR_branch_or_actor_and_expired_review_reject(self):
+        good=json.dumps(self.event)
+        mutations=[lambda e:e['pull_request'].update(number=22),lambda e:e['pull_request']['head'].update(ref=runner.R3_CONTEXT['branch']),lambda e:e['review']['user'].update(id=123),lambda e:e['pull_request']['head']['repo'].update(fork=True),lambda e:e['review'].update(submitted_at='2020-01-01T00:00:00Z')]
+        for change in mutations:
+            self.event=json.loads(good);change(self.event);self.write_event()
+            self.assertNotIn('NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_modified_candidate_and_rehashed_historical_dependency_reject(self):
+        for name in (runner.AUD031_SQL,runner.R3_SQL):
+            with self.subTest(name=name):
+                original=self.candidate[name];changed=original+b'\n-- synthetic mutation\n'
+                (self.root/name).write_bytes(changed)
+                self.assertIn('EXACT_R3_BUNDLE_BYTES_REQUIRED',self.reject_before_transport())
+                self.candidate[name]=changed;self.manifest['files'][name]=hashlib.sha256(changed).hexdigest();self.refresh_review()
+                if name==runner.R3_SQL:self.assertIn('UNEXPECTED_FIXED_DEPENDENCY_CHANGE',self.reject_before_transport())
+                else:self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+                (self.root/name).write_bytes(original);self.candidate[name]=original;self.manifest['files'][name]=hashlib.sha256(original).hexdigest();self.refresh_review()
+
+    def test_real_manifest_hashes_and_pending_owner_decisions(self):
+        manifest=json.loads((ROOT/runner.AUD031_MANIFEST).read_bytes())
+        self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
+        self.assertEqual(manifest['context']['pullRequest'],23)
+        self.assertEqual(manifest['context'],runner.AUD031_CONTEXT)
+        self.assertEqual(set(manifest['files']),runner.AUD031_FILES)
+        for name,digest in manifest['files'].items():
+            raw=self.candidate[name]
+            self.assertEqual(hashlib.sha256(raw).hexdigest(),digest,name)
+
+    def test_candidate_fixture_and_SQL_boundary_are_static_only(self):
+        import ast
+        sql=(ROOT/runner.AUD031_SQL).read_text(encoding='utf-8')
+        fixture=(ROOT/runner.AUD031_FIXTURE).read_bytes();ast.parse(fixture)
+        self.assertIn('key_hash bytea,corr uuid',sql)
+        self.assertIn('IDEMPOTENCY_MISMATCH',sql)
+        self.assertIn('FOR UPDATE',sql)
+        self.assertIn('accept_key_digest=CASE WHEN id=c.id THEN key_hash',sql)
+        self.assertIn('AUD031_FRESH_INSTALL_REQUIRED',sql)
+        for label in ('AUD031-rollback-key-and-audit','AUD031-legacy-null-denies-both','AUD031-expired-consumed-denies-both','AUD031-other-key-conflict','AUD031-effective-execute-roles','AUD031-no-extra-grantees','AUD031-revoked-capability-denies-consumption','AUD031-first-consumption-no-B1-session'):
+            self.assertIn(label,fixture.decode())
+        self.assertIn('different-key-race',fixture.decode())
+        self.assertIn('tenant-B-same-key',fixture.decode())
+
+    def test_push_PR_open_and_R3_review_cannot_start_R4_job(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
+        self.assertNotIn('workflow_dispatch:',source)
+        self.assertNotIn('pull_request_target:',source)
+        self.assertNotIn('\n  push:',source)
+        self.assertNotIn('\n  pull_request:',source)
+        route=source.split('(false && github.event_name',1)[1].split('    # R3 capability',1)[0]
+        self.assertIn('github.event.pull_request.number == 23',route)
+        self.assertIn('SQL5-AUD031',route)
+        step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
+        self.assertIn('if: false && github.event.pull_request.number == 23',step)
+        # Even an exact synthetic owner review must stop before transport import.
+        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_R3_harness_controls_and_workflow_routes_are_unchanged(self):
+        import ast
+        old=ast.parse(self.previous_sources['scripts/b2-directory-postgres.py'])
+        current=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        def r3_assignments(tree):
+            return [ast.dump(n) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id.startswith('R3_') for t in n.targets)]
+        self.assertEqual(r3_assignments(current),r3_assignments(old))
+        historical=self.previous_sources[runner.R3_WORKFLOW].decode()
+        current=(ROOT/runner.R3_WORKFLOW).read_text()
+        self.assertEqual(current.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0],historical.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0])
+        self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
+
+    def test_workflow_R4_entrypoint_remains_literal_disabled(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
+        self.assertIn('(false && github.event_name',source)
+        step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
+        self.assertIn('if: false &&',step)
+        self.assertEqual(source.count('--package sql5-aud031'),1)
+        self.assertEqual(source.count('jobs:'),1)
+        import re
+        condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',source).group(1).split())
+        context=R3DiagnosticTests.context(self,self.event,dict(os.environ,GITHUB_REPOSITORY_OWNER='novo34'))
+        self.assertFalse(ActionsCondition(condition,context).evaluate())
+        self.assertFalse(ActionsCondition(next(line.strip()[4:] for line in step.splitlines() if line.strip().startswith('if:')),context).evaluate())
+
+class Aud031ExclusiveReservationTests(unittest.TestCase):
+    """Real local Git exclusivity; NOT GitHub API/protection validation."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.repo=Path(self.temp.name)/'ledger.git'
+        subprocess.run(['git','init','--bare',str(self.repo)],check=True,capture_output=True)
+        def git(*args,data=None):
+            return subprocess.run(['git','--git-dir='+str(self.repo),*args],input=data,capture_output=True)
+        self.git=git
+        tree=git('mktree',data=b'').stdout.strip().decode()
+        env=dict(os.environ,GIT_AUTHOR_NAME='Test',GIT_AUTHOR_EMAIL='test@fixture.invalid',GIT_COMMITTER_NAME='Test',GIT_COMMITTER_EMAIL='test@fixture.invalid')
+        commit=subprocess.check_output(['git','--git-dir='+str(self.repo),'commit-tree',tree,'-m','synthetic'],env=env).strip().decode()
+        self.auth=dict(candidate=commit,manifestSha256='a'*64,workflow='b'*40,base='c'*40,reviewId=23,reviewBodySha256='d'*64,runId='123',attempt=1)
+
+    def create(self,ref,sha):
+        result=self.git('update-ref',ref,sha,'0'*40)
+        return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if result.returncode==0 else (422,{})
+
+    def test_real_git_race_has_one_winner_and_later_runs_stay_denied(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        barrier=Barrier(2)
+        def attempt(run):
+            barrier.wait(timeout=10)
+            try:return runner.reserve_aud031(dict(self.auth,runId=str(run)),self.create)
+            except RuntimeError:return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(attempt,(123,124)))
+        self.assertEqual(sum(r is not None for r in results),1)
+        winner=next(r for r in results if r)
+        # No finalizer removes the reservation after success/failure/cancellation.
+        self.assertEqual(self.git('rev-parse',winner['ref']).stdout.strip().decode(),self.auth['candidate'])
+        for run in ('125','126'):
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(dict(self.auth,runId=run),self.create)
+
+    def test_error_ambiguity_timeout_and_retry_fail_closed(self):
+        for status,body in [(200,{}),(201,{}),(409,{}),(422,{}),(500,{})]:
+            with self.subTest(status=status),self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(self.auth,lambda ref,sha:(status,body))
+        def lost_response(ref,sha):
+            self.create(ref,sha)
+            raise TimeoutError('private diagnostic')
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(self.auth,lost_response)
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(self.auth,self.create)
+        with self.assertRaisesRegex(RuntimeError,'IDENTITY_REQUIRED'):
+            runner.reserve_aud031(dict(self.auth,attempt=2),self.create)
+
+    def test_unprotected_deletion_demonstrates_required_server_protection(self):
+        receipt=runner.reserve_aud031(self.auth,self.create)
+        # Modifying the value cannot grant another exclusive creation.
+        other=self.git('hash-object','-w','--stdin',data=b'tampered').stdout.strip().decode()
+        self.assertEqual(self.git('update-ref',receipt['ref'],other).returncode,0)
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(dict(self.auth,runId='124'),self.create)
+        # A plain ref is mutable: do NOT mistake local Git for protected GitHub.
+        self.assertEqual(self.git('update-ref','-d',receipt['ref']).returncode,0)
+        replay=runner.reserve_aud031(dict(self.auth,runId='124'),self.create)
+        self.assertEqual(replay['ref'],receipt['ref'])
+
+    def test_process_exit_failure_or_cancellation_never_releases_consumption(self):
+        import sys
+        program="""import importlib.util,json,os,subprocess,sys
+spec=importlib.util.spec_from_file_location('auth',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+a=json.loads(sys.argv[3])
+def create(ref,sha):
+ r=subprocess.run(['git','--git-dir='+sys.argv[2],'update-ref',ref,sha,'0'*40],capture_output=True)
+ return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if r.returncode==0 else (422,{})
+m.reserve_aud031(a,create)
+os._exit(int(sys.argv[4]))
+"""
+        for exit_code in (0,1,130):
+            auth=dict(self.auth,reviewId=1000+exit_code)
+            child=subprocess.run([sys.executable,'-B','-c',program,str(ROOT/'scripts/b2-directory-postgres.py'),str(self.repo),json.dumps(auth),str(exit_code)],capture_output=True)
+            self.assertEqual(child.returncode,exit_code)
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(dict(auth,runId='999'),self.create)
+
+    def probe_function(self):
+        import ast, concurrent.futures, threading, textwrap
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        probe=job.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        tree=ast.parse(script)
+        fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='exercise')
+        namespace={'concurrent':concurrent,'threading':threading,'hashlib':hashlib}
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<trusted-probe-test>','exec'),namespace)
+        return namespace['exercise'],job
+
+    def test_reusable_probe_consumes_canonical_reservation_without_native_import(self):
+        exercise,job=self.probe_function()
+        methods=[]
+        def api(method,path,payload=None):
+            methods.append(method)
+            if method=='POST':return self.create(payload['ref'],payload['sha'])
+            if method in ('PATCH','DELETE'):return 422,{'rulesetDenied':True}
+            self.assertIn('/git/ref/tags/',path)
+            ref=path.split('/git/ref/',1)[1]
+            sha=self.git('rev-parse','refs/'+ref).stdout.strip().decode()
+            return 200,{'object':{'sha':sha}}
+        exercise(api,runner.reserve_aud031,self.auth)
+        self.assertEqual(methods.count('PATCH'),1);self.assertEqual(methods.count('DELETE'),1)
+        self.assertNotIn('contents: write',job)
+        self.assertIn('ref: c5fdb70264429dfb11ed353649221910eb83d21c',job)
+        self.assertNotIn('secrets: inherit',job)
+        self.assertNotIn('github.event.pull_request.head.sha',job)
+        self.assertNotIn('python scripts/b2-directory-postgres.py',job)
+
+    def test_probe_rejects_unconfirmed_protection_and_network_failures(self):
+        exercise,_=self.probe_function()
+        def api(method,path,payload=None):
+            if method=='POST':return self.create(payload['ref'],payload['sha'])
+            return 200,{}
+        with self.assertRaisesRegex(RuntimeError,'PROTECTION_DENIAL_NOT_CONFIRMED'):
+            exercise(api,runner.reserve_aud031,self.auth)
+        def offline(*args):raise TimeoutError('must never escape as success')
+        with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
+            exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300))
+
+    def test_environment_caller_guard_rejects_untrusted_identity_route_event_and_SHA(self):
+        import ast,textwrap,re
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        preflight=job.split('- name: Validate approved caller',1)[1].split('      - uses:',1)[0]
+        self.assertNotIn('secrets.',preflight)
+        declaration=workflow.split('  pull_request_review:',1)[0]
+        self.assertIn('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',declaration)
+        self.assertNotIn('secrets: inherit',workflow)
+        self.assertIn('environment: cleanops-native-auth-probe',job)
+        script=textwrap.dedent(preflight.split("python -I - <<'PY'\n",1)[1].split('\n          PY',1)[0])
+        function=next(n for n in ast.parse(script).body if isinstance(n,ast.FunctionDef))
+        namespace={'re':re};exec(compile(ast.Module(body=[function],type_ignores=[]),'<caller-guard>','exec'),namespace)
+        guard=namespace['approved_caller']
+        good={'APPROVED_CALLER_SHA':'a'*40,'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
+              'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34','CALLER_EVENT':'workflow_dispatch',
+              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller',
+              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller',
+              'CALLER_ATTEMPT':'1','CALLER_SHA':'a'*40,'CALLER_WORKFLOW_SHA':'a'*40}
+        self.assertTrue(guard(good))
+        for key in good:
+            with self.subTest(key=key):
+                self.assertFalse(guard({k:v for k,v in good.items() if k!=key}))
+                self.assertFalse(guard(dict(good,**{key:'unapproved'})))
+        for event in ('pull_request_review','pull_request','push','workflow_run'):
+            self.assertFalse(guard(dict(good,CALLER_EVENT=event)))
+        self.assertFalse(guard(dict(good,CALLER_WORKFLOW_SHA='b'*40)))
+        self.assertFalse(guard(dict(good,CALLER_SHA='b'*40)))
+        self.assertFalse(guard(dict(good,CALLER_ATTEMPT='2')))
+        context={'inputs':{'reservation_probe':True},'github':{'repository':'novo34/cleanops-360','repository_id':'1412999204',
+                 'actor_id':'17856013','run_attempt':1,'event_name':'pull_request_review','ref':'refs/pull/23/merge',
+                 'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
+        condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
+        self.assertFalse(ActionsCondition(condition,context).evaluate())
+
+    def test_nominal_secret_empty_value_denies_before_signing_or_API(self):
+        import ast,textwrap,types
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        probe=workflow.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        body=next(n.body for n in ast.parse(script).body if isinstance(n,ast.Try))
+        # Execute the actual empty-key check only; never sign or contact GitHub.
+        assign=next(n for n in body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='key' for t in n.targets))
+        deny=next(n for n in body if isinstance(n,ast.If) and isinstance(n.test,ast.UnaryOp) and isinstance(n.test.operand,ast.Name) and n.test.operand.id=='key')
+        code=compile(ast.Module(body=[assign,deny],type_ignores=[]),'<empty-key-gate>','exec')
+        for values in ({},{'NATIVE_AUTH_KEY':''}):
+            with self.subTest(values=values),self.assertRaisesRegex(RuntimeError,'KEY_REQUIRED'):
+                exec(code,{'os':types.SimpleNamespace(environ=dict(values))})
+        # Environment protection is enforced by GitHub before the job runner;
+        # its reviewer/ref policy cannot be proved by this local syntax check.
+        self.assertIn('environment: cleanops-native-auth-probe',workflow)
+        self.assertIn('required: true',workflow.split('  pull_request_review:',1)[0])
 
 if __name__=='__main__':unittest.main()
