@@ -235,7 +235,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: novo34/cleanops-360
-          ref: c5fdb70264429dfb11ed353649221910eb83d21c
+          ref: 993cf7305a50cd0cdfb808125e1775b2b2b96627
           path: trusted
           sparse-checkout: scripts/b2-directory-postgres.py
           sparse-checkout-cone-mode: false
