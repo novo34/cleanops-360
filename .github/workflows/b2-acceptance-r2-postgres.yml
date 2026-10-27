@@ -9,12 +9,33 @@ jobs:
     # A commit-bound owner comment starts only this explicitly authorized validation.
     # No pull_request/push trigger: publishing evidence never repeats historical suites.
     if: >-
-      github.event.pull_request.number == 12 &&
+      (github.event.pull_request.number == 12 &&
       github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' &&
       github.event.pull_request.head.ref == 'feat/b2-users-access' &&
       github.event.review.user.login == github.repository_owner &&
       github.event.review.commit_id == github.event.pull_request.head.sha &&
-      github.event.review.body == 'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.'
+      github.event.review.body == 'Execute owner-authorized SQL5-R2 0eb651f3cfce5733726ca1d122e09bd1d0162c26; native isolated validation only.') ||
+      (github.event_name == 'pull_request_review' && github.event.action == 'submitted' &&
+      github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' &&
+      github.repository_owner == 'novo34' && github.actor == 'novo34' &&
+      github.actor_id == '17856013' && github.triggering_actor == 'novo34' &&
+      github.run_attempt == 1 && github.ref == 'refs/pull/22/merge' &&
+      github.event.pull_request.number == 22 && github.event.pull_request.state == 'open' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.base.repo.id == 1412999204 &&
+      github.event.pull_request.head.repo.id == 1412999204 &&
+      github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' &&
+      github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.head.ref == 'codex/r3-sql5-controlled-preflight' &&
+      github.event.review.user.login == 'novo34' && github.event.review.user.id == 17856013 &&
+      github.event.sender.id == 17856013 && github.event.review.state == 'commented' &&
+      github.event.review.commit_id == github.event.pull_request.head.sha &&
+      ((startsWith(github.event.review.body, format('Observe owner-authorized SQL5-R3 workflow context candidate {0} manifest ', github.event.review.commit_id)) &&
+      endsWith(github.event.review.body, '; metadata only, no services or SQL.')) ||
+      (startsWith(github.event.review.body, format('Execute owner-authorized SQL5-R3 candidate {0} manifest ', github.event.review.commit_id)) &&
+      endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha)))))
+    # R3 capability requires a new exact C/M/W/B review in the canonical preflight;
+    # publishing this workflow, ordinary reviews and historical approvals grant none.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -30,15 +51,113 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
+      - name: Observe owner-authorized R3 workflow context without services
+        if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ')
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+
+          # Context evidence only. No harness/fixture import or native entrypoint.
+          workflow_path = '.github/workflows/b2-acceptance-r2-postgres.yml'
+          manifest_path = 'docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json'
+          output_path = 'artifacts/b2-acceptance-r3/workflow-context.json'
+          evidence = {'schemaVersion': 1, 'scope': 'SQL5_R3_WORKFLOW_CONTEXT_ONLY', 'result': 'FAIL',
+                      'reason': 'DIAGNOSTIC_CONTEXT_REJECTED'}
+          exit_code = 1
+
+          def require(condition):
+              if not condition:
+                  raise ValueError('DIAGNOSTIC_CONTEXT_REJECTED')
+
+          def safe_path(name):
+              current = Path.cwd()
+              for part in Path(name).parts:
+                  current = current / part
+                  require(not current.is_symlink())
+              return current
+
+          def unique_pairs(pairs):
+              result = {}
+              for key, value in pairs:
+                  require(key not in result)
+                  result[key] = value
+              return result
+
+          try:
+              env = os.environ
+              event = json.loads(Path(env['GITHUB_EVENT_PATH']).read_bytes(), object_pairs_hook=unique_pairs)
+              repo, pr, review = event['repository'], event['pull_request'], event['review']
+              identity = lambda value: value['login'] == 'novo34' and value['id'] == 17856013
+              repository = lambda value: value['full_name'] == 'novo34/cleanops-360' and value['id'] == 1412999204
+              require(env.get('GITHUB_ACTIONS') == 'true' and env.get('RUNNER_ENVIRONMENT') == 'github-hosted')
+              require(env.get('GITHUB_EVENT_NAME') == 'pull_request_review' and event['action'] == 'submitted')
+              require(env.get('GITHUB_REPOSITORY') == 'novo34/cleanops-360' and env.get('GITHUB_REPOSITORY_ID') == '1412999204')
+              require(env.get('GITHUB_REPOSITORY_OWNER') == 'novo34' and repository(repo) and identity(repo['owner']))
+              require(identity(event['sender']) and identity(review['user']) and review['state'] == 'commented')
+              require(env.get('GITHUB_ACTOR') == 'novo34' and env.get('GITHUB_ACTOR_ID') == '17856013')
+              require(env.get('GITHUB_TRIGGERING_ACTOR') == 'novo34' and env.get('GITHUB_RUN_ATTEMPT') == '1')
+              require(pr['number'] == 22 and pr['state'] == 'open' and pr['base']['ref'] == 'main')
+              require(repository(pr['base']['repo']) and repository(pr['head']['repo']) and pr['head']['repo']['fork'] is False)
+              branch = 'codex/r3-sql5-controlled-preflight'
+              require(pr['head']['ref'] == branch and (not env.get('GITHUB_HEAD_REF') or env['GITHUB_HEAD_REF'] == branch))
+              candidate, event_sha, workflow_sha = review['commit_id'], env['GITHUB_SHA'], env['GITHUB_WORKFLOW_SHA']
+              require(all(isinstance(value, str) and re.fullmatch('[0-9a-f]{40}', value) for value in (candidate, event_sha, workflow_sha)))
+              require(pr['head']['sha'] == candidate and env.get('GITHUB_REF') == 'refs/pull/22/merge')
+              require(type(review['id']) is int and review['id'] > 0 and re.fullmatch('[1-9][0-9]*', env['GITHUB_RUN_ID']))
+              workflow_ref = env['GITHUB_WORKFLOW_REF']
+              expected_ref = 'novo34/cleanops-360/' + workflow_path + '@refs/pull/22/merge'
+              allowed_refs = {expected_ref, 'novo34/cleanops-360/' + workflow_path + '@refs/heads/main',
+                              'novo34/cleanops-360/' + workflow_path + '@refs/heads/' + branch}
+              require(workflow_ref in allowed_refs)
+              raw_manifest = safe_path(manifest_path).read_bytes()
+              manifest_sha = hashlib.sha256(raw_manifest).hexdigest()
+              require(review['body'] == f'Observe owner-authorized SQL5-R3 workflow context candidate {candidate} manifest {manifest_sha}; metadata only, no services or SQL.')
+              manifest = json.loads(raw_manifest, object_pairs_hook=unique_pairs)
+              workflow_digest = hashlib.sha256(safe_path(workflow_path).read_bytes()).hexdigest()
+              require(type(manifest['schemaVersion']) is int and manifest['schemaVersion'] == 1)
+              require(manifest['scope'] == 'SQL5_R3_ACCEPTANCE_HOSTED_EPHEMERAL_PG16')
+              require(isinstance(manifest['files'], dict) and len(manifest['files']) == 34 and manifest['files'][workflow_path] == workflow_digest)
+              checkout = subprocess.run(['git', '--no-replace-objects', 'rev-parse', 'HEAD'], check=True, capture_output=True, text=True).stdout.strip()
+              require(checkout == candidate)
+              evidence = {'schemaVersion': 1, 'scope': 'SQL5_R3_WORKFLOW_CONTEXT_ONLY', 'result': 'OBSERVED',
+                          'pullRequest': 22, 'reviewId': review['id'], 'runId': env['GITHUB_RUN_ID'], 'runAttempt': 1,
+                          'event': {'name': 'pull_request_review', 'action': 'submitted', 'ref': env['GITHUB_REF'], 'sha': event_sha},
+                          'reviewCommit': candidate, 'checkoutCommit': checkout, 'manifestSha256': manifest_sha,
+                          'workflow': {'ref': workflow_ref, 'sha': workflow_sha, 'checkoutFileSha256': workflow_digest},
+                          'nativeRefContract': 'MATCH' if workflow_ref == expected_ref and workflow_sha == event_sha else 'MISMATCH',
+                          'nativeExecution': 'NOT_INVOKED'}
+              exit_code = 0
+          except (KeyError, ValueError, TypeError, AttributeError, OSError, subprocess.SubprocessError):
+              pass  # Emit only a fixed rejection, never exception text or payload.
+
+          print(json.dumps(evidence, sort_keys=True))
+          try:
+              destination = safe_path(output_path)
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              destination.write_text(json.dumps(evidence, sort_keys=True, indent=2) + '\n')
+          except (ValueError, OSError):
+              exit_code = 1
+          raise SystemExit(exit_code)
+          PY
       - name: Verify exact approved dependencies and hosted scope without SQL
+        if: github.event.pull_request.number == 12
         run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/prepare-b2-composition-approval.py
       - name: Verify exact SQL5-R2 approval before isolated PG16 execution
+        if: github.event.pull_request.number == 12
         run: env GITHUB_HEAD_REF="$REVIEW_HEAD_REF" python scripts/b2-acceptance-r2-postgres.review.py
-      - name: Preserve actual sanitized SQL5-R2 evidence
+      - name: R3 canonical entrypoint (new native authorization required)
+        if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-R3 candidate ') && endsWith(github.event.review.body, '; native isolated validation only.')
+        run: python scripts/b2-directory-postgres.py --package sql5-r3
+      - name: Preserve sanitized evidence for the selected route
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: b2-acceptance-r2-pg16-sanitized
-          path: artifacts/b2-acceptance-r2/report.json
+          name: ${{ github.event.pull_request.number == 12 && 'b2-acceptance-r2-pg16-sanitized' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'b2-r3-workflow-context' || 'b2-acceptance-r3-pg16-sanitized') }}
+          path: ${{ github.event.pull_request.number == 12 && 'artifacts/b2-acceptance-r2/report.json' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'artifacts/b2-acceptance-r3/workflow-context.json' || 'artifacts/b2-acceptance-r3/report.json') }}
           if-no-files-found: error
           retention-days: 7
