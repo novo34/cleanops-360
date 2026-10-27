@@ -1,5 +1,12 @@
 name: B2 exact owner-authorized SQL5 R2 PostgreSQL
 on:
+  workflow_dispatch:
+    inputs:
+      confirm_reservation_probe:
+        description: Explicitly authorize the synthetic reservation probe only (NO SQL)
+        type: boolean
+        required: true
+        default: false
   pull_request_review:
     types: [submitted]
 permissions:
@@ -161,3 +168,22 @@ jobs:
           path: ${{ github.event.pull_request.number == 12 && 'artifacts/b2-acceptance-r2/report.json' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'artifacts/b2-acceptance-r3/workflow-context.json' || 'artifacts/b2-acceptance-r3/report.json') }}
           if-no-files-found: error
           retention-days: 7
+  aud031-probe-caller:
+    # Both repository and protected-environment SHA approvals must name this
+    # reviewed caller commit. The tag needs its own immutable-ref protection.
+    if: >-
+      github.event_name == 'workflow_dispatch' && inputs.confirm_reservation_probe == true &&
+      github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' &&
+      github.actor == 'novo34' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' &&
+      github.run_attempt == 1 && github.ref == 'refs/tags/cleanops-native-auth-probe-caller' &&
+      github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller' &&
+      vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA != '' &&
+      github.sha == vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA &&
+      github.workflow_sha == vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA
+    permissions:
+      contents: read
+    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@f273f934c807d34b1651563e72b9a55cee1e060c
+    with:
+      reservation_probe: true
+    secrets:
+      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY: ${{ secrets.CLEANOPS_NATIVE_AUTH_PRIVATE_KEY }}
