@@ -717,6 +717,276 @@ El propietario debe autorizar separadamente UNA ejecución pre-merge por C_act/M
 
 **Rollback:** revertir conjuntamente cinco archivos restaura flagFalse, M y comentarios/tests previos; no SQL inverso, force-push ni cambios de protección. Puede cerrarse capacidad con parche revisado flagFalse+rehash; todo nuevo SHA invalida la tupla. Un revert no detendría run ya iniciado: no existe ejecución nativa aquí; una autorización futura debe prever cancelación/limpieza verificables y evidencias FAIL/SKIP auténticas. Riesgos residuales: red/W/ref nuevo NOT_VALIDATED runtime, consultas refs no son bloqueo atómico aunque bytes fijados nunca sustituyen código, pruebas nativas ACL/RLS/tenant/concurrencia/idempotencia/limpieza pendientes. Cuatro fingerprints siguen pendientes de aceptación expresa; clásico403=NOT_VERIFIED, no ausencia de protección. Integración/merge/cierre requiere permiso posterior separado. No R4, no R3 DONE; AUTH-GATE-05 OPEN y closedBackend conectado.
 
+### R3 — Evidencia final preservada y solicitud de aceptación (2026-10-27)
+
+**R3 OPEN; aceptación expresa del propietario pendiente; PR22 DRAFT.** Base documental dbd260de83c70e0c7755723c6275a9149c394ae2; main975134a78621820bf3b790c392ab35726194ec66. Este asiento complementa el registro nativo previo y prevalece sobre las menciones históricas a validación pendiente. La aptitud READY_FOR_OWNER_ACCEPTANCE exige Quality, engineering-policy y dictamen independiente exactos del SHA documental final, registrados en la conversación del PR; no se heredan checks ni revisión de otro SHA. No marca DONE, no autoriza merge, no inicia R4 y no repite PostgreSQL.
+
+- **QG-0 y alcance mínimo:** inspeccionados AGENTS, política, TODO, formulario/verificador confiable de main, diff ocho archivos del PR, review formal5659312253, run40404650268/job121859154243, artifact12691355642 y conversaciones. Reutilizados TODO R3 y cuerpo obligatorio del PR; no nuevos archivos, código, harness, runner, workflow, guards ni arquitectura. Dueño PO/Engineering para esta conciliación y evidencia; consumidor aprobación owner/auditoría del mismo PR. Archivo modificado exclusivamente este TODO por inserción en R3, más metadata del PR. R0/R1/R2 y todas las evidencias R3 anteriores se conservan literalmente.
+- **Autorización y ejecución comprobadas:** review formal COMMENT5659312253 del propietario sobre C=3ceafbd6631b08bc673eb4a4f855aa1dec025930, M=907d691791d73be42d03db266b5e7ad92c5c5ead098a29134f022709aa6e6b97, W=c8093b8d1c99129bcb3c8298d693fd4744c91a47 y B=975134a78621820bf3b790c392ab35726194ec66. Run40404650268 attempt1 success, paso R3 success, históricos R2/diagnóstico SKIP. Este permiso quedó consumido; ninguna nueva ejecución/review Execute está autorizada aquí. https://github.com/novo34/cleanops-360/actions/runs/40404650268/job/121859154243 .
+- **Archivo interno preservado:** descargado ZIP sanitizado de GitHub en solo lectura, sin ejecutar su contenido. SHA256 ZIP1506bytes=3e7df38818460bba9fb434a4f51912d4a06f3db33cfceeaf58ce774b1d1f74b1, coincide con digest API. Única entrada report.json5618bytes, SHA256=62a2a1d7c749764c7c041f91d014246391d2f710efa16f3611ee49a16aa980ff. JSON verificado result PASS, cleanup PASS,53checks PASS,0FAIL. Se incluye copia íntegra a continuación dentro del documento existente para conservar evidencia aunque caduque el artefacto remoto. https://github.com/novo34/cleanops-360/actions/runs/40404650268/artifacts/12691355642 .
+- **Cobertura real acotada:** instalación SQL14 y SQL1–4/SQL5 con EXECUTE, cuerpos de funciones PG, logins sintéticos separados, acceso directo denegado42501, enlaces privados/denegados, MFA/CSRF, límites de intentos, longitudes/hex56/58/59/1024/1026/inválido, rollback, carrera paralela y mutación única, idempotencia, tenant invitado, auditoría/revocación y credenciales/membresías existentes sin cambios. Aislamiento observado network-none/sin puertos/binds/volúmenes y preexisting-containers-networks-volumes-unchanged PASS; eliminación del contenedor cleanup PASS. functionalBrowser=SKIP_NOT_IN_THIS_PACKAGE, b2TechReady=false, runtime=closedBackend: no se declara aceptación productiva B1/B2, cobertura global RLS/browser, despliegue ni residencia suiza por estos resultados.
+- **Integridad y revisión:** dbd260de tiene como padre C ejecutado3ceafbd663 y solo modifica TODO; código, SQL, fixture, manifiesto34,20históricos/aprobaciones y cuatro fingerprints aceptados siguen intactos. Esta fase tampoco los cambia. Revisión favorable sobre el código ejecutado: https://github.com/novo34/cleanops-360/pull/22#issuecomment-6427135468 . Se solicita revisión NUEVA del SHA final de este asiento; ese resultado se enlaza al concluir, sin heredar el dictamen de3ceafbd.
+- **Gobernanza y metadata:** el cuerpo del PR se concilia con flagTrue, ejecución nativa realizada, hashes vigentes y excepciones exactas aceptadas. La casilla nativa ya marcada se sustenta en53checks reales, sin cambiar políticas, reglas ni pruebas. Se conserva el formato ocho campos/nueve casillas, validado localmente con verificador de main antes de publicar metadata. Required engineering-policy más reciente de dbd260de PASS, app15368, run40409438018/job121875837850; FAIL anteriores del mismo SHA quedan históricos. Quality previo PASS run40408556350; ambos deben revalidarse sobre el nuevo SHA. Resumen main confirma required para everyone; detalles de protección atribuibles a captura administrativa del propietario, GET detallado403=NOT_VERIFIED para la integración, no desprotección. No se usa bypass ni se modifica protección.
+
+| Evidencia | Resultado y límite |
+|---|---|
+| Ejecución nativa autorizada40404650268 e informe interno completo | PASS53, result/cleanup PASS,0FAIL |
+| ZIP/digest, copia íntegra y comparación con logs/tupla/review | PASS lectura; sin ejecución de contenido |
+| Código ejecutado y manifiesto preservados en cambios documentales | PASS por diff Git y árbol; sin permiso nativo reutilizado |
+| Formulario nuevo frente al verificador confiable de main | PASS local; check remoto sobre SHA final debe confirmarse |
+| Quality/engineering-policy/revisión independiente final | Condiciones de aceptación, enlaces y resultados exactos en conversación PR al finalizar |
+| Nueva ejecución SQL/servicios, despliegue, merge y R4 en esta intervención | SKIP, no autorizados/no ejecutados |
+| Browser y aceptación productiva B1/B2 | SKIP/fuera del paquete; AUTH-GATE-05 OPEN |
+
+**Copia íntegra de report.json sanitizado.** Los bytes entre delimitadores, incluido salto final, reproducen el archivo de5618bytes y el SHA256 anterior. No es código para ejecutar.
+
+```json
+{
+  "scope": "SQL5_R3_ACCEPTANCE_HOSTED_EPHEMERAL_PG16",
+  "runtime": "closedBackend",
+  "checks": [
+    {
+      "name": "exact-B2-hashes-SQL14-authorization-hosted-CI-no-external-bindings",
+      "status": "PASS"
+    },
+    {
+      "name": "owned-container-network-none-no-ports-no-bind-or-volume",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-SQL14",
+      "status": "PASS"
+    },
+    {
+      "name": "postgres-function-body-validation-enabled",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-B2-functions-and-EXECUTE",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic-fixtures-and-separated-logins",
+      "status": "PASS"
+    },
+    {
+      "name": "B1-approved-12h24h-existing-session-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-access-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "install-exact-authorized-users-SQL-and-ACL",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-install-004-invitation-administration.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-install-005-invitation-acceptance.r3-candidate.review.sql",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-explicit-synthetic-tenant-policy",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-direct-identity-access",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-R2-attempt-ledger-private",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-R2-B1-security-log-remains-append-only",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-runtime-call",
+      "status": "PASS",
+      "detail": {
+        "sqlstate": "42501"
+      }
+    },
+    {
+      "name": "SQL5-synthetic-issued-link",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-link-is-private-no-membership-before-MFA",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-no-user-or-session-created",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-unknown-capability-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-invalid-link-is-generic",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-prepare-pending-MFA",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-hex-56",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-hex-58",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-hex-59",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-hex-1024",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-hex-1026",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-invalid-hex",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-expired-capability-denied-with-rollback",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-before-MFA-no-activation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-wrong-CSRF-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-native-factor-CAS",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-rollback-activation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-rollback-has-no-member",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-parallel-race",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R3-parallel-unique-mutate",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-consumed-idempotent-no-recreation",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-active-only-in-invited-tenant",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-activation-audited-once",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-revocation-fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-revoked-link-denied",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-identity-synthetic-invite-other-tenant",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-identity-fails-closed-without-prior-factor-proof",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-existing-credential-and-memberships-untouched",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-synthetic-failure-budget-invite",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-1",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-2",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-3",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-4",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-record-credential-failure-5",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-R2-sixth-credential-attempt-blocked",
+      "status": "PASS"
+    },
+    {
+      "name": "SQL5-helpers-not-public",
+      "status": "PASS"
+    },
+    {
+      "name": "preexisting-containers-networks-volumes-unchanged",
+      "status": "PASS"
+    }
+  ],
+  "cleanup": "PASS",
+  "result": "PASS",
+  "functionalBrowser": "SKIP_NOT_IN_THIS_PACKAGE",
+  "authorization": {
+    "candidate": "3ceafbd6631b08bc673eb4a4f855aa1dec025930",
+    "manifestSha256": "907d691791d73be42d03db266b5e7ad92c5c5ead098a29134f022709aa6e6b97",
+    "workflow": "c8093b8d1c99129bcb3c8298d693fd4744c91a47",
+    "base": "975134a78621820bf3b790c392ab35726194ec66",
+    "reviewId": 5659312253,
+    "reviewBodySha256": "f51a6812bc2268eb1db8a3a04375099e10db9b847026430343436b389478db41",
+    "runId": "40404650268",
+    "attempt": 1
+  },
+  "image": "postgres@sha256:d81f7b51697014367236d07ec58b54153fc28f828b72bf247fe5c7487520bcb0",
+  "b2TechReady": false
+}
+```
+
+**Decisión pendiente y rollback:** tras checks/dictamen finales satisfactorios, solicitar aceptación expresa del alcance R3 sobre el SHA documental final. Autorización de merge/integración debe ser expresa y separada o nombrarse inequívocamente en la decisión owner; hasta entonces conservar PR DRAFT y casilla R3 abierta. No cerrar ni iniciar R4 por este registro. El merge deberá respetar required check, strict, conversaciones y reglas sin bypass. Rollback de esta conciliación: revertir solo inserción documental y restaurar metadata anterior si se requiere, conservando evidencias; no afecta código ni ejecuta SQL. El cambio documental mueve C/W y revoca cualquier tupla anterior para otra ejecución. La prueba nativa ya acreditada no se repite para actualizar documentación.
+
 - [ ] **R4 — Compatibilidad B1↔B2 y seguridad efectiva.** Confirmar firmas y permisos ejecutables, llamadas a funciones revocadas (AUD-013/024), comportamiento de aceptación de invitación y contrato `Idempotency-Key` (AUD-031); revisar tabla RLS/ACL de B2 (AUD-027) sin cambiar RLS a ciegas. Verificar audit trail entre tenants (AUD-033), caducidad absoluta y aceptación humana de parámetros (AUD-028), y contexto/performance (AUD-034). **Cierre:** defectos confirmados corregidos mínimamente, tests por tenant/rol, regresiones, contrato y autorización. No activar B1 ni B2 por este paso.
 - [ ] **R5 — Consolidar CI, runners y Playwright (AUD-002/003/014/042).** Identificar workflow único vigente y artefactos one-shot históricos, referencias de sus nombres/SHAs, consumidores, scripts y autorizaciones. Reutilizar mecanismos existentes y reducir solo armazones duplicados, sin cambiar la semántica de pruebas ni borrar logs/evidencias. Evaluar 35 configs Playwright por cobertura y selección real antes de retirar. **Cierre:** matriz old→new, no pérdida de casos/autorización/artefactos, CI local y remota equivalentes con gasto medido, rollback, nada huérfano.
 - [ ] **R6 — Retirar código obsoleto comprobado (AUD-008/021/024/036/039).** Solo después de tener sustitutos aceptados: grafo estático y referencias dinámicas de cada candidato; diferenciar runtime, tests, scripts manuales y revisiones de seguridad; migrar tests antes de borrar funciones o rutas. Los cuerpos efectivos de R14 y SQL histórico aprobado se conservan hasta la revisión formal correspondiente. **Cierre:** lista KEEP/REUSE/CONSOLIDATE/REMOVE por archivo, no referencias rotas, build/typecheck/seguridad/E2E pertinentes PASS.
