@@ -102,6 +102,8 @@ AUD031_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.aud031-can
 AUD031_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py'
 AUD031_MANIFEST = 'docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json'
 AUD031_NATIVE_ENABLED = False
+# Approved immutable ref destination; C/M/W/B remain in the authorization digest.
+AUD031_RESERVATION_TARGET = '4c625d2fb1f654fdfcabb751a4f63e5234fd9154'
 AUD031_CONTEXT = {**R3_CONTEXT, 'pullRequest': 23, 'branch': 'codex/r4-aud-031'}
 AUD031_FILES = R3_FILES | {R3_MANIFEST, AUD031_SQL, AUD031_FIXTURE,
     'lib/b1/v4-broker.ts', 'lib/b2/invitation-acceptance.ts', 'lib/b2/invitation-acceptance-http.ts',
@@ -404,16 +406,16 @@ def reserve_aud031(authorization, create_reference):
     # Only a confirmed exclusive creation can win. An uncertain successful
     # server write burns the authorization; callers must never resume it.
     try:
-        status, response = create_reference(ref,authorization['candidate'])
+        status, response = create_reference(ref,AUD031_RESERVATION_TARGET)
         if (type(status) is not int or status != 201 or not isinstance(response,dict)
                 or response.get('ref') != ref or not isinstance(response.get('object'),dict)
                 or response['object'].get('type') != 'commit'
-                or response['object'].get('sha') != authorization['candidate']):
+                or response['object'].get('sha') != AUD031_RESERVATION_TARGET):
             raise ValueError('UNCONFIRMED_CREATION')
     except Exception:
         raise RuntimeError('AUD031_EXCLUSIVE_RESERVATION_NOT_CONFIRMED') from None
     return {'ref':ref,'candidate':authorization['candidate'],
-            'runId':authorization['runId'],'reviewId':authorization['reviewId']}
+            'reservationTarget':AUD031_RESERVATION_TARGET,'runId':authorization['runId'],'reviewId':authorization['reviewId']}
 
 
 def fixture_reference_bytes(package):

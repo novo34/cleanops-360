@@ -1138,6 +1138,9 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         env=dict(os.environ,GIT_AUTHOR_NAME='Test',GIT_AUTHOR_EMAIL='test@fixture.invalid',GIT_COMMITTER_NAME='Test',GIT_COMMITTER_EMAIL='test@fixture.invalid')
         commit=subprocess.check_output(['git','--git-dir='+str(self.repo),'commit-tree',tree,'-m','synthetic'],env=env).strip().decode()
         self.auth=dict(candidate=commit,manifestSha256='a'*64,workflow='b'*40,base='c'*40,reviewId=23,reviewBodySha256='d'*64,runId='123',attempt=1)
+        # Copy only the existing approved commit object; never fetch a remote or run its code.
+        anchor=subprocess.check_output(['git','cat-file','commit',runner.AUD031_RESERVATION_TARGET],cwd=ROOT)
+        self.assertEqual(self.git('hash-object','-t','commit','-w','--stdin',data=anchor).stdout.strip().decode(),runner.AUD031_RESERVATION_TARGET)
 
     def create(self,ref,sha):
         result=self.git('update-ref',ref,sha,'0'*40)
@@ -1156,10 +1159,88 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         self.assertEqual(sum(r is not None for r in results),1)
         winner=next(r for r in results if r)
         # No finalizer removes the reservation after success/failure/cancellation.
-        self.assertEqual(self.git('rev-parse',winner['ref']).stdout.strip().decode(),self.auth['candidate'])
+        self.assertEqual(self.git('rev-parse',winner['ref']).stdout.strip().decode(),runner.AUD031_RESERVATION_TARGET)
+        self.assertEqual(winner['candidate'],self.auth['candidate'])
+        self.assertEqual(winner['reservationTarget'],runner.AUD031_RESERVATION_TARGET)
         for run in ('125','126'):
             with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
                 runner.reserve_aud031(dict(self.auth,runId=run),self.create)
+
+    def test_fixed_target_preserves_original_digest_and_candidate_identity(self):
+        import copy
+        original=copy.deepcopy(self.auth)
+        receipts=[]
+        for field,replacement in [(None,None),('candidate','1'*40),('manifestSha256','2'*64),('workflow','3'*40),('base','4'*40)]:
+            auth=dict(self.auth) if field is None else dict(self.auth,**{field:replacement})
+            receipt=runner.reserve_aud031(auth,self.create)
+            identity={'repository':'novo34/cleanops-360','pullRequest':23,'scope':runner.AUD031_SCOPE,'ownerId':17856013,
+                      **{k:auth[k] for k in ('candidate','manifestSha256','workflow','base','reviewId','reviewBodySha256')}}
+            expected='refs/tags/cleanops-native-auth/aud031/'+hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            self.assertEqual(receipt['ref'],expected)
+            self.assertEqual(receipt['candidate'],auth['candidate'])
+            self.assertEqual(receipt['reservationTarget'],runner.AUD031_RESERVATION_TARGET)
+            self.assertEqual(self.git('rev-parse',expected).stdout.strip().decode(),runner.AUD031_RESERVATION_TARGET)
+            receipts.append(receipt)
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(dict(auth,runId='999'),self.create)
+        self.assertEqual(len({r['ref'] for r in receipts}),5)
+        self.assertEqual(self.auth,original)
+
+    def test_only_exact_fixed_target_and_confirmed_201_can_win(self):
+        target='4c625d2fb1f654fdfcabb751a4f63e5234fd9154'
+        self.assertEqual(runner.AUD031_RESERVATION_TARGET,target)
+        calls=[]
+        def response(ref,sha):
+            calls.append((ref,sha))
+            return {'ref':ref,'object':{'type':'commit','sha':target}}
+        def create(ref,sha):return 201,response(ref,sha)
+        receipt=runner.reserve_aud031(self.auth,create)
+        self.assertNotEqual(self.auth['candidate'],target)
+        self.assertEqual(calls[0][1],target)
+        for status in (True,200,403,409,422,500):
+            with self.subTest(status=status),self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(self.auth,lambda ref,sha:(status,response(ref,sha)))
+        for wrong in (self.auth['candidate'],'f'*40,None):
+            with self.subTest(wrong=wrong),self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(self.auth,lambda ref,sha:(201,{'ref':ref,'object':{'type':'commit','sha':wrong}}))
+        for body in ({'ref':receipt['ref']+'0','object':{'type':'commit','sha':target}},
+                     {'ref':receipt['ref'],'object':{'type':'tag','sha':target}}):
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(self.auth,lambda ref,sha:(201,body))
+        with self.assertRaisesRegex(RuntimeError,'IDENTITY_REQUIRED'):
+            runner.reserve_aud031(dict(self.auth,reservationTarget=self.auth['candidate']),create)
+
+    def test_two_confirmed_creations_still_fail_exclusivity(self):
+        exercise,_=self.probe_function()
+        def api(method,path,payload=None):
+            self.assertEqual(method,'POST')
+            return 201,{'ref':payload['ref'],'object':{'type':'commit','sha':payload['sha']}}
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
+            exercise(api,runner.reserve_aud031,self.auth,runner.AUD031_RESERVATION_TARGET)
+        self.assertEqual(output.getvalue().count('confirmed=True; http=201; denial=NONE'),2)
+
+    def test_preservation_rejects_candidate_or_other_commit_instead_of_fixed_target(self):
+        exercise,_=self.probe_function()
+        for wrong in (self.auth['candidate'],'f'*40):
+            auth=dict(self.auth,reviewId=400 if wrong==self.auth['candidate'] else 401)
+            def api(method,path,payload=None):
+                if method=='POST':return self.create(payload['ref'],payload['sha'])
+                if method in ('PATCH','DELETE'):return 422,{'rulesetDenied':True}
+                return 200,{'object':{'sha':wrong}}
+            with self.assertRaisesRegex(RuntimeError,'RESERVATION_NOT_PRESERVED'):
+                exercise(api,runner.reserve_aud031,auth,runner.AUD031_RESERVATION_TARGET)
+
+    def test_pinned_authorizer_bytes_require_reviewed_publication_before_integration(self):
+        import re
+        job=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-reservation-probe:',1)[1]
+        pinned=re.search(r'^          ref: ([0-9a-f]{40})$',job,re.M).group(1)
+        expected=re.search(r"hashlib.sha256\(source.read_bytes\(\)\).hexdigest\(\)!='([0-9a-f]{64})'",job).group(1)
+        self.assertEqual(expected,hashlib.sha256((ROOT/'scripts/b2-directory-postgres.py').read_bytes()).hexdigest())
+        published=subprocess.check_output(['git','show',pinned+':scripts/b2-directory-postgres.py'],cwd=ROOT)
+        if hashlib.sha256(published).hexdigest()!=expected:
+            self.skipTest('New authorizer bytes unpublished: trusted checkout pin NOT_VALIDATED; workflow fails before signing or App API')
+        self.assertIn(runner.AUD031_RESERVATION_TARGET,published.decode())
 
     def test_error_ambiguity_timeout_and_retry_fail_closed(self):
         for status,body in [(200,{}),(201,{}),(409,{}),(422,{}),(500,{})]:
@@ -1228,10 +1309,10 @@ os._exit(int(sys.argv[4]))
             ref=path.split('/git/ref/',1)[1]
             sha=self.git('rev-parse','refs/'+ref).stdout.strip().decode()
             return 200,{'object':{'sha':sha}}
-        exercise(api,runner.reserve_aud031,self.auth)
+        exercise(api,runner.reserve_aud031,self.auth,runner.AUD031_RESERVATION_TARGET)
         self.assertEqual(methods.count('PATCH'),1);self.assertEqual(methods.count('DELETE'),1)
         self.assertNotIn('contents: write',job)
-        self.assertIn('ref: c5fdb70264429dfb11ed353649221910eb83d21c',job)
+        self.assertRegex(job,r'(?m)^          ref: [0-9a-f]{40}$')
         self.assertNotIn('secrets: inherit',job)
         self.assertNotIn('github.event.pull_request.head.sha',job)
         self.assertNotIn('python scripts/b2-directory-postgres.py',job)
@@ -1242,10 +1323,10 @@ os._exit(int(sys.argv[4]))
             if method=='POST':return self.create(payload['ref'],payload['sha'])
             return 200,{}
         with self.assertRaisesRegex(RuntimeError,'PROTECTION_DENIAL_NOT_CONFIRMED'):
-            exercise(api,runner.reserve_aud031,self.auth)
+            exercise(api,runner.reserve_aud031,self.auth,runner.AUD031_RESERVATION_TARGET)
         def offline(*args):raise TimeoutError('must never escape as success')
         with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
-            exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300))
+            exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300),runner.AUD031_RESERVATION_TARGET)
 
     def test_race_reports_each_attempt_without_leaking_response_or_network_error(self):
         exercise,_=self.probe_function()
@@ -1257,7 +1338,7 @@ os._exit(int(sys.argv[4]))
                 return status,{'message':marker,'token':marker,'denialClass':marker}
             output=io.StringIO()
             with contextlib.redirect_stdout(output),self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
-                exercise(api,runner.reserve_aud031,self.auth)
+                exercise(api,runner.reserve_aud031,self.auth,runner.AUD031_RESERVATION_TARGET)
             lines=output.getvalue().splitlines()
             self.assertEqual(len(lines),2)
             self.assertEqual({line.split(';')[0] for line in lines},{'PROBE attempt=1','PROBE attempt=2'})
@@ -1269,7 +1350,7 @@ os._exit(int(sys.argv[4]))
         def offline(*args):raise TimeoutError(marker)
         output=io.StringIO()
         with contextlib.redirect_stdout(output),self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
-            exercise(offline,runner.reserve_aud031,self.auth)
+            exercise(offline,runner.reserve_aud031,self.auth,runner.AUD031_RESERVATION_TARGET)
         self.assertEqual(output.getvalue().count('confirmed=False; http=NONE; denial=NO_RESPONSE'),2)
         self.assertNotIn(marker,output.getvalue())
 
