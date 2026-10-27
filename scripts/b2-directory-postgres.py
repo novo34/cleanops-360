@@ -375,6 +375,47 @@ def authorize_r3(scope='sql5-r3'):
     }}
 
 
+def reserve_aud031(authorization, create_reference):
+    """Trusted-writer primitive, NOT a PR job entrypoint or a token consumer.
+
+    A future trusted base-workflow may supply the exclusive GitHub POST only.
+    Never supply a write credential to this module loaded from a PR. Integration
+    remains blocked pending trusted workflow installation and namespace rules.
+    No GET-before-POST, retry, update, delete or recovery of uncertain creation.
+    """
+    required = {'candidate','manifestSha256','workflow','base','reviewId',
+                'reviewBodySha256','runId','attempt'}
+    if not isinstance(authorization, dict) or set(authorization) != required:
+        raise RuntimeError('AUD031_RESERVATION_IDENTITY_REQUIRED')
+    for key in ('candidate','workflow','base','manifestSha256','reviewBodySha256'):
+        length = 40 if key in ('candidate','workflow','base') else 64
+        if not isinstance(authorization[key],str) or not re.fullmatch('[0-9a-f]{'+str(length)+'}',authorization[key]):
+            raise RuntimeError('AUD031_RESERVATION_IDENTITY_REQUIRED')
+    if (type(authorization['reviewId']) is not int or authorization['reviewId'] <= 0
+            or type(authorization['attempt']) is not int or authorization['attempt'] != 1
+            or not isinstance(authorization['runId'],str)
+            or not re.fullmatch('[1-9][0-9]*',authorization['runId'])):
+        raise RuntimeError('AUD031_RESERVATION_IDENTITY_REQUIRED')
+    identity = {'repository':'novo34/cleanops-360','pullRequest':23,
+                'scope':AUD031_SCOPE,'ownerId':17856013,
+                **{k:authorization[k] for k in required - {'runId','attempt'}}}
+    digest = hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    ref = 'refs/tags/cleanops-native-auth/aud031/'+digest
+    # Only a confirmed exclusive creation can win. An uncertain successful
+    # server write burns the authorization; callers must never resume it.
+    try:
+        status, response = create_reference(ref,authorization['candidate'])
+        if (type(status) is not int or status != 201 or not isinstance(response,dict)
+                or response.get('ref') != ref or not isinstance(response.get('object'),dict)
+                or response['object'].get('type') != 'commit'
+                or response['object'].get('sha') != authorization['candidate']):
+            raise ValueError('UNCONFIRMED_CREATION')
+    except Exception:
+        raise RuntimeError('AUD031_EXCLUSIVE_RESERVATION_NOT_CONFIRMED') from None
+    return {'ref':ref,'candidate':authorization['candidate'],
+            'runId':authorization['runId'],'reviewId':authorization['reviewId']}
+
+
 def fixture_reference_bytes(package):
     result=subprocess.run(['git','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT,capture_output=True)
     if result.returncode:raise RuntimeError('EXACT_FIXTURE_COMMIT_UNAVAILABLE')

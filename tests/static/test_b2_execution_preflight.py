@@ -1125,4 +1125,84 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertFalse(ActionsCondition(condition,context).evaluate())
         self.assertFalse(ActionsCondition(next(line.strip()[4:] for line in step.splitlines() if line.strip().startswith('if:')),context).evaluate())
 
+class Aud031ExclusiveReservationTests(unittest.TestCase):
+    """Real local Git exclusivity; NOT GitHub API/protection validation."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.repo=Path(self.temp.name)/'ledger.git'
+        subprocess.run(['git','init','--bare',str(self.repo)],check=True,capture_output=True)
+        def git(*args,data=None):
+            return subprocess.run(['git','--git-dir='+str(self.repo),*args],input=data,capture_output=True)
+        self.git=git
+        tree=git('mktree',data=b'').stdout.strip().decode()
+        env=dict(os.environ,GIT_AUTHOR_NAME='Test',GIT_AUTHOR_EMAIL='test@fixture.invalid',GIT_COMMITTER_NAME='Test',GIT_COMMITTER_EMAIL='test@fixture.invalid')
+        commit=subprocess.check_output(['git','--git-dir='+str(self.repo),'commit-tree',tree,'-m','synthetic'],env=env).strip().decode()
+        self.auth=dict(candidate=commit,manifestSha256='a'*64,workflow='b'*40,base='c'*40,reviewId=23,reviewBodySha256='d'*64,runId='123',attempt=1)
+
+    def create(self,ref,sha):
+        result=self.git('update-ref',ref,sha,'0'*40)
+        return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if result.returncode==0 else (422,{})
+
+    def test_real_git_race_has_one_winner_and_later_runs_stay_denied(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        barrier=Barrier(2)
+        def attempt(run):
+            barrier.wait(timeout=10)
+            try:return runner.reserve_aud031(dict(self.auth,runId=str(run)),self.create)
+            except RuntimeError:return None
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(attempt,(123,124)))
+        self.assertEqual(sum(r is not None for r in results),1)
+        winner=next(r for r in results if r)
+        # No finalizer removes the reservation after success/failure/cancellation.
+        self.assertEqual(self.git('rev-parse',winner['ref']).stdout.strip().decode(),self.auth['candidate'])
+        for run in ('125','126'):
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(dict(self.auth,runId=run),self.create)
+
+    def test_error_ambiguity_timeout_and_retry_fail_closed(self):
+        for status,body in [(200,{}),(201,{}),(409,{}),(422,{}),(500,{})]:
+            with self.subTest(status=status),self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(self.auth,lambda ref,sha:(status,body))
+        def lost_response(ref,sha):
+            self.create(ref,sha)
+            raise TimeoutError('private diagnostic')
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(self.auth,lost_response)
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(self.auth,self.create)
+        with self.assertRaisesRegex(RuntimeError,'IDENTITY_REQUIRED'):
+            runner.reserve_aud031(dict(self.auth,attempt=2),self.create)
+
+    def test_unprotected_deletion_demonstrates_required_server_protection(self):
+        receipt=runner.reserve_aud031(self.auth,self.create)
+        # Modifying the value cannot grant another exclusive creation.
+        other=self.git('hash-object','-w','--stdin',data=b'tampered').stdout.strip().decode()
+        self.assertEqual(self.git('update-ref',receipt['ref'],other).returncode,0)
+        with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+            runner.reserve_aud031(dict(self.auth,runId='124'),self.create)
+        # A plain ref is mutable: do NOT mistake local Git for protected GitHub.
+        self.assertEqual(self.git('update-ref','-d',receipt['ref']).returncode,0)
+        replay=runner.reserve_aud031(dict(self.auth,runId='124'),self.create)
+        self.assertEqual(replay['ref'],receipt['ref'])
+
+    def test_process_exit_failure_or_cancellation_never_releases_consumption(self):
+        import sys
+        program="""import importlib.util,json,os,subprocess,sys
+spec=importlib.util.spec_from_file_location('auth',sys.argv[1]);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+a=json.loads(sys.argv[3])
+def create(ref,sha):
+ r=subprocess.run(['git','--git-dir='+sys.argv[2],'update-ref',ref,sha,'0'*40],capture_output=True)
+ return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if r.returncode==0 else (422,{})
+m.reserve_aud031(a,create)
+os._exit(int(sys.argv[4]))
+"""
+        for exit_code in (0,1,130):
+            auth=dict(self.auth,reviewId=1000+exit_code)
+            child=subprocess.run([sys.executable,'-B','-c',program,str(ROOT/'scripts/b2-directory-postgres.py'),str(self.repo),json.dumps(auth),str(exit_code)],capture_output=True)
+            self.assertEqual(child.returncode,exit_code)
+            with self.assertRaisesRegex(RuntimeError,'NOT_CONFIRMED'):
+                runner.reserve_aud031(dict(auth,runId='999'),self.create)
+
 if __name__=='__main__':unittest.main()

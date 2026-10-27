@@ -56,14 +56,14 @@
     "playwright.b2-access-postgres.config.ts": "83237058780991aad9c93f2b094c9f504e1d6116d1766b8840559c1d24c440bf",
     "playwright.b2-users-postgres.config.ts": "5b7259656591d0a4e9a4ae47dde3ba1dc7a939c9d58a0a637337f4ae0df18798",
     "scripts/b2-browser-backend.ts": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272",
-    "scripts/b2-directory-postgres.py": "36534b66658c4edee279384a988028a35b54e73628ddfbb72c7426776c59c2e2",
+    "scripts/b2-directory-postgres.py": "8947fc69cb279b8f0ad16747435bd1223954403be3ba83fc1dcd66707855b05e",
     "scripts/b2-real-browser-server.mjs": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944",
     "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
     "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "d6ce30732817429447a6f52c09e9fb7a63720878482ecd62b2eff38bd1be63a1"
+    "tests/static/test_b2_execution_preflight.py": "7eef2515086bcdd907fcbf5d03e48c6b8c709297fd62a771a67efe7e52f86766"
   },
   "contractApproved": false,
   "executionAuthorized": false
