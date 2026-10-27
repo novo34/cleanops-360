@@ -13,6 +13,8 @@ import unittest
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
+# R3 positives use its canonical immutable snapshot, even after an R4 commit.
+R3_SNAPSHOT='8559870130a47833ab13f7cd677ccf38dd8450c4'
 spec=importlib.util.spec_from_file_location('b2_preflight',ROOT/'scripts/b2-directory-postgres.py')
 runner=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
@@ -37,6 +39,7 @@ class PreflightTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
+        self.git_binary=shutil.which('git');self.assertIsNotNone(self.git_binary)
         paths=list(runner.APPROVED)+[
             'docs/implementation/b2/directory-authorization.json',
             'docs/implementation/b1/consolidated-test-14/AUTHORIZATION.json',
@@ -45,10 +48,12 @@ class PreflightTests(unittest.TestCase):
             'scripts/pg11-rbac-matrix.py']
         for scope,package in runner.PACKAGES.items():paths.extend([package['sql'],package['tests'],f'docs/implementation/b2/{scope}-authorization.json'])
         for name in paths:
-            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True)
+            # Stage exact committed bytes rather than CRLF-converted Windows files.
+            destination.write_bytes(subprocess.check_output([self.git_binary,'--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         self.addCleanup(patch.stopall)
         patch.object(runner,'ROOT',self.root).start()
-        patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:subprocess.check_output(['git','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT)).start()
+        patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:subprocess.check_output([self.git_binary,'--no-replace-objects','show',package['fixtureReference']+':'+package['tests']],cwd=ROOT)).start()
         event,env=event_context()
         event_path=self.root/'event.json';event_path.write_text(json.dumps(event))
         env['GITHUB_EVENT_PATH']=str(event_path)
@@ -117,10 +122,11 @@ class PreflightTests(unittest.TestCase):
         owner=json.loads((ROOT/'docs/proposals/b2-integration/AUTHORIZATION.review.json').read_text())
         owner.update(ownerApproved=True,referenceCommit='1'*40)
         for name in owner['artifacts'].values():
-            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,destination)
+            destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True)
+            destination.write_bytes(subprocess.check_output([self.git_binary,'--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         owner['sha256'][next(iter(owner['sha256']))]='0'*64
         path.write_text(json.dumps(owner))
-        with patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:(ROOT/package['tests']).read_bytes()), patch.object(runner.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout=b'not historical bytes')):
+        with patch.object(runner,'fixture_reference_bytes',side_effect=lambda package:(self.root/package['tests']).read_bytes()), patch.object(runner.subprocess,'run',return_value=subprocess.CompletedProcess([],0,stdout=b'not historical bytes')):
             with self.assertRaisesRegex(RuntimeError,'EXACT_COMPOSITION_BYTES_REQUIRED'):
                 runner.authorize_composition()
         owner['artifacts']['extra']='unreviewed.sql';owner['sha256']['extra']='0'*64
@@ -161,7 +167,8 @@ class R3ContractTests(unittest.TestCase):
         self.root=Path(self.temp.name)
         self.candidate={}
         for name in runner.R3_FILES | {runner.R3_MANIFEST}:
-            raw=(ROOT/name).read_bytes();self.candidate[name]=raw
+            # Preserve canonical provenance without changing runtime hash validation.
+            raw=subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT);self.candidate[name]=raw
             destination=self.root/name;destination.parent.mkdir(parents=True,exist_ok=True);destination.write_bytes(raw)
         # Obtain provenance from actual immutable Git objects, never from the
         # changed working harness or a second embedded copy of that harness.
@@ -226,6 +233,10 @@ class R3ContractTests(unittest.TestCase):
         self.assertEqual(len(runner.R3_FILES),34)
         with patch.dict(os.environ,{'GITHUB_HEAD_REF':''}):
             self.assertTrue(runner.preflight(scope='sql5-r3'))
+
+    def test_R4_working_harness_cannot_reuse_historical_R3_manifest(self):
+        (self.root/'scripts/b2-directory-postgres.py').write_bytes((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        self.assertEqual(self.reject_before_transport(),'EXACT_R3_BUNDLE_BYTES_REQUIRED')
 
     def test_valid_authorization_reaches_only_intercepted_transport_boundary(self):
         class TransportBoundaryReached(BaseException):pass
@@ -451,7 +462,12 @@ class R3ContractTests(unittest.TestCase):
             self.assertEqual(self.reject_before_transport(),'EXACT_R3_BUNDLE_BYTES_REQUIRED');path.write_bytes(original)
         path=self.root/runner.R3_SQL;raw=path.read_bytes();path.unlink()
         self.assertEqual(self.reject_before_transport(),'BUNDLE_FILE_REQUIRED')
-        destination=self.root/'target';destination.write_bytes(raw);path.symlink_to(destination)
+        destination=self.root/'target';destination.write_bytes(raw)
+        try:path.symlink_to(destination)
+        except OSError as error:
+            if getattr(error,'winerror',None)==1314:
+                self.skipTest('Windows symlink privilege unavailable; native symlink guard NOT_VALIDATED')
+            raise
         self.assertEqual(self.reject_before_transport(),'BUNDLE_SYMLINK_FORBIDDEN')
         with self.assertRaisesRegex(RuntimeError,'INVALID_BUNDLE_PATH'):runner.artifact_bytes('../outside')
 
@@ -498,10 +514,10 @@ class R3SqlArtifactTests(unittest.TestCase):
         for key,name in old['artifacts'].items():
             raw=runner.git_bytes(runner.COMPOSITION_REFERENCE,name)
             self.assertEqual(hashlib.sha256(raw).hexdigest(),old['sha256'][key])
-            if name!='scripts/b2-directory-postgres.py':self.assertEqual(raw,(ROOT/name).read_bytes())
+            if name!='scripts/b2-directory-postgres.py':self.assertEqual(raw,subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         manifest=json.loads((ROOT/runner.R3_MANIFEST).read_bytes())
         self.assertEqual(set(manifest['files']),runner.R3_FILES)
-        for name,digest in manifest['files'].items():self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(),digest)
+        for name,digest in manifest['files'].items():self.assertEqual(hashlib.sha256(subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT)).hexdigest(),digest)
         with self.assertRaisesRegex(RuntimeError,'EXACT_GIT_REFERENCE_REQUIRED'):runner.git_bytes('main',runner.R3_SQL)
         with self.assertRaisesRegex(RuntimeError,'EXACT_GIT_REFERENCE_REQUIRED'):runner.git_bytes('1'*40,'../outside')
 
@@ -535,7 +551,7 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertEqual(safe,(ROOT/runner.R3_SQL).read_text())
 
     def test_fixture_only_rebinds_candidate_path_from_immutable_r3(self):
-        raw=(ROOT/runner.R3_FIXTURE).read_bytes()
+        raw=subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+runner.R3_FIXTURE],cwd=ROOT)
         restored=raw.replace(b'005-invitation-acceptance.r3-candidate.review.sql',b'005-invitation-acceptance.r3.review.sql')
         self.assertEqual(hashlib.sha256(restored).hexdigest(),'02b5922a9b02ed0c0a4c93009fb455e3b7f75ce9e68e1f8429a66ff23cc6c68a')
         import ast
@@ -771,7 +787,7 @@ class R3DiagnosticTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         for name in [runner.R3_MANIFEST,runner.R3_WORKFLOW]:
-            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,p)
+            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(subprocess.check_output(['git','--no-replace-objects','show',R3_SNAPSHOT+':'+name],cwd=ROOT))
         self.event,self.env=event_context(22,runner.R3_CONTEXT['branch'],review=True)
         self.event=json.loads(json.dumps(self.event))
         self.event_path=self.root/'event.json'
@@ -890,7 +906,11 @@ class R3DiagnosticTests(unittest.TestCase):
 
     def test_symlink_inputs_are_rejected_without_metadata(self):
         path=self.root/runner.R3_MANIFEST;raw=path.read_bytes();path.unlink()
-        target=self.root/'outside-manifest';target.write_bytes(raw);path.symlink_to(target)
+        target=self.root/'outside-manifest';target.write_bytes(raw)
+        try:path.symlink_to(target)
+        except OSError as error:
+            if getattr(error,'winerror',None)==1314:self.skipTest('Windows symlink privilege unavailable: NOT_VALIDATED')
+            raise
         code,report,_,count=self.collect();self.assertEqual(code,1);self.assertEqual(count,0)
         self.assertEqual(report['result'],'FAIL')
 
@@ -942,5 +962,139 @@ class R3DiagnosticTests(unittest.TestCase):
                 self.assertEqual(ActionsCondition(expressions['name'],self.context(event)).evaluate_value(),name)
                 self.assertEqual(ActionsCondition(expressions['path'],self.context(event)).evaluate_value(),path)
 
+
+
+class Aud031ContractTests(unittest.TestCase):
+    """Synthetic authorization only; native transport and SQL are never loaded."""
+    git_bytes=R3ContractTests.git_bytes
+    write_event=R3ContractTests.write_event
+
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.candidate={}
+        for name in runner.AUD031_FILES | {runner.AUD031_MANIFEST}:
+            raw=(ROOT/name).read_bytes() if name in {'scripts/b2-directory-postgres.py',runner.R3_WORKFLOW,'tests/static/test_b2_execution_preflight.py',runner.AUD031_SQL,runner.AUD031_FIXTURE,runner.AUD031_MANIFEST} else subprocess.check_output(['git','--no-replace-objects','show','HEAD:'+name],cwd=ROOT)
+            self.candidate[name]=raw
+            path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+        self.historical={name:subprocess.check_output(['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT) for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
+        self.context={**runner.AUD031_CONTEXT,'pullRequest':23} # synthetic, never production context
+        self.event,env=event_context(23,self.context['branch'],review=True)
+        self.event['pull_request']['base']['sha']='4'*40
+        env.update(GITHUB_REF='refs/pull/23/merge',GITHUB_WORKFLOW_SHA='2'*40,GITHUB_SHA='2'*40,GITHUB_WORKFLOW_REF='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/pull/23/merge',GITHUB_RUN_ID='123')
+        self.event_path=self.root/'event.json';env['GITHUB_EVENT_PATH']=str(self.event_path)
+        self.now=1800000000
+        self.event['review']['submitted_at']=runner.datetime.fromtimestamp(self.now,runner.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        self.addCleanup(patch.stopall)
+        patch.object(runner,'ROOT',self.root).start()
+        patch.object(runner,'AUD031_CONTEXT',self.context).start()
+        patch.dict(os.environ,env,clear=True).start()
+        patch.object(runner.time,'time',return_value=self.now).start()
+        patch.object(runner,'git_bytes',side_effect=self.git_bytes).start()
+        patch.object(runner,'fixture_reference_bytes',side_effect=lambda p:self.candidate[p['tests']]).start()
+        patch.object(runner.subprocess,'run',side_effect=self.git_head).start()
+        self.manifest=json.loads(self.candidate[runner.AUD031_MANIFEST])
+        self.manifest.update(context=self.context,contractApproved=True,executionAuthorized=True)
+        self.refresh_review()
+
+    def git_head(self,args,**kwargs):
+        if 'rev-list' in args:return subprocess.CompletedProcess(args,0,stdout=('2'*40+' '+'4'*40+' '+'1'*40+'\n').encode())
+        if 'ls-remote' in args:
+            self.assertEqual(args[-3:],['refs/heads/main','refs/heads/'+self.context['branch'],'refs/pull/23/merge'])
+            return subprocess.CompletedProcess(args,0,stdout=('4'*40+'\trefs/heads/main\n'+'1'*40+'\trefs/heads/'+self.context['branch']+'\n'+'2'*40+'\trefs/pull/23/merge\n').encode())
+        self.assertEqual(args,['git','--no-replace-objects','rev-parse','HEAD'])
+        return subprocess.CompletedProcess(args,0,stdout=b'1'*40+b'\n')
+
+    def refresh_review(self):
+        raw=(json.dumps(self.manifest,indent=2)+'\n').encode()
+        (self.root/runner.AUD031_MANIFEST).write_bytes(raw);self.candidate[runner.AUD031_MANIFEST]=raw
+        self.event['review']['body']=f"Execute owner-authorized SQL5-AUD031 candidate {'1'*40} manifest {hashlib.sha256(raw).hexdigest()} workflow {'2'*40} base {'4'*40}; native isolated validation only."
+        self.write_event()
+
+    def reject_before_transport(self):
+        with patch.object(runner,'load',side_effect=AssertionError('NO_NATIVE_TRANSPORT')) as transport,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.main('sql5-aud031'),1);transport.assert_not_called()
+        report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
+        self.assertEqual(report['cleanup'],'SKIP');self.assertEqual(report['result'],'FAIL')
+        return report['checks'][0]['detail']
+
+    def test_exact_synthetic_review_selects_existing_harness_fixture_but_native_is_disabled(self):
+        selected=runner.authorize_r3('sql5-aud031')
+        self.assertEqual(selected['tests'],runner.AUD031_FIXTURE)
+        self.assertEqual(selected['authorization']['base'],'4'*40)
+        self.assertIs(runner.AUD031_NATIVE_ENABLED,False)
+        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_unconfigured_production_context_rejects_before_transport(self):
+        with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
+            self.assertIn('AUD031_REVIEW_CONTEXT_NOT_CONFIGURED',self.reject_before_transport())
+
+    def test_pending_flags_and_non_boolean_values_never_authorize(self):
+        for field in ('contractApproved','executionAuthorized'):
+            for value in (False,None,1,'true'):
+                with self.subTest(field=field,value=value):
+                    self.manifest[field]=value;self.refresh_review()
+                    self.assertIn('AUD031_EXACT_OWNER_APPROVAL_REQUIRED',self.reject_before_transport())
+            self.manifest[field]=True
+
+    def test_R3_reviews_and_reused_C_M_W_B_are_not_R4_authority(self):
+        body=self.event['review']['body']
+        for changed in (body.replace('SQL5-AUD031','SQL5-R3'),body.replace('1'*40,'3'*40),body.replace('2'*40,'3'*40),body.replace('4'*40,'3'*40),body.replace('manifest ','manifest f')):
+            with self.subTest(body=changed):
+                self.event['review']['body']=changed;self.write_event()
+                self.assertIn('NEW_R3_C_M_W_AUTHORIZATION_REQUIRED',self.reject_before_transport())
+
+    def test_old_PR_branch_or_actor_and_expired_review_reject(self):
+        good=json.dumps(self.event)
+        mutations=[lambda e:e['pull_request'].update(number=22),lambda e:e['pull_request']['head'].update(ref=runner.R3_CONTEXT['branch']),lambda e:e['review']['user'].update(id=123),lambda e:e['pull_request']['head']['repo'].update(fork=True),lambda e:e['review'].update(submitted_at='2020-01-01T00:00:00Z')]
+        for change in mutations:
+            self.event=json.loads(good);change(self.event);self.write_event()
+            self.assertNotIn('NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+
+    def test_modified_candidate_and_rehashed_historical_dependency_reject(self):
+        for name in (runner.AUD031_SQL,runner.R3_SQL):
+            with self.subTest(name=name):
+                original=self.candidate[name];changed=original+b'\n-- synthetic mutation\n'
+                (self.root/name).write_bytes(changed)
+                self.assertIn('EXACT_R3_BUNDLE_BYTES_REQUIRED',self.reject_before_transport())
+                self.candidate[name]=changed;self.manifest['files'][name]=hashlib.sha256(changed).hexdigest();self.refresh_review()
+                if name==runner.R3_SQL:self.assertIn('UNEXPECTED_FIXED_DEPENDENCY_CHANGE',self.reject_before_transport())
+                else:self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+                (self.root/name).write_bytes(original);self.candidate[name]=original;self.manifest['files'][name]=hashlib.sha256(original).hexdigest();self.refresh_review()
+
+    def test_real_manifest_hashes_and_pending_owner_decisions(self):
+        manifest=json.loads((ROOT/runner.AUD031_MANIFEST).read_bytes())
+        self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
+        self.assertIsNone(manifest['context']['pullRequest'])
+        self.assertEqual(set(manifest['files']),runner.AUD031_FILES)
+        for name,digest in manifest['files'].items():
+            raw=self.candidate[name]
+            self.assertEqual(hashlib.sha256(raw).hexdigest(),digest,name)
+
+    def test_candidate_fixture_and_SQL_boundary_are_static_only(self):
+        import ast
+        sql=(ROOT/runner.AUD031_SQL).read_text(encoding='utf-8')
+        fixture=(ROOT/runner.AUD031_FIXTURE).read_bytes();ast.parse(fixture)
+        self.assertIn('key_hash bytea,corr uuid',sql)
+        self.assertIn('IDEMPOTENCY_MISMATCH',sql)
+        self.assertIn('FOR UPDATE',sql)
+        self.assertIn('accept_key_digest=CASE WHEN id=c.id THEN key_hash',sql)
+        self.assertIn('AUD031_FRESH_INSTALL_REQUIRED',sql)
+        for label in ('AUD031-rollback-key-and-audit','AUD031-legacy-null-denies-both','AUD031-expired-consumed-denies-both','AUD031-other-key-conflict','AUD031-effective-execute-roles','AUD031-no-extra-grantees'):
+            self.assertIn(label,fixture.decode())
+        self.assertIn('different-key-race',fixture.decode())
+        self.assertIn('tenant-B-same-key',fixture.decode())
+
+    def test_workflow_R4_entrypoint_remains_literal_disabled(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
+        self.assertIn('(false && github.event_name',source)
+        step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
+        self.assertIn('if: false &&',step)
+        self.assertEqual(source.count('--package sql5-aud031'),1)
+        self.assertEqual(source.count('jobs:'),1)
+        import re
+        condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',source).group(1).split())
+        context=R3DiagnosticTests.context(self,self.event,dict(os.environ,GITHUB_REPOSITORY_OWNER='novo34'))
+        self.assertFalse(ActionsCondition(condition,context).evaluate())
+        self.assertFalse(ActionsCondition(next(line.strip()[4:] for line in step.splitlines() if line.strip().startswith('if:')),context).evaluate())
 
 if __name__=='__main__':unittest.main()

@@ -33,7 +33,21 @@ jobs:
       ((startsWith(github.event.review.body, format('Observe owner-authorized SQL5-R3 workflow context candidate {0} manifest ', github.event.review.commit_id)) &&
       endsWith(github.event.review.body, '; metadata only, no services or SQL.')) ||
       (startsWith(github.event.review.body, format('Execute owner-authorized SQL5-R3 candidate {0} manifest ', github.event.review.commit_id)) &&
-      endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha)))))
+      endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha))))) ||
+      (false && github.event_name == 'pull_request_review' && github.event.action == 'submitted' &&
+      github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' &&
+      github.repository_owner == 'novo34' && github.actor == 'novo34' && github.actor_id == '17856013' &&
+      github.triggering_actor == 'novo34' && github.run_attempt == 1 &&
+      github.ref == format('refs/pull/{0}/merge', github.event.pull_request.number) &&
+      github.event.pull_request.state == 'open' && github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.base.repo.id == 1412999204 && github.event.pull_request.head.repo.id == 1412999204 &&
+      github.event.pull_request.head.repo.full_name == 'novo34/cleanops-360' && github.event.pull_request.head.repo.fork == false &&
+      github.event.pull_request.head.ref == 'codex/r4-aud-031' &&
+      github.event.review.user.login == 'novo34' && github.event.review.user.id == 17856013 &&
+      github.event.sender.id == 17856013 && github.event.review.state == 'commented' &&
+      github.event.review.commit_id == github.event.pull_request.head.sha &&
+      startsWith(github.event.review.body, format('Execute owner-authorized SQL5-AUD031 candidate {0} manifest ', github.event.review.commit_id)) &&
+      endsWith(github.event.review.body, format(' base {0}; native isolated validation only.', github.event.pull_request.base.sha)))
     # R3 capability requires a new exact C/M/W/B review in the canonical preflight;
     # publishing this workflow, ordinary reviews and historical approvals grant none.
     runs-on: ubuntu-latest
@@ -153,11 +167,14 @@ jobs:
       - name: R3 canonical entrypoint (new native authorization required)
         if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-R3 candidate ') && endsWith(github.event.review.body, '; native isolated validation only.')
         run: python scripts/b2-directory-postgres.py --package sql5-r3
+      - name: AUD031 canonical entrypoint (DISABLED; separate owner authorization required)
+        if: false && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+        run: python scripts/b2-directory-postgres.py --package sql5-aud031
       - name: Preserve sanitized evidence for the selected route
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ${{ github.event.pull_request.number == 12 && 'b2-acceptance-r2-pg16-sanitized' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'b2-r3-workflow-context' || 'b2-acceptance-r3-pg16-sanitized') }}
-          path: ${{ github.event.pull_request.number == 12 && 'artifacts/b2-acceptance-r2/report.json' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'artifacts/b2-acceptance-r3/workflow-context.json' || 'artifacts/b2-acceptance-r3/report.json') }}
+          name: ${{ startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ') && 'b2-acceptance-aud031-pg16-sanitized' || (github.event.pull_request.number == 12 && 'b2-acceptance-r2-pg16-sanitized' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'b2-r3-workflow-context' || 'b2-acceptance-r3-pg16-sanitized')) }}
+          path: ${{ startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ') && 'artifacts/b2-acceptance-aud031/report.json' || (github.event.pull_request.number == 12 && 'artifacts/b2-acceptance-r2/report.json' || (startsWith(github.event.review.body, 'Observe owner-authorized SQL5-R3 workflow context candidate ') && 'artifacts/b2-acceptance-r3/workflow-context.json' || 'artifacts/b2-acceptance-r3/report.json')) }}
           if-no-files-found: error
           retention-days: 7
