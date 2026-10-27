@@ -40,7 +40,7 @@
     "docs/proposals/b2-invitations/004-invitation-administration.review.sql": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
     "docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql": "06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471",
     "docs/proposals/b2-invitations/005-invitation-acceptance.r3-candidate.review.sql": "b017fed6d5c3f7590fb1e36f8655332ad26a8ad4b4c673edb7dea90e676d44b2",
-    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "728a17ba05cf43e75b37c452cd1f6614372c0694307ab1a4a6540b0807807f04",
+    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "b60157ceb7fba51796be832ee3e516a21feb69efd3d36a0abd32fe50542e6756",
     "docs/proposals/b2-invitations/acceptance-tests.r3-candidate.review.py": "aa05424abb1cacc3da418d65cd2137d8c305d639eb0032e9a7ebc47659fbccbb",
     "docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json": "907d691791d73be42d03db266b5e7ad92c5c5ead098a29134f022709aa6e6b97",
     "docs/proposals/b2-users/001-directory.review.sql": "8a380379b392536bb986136c997833c57ca4e482de3c418b389b898245e8e31f",
