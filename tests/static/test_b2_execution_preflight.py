@@ -1213,7 +1213,7 @@ os._exit(int(sys.argv[4]))
         script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
         tree=ast.parse(script)
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='exercise')
-        namespace={'concurrent':concurrent,'threading':threading,'hashlib':hashlib}
+        namespace={'concurrent':concurrent,'threading':threading,'hashlib':hashlib,'mark':lambda stage:None}
         exec(compile(ast.Module(body=[fn],type_ignores=[]),'<trusted-probe-test>','exec'),namespace)
         return namespace['exercise'],job
 
@@ -1281,6 +1281,85 @@ os._exit(int(sys.argv[4]))
                  'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
         condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
         self.assertFalse(ActionsCondition(condition,context).evaluate())
+
+    def test_probe_diagnostics_allow_only_catalog_and_numeric_HTTP_without_raw_errors(self):
+        import ast, contextlib, io, textwrap
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        probe=workflow.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        tree=ast.parse(script)
+        nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in ('mark','report_failure')]
+        namespace={'diagnostic':{'stage':'TRUSTED_SOURCE','http':None}}
+        exec(compile(ast.Module(body=nodes,type_ignores=[]),'<probe-diagnostics>','exec'),namespace)
+        report=namespace['report_failure']; mark=namespace['mark']
+        marker='SENSITIVE_SENTINEL_JWT_TOKEN_PRIVATE_KEY_HTTP_BODY'
+        class Unsafe:
+            def __str__(self):raise AssertionError('must never stringify untrusted data')
+        for error in (RuntimeError(marker),ValueError(marker),TimeoutError(marker),
+                      RuntimeError(Unsafe()),RuntimeError('KEY_REQUIRED',marker)):
+            for stage,status in [('JWT_SIGNING',None),('WRITE_TOKEN',403),(marker,marker),
+                                 (Unsafe(),Unsafe()),('INSTALLATION',True),('INSTALLATION',600)]:
+                with self.subTest(error_type=type(error).__name__,status_type=type(status).__name__):
+                    namespace['diagnostic'].update(stage=stage,http=status)
+                    output=io.StringIO()
+                    with contextlib.redirect_stdout(output):report(error)
+                    value=output.getvalue()
+                    self.assertNotIn(marker,value)
+                    self.assertIn('code=UNEXPECTED_ERROR;',value)
+                    self.assertRegex(value,r'^FAIL synthetic reservation probe; NO SQL; stage=[A-Z_]+; code=UNEXPECTED_ERROR; last_http=(NONE|403)\n$')
+        mark('READ_TOKEN'); namespace['diagnostic']['http']=401
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output):report(RuntimeError('TOKEN_REQUIRED'))
+        self.assertIn('stage=READ_TOKEN; code=TOKEN_REQUIRED; last_http=401',output.getvalue())
+        mark('WRITE_TOKEN')
+        self.assertIsNone(namespace['diagnostic']['http'])
+        # Exercise the actual outer handler: it must never print the raw exception.
+        outer=next(n for n in tree.body if isinstance(n,ast.Try))
+        failure=ast.Raise(exc=ast.Call(func=ast.Name(id='ValueError',ctx=ast.Load()),args=[ast.Constant(marker)],keywords=[]),cause=None)
+        harness=ast.fix_missing_locations(ast.Module(body=[ast.Try(body=[failure],handlers=outer.handlers,orelse=[],finalbody=[])],type_ignores=[]))
+        output=io.StringIO()
+        with contextlib.redirect_stdout(output),self.assertRaises(SystemExit) as stopped:
+            exec(compile(harness,'<probe-handler>','exec'),namespace)
+        self.assertEqual(stopped.exception.code,1)
+        self.assertNotIn(marker,output.getvalue())
+        self.assertIn('stage=WRITE_TOKEN; code=UNEXPECTED_ERROR; last_http=NONE',output.getvalue())
+        # Diagnostics instrument only: every stage and literal failure is catalogued.
+        report_node=next(n for n in nodes if n.name=='report_failure')
+        catalogs={n.targets[0].id:ast.literal_eval(n.value) for n in report_node.body if isinstance(n,ast.Assign) and isinstance(n.value,ast.Tuple)}
+        for call in (n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name)):
+            if call.func.id=='mark' and isinstance(call.args[0],ast.Constant):
+                self.assertIn(call.args[0].value,catalogs['stages'])
+            if call.func.id=='RuntimeError' and isinstance(call.args[0],ast.Constant):
+                self.assertIn(call.args[0].value,catalogs['codes'])
+
+    def test_probe_HTTP_error_body_and_transport_exception_never_reach_diagnostics(self):
+        import ast, textwrap, urllib.request, urllib.error
+        workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        probe=workflow.split('- name: Synthetic App reservation probe only',1)[1]
+        script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        tree=ast.parse(script)
+        nodes=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in ('api','report_failure')]
+        namespace={'urllib':urllib,'json':json,'token':'synthetic-test-only',
+                   'diagnostic':{'stage':'INSTALLATION','http':None}}
+        exec(compile(ast.Module(body=nodes,type_ignores=[]),'<probe-HTTP-diagnostics>','exec'),namespace)
+        marker='SENSITIVE_HTTP_BODY_OR_NETWORK_EXCEPTION'
+        errors=[urllib.error.HTTPError('https://api.github.com/test',401,marker,{},io.BytesIO(json.dumps({'message':marker}).encode())),
+                urllib.error.URLError(marker)]
+        for error in errors:
+            namespace['diagnostic']['http']=None
+            output=io.StringIO()
+            # Replace the actual opener; no credential or network operation occurs.
+            with patch('urllib.request.build_opener') as opener,contextlib.redirect_stdout(output):
+                opener.return_value.open.side_effect=error
+                try:
+                    status,value=namespace['api']('GET','/app/installations/175934135')
+                    self.assertEqual((status,value),(401,{'rulesetDenied':False}))
+                    namespace['report_failure'](RuntimeError('INSTALLATION_REQUIRED'))
+                except urllib.error.URLError as caught:
+                    namespace['report_failure'](caught)
+            self.assertNotIn(marker,output.getvalue())
+            expected='code=INSTALLATION_REQUIRED; last_http=401' if isinstance(error,urllib.error.HTTPError) else 'code=UNEXPECTED_ERROR; last_http=NONE'
+            self.assertIn(expected,output.getvalue())
 
     def test_nominal_secret_empty_value_denies_before_signing_or_API(self):
         import ast,textwrap,types

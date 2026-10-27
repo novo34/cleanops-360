@@ -248,7 +248,24 @@ jobs:
           import base64, concurrent.futures, hashlib, importlib.util, json, os
           import pathlib, signal, subprocess, tempfile, threading, time, urllib.request, urllib.error
 
+          # Only locally selected catalog values and numeric HTTP status reach logs.
+          diagnostic={'stage':'TRUSTED_SOURCE','http':None}
+          def mark(stage):
+              diagnostic.update(stage=stage,http=None)
+          def report_failure(error):
+              stages=('TRUSTED_SOURCE', 'JWT_SIGNING', 'INSTALLATION', 'READ_TOKEN', 'INSTALLATION_SCOPE', 'READ_TOKEN_REVOCATION', 'WRITE_TOKEN', 'RESERVATION_RACE', 'REUSE', 'UPDATE_PROTECTION', 'DELETE_PROTECTION', 'RESERVATION_PRESERVATION', 'LOST_RESPONSE', 'TOKEN_REVOCATION')
+              codes=('EXCLUSIVITY_FAILED', 'REUSE_ACCEPTED', 'PROTECTION_DENIAL_NOT_CONFIRMED', 'RESERVATION_NOT_PRESERVED', 'PROBE_SETUP_FAILED', 'UNCERTAIN_CREATION_RECOVERED', 'ENDPOINT_FORBIDDEN', 'TRUSTED_BYTES_REQUIRED', 'KEY_REQUIRED', 'SIGNING_FAILED', 'INSTALLATION_REQUIRED', 'TOKEN_REQUIRED', 'REPOSITORY_SCOPE_REQUIRED', 'READ_TOKEN_REVOCATION_REQUIRED', 'TOKEN_REVOCATION_FAILED')
+              stage=diagnostic['stage']
+              if type(stage) is not str or stage not in stages:stage='UNKNOWN'
+              code='UNEXPECTED_ERROR'
+              if type(error) is RuntimeError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in codes:
+                  code=error.args[0]
+              status=diagnostic['http']
+              http=str(status) if type(status) is int and 100<=status<=599 else 'NONE'
+              print(f'FAIL synthetic reservation probe; NO SQL; stage={stage}; code={code}; last_http={http}')
+
           def exercise(api, reserve, auth):
+              mark('RESERVATION_RACE')
               barrier=threading.Barrier(2, timeout=15)
               def create(ref, sha):
                   return api('POST','/repos/novo34/cleanops-360/git/refs',{'ref':ref,'sha':sha})
@@ -261,18 +278,22 @@ jobs:
               winners=[r for r in results if r]
               if len(winners)!=1:raise RuntimeError('EXCLUSIVITY_FAILED')
               receipt=winners[0]
+              mark('REUSE')
               try:reserve(dict(auth,runId='3'),create)
               except RuntimeError:pass
               else:raise RuntimeError('REUSE_ACCEPTED')
               endpoint='/repos/novo34/cleanops-360/git/'+receipt['ref']
               for method,payload in [('PATCH',{'sha':auth['base'],'force':True}),('DELETE',None)]:
+                  mark('UPDATE_PROTECTION' if method=='PATCH' else 'DELETE_PROTECTION')
                   status,denial=api(method,endpoint,payload)
                   if status not in (403,422) or denial.get('rulesetDenied') is not True:
                       raise RuntimeError('PROTECTION_DENIAL_NOT_CONFIRMED')
+              mark('RESERVATION_PRESERVATION')
               status,value=api('GET',endpoint.replace('/git/refs/','/git/ref/',1),None)
               if status!=200 or value.get('object',{}).get('sha')!=auth['candidate']:
                   raise RuntimeError('RESERVATION_NOT_PRESERVED')
               # Lost reply AFTER server creation must burn a separate probe identity.
+              mark('LOST_RESPONSE')
               lost=dict(auth,reviewBodySha256=hashlib.sha256(b'probe-lost-response').hexdigest())
               def uncertain(ref,sha):
                   status,_=create(ref,sha)
@@ -298,8 +319,10 @@ jobs:
                   def redirect_request(self,*args,**kwargs):return None
               try:
                   with urllib.request.build_opener(NoRedirect()).open(req,timeout=20) as response:
+                      diagnostic['http']=response.status
                       raw=response.read();return response.status,json.loads(raw) if raw else {}
               except urllib.error.HTTPError as error:
+                  diagnostic['http']=error.code
                   # Preserve only a fixed classification, not raw response data.
                   try:
                       value=json.loads(error.read())
@@ -312,6 +335,7 @@ jobs:
                   raise RuntimeError('TRUSTED_BYTES_REQUIRED')
               spec=importlib.util.spec_from_file_location('trusted_authorizer',source)
               auth_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(auth_module)
+              mark('JWT_SIGNING')
               encode=lambda value:base64.urlsafe_b64encode(value).rstrip(b'=')
               now=int(time.time())
               message=encode(b'{"alg":"RS256","typ":"JWT"}')+b'.'+encode(json.dumps({'iat':now-60,'exp':now+300,'iss':'5500214'}).encode())
@@ -323,20 +347,25 @@ jobs:
               del key
               if signed.returncode:raise RuntimeError('SIGNING_FAILED')
               jwt=(message+b'.'+encode(signed.stdout)).decode()
+              mark('INSTALLATION')
               status,installation=api('GET','/app/installations/175934135',bearer=jwt)
               if status!=200 or installation.get('app_id')!=5500214 or installation.get('repository_selection')!='selected':
                   raise RuntimeError('INSTALLATION_REQUIRED')
               # Inspect the full installation with read-only credentials first;
               # a repository-filtered token alone cannot prove installation scope.
+              mark('READ_TOKEN')
               status,result=api('POST','/app/installations/175934135/access_tokens',{'permissions':{'contents':'read'}},bearer=jwt)
               if status!=201 or not isinstance(result.get('token'),str):raise RuntimeError('TOKEN_REQUIRED')
               token=result.pop('token');del result
+              mark('INSTALLATION_SCOPE')
               status,repositories=api('GET','/installation/repositories')
               if status!=200 or repositories.get('total_count')!=1 or [r['full_name'] for r in repositories.get('repositories',[])]!=['novo34/cleanops-360']:
                   raise RuntimeError('REPOSITORY_SCOPE_REQUIRED')
+              mark('READ_TOKEN_REVOCATION')
               status,_=api('DELETE','/installation/token')
               if status!=204:raise RuntimeError('READ_TOKEN_REVOCATION_REQUIRED')
               token=None
+              mark('WRITE_TOKEN')
               status,result=api('POST','/app/installations/175934135/access_tokens',{'repositories':['cleanops-360'],'permissions':{'contents':'write'}},bearer=jwt)
               del jwt
               if status!=201 or not isinstance(result.get('token'),str):raise RuntimeError('TOKEN_REQUIRED')
@@ -347,15 +376,16 @@ jobs:
                     'reviewBodySha256':hashlib.sha256(b'AUD031_SYNTHETIC_PROBE_NO_NATIVE_AUTHORIZATION').hexdigest(),'runId':'1','attempt':1}
               exercise(api,auth_module.reserve_aud031,auth)
               print('PASS synthetic reservation probe; NO SQL; reservations retained')
-          except Exception:
-              print('FAIL synthetic reservation probe; NO SQL; raw diagnostics suppressed')
+          except Exception as error:
+              report_failure(error)
               raise SystemExit(1)
           finally:
               if token:
                   try:
+                      mark('TOKEN_REVOCATION')
                       status,_=api('DELETE','/installation/token')
                       if status!=204:raise RuntimeError('TOKEN_REVOCATION_FAILED')
-                  except Exception:
-                      print('FAIL installation token revocation')
+                  except Exception as error:
+                      report_failure(error)
                       raise SystemExit(1)
           PY
