@@ -190,7 +190,7 @@ jobs:
   aud031-reservation-probe:
     # Call this FILE via uses: owner/repo/path@APPROVED_SHA, never a relative
     # path/branch/merge ref. Caller addition needs separate reviewed publication.
-    if: inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-diag1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-diag1'
+    if: inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Environment must exist with owner approval, no administrator bypass,
@@ -224,8 +224,8 @@ jobs:
               if not re.fullmatch('[0-9a-f]{40}',expected):return False
               fixed={'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
                      'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34',
-                     'CALLER_EVENT':'workflow_dispatch','CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller-diag1',
-                     'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-diag1',
+                     'CALLER_EVENT':'workflow_dispatch','CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller-fixed1',
+                     'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1',
                      'CALLER_ATTEMPT':'1','CALLER_SHA':expected,'CALLER_WORKFLOW_SHA':expected}
               return all(values.get(k)==v for k,v in fixed.items())
           if not approved_caller(os.environ):

@@ -1370,12 +1370,16 @@ os._exit(int(sys.argv[4]))
         guard=namespace['approved_caller']
         good={'APPROVED_CALLER_SHA':'a'*40,'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
               'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34','CALLER_EVENT':'workflow_dispatch',
-              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller-diag1',
-              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-diag1',
+              'CALLER_REF':'refs/tags/cleanops-native-auth-probe-caller-fixed1',
+              'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1',
               'CALLER_ATTEMPT':'1','CALLER_SHA':'a'*40,'CALLER_WORKFLOW_SHA':'a'*40}
         self.assertTrue(guard(good))
-        self.assertFalse(guard(dict(good,CALLER_REF='refs/tags/cleanops-native-auth-probe-caller')))
-        self.assertFalse(guard(dict(good,CALLER_WORKFLOW_REF='novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller')))
+        for previous in ('cleanops-native-auth-probe-caller','cleanops-native-auth-probe-caller-diag1'):
+            ref='refs/tags/'+previous
+            route='novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@'+ref
+            self.assertFalse(guard(dict(good,CALLER_REF=ref)))
+            self.assertFalse(guard(dict(good,CALLER_WORKFLOW_REF=route)))
+            self.assertFalse(guard(dict(good,CALLER_REF=ref,CALLER_WORKFLOW_REF=route)))
         for key in good:
             with self.subTest(key=key):
                 self.assertFalse(guard({k:v for k,v in good.items() if k!=key}))
@@ -1390,6 +1394,16 @@ os._exit(int(sys.argv[4]))
                  'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
         condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
         self.assertFalse(ActionsCondition(condition,context).evaluate())
+        allowed={'inputs':{'reservation_probe':True},'github':{'repository':'novo34/cleanops-360',
+                 'repository_id':'1412999204','actor_id':'17856013','run_attempt':1,'event_name':'workflow_dispatch',
+                 'ref':good['CALLER_REF'],'workflow_ref':good['CALLER_WORKFLOW_REF']}}
+        self.assertTrue(ActionsCondition(condition,allowed).evaluate())
+        for key in allowed['github']:
+            self.assertFalse(ActionsCondition(condition,dict(allowed,github=dict(allowed['github'],**{key:'unapproved'}))).evaluate())
+        for previous in ('cleanops-native-auth-probe-caller','cleanops-native-auth-probe-caller-diag1'):
+            ref='refs/tags/'+previous
+            route='novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@'+ref
+            self.assertFalse(ActionsCondition(condition,dict(allowed,github=dict(allowed['github'],ref=ref,workflow_ref=route))).evaluate())
 
     def test_probe_diagnostics_allow_only_catalog_and_numeric_HTTP_without_raw_errors(self):
         import ast, contextlib, io, textwrap
