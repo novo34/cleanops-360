@@ -1,0 +1,915 @@
+{
+  "status": "PROPOSED_REVIEW_ONLY_NO_GRANTS",
+  "paths": {
+    "/auth/crm/companies": {
+      "get": {
+        "operationId": "listCrmCompanies",
+        "x-authentication-state": "ACTIVE",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "clients_only",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CRMPageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/crm/company": {
+      "get": {
+        "operationId": "getCrmCompany",
+        "x-authentication-state": "ACTIVE",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CRMDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/crm/change": {
+      "post": {
+        "operationId": "changeCrmRecord",
+        "x-authentication-state": "ACTIVE",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CRMChangeResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CRMChangeInput"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "schemas": {
+    "CRMCompanyFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "city",
+        "sector",
+        "relation"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": ".*\\S.*"
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "sector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "Prospecto",
+            "Cliente"
+          ]
+        }
+      }
+    },
+    "CRMContactFields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "email",
+        "roles",
+        "data_source",
+        "source_url",
+        "first_seen_at",
+        "last_verified_at",
+        "communication_basis",
+        "do_not_contact",
+        "privacy_request_status",
+        "retention_review_at"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": ".*\\S.*"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "Bauleiter",
+              "Projektleiter",
+              "Facility Manager",
+              "Objektleiter",
+              "Einkauf",
+              "Baumanagement",
+              "administración",
+              "dirección"
+            ]
+          }
+        },
+        "data_source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": ".*\\S.*"
+        },
+        "source_url": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 2048,
+              "pattern": "^https://[^\\s]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "first_seen_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_verified_at": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "communication_basis": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": ".*\\S.*"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "do_not_contact": {
+          "type": "boolean"
+        },
+        "privacy_request_status": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": ".*\\S.*"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retention_review_at": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CRMCompany": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "city",
+        "sector",
+        "relation",
+        "version",
+        "contacts",
+        "can_edit"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": ".*\\S.*"
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "sector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "Prospecto",
+            "Cliente"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,15}$",
+          "maxLength": 16
+        },
+        "contacts": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "email",
+              "roles",
+              "data_source",
+              "source_url",
+              "first_seen_at",
+              "last_verified_at",
+              "communication_basis",
+              "do_not_contact",
+              "privacy_request_status",
+              "retention_review_at",
+              "do_not_contact_at"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": ".*\\S.*"
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "maxLength": 254
+              },
+              "roles": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "Bauleiter",
+                    "Projektleiter",
+                    "Facility Manager",
+                    "Objektleiter",
+                    "Einkauf",
+                    "Baumanagement",
+                    "administración",
+                    "dirección"
+                  ]
+                }
+              },
+              "data_source": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": ".*\\S.*"
+              },
+              "source_url": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "pattern": "^https://[^\\s]+$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "first_seen_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "last_verified_at": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "communication_basis": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": ".*\\S.*"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "do_not_contact": {
+                "type": "boolean"
+              },
+              "privacy_request_status": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": ".*\\S.*"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "retention_review_at": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "do_not_contact_at": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "can_edit": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CRMPageResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "items",
+            "next_after"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "maxItems": 25,
+              "items": {
+                "$ref": "#/components/schemas/CRMCompany"
+              }
+            },
+            "next_after": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      }
+    },
+    "CRMDetailResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "city",
+            "sector",
+            "relation",
+            "version",
+            "contacts",
+            "can_edit"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": ".*\\S.*"
+            },
+            "city": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": ".*\\S.*"
+            },
+            "sector": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": ".*\\S.*"
+            },
+            "relation": {
+              "type": "string",
+              "enum": [
+                "Prospecto",
+                "Cliente"
+              ]
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "maxLength": 16
+            },
+            "contacts": {
+              "type": "array",
+              "maxItems": 100,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "name",
+                  "email",
+                  "roles",
+                  "data_source",
+                  "source_url",
+                  "first_seen_at",
+                  "last_verified_at",
+                  "communication_basis",
+                  "do_not_contact",
+                  "privacy_request_status",
+                  "retention_review_at",
+                  "do_not_contact_at"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "pattern": ".*\\S.*"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "roles": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "Bauleiter",
+                        "Projektleiter",
+                        "Facility Manager",
+                        "Objektleiter",
+                        "Einkauf",
+                        "Baumanagement",
+                        "administración",
+                        "dirección"
+                      ]
+                    }
+                  },
+                  "data_source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": ".*\\S.*"
+                  },
+                  "source_url": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "pattern": "^https://[^\\s]+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "first_seen_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "last_verified_at": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "communication_basis": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "pattern": ".*\\S.*"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "do_not_contact": {
+                    "type": "boolean"
+                  },
+                  "privacy_request_status": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120,
+                        "pattern": ".*\\S.*"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "retention_review_at": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "do_not_contact_at": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "can_edit": {
+              "type": "boolean"
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      }
+    },
+    "CRMChangeResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "maxLength": 16
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_id"
+          ],
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      }
+    },
+    "CRMChangeInput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "company"
+          ],
+          "properties": {
+            "operation": {
+              "const": "CREATE_COMPANY"
+            },
+            "company": {
+              "$ref": "#/components/schemas/CRMCompanyFields"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "company_id",
+            "expected_version",
+            "reason",
+            "company"
+          ],
+          "properties": {
+            "operation": {
+              "const": "EDIT_COMPANY"
+            },
+            "company_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "expected_version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "maxLength": 16
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": ".*\\S.*"
+            },
+            "company": {
+              "$ref": "#/components/schemas/CRMCompanyFields"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "company_id",
+            "expected_version",
+            "reason",
+            "contact"
+          ],
+          "properties": {
+            "operation": {
+              "const": "CREATE_CONTACT"
+            },
+            "company_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "expected_version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "maxLength": 16
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": ".*\\S.*"
+            },
+            "contact": {
+              "$ref": "#/components/schemas/CRMContactFields"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "company_id",
+            "expected_version",
+            "reason",
+            "contact_id",
+            "contact"
+          ],
+          "properties": {
+            "operation": {
+              "const": "EDIT_CONTACT"
+            },
+            "company_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "expected_version": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,15}$",
+              "maxLength": 16
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": ".*\\S.*"
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "contact": {
+              "$ref": "#/components/schemas/CRMContactFields"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

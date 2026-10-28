@@ -1,3 +1,4 @@
+import { crmRecord } from '../crm/records.ts'
 import { prepareReplacementHash } from './password.ts'
 import { createEmailCeremony, type PrivateMailCustody } from './email-ceremony.ts'
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
@@ -282,7 +283,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
               canonical(parts.slice(0, 4)) !== canonical([actor.kind, actor.id, actor.tenantId ?? null, actor.userId ?? null]) ||
               typeof parts[4] !== 'string' || typeof parts[5] !== 'string') throw unavailable()
           if (operationHint && parts[4] !== operationHint) throw unavailable()
-          const operation = parts[4], oneTime = (actor.kind==='PREAUTH'&&operation==='switchTenant')||['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
+          const operation = parts[4], oneTime = (actor.kind==='PREAUTH'&&operation==='switchTenant')||['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation','changeCrmRecord'].includes(operation), key = hex(digest(parts[5])), rawPreauth = preauth()
           const result = actor.kind==='BOOTSTRAP' ? await broker.call('reserveResetOwned',[raw,csrf,key,hex(requestTag(requestHash))]) : await broker.call('reserveOwned', [rawPreauth, operation, key, hex(requestTag(requestHash)), oneTime])
           if (!object(result) || typeof result.replay !== 'boolean' || result.requestHash !== requestTag(requestHash) ||
               result.oneTime !== oneTime || typeof result.expiresAt !== 'number' || result.expiresAt <= now()) throw unavailable()
@@ -331,6 +332,11 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
         },
         async execute(operation, input, binding): Promise<Effect | AuthError> {
           owns(binding); await resolveAgain()
+          if (['listCrmCompanies', 'getCrmCompany', 'changeCrmRecord'].includes(operation)) {
+            const owned = [...reservations.values()].filter(r => !r.done && r.operation === operation && r.oneTime)
+            if (operation === 'changeCrmRecord' && owned.length !== 1) throw unavailable()
+            return crmRecord(broker, operation, input, binding, correlation, owned[0] ? { key: owned[0].key, request: hex(requestTag(owned[0].hash)) } : undefined)
+          }
           if (operation === 'listAdministrationInvitations') return readInvitations(broker,input,binding,correlation)
           if (operation === 'getAdministrationSession') return {data:await activeSummary(binding)}
           if (operation === 'checkUserEffectiveAccess' || operation === 'listAssignableRoles') {
@@ -340,7 +346,7 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             return readAdministrationUsers(broker, operation, input, binding, correlation)
           }
           if (['changeUserInvitation','changeAdministrationUser','changeAccess','registerTrustedDevice','revokeTrustedDevice','revokeAllTrustedDevices','adminRevokeTrustedDevices','adminResetMfa','authorizePasswordReset','resetPassword','recoverMfa', 'logout', 'revokeSelfSession', 'revokeOtherOwnSessions', 'switchTenant', 'enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'resendEmail', 'startStepUp', 'resendOtp', 'selectTotpMethod'].includes(operation) &&
-              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation'].includes(operation) || r.oneTime))) throw unavailable()
+              ![...reservations.values()].some(r => !r.done && r.operation === operation && (!['enrollTotp', 'confirmTotp', 'enrollEmail', 'confirmEmail', 'resendEmailEnrollment', 'recoverMfa','resetPassword','registerTrustedDevice','adminResetMfa','changeAccess','changeAdministrationUser','changeUserInvitation','changeCrmRecord'].includes(operation) || r.oneTime))) throw unavailable()
           if(operation==='changeUserInvitation'){
             const owned=[...reservations.values()].filter(r=>!r.done&&r.operation===operation&&r.oneTime)
             if(owned.length!==1)throw unavailable()

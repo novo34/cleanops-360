@@ -1,0 +1,11 @@
+.crm-workspace .demo-main { max-width:1200px; margin:auto; padding:24px; }
+.crm-workspace nav { display:flex; gap:24px; padding:20px; }
+.crm-workspace form { display:grid; gap:16px; padding:20px; }
+.crm-workspace label { display:grid; gap:6px; }
+.crm-workspace input,.crm-workspace select,.crm-workspace textarea { background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:10px; max-width:100%; font:inherit; }
+.crm-workspace fieldset { border:1px solid var(--line); display:flex; flex-wrap:wrap; gap:16px; }
+.crm-workspace fieldset label { display:flex; align-items:center; }
+.crm-workspace .crm-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.crm-workspace .crm-message { padding:16px; border:1px solid var(--line); }
+.crm-workspace article { padding:20px; border-top:1px solid var(--line); overflow-wrap:anywhere; }
+@media(max-width:600px) { .crm-workspace .demo-main { padding:12px; } .crm-workspace .demo-page-heading { display:block; } }
