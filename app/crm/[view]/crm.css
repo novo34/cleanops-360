@@ -9,3 +9,6 @@
 .crm-workspace .crm-message { padding:16px; border:1px solid var(--line); }
 .crm-workspace article { padding:20px; border-top:1px solid var(--line); overflow-wrap:anywhere; }
 @media(max-width:600px) { .crm-workspace .demo-main { padding:12px; } .crm-workspace .demo-page-heading { display:block; } }
+.crm-workspace nav { flex-wrap:wrap; align-items:center; }
+.crm-workspace nav label,.crm-workspace fieldset,.crm-workspace label { min-width:0; max-width:100%; }
+.crm-workspace button,.crm-workspace p,.crm-workspace h1 { overflow-wrap:anywhere; }

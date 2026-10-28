@@ -3,7 +3,8 @@ import { AuthError } from './service.ts'
 import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool } from './pg-identity-driver.ts'
 
 /** Internal identity-service calls only. No public RPC, SQL interpolation, tables or role changes.
- * Signatures follow canonical V4 and owner-approved B1-X/D1 design contracts; values stay separate pg parameters. */
+ * Historical signatures follow canonical V4 and owner-approved B1-X/D1 contracts.
+ * CRM signatures are review candidates only; closedBackend remains active. Values stay separate pg parameters. */
 const statements = {
   crmCompanies: {sql:'SELECT auth_api.crm_companies($1::text,$2::boolean,$3::uuid) AS value',arity:3,kind:'json'},
   crmCompany: {sql:'SELECT auth_api.crm_company($1::uuid) AS value',arity:1,kind:'json'},

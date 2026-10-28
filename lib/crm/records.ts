@@ -28,6 +28,6 @@ export async function crmRecord(broker: V4Broker, operation: string, input: Inpu
     }
   } else throw new AuthError(404, 'NOT_FOUND')
   if (!valid(contract.components.schemas[schema], { data, meta: { correlation_id: correlation } })) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
-  if (operation !== 'listCrmCompanies' && input.company_id && (data as Input).id !== input.company_id) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
+  if (operation !== 'listCrmCompanies' && input.company_id && String((data as Input).id).toLowerCase() !== String(input.company_id).toLowerCase()) throw new AuthError(503, 'INVALID_BACKEND_RESPONSE')
   return { data }
 }

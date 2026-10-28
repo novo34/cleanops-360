@@ -148,8 +148,8 @@
         "relation": {
           "type": "string",
           "enum": [
-            "Prospecto",
-            "Cliente"
+            "PROSPECT",
+            "CUSTOMER"
           ]
         }
       }
@@ -190,14 +190,14 @@
           "items": {
             "type": "string",
             "enum": [
-              "Bauleiter",
-              "Projektleiter",
-              "Facility Manager",
-              "Objektleiter",
-              "Einkauf",
-              "Baumanagement",
-              "administración",
-              "dirección"
+              "BAULEITER",
+              "PROJEKTLEITER",
+              "FACILITY_MANAGER",
+              "OBJEKTLEITER",
+              "EINKAUF",
+              "BAUMANAGEMENT",
+              "ADMINISTRATION",
+              "MANAGEMENT"
             ]
           }
         },
@@ -315,8 +315,8 @@
         "relation": {
           "type": "string",
           "enum": [
-            "Prospecto",
-            "Cliente"
+            "PROSPECT",
+            "CUSTOMER"
           ]
         },
         "version": {
@@ -369,14 +369,14 @@
                 "items": {
                   "type": "string",
                   "enum": [
-                    "Bauleiter",
-                    "Projektleiter",
-                    "Facility Manager",
-                    "Objektleiter",
-                    "Einkauf",
-                    "Baumanagement",
-                    "administración",
-                    "dirección"
+                    "BAULEITER",
+                    "PROJEKTLEITER",
+                    "FACILITY_MANAGER",
+                    "OBJEKTLEITER",
+                    "EINKAUF",
+                    "BAUMANAGEMENT",
+                    "ADMINISTRATION",
+                    "MANAGEMENT"
                   ]
                 }
               },
@@ -490,9 +490,9 @@
           "properties": {
             "items": {
               "type": "array",
-              "maxItems": 25,
+              "maxItems": 10,
               "items": {
-                "$ref": "#/components/schemas/CRMCompany"
+                "$ref": "#/components/schemas/CRMCompanySummary"
               }
             },
             "next_after": {
@@ -570,8 +570,8 @@
             "relation": {
               "type": "string",
               "enum": [
-                "Prospecto",
-                "Cliente"
+                "PROSPECT",
+                "CUSTOMER"
               ]
             },
             "version": {
@@ -624,14 +624,14 @@
                     "items": {
                       "type": "string",
                       "enum": [
-                        "Bauleiter",
-                        "Projektleiter",
-                        "Facility Manager",
-                        "Objektleiter",
-                        "Einkauf",
-                        "Baumanagement",
-                        "administración",
-                        "dirección"
+                        "BAULEITER",
+                        "PROJEKTLEITER",
+                        "FACILITY_MANAGER",
+                        "OBJEKTLEITER",
+                        "EINKAUF",
+                        "BAUMANAGEMENT",
+                        "ADMINISTRATION",
+                        "MANAGEMENT"
                       ]
                     }
                   },
@@ -910,6 +910,67 @@
           }
         }
       ]
+    },
+    "CRMCompanySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "city",
+        "sector",
+        "relation",
+        "contact_name",
+        "contact_count"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": ".*\\S.*"
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "sector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": ".*\\S.*"
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "PROSPECT",
+            "CUSTOMER"
+          ]
+        },
+        "contact_name": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contact_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
     }
   }
 }

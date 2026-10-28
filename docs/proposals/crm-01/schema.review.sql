@@ -7,7 +7,7 @@ CREATE TABLE app.crm_companies (
  name text NOT NULL CHECK(length(btrim(name)) BETWEEN 1 AND 160),
  city text NOT NULL CHECK(length(btrim(city)) BETWEEN 1 AND 120),
  sector text NOT NULL CHECK(length(btrim(sector)) BETWEEN 1 AND 120),
- relation text NOT NULL CHECK(relation IN('Prospecto','Cliente')),
+ relation text NOT NULL CHECK(relation IN('PROSPECT','CUSTOMER')),
  version bigint NOT NULL DEFAULT 1 CHECK(version BETWEEN 1 AND 9999999999999999),
  PRIMARY KEY(tenant_id,id),FOREIGN KEY(tenant_id,id) REFERENCES app.access_resources(tenant_id,id)
 );
@@ -21,7 +21,7 @@ CREATE TABLE app.crm_contacts (
  CHECK(length(fields->>'email') BETWEEN 3 AND 254 AND fields->>'email' ~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'),
  CHECK(length(btrim(fields->>'data_source')) BETWEEN 1 AND 200),
  CHECK(jsonb_typeof(fields->'roles')='array' AND jsonb_array_length(fields->'roles') BETWEEN 1 AND 8),
- CHECK(fields->'roles' <@ '["Bauleiter","Projektleiter","Facility Manager","Objektleiter","Einkauf","Baumanagement","administración","dirección"]'::jsonb),
+ CHECK(fields->'roles' <@ '["BAULEITER","PROJEKTLEITER","FACILITY_MANAGER","OBJEKTLEITER","EINKAUF","BAUMANAGEMENT","ADMINISTRATION","MANAGEMENT"]'::jsonb),
  CHECK(jsonb_typeof(fields->'do_not_contact')='boolean'),
  CHECK((fields->>'do_not_contact')::boolean=(do_not_contact_at IS NOT NULL))
 );
@@ -78,14 +78,17 @@ BEGIN
  IF NOT auth_api.effective_access('view','companies',NULL) THEN RAISE EXCEPTION 'ACCESS_DENIED' USING ERRCODE='42501';END IF;
  WITH visible AS MATERIALIZED (
   SELECT p.id FROM app.crm_companies p WHERE p.tenant_id=c.tenant_id AND (after_id IS NULL OR p.id>after_id)
-  AND (NOT clients_only OR p.relation='Cliente') AND auth_api.effective_access('view','companies',p.id)
+  AND (NOT clients_only OR p.relation='CUSTOMER') AND auth_api.effective_access('view','companies',p.id)
   AND (strpos(lower(p.name),lower(search_text))>0 OR EXISTS(SELECT 1 FROM app.crm_contacts x
    WHERE x.tenant_id=c.tenant_id AND x.company_id=p.id AND auth_api.effective_access('view','contacts',x.id)
    AND (strpos(lower(x.fields->>'name'),lower(search_text))>0 OR strpos(lower(x.fields->>'email'),lower(search_text))>0)))
-  ORDER BY p.id LIMIT 26
- ),page AS MATERIALIZED(SELECT id FROM visible ORDER BY id LIMIT 25)
- SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(auth_api.crm_company(id) ORDER BY id) FROM page),'[]'::jsonb),
- 'next_after',CASE WHEN (SELECT count(*) FROM visible)>25 THEN (SELECT id FROM page ORDER BY id DESC LIMIT 1) ELSE NULL END) INTO result;
+  ORDER BY p.id LIMIT 11
+ ),page AS MATERIALIZED(SELECT id FROM visible ORDER BY id LIMIT 10)
+ SELECT jsonb_build_object('items',coalesce((SELECT jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'city',p.city,'sector',p.sector,'relation',p.relation,
+ 'contact_name',(SELECT x.fields->>'name' FROM app.crm_contacts x WHERE x.tenant_id=c.tenant_id AND x.company_id=p.id AND auth_api.effective_access('view','contacts',x.id) ORDER BY x.id LIMIT 1),
+ 'contact_count',(SELECT count(*) FROM app.crm_contacts x WHERE x.tenant_id=c.tenant_id AND x.company_id=p.id AND auth_api.effective_access('view','contacts',x.id))) ORDER BY p.id)
+ FROM page JOIN app.crm_companies p ON p.tenant_id=c.tenant_id AND p.id=page.id),'[]'::jsonb),
+ 'next_after',CASE WHEN (SELECT count(*) FROM visible)>10 THEN (SELECT id FROM page ORDER BY id DESC LIMIT 1) ELSE NULL END) INTO result;
  IF octet_length(result::text)>identity_private.cfg('json_body_max') THEN RAISE EXCEPTION 'RESPONSE_LIMIT';END IF;
  RETURN result;
 END $fn$;

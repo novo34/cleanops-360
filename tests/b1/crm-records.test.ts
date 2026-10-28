@@ -9,8 +9,8 @@ import { handleAuth } from '../../lib/b1/runtime.ts'
 const id='11111111-1111-4111-8111-111111111111',tenant='22222222-2222-4222-8222-222222222222'
 const csrf='C'.repeat(43),session='S'.repeat(43)
 const binding:Binding={kind:'ACTIVE',id,userId:id,tenantId:tenant,csrfDigest:digest(csrf),expiresAt:Date.now()+60000,absoluteExpiresAt:Date.now()+60000}
-const company={name:'Empresa sintética',city:'Genève',sector:'Oficinas',relation:'Prospecto'}
-const contact={name:'Contacto sintético',email:'contact@example.invalid',roles:['Facility Manager'],data_source:'Introducción manual',source_url:null,first_seen_at:'2026-10-28T12:00:00Z',last_verified_at:null,communication_basis:null,do_not_contact:true,privacy_request_status:null,retention_review_at:null}
+const company={name:'Empresa sintética',city:'Genève',sector:'Oficinas',relation:'PROSPECT'}
+const contact={name:'Contacto sintético',email:'contact@example.invalid',roles:['FACILITY_MANAGER'],data_source:'Introducción manual',source_url:null,first_seen_at:'2026-10-28T12:00:00Z',last_verified_at:null,communication_basis:null,do_not_contact:true,privacy_request_status:null,retention_review_at:null}
 const change={operation:'CREATE_CONTACT',company_id:id,expected_version:'1',reason:'Alta sintética',contact}
 const owned={key:Buffer.alloc(32),request:Buffer.alloc(32)}
 const broker=(value:unknown,log:unknown[]=[])=>({call:async(...args:unknown[])=>{log.push(args);return value}} as unknown as V4Broker)
@@ -32,6 +32,8 @@ test('shared directory is one tenant-resolved call, clients is a filter and no c
  assert.deepEqual(log,[['crmCompanies',['contact',true,null]]])
 })
 test('safe conflict is returned without a false success; malformed/foreign backend responses fail closed',async()=>{
+ const detail={id,...company,version:'1',contacts:[],can_edit:false}
+ assert.deepEqual(await crmRecord(broker(detail),'getCrmCompany',{company_id:id.toUpperCase()},binding,id),{data:detail})
  const result=await crmRecord(broker({error:'CRM_CONFLICT'}),'changeCrmRecord',change,binding,id,owned)
  assert.equal('code' in result&&result.code,'CRM_CONFLICT')
  await assert.rejects(crmRecord(broker({id:tenant,version:'2'}),'changeCrmRecord',change,binding,id,owned),{code:'INVALID_BACKEND_RESPONSE'})
