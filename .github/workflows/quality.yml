@@ -13,7 +13,7 @@ jobs:
   quality:
     # B1 has no authorization to start PostgreSQL, even in CI.
     if: ${{ !startsWith(github.head_ref, 'feat/b1-') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine

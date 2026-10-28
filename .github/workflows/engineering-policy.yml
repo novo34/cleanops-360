@@ -1,0 +1,26 @@
+name: engineering-policy
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  engineering-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: ${{ github.event.pull_request.base.repo.full_name }}
+          ref: refs/heads/${{ github.event.pull_request.base.ref }}
+          persist-credentials: false
+      - name: Record trusted policy commit
+        run: git rev-parse HEAD
+      - name: Enforce reuse-first documentation
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: python3 scripts/check-pr-engineering-policy.py --event "$GITHUB_EVENT_PATH"
