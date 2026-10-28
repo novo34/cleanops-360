@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { contract, valid, operations } from '../../lib/b1/contracts.ts'
+import { contract, valid, operations, type Schema } from '../../lib/b1/contracts.ts'
 import { createAuthHandler, names, digest, type Backend, type Binding, type Transaction } from '../../lib/b1/service.ts'
 import { crmRecord } from '../../lib/crm/records.ts'
 import type { V4Broker } from '../../lib/b1/v4-broker.ts'
@@ -33,7 +33,7 @@ test('shared directory is one tenant-resolved call, clients is a filter and no c
 })
 test('safe conflict is returned without a false success; malformed/foreign backend responses fail closed',async()=>{
  const caseId='abcdefab-cdef-4abc-8abc-abcdefabcdef'
- const detail={id:caseId,...company,version:'1',contacts:[],can_edit:false}
+ const detail={id:caseId,...company,version:'1',contacts:[],contacts_next_after:null,can_edit:false}
  assert.deepEqual(await crmRecord(broker(detail),'getCrmCompany',{company_id:caseId.toUpperCase()},binding,id),{data:detail})
  const result=await crmRecord(broker({error:'CRM_CONFLICT'}),'changeCrmRecord',change,binding,id,owned)
  assert.equal('code' in result&&result.code,'CRM_CONFLICT')
@@ -62,4 +62,66 @@ test('candidate is outside migration allowlist; module boundary denies and does 
  assert.match(sql,/crm_module_guard\(\)[\s\S]*RAISE EXCEPTION 'ACCESS_DENIED'/)
  assert.doesNotMatch(sql,/INSERT INTO app.access_rules/)
  assert.doesNotMatch(readFileSync(new URL('../../scripts/trusted-migrations.mjs',import.meta.url),'utf8'),/crm/)
+})
+
+test('maximum contract-valid contacts remain readable one at a time inside B1 envelope and PostgreSQL spacing budget',async()=>{
+ const schema=contract.components.schemas
+ const text=(n:number)=>'😀'.repeat(n)
+ const maximal={...contact,name:text(160),email:text(250)+'@a.b',data_source:text(200),source_url:'https://'+text(2040),communication_basis:text(500),privacy_request_status:text(120),roles:['BAULEITER','PROJEKTLEITER','FACILITY_MANAGER','OBJEKTLEITER','EINKAUF','BAUMANAGEMENT','ADMINISTRATION','MANAGEMENT'],first_seen_at:'2026-10-28T12:34:56.123456789Z',last_verified_at:'2026-10-28T12:34:56.123456789Z',retention_review_at:'2026-10-28T12:34:56.123456789Z'}
+ assert.equal(valid(schema.CRMContactFields,maximal),true)
+ const values=Array.from({length:100},(_,i)=>({...maximal,id:`11111111-1111-4111-8111-${String(i).padStart(12,'0')}`,do_not_contact_at:'2026-10-28T12:34:56.123456+00:00',can_suppress:false}))
+ assert.ok(Buffer.byteLength(JSON.stringify(values))>16384)
+ for(let i=0;i<values.length;i++){
+  const data={id,name:text(160),city:text(120),sector:text(120),relation:'PROSPECT',version:'9999999999999999',can_edit:true,contacts:[values[i]],contacts_next_after:i===99?null:values[i].id}
+  const envelope={data,meta:{correlation_id:id}}
+  assert.equal(valid(schema.CRMDetailResponse,envelope),true)
+  // PostgreSQL jsonb adds spaces after separators; reserve 512 bytes beyond wire JSON.
+  assert.ok(Buffer.byteLength(JSON.stringify(envelope))+512<=16384)
+  const log:unknown[]=[]
+  await crmRecord(broker(data,log),'getCrmCompany',{company_id:id,...(i?{contacts_after:values[i-1].id}:{})},binding,id)
+  assert.deepEqual(log,[['crmCompany',[id,i?values[i-1].id:null]]])
+ }
+ for(const fill of ['"','\\','😀'])assert.equal(valid(schema.CRMContactFields,{...maximal,name:fill.repeat(160)}),true)
+ for(const bad of [{...maximal,name:'\u0000'}, {...maximal,name:'\ud800'}, {...maximal,first_seen_at:'2026-10-28T12:34:56.'+'1'.repeat(100)+'Z'}])assert.equal(valid(schema.CRMContactFields,bad),false)
+ const summary={id,name:text(160),city:text(120),sector:text(120),relation:'PROSPECT',contact_name:text(160),contact_count:100}
+ const list={data:{items:Array.from({length:5},()=>summary),next_after:id},meta:{correlation_id:id}}
+ assert.equal(valid(schema.CRMPageResponse,list),true)
+ assert.ok(Buffer.byteLength(JSON.stringify(list))+512<=16384)
+})
+test('SQL candidate validates before writes, audits semantic denials and uses canonical specialized capability without edit implication',()=>{
+ const sql=readFileSync(new URL('../../docs/proposals/crm-01/schema.review.sql',import.meta.url),'utf8')
+ const baseline=readFileSync(new URL('../../docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql',import.meta.url),'utf8')
+ assert.ok(sql.indexOf('identity_private.crm_contact_fields_valid(payload')<sql.indexOf('INSERT INTO app.access_resources'))
+ assert.match(sql,/payload-required_keys<>'\{\}'::jsonb/)
+ assert.match(sql,/count\(DISTINCT value\)/)
+ assert.match(sql,/EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow/)
+ assert.match(sql,/binding_authorization\(NULL,'contacts.suppress',contact_id\)/)
+ assert.match(sql,/RETURN identity_private.crm_denied\(op,'POLICY_DENIED',corr\)/)
+ assert.match(sql,/'before',before_safe,'after',after_safe/)
+ assert.match(sql,/'roles',before_contact.fields->'roles'/)
+ assert.match(sql,/'changed_fields'/)
+ assert.doesNotMatch(sql,/jsonb_build_object\('contact',before_contact.fields\)/)
+ assert.doesNotMatch(sql,/INSERT INTO app\.(access_rules|self_service_rules)/)
+ assert.match(baseline,/rule_key NOT IN\('B1-SELF-01'/)
+ assert.doesNotMatch(baseline,/contacts.suppress/)
+})
+
+
+test('all response schema upper bounds include UTF-8, JSON escaping, JSONB separators, cursor and meta without lifting B1 limit',()=>{
+ function bound(s:Schema):number {
+  if(s.$ref)return bound(contract.components.schemas[s.$ref.split('/').at(-1)!])
+  if(s.oneOf)return Math.max(...s.oneOf.map(bound))
+  if(s.enum)return Math.max(...s.enum.map(v=>Buffer.byteLength(JSON.stringify(v))))
+  if(s.type==='object')return 2+Object.entries(s.properties??{}).reduce((n,[k,v])=>n+Buffer.byteLength(JSON.stringify(k))+4+bound(v),0)
+  if(s.type==='array')return 2+(s.maxItems??0)*(bound(s.items!)+2)
+  if(s.type==='boolean')return 5
+  if(s.type==='null')return 4
+  if(s.type==='integer')return String(s.maximum).length
+  if(s.format==='uuid')return 38
+  if(s.format==='date-time')return 2+s.maxLength!
+  if(s.pattern==='^[1-9][0-9]{0,15}$')return 2+s.maxLength!
+  assert.ok(s.pattern?.includes('ud800'),'all free text must exclude unpaired surrogates and control escapes')
+  return 2+4*s.maxLength!
+ }
+ for(const schema of ['CRMDetailResponse','CRMPageResponse'])assert.ok(bound(contract.components.schemas[schema])<=16384,schema)
 })

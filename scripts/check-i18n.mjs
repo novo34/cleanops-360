@@ -1,12 +1,45 @@
 import ts from 'typescript'
 import { messageParameters } from '../lib/i18n/parameters.ts'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { resolve, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const supportedLocales = ['de', 'es', 'en', 'it', 'pt', 'sq']
 // Scope is the entire new CRM UI; historical demo/AuthPanel/B2 debt is documented.
-export const crmUiFiles = ['components/crm-workspace.tsx', 'components/company-row.tsx', 'app/crm/[view]/page.tsx']
+/** Discover CRM roots plus their transitive local imports/re-exports (including
+ * shared components with arbitrary names). No hardcoded component exclusion list. */
+export function discoverCrmUi(root) {
+  const pending = [], seen = new Set(), ui = []
+  function walk(directory) {
+    if (!existsSync(directory)) return
+    for (const item of readdirSync(directory, { withFileTypes: true })) {
+      const path = resolve(directory, item.name)
+      if (item.isDirectory()) walk(path)
+      else if (/\.tsx$/.test(item.name)) pending.push(path)
+    }
+  }
+  walk(resolve(root, 'app/crm')); walk(resolve(root, 'components/crm'))
+  for (const item of readdirSync(resolve(root, 'components'), { withFileTypes: true })) if (item.isFile() && /^crm.*\.tsx$/.test(item.name)) pending.push(resolve(root, 'components', item.name))
+  while (pending.length) {
+    const file = pending.pop()
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (file.endsWith('.tsx')) ui.push(relative(root, file))
+    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+    function visit(node) {
+      const specifier = (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) ? node.moduleSpecifier
+        : ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : null
+      if (specifier && ts.isStringLiteral(specifier) && /^(\.|@\/)/.test(specifier.text)) {
+        const base = specifier.text.startsWith('@/') ? resolve(root, specifier.text.slice(2)) : resolve(dirname(file), specifier.text)
+        const target = [base, base+'.tsx', base+'.ts', resolve(base, 'index.tsx'), resolve(base, 'index.ts')].find(path => /\.tsx?$/.test(path) && existsSync(path))
+        if (target && !relative(root, target).startsWith('..')) pending.push(target)
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(source)
+  }
+  return ui.sort()
+}
 const properNames = new Set(['CLEANOPS 360', 'CleanOps 360', 'CleanOps 360 · CRM'])
 const variablesFor = messageParameters
 /** Validate raw object keys BEFORE JSON.parse can overwrite duplicate properties. */
@@ -73,12 +106,31 @@ export function validateUi(sourceText, file, knownKeys) {
   const allowed = value => !/[\p{L}\p{N}]/u.test(value) || properNames.has(value)
   const declarations = new Map()
   function collect(node) {
+    if (ts.isFunctionDeclaration(node) && node.name) declarations.set(node.name.text, node)
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) declarations.set(node.name.text, node.initializer)
     ts.forEachChild(node, collect)
   }
   collect(source)
   function literalText(node, seen = new Set()) {
     if (ts.isIdentifier(node) && declarations.has(node.text) && !seen.has(node.text)) { seen.add(node.text); literalText(declarations.get(node.text), seen); return }
+    if (ts.isCallExpression(node)) {
+      // t() is the typed catalog channel; regional formatting operates on data.
+      if (ts.isIdentifier(node.expression) && ['t', 'formatTimestamp'].includes(node.expression.text)) return
+      literalText(node.expression, seen)
+      for (const argument of node.arguments) literalText(argument, new Set(seen))
+      return
+    }
+    if (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) {
+      if (!node.body) return
+      if (!ts.isBlock(node.body)) { literalText(node.body, seen); return }
+      const returns = part => {
+        if (ts.isReturnStatement(part) && part.expression) literalText(part.expression, new Set(seen))
+        else if (!ts.isFunctionLike(part)) ts.forEachChild(part, returns)
+      }
+      ts.forEachChild(node.body, returns)
+      return
+    }
+    if (ts.isParenthesizedExpression(node)) { literalText(node.expression, seen); return }
     if (ts.isElementAccessExpression(node)) { literalText(node.expression, seen); return }
     if (ts.isObjectLiteralExpression(node)) { for (const property of node.properties) if (ts.isPropertyAssignment(property)) literalText(property.initializer, seen); return }
     if (ts.isPropertyAccessExpression(node) && node.name.text === 'message') errors.push(`${file}: uncatalogued error message`)
@@ -109,7 +161,8 @@ export function validateUi(sourceText, file, knownKeys) {
 export function checkI18n(root = resolve(fileURLToPath(new URL('..', import.meta.url)))) {
   const raw = Object.fromEntries(supportedLocales.map(locale => [locale, readFileSync(resolve(root, `lib/i18n/catalogs/${locale}.json`), 'utf8')]))
   const report = validateCatalogs(raw)
-  for (const file of crmUiFiles) validateUi(readFileSync(resolve(root, file), 'utf8'), file, new Set(report.keys))
+  report.uiFiles = discoverCrmUi(root)
+  for (const file of report.uiFiles) validateUi(readFileSync(resolve(root, file), 'utf8'), file, new Set(report.keys))
   return report
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

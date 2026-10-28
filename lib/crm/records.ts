@@ -13,7 +13,7 @@ export async function crmRecord(broker: V4Broker, operation: string, input: Inpu
     data = await broker.call('crmCompanies', [String(input.search ?? ''), input.clients_only === 'true', input.after ? String(input.after) : null])
     schema = 'CRMPageResponse'
   } else if (operation === 'getCrmCompany') {
-    data = await broker.call('crmCompany', [String(input.company_id)])
+    data = await broker.call('crmCompany', [String(input.company_id), input.contacts_after ? String(input.contacts_after) : null])
     schema = 'CRMDetailResponse'
   } else if (operation === 'changeCrmRecord') {
     if (!valid(contract.components.schemas.CRMChangeInput, input)) throw new AuthError(422, 'INVALID_INPUT')

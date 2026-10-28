@@ -7,7 +7,7 @@ export type ContactFields = {
   first_seen_at: string; last_verified_at: string | null; communication_basis: string | null
   do_not_contact: boolean; privacy_request_status: string | null; retention_review_at: string | null
 }
-export type Contact = ContactFields & { id: string; do_not_contact_at: string | null }
-export type CrmCompany = CompanyFields & { id: string; version: string; contacts: Contact[]; can_edit: boolean }
+export type Contact = ContactFields & { id: string; do_not_contact_at: string | null; can_suppress: boolean }
+export type CrmCompany = CompanyFields & { id: string; version: string; contacts: Contact[]; contacts_next_after: string | null; can_edit: boolean }
 export type CompanySummary = CompanyFields & { id: string; contact_name: string | null; contact_count: number }
 export type CrmPage = { items: CompanySummary[]; next_after: string | null }

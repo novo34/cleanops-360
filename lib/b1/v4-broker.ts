@@ -7,7 +7,7 @@ import { createPgIdentityUnitOfWork, type IdentityConnection, type IdentityPool 
  * CRM signatures are review candidates only; closedBackend remains active. Values stay separate pg parameters. */
 const statements = {
   crmCompanies: {sql:'SELECT auth_api.crm_companies($1::text,$2::boolean,$3::uuid) AS value',arity:3,kind:'json'},
-  crmCompany: {sql:'SELECT auth_api.crm_company($1::uuid) AS value',arity:1,kind:'json'},
+  crmCompany: {sql:'SELECT auth_api.crm_company($1::uuid,$2::uuid) AS value',arity:2,kind:'json'},
   crmChange: {sql:'SELECT auth_api.crm_change($1::jsonb,$2::bytea,$3::bytea,$4::uuid) AS value',arity:4,kind:'json'},
   invitationLinkMaterial:{sql:'SELECT auth_api.invitation_link_material($1::uuid,$2::text,$3::bytea,$4::bytea,$5::uuid) AS value',arity:5,kind:'json'},
   invitationCredentialDenied:{sql:'SELECT auth_api.invitation_credential_denied($1::uuid,$2::uuid) AS value',arity:2,kind:'void'},
@@ -227,7 +227,7 @@ export type D1AssignedEnrollment = Readonly<{ methodId: string; initialVersion: 
 export type PrivateResetMaterial = Readonly<{tenantId:string;userId:string;principalId:string;credentialVersion:string;expiresAt:string;requiresRecovery:boolean}>
 export type AccessAction='view'|'create'|'edit'|'approve'|'delete'|'export'|'manage_permissions'
 export type BrokerArgs = {
-  crmCompanies: [string, boolean, string | null]; crmCompany: [string]; crmChange: [string, Buffer, Buffer, string];
+  crmCompanies: [string, boolean, string | null]; crmCompany: [string, string | null]; crmChange: [string, Buffer, Buffer, string];
   invitationLinkMaterial:[invitation:string,secret:string,network:Buffer,device:Buffer,correlation:string]
   invitationCredentialDenied:[invitation:string,correlation:string]
   prepareInvitationAcceptance:[payload:string,cookie:Buffer,csrf:Buffer,correlation:string]

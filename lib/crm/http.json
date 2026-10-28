@@ -11,7 +11,8 @@
             "name": "search",
             "schema": {
               "type": "string",
-              "maxLength": 120
+              "maxLength": 120,
+              "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]*$"
             },
             "required": false
           },
@@ -62,6 +63,15 @@
               "format": "uuid"
             },
             "required": true
+          },
+          {
+            "in": "query",
+            "name": "contacts_after",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -131,19 +141,19 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "city": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "sector": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "relation": {
           "type": "string",
@@ -175,12 +185,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "email": {
           "type": "string",
           "format": "email",
-          "maxLength": 254
+          "maxLength": 254,
+          "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "roles": {
           "type": "array",
@@ -205,14 +216,14 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "source_url": {
           "oneOf": [
             {
               "type": "string",
               "maxLength": 2048,
-              "pattern": "^https://[^\\s]+$"
+              "pattern": "^https://[^\\s\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             {
               "type": "null"
@@ -221,13 +232,15 @@
         },
         "first_seen_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "maxLength": 35
         },
         "last_verified_at": {
           "oneOf": [
             {
               "type": "string",
-              "format": "date-time"
+              "format": "date-time",
+              "maxLength": 35
             },
             {
               "type": "null"
@@ -240,7 +253,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 500,
-              "pattern": ".*\\S.*"
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             {
               "type": "null"
@@ -256,7 +269,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 120,
-              "pattern": ".*\\S.*"
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             {
               "type": "null"
@@ -267,7 +280,8 @@
           "oneOf": [
             {
               "type": "string",
-              "format": "date-time"
+              "format": "date-time",
+              "maxLength": 35
             },
             {
               "type": "null"
@@ -287,7 +301,8 @@
         "relation",
         "version",
         "contacts",
-        "can_edit"
+        "can_edit",
+        "contacts_next_after"
       ],
       "properties": {
         "id": {
@@ -298,19 +313,19 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "city": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "sector": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "relation": {
           "type": "string",
@@ -326,7 +341,7 @@
         },
         "contacts": {
           "type": "array",
-          "maxItems": 100,
+          "maxItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -343,7 +358,8 @@
               "do_not_contact",
               "privacy_request_status",
               "retention_review_at",
-              "do_not_contact_at"
+              "do_not_contact_at",
+              "can_suppress"
             ],
             "properties": {
               "id": {
@@ -354,12 +370,13 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 160,
-                "pattern": ".*\\S.*"
+                "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
               },
               "email": {
                 "type": "string",
                 "format": "email",
-                "maxLength": 254
+                "maxLength": 254,
+                "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
               },
               "roles": {
                 "type": "array",
@@ -384,14 +401,14 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 200,
-                "pattern": ".*\\S.*"
+                "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
               },
               "source_url": {
                 "oneOf": [
                   {
                     "type": "string",
                     "maxLength": 2048,
-                    "pattern": "^https://[^\\s]+$"
+                    "pattern": "^https://[^\\s\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
                   },
                   {
                     "type": "null"
@@ -400,13 +417,15 @@
               },
               "first_seen_at": {
                 "type": "string",
-                "format": "date-time"
+                "format": "date-time",
+                "maxLength": 35
               },
               "last_verified_at": {
                 "oneOf": [
                   {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "maxLength": 35
                   },
                   {
                     "type": "null"
@@ -419,7 +438,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 500,
-                    "pattern": ".*\\S.*"
+                    "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
                   },
                   {
                     "type": "null"
@@ -435,7 +454,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 120,
-                    "pattern": ".*\\S.*"
+                    "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
                   },
                   {
                     "type": "null"
@@ -446,7 +465,8 @@
                 "oneOf": [
                   {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "maxLength": 35
                   },
                   {
                     "type": "null"
@@ -457,18 +477,33 @@
                 "oneOf": [
                   {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date-time",
+                    "maxLength": 35
                   },
                   {
                     "type": "null"
                   }
                 ]
+              },
+              "can_suppress": {
+                "type": "boolean"
               }
             }
           }
         },
         "can_edit": {
           "type": "boolean"
+        },
+        "contacts_next_after": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -490,7 +525,7 @@
           "properties": {
             "items": {
               "type": "array",
-              "maxItems": 10,
+              "maxItems": 5,
               "items": {
                 "$ref": "#/components/schemas/CRMCompanySummary"
               }
@@ -532,200 +567,7 @@
       ],
       "properties": {
         "data": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "id",
-            "name",
-            "city",
-            "sector",
-            "relation",
-            "version",
-            "contacts",
-            "can_edit"
-          ],
-          "properties": {
-            "id": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "name": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 160,
-              "pattern": ".*\\S.*"
-            },
-            "city": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120,
-              "pattern": ".*\\S.*"
-            },
-            "sector": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 120,
-              "pattern": ".*\\S.*"
-            },
-            "relation": {
-              "type": "string",
-              "enum": [
-                "PROSPECT",
-                "CUSTOMER"
-              ]
-            },
-            "version": {
-              "type": "string",
-              "pattern": "^[1-9][0-9]{0,15}$",
-              "maxLength": 16
-            },
-            "contacts": {
-              "type": "array",
-              "maxItems": 100,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "id",
-                  "name",
-                  "email",
-                  "roles",
-                  "data_source",
-                  "source_url",
-                  "first_seen_at",
-                  "last_verified_at",
-                  "communication_basis",
-                  "do_not_contact",
-                  "privacy_request_status",
-                  "retention_review_at",
-                  "do_not_contact_at"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 160,
-                    "pattern": ".*\\S.*"
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email",
-                    "maxLength": 254
-                  },
-                  "roles": {
-                    "type": "array",
-                    "minItems": 1,
-                    "maxItems": 8,
-                    "uniqueItems": true,
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "BAULEITER",
-                        "PROJEKTLEITER",
-                        "FACILITY_MANAGER",
-                        "OBJEKTLEITER",
-                        "EINKAUF",
-                        "BAUMANAGEMENT",
-                        "ADMINISTRATION",
-                        "MANAGEMENT"
-                      ]
-                    }
-                  },
-                  "data_source": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 200,
-                    "pattern": ".*\\S.*"
-                  },
-                  "source_url": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "maxLength": 2048,
-                        "pattern": "^https://[^\\s]+$"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "first_seen_at": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "last_verified_at": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "communication_basis": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 500,
-                        "pattern": ".*\\S.*"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "do_not_contact": {
-                    "type": "boolean"
-                  },
-                  "privacy_request_status": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120,
-                        "pattern": ".*\\S.*"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "retention_review_at": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "do_not_contact_at": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  }
-                }
-              }
-            },
-            "can_edit": {
-              "type": "boolean"
-            }
-          }
+          "$ref": "#/components/schemas/CRMCompany"
         },
         "meta": {
           "type": "object",
@@ -829,7 +671,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 500,
-              "pattern": ".*\\S.*"
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             "company": {
               "$ref": "#/components/schemas/CRMCompanyFields"
@@ -863,7 +705,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 500,
-              "pattern": ".*\\S.*"
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             "contact": {
               "$ref": "#/components/schemas/CRMContactFields"
@@ -898,7 +740,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 500,
-              "pattern": ".*\\S.*"
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             "contact_id": {
               "type": "string",
@@ -932,19 +774,19 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "city": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "sector": {
           "type": "string",
           "minLength": 1,
           "maxLength": 120,
-          "pattern": ".*\\S.*"
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
         },
         "relation": {
           "type": "string",
@@ -958,7 +800,8 @@
             {
               "type": "string",
               "minLength": 1,
-              "maxLength": 160
+              "maxLength": 160,
+              "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f-\\u009f\\ud800-\\udfff]+$"
             },
             {
               "type": "null"
