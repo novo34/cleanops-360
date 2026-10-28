@@ -21,6 +21,12 @@ compose.ingress.yaml: las etiquetas/redes de ingress que Dokploy inyecta deben
 conservarse exactamente. La herramienta de consolidación existente sigue siendo
 referencia histórica, no es la ruta seleccionada para este paquete.
 
+Orden previo obligatorio: configuración requerida preparada → render efectivo
+de Dokploy comprobado → autorización de integración/instalación. El render se
+revisa antes de integrar en staging, mediante la previsualización/exportación
+controlada disponible; no requiere desplegar ni cambiar la fuente configurada.
+Si no puede comprobarse antes, la integración permanece bloqueada.
+
 El perfil synthetic-custody sigue opt-in. La futura activación del perfil en
 Dokploy requiere autorización específica; hoy no cambia COMPOSE_PROFILES ni
 Autodeploy. La observación del usuario prevalece sobre synthetic-plan.json y
@@ -267,3 +273,16 @@ otra autorización; no reset/force-push ni redes eliminadas. Comprobar IDs, imag
 health y mounts de web/PG iguales al inventario previo, ingress HTTPS y PG sin
 puertos públicos. Prohibido down -v, Fresh Volumes, prune, borrado de volúmenes,
 redeploy global o exposición pública de Bao. Autodeploy no se modifica.
+
+## Mantenimiento: identidad y Compose canónicos
+
+RESOURCE_RECORD.json, STAGING_SYNTHETIC.composeProject=cleanops360-f4fxmd, es la
+fuente de identidad del proyecto Compose observado. project=cleanops-360 es la
+identidad de la aplicación Dokploy, no sustituye composeProject. El archivo
+privado debe coincidir con composeProject y composePath canónicos; discrepancias
+se rechazan antes de invocar Docker. El maintenance existente pasa solo el Compose
+canónico, incluido una vez, valida config --format json antes de ps/inspect y
+conserva guards de project/service labels y rechazo de ports. No busca proyectos
+alternativos ni lee tokens antes de validar. Necesita las variables obligatorias
+existentes en el entorno seguro; un perfil apagado no evita este requisito.
+No se ha ejecutado backup ni se ha cambiado el instalador SQL histórico.

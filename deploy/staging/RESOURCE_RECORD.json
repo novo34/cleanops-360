@@ -72,7 +72,8 @@
     "prebuiltImages": {
       "web": null,
       "openbao": null
-    }
+    },
+    "composeProject": "cleanops360-f4fxmd"
   },
   "PRODUCTION_SWISS": {
     "provider": null,

@@ -41,6 +41,67 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def test_canonical_include_is_used_once_by_every_command_producer(self):
+        from unittest.mock import patch
+        entry = (ROOT / "deploy/staging/compose.yaml").read_text()
+        self.assertEqual(entry.count("  - compose.openbao.yaml"), 1)
+        with patch.object(prepare.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = '{"services": {}}'
+            prepare.consolidated_compose()
+            command = run.call_args.args[0]
+        self.assertEqual(command.count("-f"), 1)
+        self.assertFalse(any(str(x).endswith("compose.openbao.yaml") for x in command))
+        record, _ = fixture()
+        calls = []
+        def docker(args):
+            calls.append(args)
+            return json.dumps({"name": record["STAGING_SYNTHETIC"]["composeProject"],
+                               "services": {"postgres": {}, "openbao": {}}}).encode()
+        base, _ = maintenance.maintenance_base(record, docker)
+        self.assertEqual(base.count("-f"), 1)
+        self.assertEqual(base[base.index("-f")+1], str(ROOT / "deploy/staging/compose.yaml"))
+        self.assertEqual(calls, [[*base, "config", "--format", "json"]])
+        self.assertFalse(any(str(x).endswith("compose.openbao.yaml") for x in base))
+
+    def test_maintenance_rejects_wrong_project_path_and_ownership(self):
+        record, _ = fixture()
+        expected = record["STAGING_SYNTHETIC"]["composeProject"]
+        self.assertEqual(expected, "cleanops360-f4fxmd")
+        for field, value in [("composeProject", "cleanops360-staging"),
+                             ("composeProject", None), ("composePath", "another/compose.yaml")]:
+            bad = copy.deepcopy(record); bad["STAGING_SYNTHETIC"][field] = value
+            with self.assertRaises(ValueError):
+                maintenance.maintenance_base(bad, lambda *_: self.fail("Must reject before Docker"))
+        def meta(project=expected, service="postgres", ports=None):
+            return dict(Config=dict(Labels={"com.docker.compose.project": project,
+                                            "com.docker.compose.service": service}),
+                        HostConfig=dict(PortBindings=ports or {}))
+        maintenance.require_owned_service(meta(), expected, "postgres")
+        for bad in [meta(project="cleanops360-staging"), meta(project="other"),
+                    meta(service="web"), meta(ports={"5432/tcp": [{}]})]:
+            with self.assertRaisesRegex(ValueError, "OWNERSHIP_REQUIRED"):
+                maintenance.require_owned_service(bad, expected, "postgres")
+
+    def test_maintenance_validates_its_exact_compose_before_discovery(self):
+        record, _ = fixture(); project = record["STAGING_SYNTHETIC"]["composeProject"]
+        configs = [{"name": "wrong", "services": {"postgres": {}, "openbao": {}}},
+                   {"name": project, "services": {"postgres": {}}},
+                   {"name": project, "services": {"postgres": {}, "openbao": {"ports": [8200]}}}]
+        for config in configs:
+            calls = []
+            def docker(args):
+                calls.append(args)
+                self.assertEqual(args[-3:], ["config", "--format", "json"])
+                return json.dumps(config).encode()
+            with self.assertRaises(ValueError): maintenance.maintenance_base(record, docker)
+            self.assertEqual(len(calls), 1)
+        def invalid_compose(args):
+            self.assertEqual(args[-3:], ["config", "--format", "json"])
+            raise ValueError("REDACTED_BACKUP_DEPENDENCY_FAILURE")
+        with self.assertRaisesRegex(ValueError, "DEPENDENCY_FAILURE"):
+            maintenance.maintenance_base(record, invalid_compose)
+
     def test_offline_consolidation_keeps_variables_relative_paths_and_fixed_deploy_path(self):
         merged = prepare.consolidated_compose(ingress=True)
         self.assertEqual(merged["services"]["web"]["build"]["context"], "../..")

@@ -18,16 +18,16 @@
   },
   "compose": {
     "base": "deploy/staging/compose.yaml",
-    "overlays": [
-      "compose.openbao.yaml",
-      "compose.ingress.yaml"
-    ],
+    "overlays": [],
     "optionalAlternative": "compose.prebuilt.yaml",
-    "offlineConsolidator": "scripts/prepare-staging-synthetic.py --compose-out NEW_FILE --include-ingress",
+    "offlineConsolidator": "scripts/prepare-staging-synthetic.py --compose-out NEW_FILE (review only; not a second deployment path)",
     "dokployBranch": "staging",
     "dokployComposePath": "deploy/staging/compose.yaml",
-    "autodeploy": "OFF",
-    "changedOnHost": false
+    "autodeploy": "UNCONFIRMED_DO_NOT_MODIFY",
+    "changedOnHost": false,
+    "includedOverlay": "compose.openbao.yaml",
+    "integrationMethod": "CANONICAL_COMPOSE_INCLUDE_ONCE_PRESERVE_DOKPLOY_INGRESS",
+    "composeProject": "cleanops360-f4fxmd"
   },
   "record": "deploy/staging/RESOURCE_RECORD.json",
   "formalSwissRecord": "docs/implementation/b1/operational-acceptance/staging-candidate/RESOURCE_RECORD.json",
@@ -44,7 +44,7 @@
     "Explicit VPS access and deployment authorization",
     "Fresh CPU/memory/disk/architecture/network/other-project inventory",
     "TLS and staging-only secret material; exact existing policy/rendered hashes",
-    "Selective reviewed integration into permanent staging and consolidated Compose approval",
+    "Required configuration prepared, effective Dokploy render verified, then explicit integration/installation authorization",
     "Actual Traefik network/HTTPS entrypoint/certificate resolver names",
     "Optional exact SQL14 fresh install permission; no modified SQL/ACL",
     "AUTH-GATE-05 decision and express activation before online functional login/MFA"
@@ -57,5 +57,10 @@
     "PR007": "OPEN",
     "AUTH_GATE_05": "OPEN",
     "runtime": "closedBackend"
-  }
+  },
+  "preIntegrationOrder": [
+    "REQUIRED_CONFIGURATION_FILES_AND_VARIABLES_PREPARED",
+    "DOKPLOY_EFFECTIVE_RENDER_VERIFIED_PRESERVING_INGRESS_AND_EXISTING_SERVICES",
+    "EXPLICIT_INTEGRATION_AND_INSTALLATION_AUTHORIZATION"
+  ]
 }
