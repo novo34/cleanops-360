@@ -23,11 +23,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          file="$(mktemp)"
-          chmod 600 "$file"
-          printf 'synthetic-ci-only-not-a-deployment\n' > "$file"
-          echo "CLEANOPS_PG_PASSWORD_FILE=$file" >> "$GITHUB_ENV"
-          echo "$file" > "$RUNNER_TEMP/cleanops-secret-path"
+          umask 077
+          fixture="$(mktemp -d "$RUNNER_TEMP/cleanops-preflight.XXXXXX")"
+          printf '%s\n' "$fixture" > "$RUNNER_TEMP/cleanops-fixture-path"
+          printf 'synthetic-ci-only-not-a-deployment\n' > "$fixture/postgres-password"
+          printf '{}\n' > "$fixture/server.json"
+          mkdir "$fixture/tls"
+          {
+            printf 'CLEANOPS_PG_PASSWORD_FILE=%s\n' "$fixture/postgres-password"
+            printf 'CLEANOPS_BAO_CONFIG_FILE=%s\n' "$fixture/server.json"
+            printf 'CLEANOPS_BAO_TLS_DIR=%s\n' "$fixture/tls"
+            printf 'CLEANOPS_BAO_SUBNET=10.249.88.0/24\n'
+            printf 'CLEANOPS_BAO_PRIVATE_IPV4=10.249.88.2\n'
+          } >> "$GITHUB_ENV"
       - name: Validate syntax and isolation
         shell: bash
         run: |
@@ -40,6 +48,16 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [ -f "$RUNNER_TEMP/cleanops-secret-path" ]; then
-            rm -f -- "$(cat "$RUNNER_TEMP/cleanops-secret-path")" "$RUNNER_TEMP/cleanops-secret-path"
+          set -euo pipefail
+          marker="$RUNNER_TEMP/cleanops-fixture-path"
+          if [ -f "$marker" ]; then
+            fixture="$(cat "$marker")"
+            case "$fixture" in
+              "$RUNNER_TEMP"/cleanops-preflight.*) ;;
+              *) echo 'Unexpected fixture path; refusing cleanup' >&2; exit 1 ;;
+            esac
+            test "$(dirname -- "$fixture")" = "$RUNNER_TEMP"
+            test ! -L "$fixture"
+            rm -rf -- "$fixture"
+            rm -f -- "$marker"
           fi

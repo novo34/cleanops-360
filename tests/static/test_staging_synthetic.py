@@ -41,6 +41,57 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def test_push_preflight_uses_its_actual_fixture_and_preserves_required_inputs(self):
+        workflow = (ROOT / ".github/workflows/staging-preflight.yml").read_text()
+        def run_block(name):
+            section = workflow.split("      - name: " + name + "\n", 1)[1]
+            section = section.split("        run: |\n", 1)[1]
+            lines = []
+            for line in section.splitlines():
+                if line.strip() and not line.startswith("          "): break
+                lines.append(line[10:] if line.strip() else "")
+            return "\n".join(lines) + "\n"
+        setup = run_block("Generate synthetic Compose-only secret")
+        cleanup = run_block("Clean owned synthetic secret")
+        with tempfile.TemporaryDirectory() as directory:
+            runner = Path(directory); exports = runner / "github-env"
+            env = dict(os.environ, RUNNER_TEMP=str(runner), TMPDIR=str(runner), GITHUB_ENV=str(exports),
+                       CLEANOPS_AUTH_ORIGIN="https://staging.invalid")
+            for key in ["COMPOSE_PROFILES", "CLEANOPS_PG_PASSWORD_FILE", "CLEANOPS_BAO_CONFIG_FILE",
+                        "CLEANOPS_BAO_TLS_DIR", "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4"]:
+                env.pop(key, None)
+            subprocess.run(["bash", "-c", setup], cwd=ROOT, env=env, check=True, capture_output=True, text=True)
+            fixture_env = dict(line.split("=", 1) for line in exports.read_text().splitlines())
+            env.update(fixture_env)
+            self.assertEqual(json.loads(Path(env["CLEANOPS_BAO_CONFIG_FILE"]).read_text()), {})
+            self.assertTrue(Path(env["CLEANOPS_BAO_TLS_DIR"]).is_dir())
+            command = ["docker", "compose", "-f", "deploy/staging/compose.yaml", "config"]
+            result = subprocess.run(command + ["--format", "json"], cwd=ROOT, env=env,
+                                    capture_output=True, text=True, check=True)
+            config = json.loads(result.stdout)
+            self.assertEqual(set(config["services"]), {"web", "postgres"})
+            for key in ["CLEANOPS_BAO_CONFIG_FILE", "CLEANOPS_BAO_TLS_DIR",
+                        "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4"]:
+                missing = dict(env); missing.pop(key)
+                rejected = subprocess.run(command + ["-q"], cwd=ROOT, env=missing,
+                                          capture_output=True, text=True)
+                self.assertNotEqual(rejected.returncode, 0, key)
+                self.assertIn(key, rejected.stderr)
+            marker = runner / "cleanops-fixture-path"
+            fixture = Path(marker.read_text().strip())
+            unowned = runner / "unowned"; unowned.mkdir(); (unowned / "keep").write_text("keep")
+            marker.write_text(str(fixture / ".." / "unowned") + "\n")
+            refused = subprocess.run(["bash", "-c", cleanup], cwd=ROOT, env=env,
+                                     capture_output=True, text=True)
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertTrue((unowned / "keep").is_file())
+            marker.write_text(str(fixture) + "\n")
+            subprocess.run(["bash", "-c", cleanup], cwd=ROOT, env=env,
+                           check=True, capture_output=True, text=True)
+            self.assertFalse(fixture.exists())
+            self.assertFalse(marker.exists())
+            self.assertTrue((unowned / "keep").is_file())
+
     def test_cli_selective_rejects_all_artifact_options_before_io(self):
         from unittest.mock import patch
         import contextlib, io

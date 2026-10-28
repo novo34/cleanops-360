@@ -118,7 +118,7 @@ d839d376448eceef3ccb5cdd44c4a0749a92a6e4aa2fdaf47255cfa949dfb77e  checksums.txt
 
 2092afd6649e2d451a29518767dd13c9a9cbfa05c04cfb5a78fe4409117ae0c7  scripts/prepare-staging-synthetic.py
 
-d30a9f5ddbe87b556f5126dcccc62c2f8331dc43e9482377a18f5ad2f3326a69  tests/static/test_staging_synthetic.py
+d9a590a5c16247a4f59b1c6c839e7e33af2a7a867b37088d6dc6b1d454d8f661  tests/static/test_staging_synthetic.py
 
 c8a67f3170d6f96517d15b760c6cf96ae9aeec424ce0af504cb037eb57d4756b  deploy/staging/openbao/Dockerfile
 
@@ -145,3 +145,21 @@ PASS de reproducción: registro anterior devuelve exit2 y exactamente ese hallaz
 Alcance y aprobación: propuesta pendiente del propietario; no se ha movido la rama del PR con esta excepción. Su alcance se agota en ese commit/archivo/regla/línea inmutables; cualquier otro hallazgo requiere revisión propia. Retirar el registro si desaparece ese hallazgo del historial sometido al control y deja de ser necesario para revalidaciones históricas. No altera la entrada histórica ya aprobada ni sustituye controles de secretos, firma, capacidad o autorización.
 
 .gitleaksignore SHA256 5d4c69614b5a3e238e1c7e8a3787bbd821c27c4db89dbfde6676f1d5604127ea.
+
+## Corrección posterior a la integración: consumidor de preflight
+
+PR 27 integrado bajo autorización en staging 7c6059a5390d0f28ca6dc1a3d11dd540720f151d. Quality del head 044e1bca había terminado en SUCCESS. El push activó Staging packaging preflight, consumidor no cubierto por aquella CI de PR: https://github.com/novo34/cleanops-360/actions/runs/40710584771 . FAIL real en Validate syntax and isolation por CLEANOPS_BAO_PRIVATE_IPV4 ausente. El build web de ese job quedó SKIP; no fue un despliegue. Este consumidor debió incluirse antes en la revisión de integración.
+
+QG-0: inventariados workflow staging-preflight, staging-b1-integration, b1-staging-synthetic, staging-compose-check, prepare-staging-synthetic, staging-maintenance y el consumidor protegido staging-sql14. Solo el fixture del preflight de push carecía de los inputs requeridos en su ruta de ejecución comprobada. Los consumidores nativos protegidos siguen requiriendo sus propios inputs/autorizaciones; no se acredita su operación ni se modifican sus guards.
+
+Se extiende el paso existente de fixtures, sin otro script o runner: directorio temporal privado, contraseña ficticia, server.json vacío y directorio TLS vacío, más las cuatro variables Bao necesarias para cargar el include. Las direcciones 10.249.88.0/24 y 10.249.88.2 reutilizan los fixtures del harness, no representan una red observada o autorizada del VPS. Sin certificados, claves reales, perfiles activos ni arranque de servicios. El build del job sigue apuntando solo a web. La limpieza existente elimina exclusivamente el directorio generado, con rechazo de rutas fuera de su padre/prefijo y de symlinks.
+
+QG-1/QG-2: causa localizada en un consumidor del Compose canónico. Se conservan triggers, permisos, runner, timeout, config -q, comprobador estático y build web. Tres archivos propuestos: workflow existente, harness existente y este informe. No cambia runtime, Dockerfile, healthcheck, TLS ni datos; la imagen OpenBao ya construida mantiene su procedencia original. No se altera main/staging durante la preparación del candidato.
+
+PASS local: 41 pruebas de policy, guard Semgrep y staging, con 8 invocaciones Compose 2.40.3 exclusivamente config y 3 ejecuciones del fixture Bash en directorios temporales. La nueva regresión ejecuta el bloque real del workflow: config completa valida y solo incluye web/postgres con perfil apagado; quitar individualmente cualquiera de las cuatro variables falla; una ruta de limpieza con traversal se rechaza y conserva el archivo ajeno. La prueba falla con el workflow anterior por ausencia del input Bao y pasa con la corrección. No se ejecutó Docker daemon, build, SQL ni servicios en esta verificación. No son pruebas nativas del servidor ni aceptación de capacidad.
+
+CI real y revisión independiente del nuevo candidato: pendientes. Publicar un PR nuevo activaría Quality con PostgreSQL en Actions y requiere autorización específica; no se abre ni se integra con esta preparación. El candidato tampoco autoriza despliegue, build del VPS, SQL, ceremonia, custodia o activación del backend.
+
+SHA256 de los archivos actualizados (informe excluido):
+73a5565d12d1e9b60abb88d305d93acad4a05a60140a2c8c32847b36f46ec478  .github/workflows/staging-preflight.yml
+d9a590a5c16247a4f59b1c6c839e7e33af2a7a867b37088d6dc6b1d454d8f661  tests/static/test_staging_synthetic.py
