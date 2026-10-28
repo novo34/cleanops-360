@@ -12,7 +12,7 @@ SQL = ROOT / "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"
 SHA = "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
 
 
-def install(record, apply=False, runner=None):
+def install(record, apply=False, runner=None, batch_builder=None):
     raw = SQL.read_bytes()
     if hashlib.sha256(raw).hexdigest() != SHA:
         raise ValueError("SQL14_HASH_MISMATCH")
@@ -25,6 +25,20 @@ def install(record, apply=False, runner=None):
         or s.get("deploymentAuthorized") is not True or not s.get("deploymentApprovalReference")
         or s.get("sql14FreshInstallAuthorized") is not True):
         raise ValueError("EXACT_FRESH_INSTALL_AUTHORIZATION_REQUIRED")
+    canonical = json.loads((ROOT / "deploy/staging/RESOURCE_RECORD.json").read_text())["STAGING_SYNTHETIC"]
+    if (s.get("composeProject") != canonical["composeProject"]
+        or s.get("composePath") != canonical["composePath"]
+        or s.get("databaseName") != canonical["databaseName"]):
+        raise ValueError("STAGING_TARGET_MISMATCH")
+    if batch_builder is None:
+        def batch_builder(value):
+            # Reuse the canonical migration runner's OFFLINE formatter/journal.
+            # It verifies SQL14 again and never connects in this mode.
+            result = subprocess.run(["node", str(ROOT / "scripts/migrate-postgres.mjs"), "--emit-sql14-batch"],
+                                    input=json.dumps(value).encode(), capture_output=True, timeout=30)
+            if result.returncode:
+                raise ValueError("BASELINE_BATCH_PREPARATION_FAILED")
+            return result.stdout
     if runner is None:
         environment = dict(os.environ)
         for key in ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]:
@@ -36,27 +50,30 @@ def install(record, apply=False, runner=None):
             if result.returncode:
                 raise ValueError("REDACTED_OWNED_PG_OPERATION_FAILED")
             return result.stdout.decode().strip()
-    base = ["compose", "-p", "cleanops360-staging", "-f", str(ROOT / "deploy/staging/compose.yaml")]
+    base = ["compose", "-p", canonical["composeProject"], "-f", str(ROOT / canonical["composePath"])]
     cid = runner([*base, "ps", "-q", "postgres"])
     if not cid or len(cid.splitlines()) != 1:
         raise ValueError("ONE_OWNED_POSTGRES_REQUIRED")
     metadata = json.loads(runner(["inspect", cid]))[0]
     labels = metadata["Config"].get("Labels", {})
-    if (labels.get("com.docker.compose.project") != "cleanops360-staging"
+    if (labels.get("com.docker.compose.project") != canonical["composeProject"]
         or labels.get("com.docker.compose.service") != "postgres"
         or metadata["HostConfig"].get("PortBindings")):
         raise ValueError("POSTGRES_OWNERSHIP_OR_PORTS_MISMATCH")
     psql = [*base, "exec", "-T", "postgres", "psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=sqlstate",
-            "-U", "cleanops_bootstrap", "-d", "cleanops_staging"]
+            "-U", "cleanops_bootstrap", "-d", canonical["databaseName"]]
     version = runner([*psql, "-c", "SHOW server_version_num;"])
     if not version.isdigit() or not 160000 <= int(version) < 170000:
         raise ValueError("PG16_REQUIRED")
     # Artifact creates roles/schemas itself. Never mutate an already installed cluster.
     fresh = runner([*psql, "-c",
-                    "SELECT (NOT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname NOT IN ('public','information_schema')) AND NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public') AND NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname LIKE 'cleanops_%' AND rolname <> 'cleanops_bootstrap'))::int;"])
+                    "SELECT (NOT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname NOT IN ('public','information_schema')) AND NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public') AND NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public') AND NOT EXISTS(SELECT 1 FROM pg_extension WHERE extname<>'plpgsql') AND NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname LIKE 'cleanops_%' AND rolname <> 'cleanops_bootstrap'))::int;"])
     if fresh != "1":
         raise ValueError("EMPTY_CLUSTER_REQUIRED")
-    runner(psql, raw)
+    batch = batch_builder(record)
+    if not isinstance(batch, bytes) or not batch.endswith(raw):
+        raise ValueError("EXACT_SQL14_BATCH_REQUIRED")
+    runner(psql, batch)
     return "EXACT_SQL14_INSTALLED_NO_FIXTURES_OR_RUNTIME_ACTIVATION"
 
 

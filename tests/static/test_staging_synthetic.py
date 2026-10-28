@@ -319,18 +319,38 @@ class Synthetic(unittest.TestCase):
             installed = []
             def run(args, data=None):
                 if "inspect" in args:
-                    return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project": "cleanops360-staging", "com.docker.compose.service": "postgres"}), HostConfig=dict(PortBindings={}))])
+                    return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project": r["STAGING_SYNTHETIC"]["composeProject"], "com.docker.compose.service": "postgres"}), HostConfig=dict(PortBindings={}))])
                 if "ps" in args: return "fixture-owned-container"
                 if "SHOW server_version_num;" in args: return "160013"
                 if "-c" in args: return fresh
                 installed.append(data)
                 return ""
             if expected:
-                install.install(r, True, run)
-                self.assertEqual(installed, [install.SQL.read_bytes()])
+                install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes())
+                self.assertEqual(installed, [b"offline-envelope;\n" + install.SQL.read_bytes()])
             else:
-                with self.assertRaises(ValueError): install.install(r, True, run)
+                with self.assertRaises(ValueError): install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes())
                 self.assertFalse(installed)
+
+    def test_sql_installer_rejects_wrong_project_and_existing_registry(self):
+        r, _ = fixture()
+        r["STAGING_SYNTHETIC"].update(deploymentAuthorized=True, deploymentApprovalReference="TEST_ONLY", sql14FreshInstallAuthorized=True)
+        bad = copy.deepcopy(r); bad["STAGING_SYNTHETIC"]["composeProject"] = "cleanops360-staging"
+        with self.assertRaisesRegex(ValueError, "STAGING_TARGET_MISMATCH"):
+            install.install(bad, True, lambda *_: self.fail("No Docker after target mismatch"))
+        def wrong_owner(args, data=None):
+            if "ps" in args: return "owned-candidate"
+            return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project":"other", "com.docker.compose.service":"postgres"}),HostConfig=dict(PortBindings={}))])
+        with self.assertRaisesRegex(ValueError, "OWNERSHIP"):
+            install.install(r, True, wrong_owner)
+        def occupied(args, data=None):
+            if "ps" in args: return "owned-candidate"
+            if "inspect" in args: return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project":r["STAGING_SYNTHETIC"]["composeProject"], "com.docker.compose.service":"postgres"}),HostConfig=dict(PortBindings={}))])
+            if "SHOW server_version_num;" in args: return "160015"
+            if "-c" in args: return "0"
+            self.fail("No install on occupied cluster")
+        with self.assertRaisesRegex(ValueError, "EMPTY_CLUSTER_REQUIRED"):
+            install.install(r, True, occupied, lambda _: self.fail("Do not render after failed freshness"))
 
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()

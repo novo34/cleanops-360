@@ -44,7 +44,7 @@ def main():
             Path(d).chmod(0o750); password.chmod(0o640)
             args = ["run", "-d", "--network=none", "--cap-drop=ALL", "--security-opt=no-new-privileges",
                     "--label", "cleanops.staging-pg=" + owner,
-                    "--label", "com.docker.compose.project=cleanops360-staging",
+                    "--label", "com.docker.compose.project=" + json.loads((ROOT / "deploy/staging/RESOURCE_RECORD.json").read_text())["STAGING_SYNTHETIC"]["composeProject"],
                     "--label", "com.docker.compose.service=postgres",
                     "-e", "POSTGRES_DB=cleanops_staging", "-e", "POSTGRES_USER=cleanops_bootstrap",
                     "-e", "POSTGRES_PASSWORD_FILE=/run/secrets/password",
