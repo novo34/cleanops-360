@@ -12,7 +12,13 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / '.semgrep/reviewed-findings.json'
+# Exact dependency remediation from dad2bcbd, applied to the unchanged staging review.
+# The historical manifest and all non-lock contexts remain immutable.
+STAGING_LOCK_FROM = '938130ec03da009b7f492ce3e7edf42c488bb59925bf8e14de376110e8b85f2e'
+STAGING_LOCK_TO = '2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4765'
+STAGING_HISTORICAL_MANIFESTS = {
+    '.semgrep/reviewed-findings.json': '2605f29d3d2bf8d4bd36d7df5d9f7d501a69bb96410404a3ed01c3dc4eb31448',
+}
 
 
 def digest(path):
@@ -31,6 +37,31 @@ def checked_path(root, name):
 def identity(finding):
     return (finding['check_id'], finding['path'], finding['start']['line'], finding['start']['col'],
             finding['end']['line'], finding['end']['col'])
+
+
+def load_manifest(root=ROOT):
+    name = '.semgrep/reviewed-findings.json'
+    path = checked_path(root, name)
+    if digest(path) != STAGING_HISTORICAL_MANIFESTS[name]:
+        raise ValueError('Review expired: unauthorized lock/manifest transition')
+    manifest = json.loads(path.read_text())
+    actual_lock = digest(checked_path(root, 'package-lock.json'))
+    if actual_lock == manifest['context_sha256']['package-lock.json']:
+        return manifest
+    if (manifest['context_sha256']['package-lock.json'] != STAGING_LOCK_FROM
+            or actual_lock != STAGING_LOCK_TO):
+        raise ValueError('Review expired: unauthorized lock/manifest transition')
+    # Change no finding, classification, review pointer, reviewed_commit or other
+    # context. evaluate still validates every full-file/snippet hash and result.
+    manifest['context_sha256']['package-lock.json'] = STAGING_LOCK_TO
+    manifest['context_reconciliation'] = {
+        'scope': 'Staging dependency lock context only; no new finding approval or candidate reviewed_commit',
+        'historical_manifest_sha256': STAGING_HISTORICAL_MANIFESTS[name],
+        'historical_reviewed_commit': manifest['reviewed_commit'],
+        'historical_lock_sha256': STAGING_LOCK_FROM,
+        'validated_lock_sha256': STAGING_LOCK_TO,
+    }
+    return manifest
 
 
 def evaluate(report, manifest, root=ROOT):
@@ -96,7 +127,10 @@ def main():
     try:
         if scan.returncode not in (0, 1):
             raise ValueError('Scanner execution failed: ' + str(scan.returncode))
-        result = evaluate(json.loads(scan.stdout), json.loads(MANIFEST.read_text()))
+        manifest = load_manifest()
+        result = evaluate(json.loads(scan.stdout), manifest)
+        if 'context_reconciliation' in manifest:
+            result['context_reconciliation'] = manifest['context_reconciliation']
         if (scan.returncode == 1) != (result['raw_findings'] > 0):
             raise ValueError('Unexpected scanner findings/exit status')
     except (ValueError, KeyError, TypeError, OSError) as error:

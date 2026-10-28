@@ -99,8 +99,30 @@ class ReviewGuardTests(unittest.TestCase):
         self.manifest['context_sha256']['../escape.ts']='0'*64
         with self.assertRaises(ValueError):self.run_guard()
 
+    def test_lock_transition_is_exact_and_preserves_historical_findings(self):
+        original = json.loads((ROOT / '.semgrep/reviewed-findings.json').read_text())
+        current = guard.load_manifest()
+        self.assertEqual(current['findings'], original['findings'])
+        self.assertEqual(current['reviewed_commit'], original['reviewed_commit'])
+        self.assertEqual(current['context_sha256']['package-lock.json'], guard.STAGING_LOCK_TO)
+        current['context_sha256']['package-lock.json'] = guard.STAGING_LOCK_FROM
+        current.pop('context_reconciliation')
+        self.assertEqual(current, original)
+
+    def test_lock_transition_rejects_unapproved_lock_and_manifest(self):
+        root = Path(self.temp.name) / 'transition'; (root / '.semgrep').mkdir(parents=True)
+        original = (ROOT / '.semgrep/reviewed-findings.json').read_bytes()
+        manifest = root / '.semgrep/reviewed-findings.json'; manifest.write_bytes(original)
+        (root / 'package-lock.json').write_text('unapproved lock')
+        with self.assertRaisesRegex(ValueError, 'unauthorized lock/manifest transition'):
+            guard.load_manifest(root)
+        (root / 'package-lock.json').write_bytes((ROOT / 'package-lock.json').read_bytes())
+        manifest.write_bytes(original + b' ')
+        with self.assertRaisesRegex(ValueError, 'unauthorized lock/manifest transition'):
+            guard.load_manifest(root)
+
     def test_real_registry_has_exactly_the_seventeen_reviewed_exceptions(self):
-        registry=json.loads((ROOT/'.semgrep/reviewed-findings.json').read_text())
+        registry=guard.load_manifest()
         self.assertEqual(len(registry['findings']),17)
         self.assertEqual(len({guard.identity(row) for row in registry['findings']}),17)
         self.assertTrue(all(row['classification']=='confirmed_false_positive' for row in registry['findings']))
