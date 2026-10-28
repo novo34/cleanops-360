@@ -159,7 +159,7 @@ class Synthetic(unittest.TestCase):
                        CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
                        CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
             result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
-                                     "deploy/staging/compose.openbao.yaml", "-f", "deploy/staging/compose.ingress.yaml",
+                                     "deploy/staging/compose.ingress.yaml",
                                      "--profile", "synthetic-custody", "config", "--format", "json"],
                                     cwd=ROOT, env=env, capture_output=True, text=True, check=True)
             config = json.loads(result.stdout)
@@ -179,3 +179,4 @@ class Synthetic(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

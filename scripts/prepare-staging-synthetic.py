@@ -81,7 +81,7 @@ def render(record, inputs):
 
 
 def consolidated_compose(prebuilt=False, ingress=False):
-    files = ["compose.yaml", "compose.openbao.yaml"]
+    files = ["compose.yaml"]  # Canonical path includes compose.openbao.yaml.
     if ingress: files.append("compose.ingress.yaml")
     if prebuilt: files.append("compose.prebuilt.yaml")
     command = ["docker", "compose"]
@@ -137,3 +137,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError):
         raise SystemExit("STAGING_PREPARATION_REJECTED: no runtime operation attempted")
+

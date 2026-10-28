@@ -1,0 +1,8 @@
+{
+  "environment": "staging-synthetic",
+  "api_dns": "openbao",
+  "private_ipv4": "172.30.60.10",
+  "node_id": "openbao-staging-01",
+  "token_ttl_seconds": null,
+  "token_max_ttl_seconds": null
+}
