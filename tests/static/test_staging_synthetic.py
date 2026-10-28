@@ -41,6 +41,13 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def setUp(self):
+        self.private = tempfile.TemporaryDirectory(prefix="migration-env-offline-")
+        self.addCleanup(self.private.cleanup)
+        self.compose_env = Path(self.private.name) / "staging.env"
+        self.compose_env.write_text("COMPOSE_OFFLINE_FIXTURE_ONLY=yes\n")
+        self.compose_env.chmod(0o600)
+
     def test_push_preflight_uses_its_actual_fixture_and_preserves_required_inputs(self):
         workflow = (ROOT / ".github/workflows/staging-preflight.yml").read_text()
         def run_block(name):
@@ -326,10 +333,10 @@ class Synthetic(unittest.TestCase):
                 installed.append(data)
                 return ""
             if expected:
-                install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes())
+                install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes(), compose_env_file=self.compose_env)
                 self.assertEqual(installed, [b"offline-envelope;\n" + install.SQL.read_bytes()])
             else:
-                with self.assertRaises(ValueError): install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes())
+                with self.assertRaises(ValueError): install.install(r, True, run, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes(), compose_env_file=self.compose_env)
                 self.assertFalse(installed)
 
     def test_sql_installer_rejects_wrong_project_and_existing_registry(self):
@@ -342,7 +349,7 @@ class Synthetic(unittest.TestCase):
             if "ps" in args: return "owned-candidate"
             return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project":"other", "com.docker.compose.service":"postgres"}),HostConfig=dict(PortBindings={}))])
         with self.assertRaisesRegex(ValueError, "OWNERSHIP"):
-            install.install(r, True, wrong_owner)
+            install.install(r, True, wrong_owner, compose_env_file=self.compose_env)
         def occupied(args, data=None):
             if "ps" in args: return "owned-candidate"
             if "inspect" in args: return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project":r["STAGING_SYNTHETIC"]["composeProject"], "com.docker.compose.service":"postgres"}),HostConfig=dict(PortBindings={}))])
@@ -350,7 +357,51 @@ class Synthetic(unittest.TestCase):
             if "-c" in args: return "0"
             self.fail("No install on occupied cluster")
         with self.assertRaisesRegex(ValueError, "EMPTY_CLUSTER_REQUIRED"):
-            install.install(r, True, occupied, lambda _: self.fail("Do not render after failed freshness"))
+            install.install(r, True, occupied, lambda _: self.fail("Do not render after failed freshness"), compose_env_file=self.compose_env)
+
+    def test_sql_installer_propagates_private_compose_env_without_reading_values(self):
+        from unittest.mock import patch
+        r, _ = fixture()
+        r["STAGING_SYNTHETIC"].update(deploymentAuthorized=True, deploymentApprovalReference="OFFLINE_ONLY", sql14FreshInstallAuthorized=True)
+        calls = []
+        def runner(args, data=None):
+            calls.append(args)
+            if args[0] == "compose":
+                self.assertEqual(args.count("--env-file"), 1)
+                self.assertEqual(args[args.index("--env-file")+1], str(self.compose_env))
+                self.assertEqual(args[args.index("-p")+1], "cleanops360-f4fxmd")
+            if "ps" in args: return "owned-offline-container"
+            if "inspect" in args: return json.dumps([dict(Config=dict(Labels={"com.docker.compose.project":"cleanops360-f4fxmd", "com.docker.compose.service":"postgres"}), HostConfig=dict(PortBindings={}))])
+            if "SHOW server_version_num;" in args: return "160015"
+            return "1"
+        original = Path.open
+        def read(path, *args, **kwargs):
+            self.assertNotEqual(path, self.compose_env, "Installer must not open secret values")
+            return original(path, *args, **kwargs)
+        with patch.object(Path, "open", read):
+            install.install(r, True, runner, lambda _: b"offline-envelope;\n" + install.SQL.read_bytes(), compose_env_file=self.compose_env)
+        self.assertEqual(sum(args[0] == "compose" for args in calls), 4)
+
+    def test_sql_installer_rejects_missing_relative_checkout_or_symlink_env_before_docker(self):
+        r, _ = fixture()
+        r["STAGING_SYNTHETIC"].update(deploymentAuthorized=True, deploymentApprovalReference="OFFLINE_ONLY", sql14FreshInstallAuthorized=True)
+        link = Path(self.private.name) / "link.env"; link.symlink_to(self.compose_env)
+        for path in [None, Path("staging.env"), Path(self.private.name)/"missing", ROOT/"package.json", link]:
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "PRIVATE_COMPOSE_ENV_FILE_REQUIRED"):
+                install.install(r, True, lambda *_: self.fail("No Docker before env validation"), compose_env_file=path)
+        # Verify-only does not require a deployment file or inspect it.
+        self.assertEqual(install.install(r), "VERIFIED_ONLY_NOT_INSTALLED")
+
+    def test_native_migration_harness_discards_operational_connection_hints(self):
+        from unittest.mock import patch
+        with patch("subprocess.run", side_effect=AssertionError("No native execution on import")):
+            native = module("native_migration_packaging_review", "scripts/test-staging-postgres.py")
+            values = {k: "operational-fixture-not-a-credential" for k in ["DATABASE_URL", "CLEANOPS_TEST_DATABASE_URL", "PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGPASSFILE", "PGSSLMODE", "PGOPTIONS", "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]}
+            values["PATH"] = "/offline-fixture/bin"
+            isolated = native.isolated_environment(values)
+        self.assertEqual(isolated, {"PATH": "/offline-fixture/bin"})
+        self.assertIn("host: socket", native.NATIVE_MIGRATION_CHECKS)
+        self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()

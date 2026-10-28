@@ -12,7 +12,7 @@ SQL = ROOT / "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"
 SHA = "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
 
 
-def install(record, apply=False, runner=None, batch_builder=None):
+def install(record, apply=False, runner=None, batch_builder=None, compose_env_file=None):
     raw = SQL.read_bytes()
     if hashlib.sha256(raw).hexdigest() != SHA:
         raise ValueError("SQL14_HASH_MISMATCH")
@@ -30,6 +30,14 @@ def install(record, apply=False, runner=None, batch_builder=None):
         or s.get("composePath") != canonical["composePath"]
         or s.get("databaseName") != canonical["databaseName"]):
         raise ValueError("STAGING_TARGET_MISMATCH")
+    if compose_env_file is None:
+        raise ValueError("PRIVATE_COMPOSE_ENV_FILE_REQUIRED")
+    compose_env_file = Path(compose_env_file)
+    if (not compose_env_file.is_absolute() or compose_env_file.is_symlink()
+        or not compose_env_file.is_file()
+        or compose_env_file.resolve().is_relative_to(ROOT.resolve())):
+        raise ValueError("PRIVATE_COMPOSE_ENV_FILE_REQUIRED")
+    # Only pass the external path to Compose; never read, copy or print its values.
     if batch_builder is None:
         def batch_builder(value):
             # Reuse the canonical migration runner's OFFLINE formatter/journal.
@@ -50,7 +58,7 @@ def install(record, apply=False, runner=None, batch_builder=None):
             if result.returncode:
                 raise ValueError("REDACTED_OWNED_PG_OPERATION_FAILED")
             return result.stdout.decode().strip()
-    base = ["compose", "-p", canonical["composeProject"], "-f", str(ROOT / canonical["composePath"])]
+    base = ["compose", "-p", canonical["composeProject"], "--env-file", str(compose_env_file), "-f", str(ROOT / canonical["composePath"])]
     cid = runner([*base, "ps", "-q", "postgres"])
     if not cid or len(cid.splitlines()) != 1:
         raise ValueError("ONE_OWNED_POSTGRES_REQUIRED")
@@ -81,8 +89,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--record", type=Path, default=ROOT / "deploy/staging/RESOURCE_RECORD.json")
     p.add_argument("--apply", action="store_true")
+    p.add_argument("--compose-env-file", type=Path, help="Absolute private Compose env file outside checkout; required with --apply")
     a = p.parse_args()
     try:
-        print(install(json.loads(a.record.read_text()), a.apply))
+        print(install(json.loads(a.record.read_text()), a.apply, compose_env_file=a.compose_env_file))
     except (ValueError, KeyError, OSError, subprocess.SubprocessError):
         raise SystemExit("SQL14_OPERATION_REJECTED")

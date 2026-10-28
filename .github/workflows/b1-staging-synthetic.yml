@@ -24,6 +24,9 @@ jobs:
       # This auth transport correction has no SQL/PG/OpenBao execution authority.
       - if: github.head_ref != 'feat/b1-auth-proxy-origin'
         run: python3 scripts/staging-sql14.py
+      - name: Install locked Node client for the existing native migration harness
+        if: github.head_ref != 'feat/b1-auth-proxy-origin'
+        run: npm ci --ignore-scripts --audit=false --fund=false
       # This auth transport correction has no SQL/PG/OpenBao execution authority.
       - if: github.head_ref != 'feat/b1-auth-proxy-origin'
         run: python3 scripts/test-staging-postgres.py

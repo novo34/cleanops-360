@@ -37,7 +37,7 @@ añadir SQL14 a db:migrate; adoptar un id histórico sin checksum; insertar base
 por separado después de SQL; quitar BEGIN/COMMIT del archivo firmado; inventar
 que el hash prueba qué objetos ya instaló un tercero. Se extienden puntos canónicos.
 
-Diff mínimo (once archivos):
+Diff mínimo actual (doce archivos frente a staging; once en 3d38b78):
 
 - scripts/trusted-migrations.mjs y .d.mts: mismos bytes SQL/hash/no-follow; descriptors
   id/profile/sha/sourceFile; baseline B1 explícita separada. La declaración existente
@@ -46,10 +46,12 @@ Diff mínimo (once archivos):
   pendiente/aplicada y formatter B1. Nuevo migrate-postgres.d.mts: solo tipos para
   consumidores TS/tests con allowJs=false; no otra implementación. Dueño ingeniería.
 - scripts/staging-sql14.py: identidad canónica, base, frescura y envelope del runner
-  existente; conserva hash y autorizaciones. scripts/test-staging-postgres.py solo
-  alinea su etiqueta simulada con el registro canónico; el nativo NO se ejecuta.
+  existente; conserva hash y autorizaciones. scripts/test-staging-postgres.py conserva el aislamiento existente y prepara
+  siete verificaciones nativas de migraciones; el nativo NO se ejecuta.
 - tests/trusted-migrations.test.ts y tests/static/test_staging_synthetic.py: se
   extienden harness existentes, sin nuevos runners ni mocks productivos.
+- .github/workflows/b1-staging-synthetic.yml: solo prerrequisito npm ci con
+  scripts desactivados bajo el MISMO guard del harness; no cambia triggers/permisos.
 - deploy/staging/RESOURCE_RECORD.json: databaseName y observación atribuida,
   sin permisos de aplicación concedidos. README y este procedimiento/evidencia.
   Este documento es nuevo, dueño mantenedor, consumidor revisión/operador; no runtime.
@@ -167,10 +169,13 @@ npm run db:migrate conserva la llamada y el perfil foundation predeterminados;
 Quality instala la misma 0001 sobre su PG efímero. tests/system-status consulta
 id/applied_at del registro y permanece compatible con las columnas añadidas.
 La extensión de tests/trusted-migrations mantiene las seis pruebas de archivos
-(incluidos symlinks/hash/no discovery). El smoke PG existente recibe solo el
-cambio de etiqueta de proyecto para no fallar ownership cuando llegue autorización.
+(incluidos symlinks/hash/no discovery). El harness PG existente se amplía con siete comprobaciones nativas preparadas,
+sin ejecutarlas; conserva aislamiento y limpieza por ownership.
 
-No se modifica ningún trigger, guard, permiso ni workflow. No se abre PR: Quality
+No se modifica ningún trigger, guard ni permiso. El workflow existente añade
+únicamente npm ci --ignore-scripts --audit=false --fund=false bajo el guard nativo
+que ya tenía el job: el nuevo cliente pg necesita las dependencias del lock.
+Esta definición NO se ejecutó ni se instaló nada en esta corrección. No se abre PR: Quality
 arrancaría PostgreSQL y esta tarea no lo autoriza. Tampoco push staging: futuros
 cambios deploy/staging activan staging-preflight por sus paths y pueden construir
 imágenes. Publicación solo en rama nueva; revisión independiente antes de cualquier
@@ -197,7 +202,7 @@ git status --short
 node --version
 sha256sum db/migrations/0001_system_status.sql docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
 node scripts/migrate-postgres.mjs --offline-plan --profile=b1
-python3 scripts/staging-sql14.py --record /private/migrations-01-approved.json
+python3 scripts/staging-sql14.py --record /private/migrations-01-approved.json --compose-env-file /etc/cleanops360-staging/staging.env
 ```
 
 Preparar fuera de Git /private/migrations-01-approved.json desde RESOURCE_RECORD
@@ -215,7 +220,7 @@ password en argv/log ni usar este permiso para conectar desde otro entorno):
 # Estas consultas de plan requieren autorización de lectura, no se ejecutaron aquí.
 node scripts/migrate-postgres.mjs --plan --profile=b1
 # SOLO tras autorización de instalación, PG16 validado y base aún vacía:
-python3 scripts/staging-sql14.py --record /private/migrations-01-approved.json --apply
+python3 scripts/staging-sql14.py --record /private/migrations-01-approved.json --compose-env-file /etc/cleanops360-staging/staging.env --apply
 # Verificar registro b1_sql14, hash, applied_by/at, source_file/commit/runner:
 node scripts/migrate-postgres.mjs --plan --profile=b1
 ```
@@ -245,7 +250,7 @@ conexión de runtime. NO es suficiente para habilitar login y NO instala CRM/R4.
 
 Resultados finales se completan abajo con los hashes de los archivos publicados.
 
-### PASS finales
+### PASS históricos de 3d38b78
 
 18/18 Vitest en tests/trusted-migrations.test.ts: seis verificaciones de archivos
 y doce casos de protocolo/historial. Se simulan estados/locks/COMMIT en memoria;
@@ -265,8 +270,9 @@ contra fixture de autorización sintético; output no ejecutado, termina con SQL
 byte por byte y contiene una sola copia. El hash de este fixture no autoriza VPS.
 
 Las migraciones 0001 y SQL14 mantienen sus hashes; runtime/Compose/Dockerfile/health,
-package/lock, workflows, R4/AUD-031 y CRM permanecen idénticos a staging. El script
-nativo se inspeccionó y alineó su etiqueta; NO se ejecutó. Se reutilizaron solo
+package/lock, R4/AUD-031 y CRM permanecen idénticos a staging. En 3d38b78 los
+workflows también eran idénticos; la corrección actual añade únicamente el
+prerrequisito guardado documentado abajo. El script nativo NO se ejecutó. Se reutilizaron solo
 dependencias locales ya disponibles, sin npm ci/build en esta rama.
 
 Comandos ejecutados de prueba, SIN DB:
@@ -310,17 +316,78 @@ f902b10df4559725946d54c37b3c39992a3b94b9cbb6a211811d01b77e79f7d3  scripts/truste
 
 a44e8bbff7869cbdb8f8bbd234d886ab88b9e6675868d2588ee3d8b7b0daaa95  scripts/migrate-postgres.d.mts
 
-1596a45e5458142526e7c6ab20214f266647f5afb0dbdd3116a26e73a91f7709  scripts/staging-sql14.py
+0fdf53a007a8231c38d621752bc1f1e9ed18fa9cddf72faf79d7ab903d7ce623  scripts/staging-sql14.py
 
-d184b2e5eda35ca0be70a8c9413be224b35ed5326c2de23076862ac72b1f2f29  scripts/test-staging-postgres.py
+2819f9b8c7d223e47fa9305d8e2df3861e19f5b4a6c28f7b1f0164acaf77ed86  scripts/test-staging-postgres.py
 
 e8ba8434f7775f2b8f10444b2142b4cf3a1deef2860f8a3bf82360482df68034  tests/trusted-migrations.test.ts
 
-94643c9db4340fbcb95fe56ee53bc5fbf01901bf48a96fd7cf0e0d3241bcdf53  tests/static/test_staging_synthetic.py
+070a87391bb879801dd2d56badef2c21f4fd9af38a470a459249990460846214  tests/static/test_staging_synthetic.py
 
 c933d60121ee8ceb20a45f0c062b0ab7c64c1268866d42051a9edaf1a041213b  deploy/staging/RESOURCE_RECORD.json
 
-41f0faa11d9a609a7e64ce043b293d0c75c93e847ae9e52b0b0c72d08c8f22fd  deploy/staging/README.md
+971e9a812a5869a5de76a2f43c6bb1a06963f54eee97a2fe259acfd81aaa024c  deploy/staging/README.md
+
+a26ea6d1b2b1825568b9d212585f4d08c1e4edacd2cf10ac0ffaca736fc2d9af  .github/workflows/b1-staging-synthetic.yml
 
 Fixture offline de envelope (NO permiso de aplicar): daf4bfd1ed9c6ed035ec42e62a4cf1a2125251ec97809e7619eaf81ce361614d.
 Este procedimiento se excluye de sus propios hashes.
+
+## Corrección sobre 3d38b78 — env privado y harness nativo preparado
+
+Entrada explícita: staging-sql14.py --compose-env-file. Para --apply es obligatoria,
+absoluta, archivo regular no symlink y fuera del checkout; no hay fallback a .env.
+En VPS la ruta comunicada es /etc/cleanops360-staging/staging.env. Python solo
+comprueba metadatos de la ruta: no abre/lee/copia sus valores ni los imprime.
+Cada invocación Compose (ps y todos los exec psql) recibe el mismo --env-file.
+Inspect sigue siendo Docker inspect, sin lectura dotenv. Verify-only no necesita
+el archivo. Proyecto/base canónicos, labels/ports, hash, frescura y autorizaciones
+continúan intactos y se rechazan antes de instalación las discrepancias.
+
+El harness nativo existente se amplía, pero NO se ejecuta aquí. Conserva un solo
+contenedor propiedad del harness, network=none, sin puertos, volumen único con
+label/limpieza comprobados y fixture fuera del checkout. Añade socket Unix temporal
+compartido únicamente con ese contenedor; verifica mount/owner/aislamiento antes
+de usarlo. El cliente pg fija host socket, puerto, usuario, password de fixture,
+database, ssl=false y options vacío; no hay connectionString ni destino TCP. Se
+eliminan DATABASE_URL/CLEANOPS_TEST_DATABASE_URL, PGHOST/PGPORT/PGUSER/PGPASSWORD/
+PGDATABASE/PGSERVICE/PGSERVICEFILE/PGPASSFILE/PGSSLMODE/PGOPTIONS heredados y los
+hints Docker ya excluidos. El instalador usa un env sintético, nunca el archivo VPS.
+El adaptador Docker del harness conserva selección por CID propio, no busca PG del
+VPS. Cuatro bases de prueba nacen dentro del mismo contenedor aislado, no en el
+servidor operativo; pools se cierran y todo desaparece con su volumen propio.
+
+Siete verificaciones NATIVAS preparadas, todas SKIP en esta intervención:
+
+1. Baseline b1_sql14 e historial con checksum, perfil, source_file, source_commit,
+   runner_sha256, aprobación CI, applied_by/at y columnas finales NOT NULL.
+2. Plan foundation ausente deja public._migrations ausente.
+3. Primera foundation y segunda sin reenviar el SQL, sin cambiar OID/historial.
+4. Checksum alterado e ID inesperado rechazados sin corregirlos automáticamente.
+5. Registro legacy de dos columnas rechazado, sin adopción/upgrade.
+6. Dos conexiones REALES: primer runner pausado después de adquirir el advisory
+   lock real; segundo devuelve MIGRATION_BUSY antes de DDL, y luego solo un apply.
+7. Migración histórica EXACTA ejecutada en PG de prueba, seguida de división por
+   cero en ESA conexión/transacción; comprobar desaparición conjunta de efectos
+   y registro tras ROLLBACK, sin editar bytes ni allowlist de la migración.
+
+El workflow existente añade solo preparación de dependencias del lock para este
+cliente, con scripts desactivados y el mismo guard previo. Sin npm ci en el VPS ni
+en este turno. Se comprueba import pg antes de crear recursos nativos; fallo de
+prerrequisito no intenta limpiar un volumen inexistente. Nada de esta preparación
+prueba que estos casos ya pasen con PostgreSQL; necesita autorización nativa nueva.
+
+PASS actuales: 25/25 tests offline de test_staging_synthetic.py, incluidos tres
+regresiones nuevas de env/transporte. Una bloquea Path.open para el dotenv y revisa
+las cuatro invocaciones Compose; otra rechaza ruta ausente/relativa/interna/symlink
+antes de Docker y conserva verify-only; la tercera importa el harness con procesos
+bloqueados y prueba eliminación de hints operativos. Python compile y Node --check
+--input-type=module del bloque JS embebido: PASS; este check no ejecuta ni importa
+el módulo ni abre conexiones. Workflow comparado byte por byte salvo tres líneas
+de prerrequisito: triggers, permisos y todos los guards anteriores conservados.
+
+Los 18 Vitest y 16 Semgrep anteriores son evidencia histórica de 3d38b78, no se
+repitieron porque el runner/migraciones no cambiaron. Sin FAIL final en las pruebas
+de esta corrección. SKIP explícito: native main, PostgreSQL/SQL/servicios, CI con DB,
+instalación, build, merge/despliegue y conexión al VPS. Rama y candidato de custodia
+se conservan separados; no se abre PR ni se relanzan workflows.

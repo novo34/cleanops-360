@@ -190,3 +190,8 @@ del runner canónico migrate-postgres.mjs. Plan b1 de solo lectura no crea tabla
 ni paso suficiente para login. No ejecutar db:migrate foundation en la base B1.
 Las inspecciones comunicadas del 28/10/2026 indican base vacía y registro ausente;
 se revalidan al aplicar autorizado. Esta preparación no ejecuta SQL/servicios/CI.
+
+El --apply de staging-sql14.py requiere --compose-env-file con ruta absoluta
+privada fuera del checkout; en el VPS: /etc/cleanops360-staging/staging.env.
+No copiar ni imprimir sus valores. El harness de MIGRATIONS-01 prepara pruebas
+reales por socket de un PG efímero propio; esas pruebas no se han ejecutado.
