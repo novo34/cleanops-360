@@ -68,6 +68,7 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
   let durable = { registry: false, rows: [] as Entry[], effects: 0 }
   let locked: symbol | null = null
   const calls: string[] = [], releases: boolean[] = []
+  const freshnessCalls: { sql: string; values: unknown[] }[] = []
   const connect = vi.fn(async () => {
     const owner = Symbol(); let tx = structuredClone(durable)
     return {
@@ -83,7 +84,10 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
         if (sql.includes("pg_catalog.pg_attribute")) return { rows: (options.legacy ? expectedColumns.slice(0, 2) : expectedColumns).map(([name, type]) => ({ name, type, required: true })) }
         if (sql.includes("AS safe")) return { rows: [{ safe: true }] }
         if (sql.startsWith("SELECT id, checksum")) return { rows: structuredClone(tx.rows) }
-        if (sql.endsWith("AS fresh")) return { rows: [{ fresh: !options.occupied && tx.effects === 0 }] }
+        if (sql.endsWith("AS fresh")) {
+          freshnessCalls.push({ sql, values })
+          return { rows: [{ fresh: !options.occupied && tx.effects === 0 }] }
+        }
         if (sql.startsWith("CREATE TABLE public._migrations")) { tx.registry = true; return { rows: [] } }
         if (sql.startsWith("INSERT INTO public._migrations")) {
           const [id, checksum, profile, source_file, source_commit, runner_sha256, approval_reference] = values as string[]
@@ -108,7 +112,7 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
       release(discard = false) { releases.push(discard) },
     }
   })
-  return { connect, calls, releases, state: () => durable, seed(rows: Entry[]) { durable.registry = true; durable.rows = rows }, registry() { durable.registry = true } }
+  return { connect, calls, releases, freshnessCalls, state: () => durable, seed(rows: Entry[]) { durable.registry = true; durable.rows = rows }, registry() { durable.registry = true } }
 }
 async function appliedEntry(): Promise<Entry> {
   const [migration] = await loadTrustedMigrations()
@@ -116,6 +120,17 @@ async function appliedEntry(): Promise<Entry> {
 }
 
 describe("migration journal protocol (offline simulation)", () => {
+  it("uses identical static freshness SQL with a bound role guard for each profile", async () => {
+    const foundation = database(), b1 = database()
+    await runMigrations({ connect: foundation.connect, mode: "plan" })
+    await runMigrations({ connect: b1.connect, mode: "plan", profile: "b1" })
+    expect(foundation.freshnessCalls).toHaveLength(1)
+    expect(b1.freshnessCalls).toHaveLength(1)
+    expect(foundation.freshnessCalls[0].sql).toBe(b1.freshnessCalls[0].sql)
+    expect(foundation.freshnessCalls[0].sql).toContain("NOT $1::boolean OR NOT EXISTS")
+    expect(foundation.freshnessCalls[0].values).toEqual([false])
+    expect(b1.freshnessCalls[0].values).toEqual([true])
+  })
   it("plans an absent registry without DDL, writes or creating history", async () => {
     const db = database()
     const plan = await runMigrations({ connect: db.connect, mode: "plan" })

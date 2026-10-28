@@ -392,6 +392,34 @@ class Synthetic(unittest.TestCase):
         # Verify-only does not require a deployment file or inspect it.
         self.assertEqual(install.install(r), "VERIFIED_ONLY_NOT_INSTALLED")
 
+    def test_migration_offline_clis_never_resolve_pg_or_require_a_dsn(self):
+        hook = Path(self.private.name) / "deny-pg.mjs"
+        hook.write_text("""import { registerHooks } from 'node:module';
+registerHooks({ resolve(specifier, context, next) {
+  if (specifier === 'pg') throw Error('PG_MUST_NOT_BE_RESOLVED_OFFLINE');
+  return next(specifier, context);
+} });
+""")
+        env = {k: v for k, v in os.environ.items() if not k.startswith("PG") and not k.endswith("DATABASE_URL")}
+        def run(*args, data=None):
+            return subprocess.run(["node", "--import", str(hook), str(ROOT / "scripts/migrate-postgres.mjs"), *args],
+                                  input=data, text=True, capture_output=True, env=env, check=False)
+        for profile in ["foundation", "b1"]:
+            result = run("--offline-plan", "--profile=" + profile)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["registry"], "UNKNOWN_NOT_CONNECTED")
+        record, _ = fixture()
+        record["STAGING_SYNTHETIC"].update(deploymentAuthorized=True, sql14FreshInstallAuthorized=True,
+                                         deploymentApprovalReference="OFFLINE_ONLY")
+        result = run("--emit-sql14-batch", data=json.dumps(record))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.encode().endswith(install.SQL.read_bytes()))
+        self.assertNotIn("$1::boolean", result.stdout)
+        self.assertIn("NOT TRUE OR NOT EXISTS", result.stdout)
+        online = run("--plan")
+        self.assertEqual(online.returncode, 1)
+        self.assertEqual(online.stderr.strip(), "MIGRATION_DATABASE_URL_REQUIRED")
+
     def test_native_migration_harness_discards_operational_connection_hints(self):
         from unittest.mock import patch
         with patch("subprocess.run", side_effect=AssertionError("No native execution on import")):

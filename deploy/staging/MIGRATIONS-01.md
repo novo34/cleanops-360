@@ -312,7 +312,7 @@ f902b10df4559725946d54c37b3c39992a3b94b9cbb6a211811d01b77e79f7d3  scripts/truste
 
 2a7a4326ae44d71cb9174024a69df49b95a859491ffb0cf590ffdcd88685f37b  scripts/trusted-migrations.d.mts
 
-14b290c467a08e872e28f66a601b125f2e694f1ba839824b1530d2faf3a850bb  scripts/migrate-postgres.mjs
+44de8833a23f0ce75d81e8155d44b328f46cde681f2dac3d602a9844535fa125  scripts/migrate-postgres.mjs
 
 a44e8bbff7869cbdb8f8bbd234d886ab88b9e6675868d2588ee3d8b7b0daaa95  scripts/migrate-postgres.d.mts
 
@@ -320,9 +320,9 @@ a44e8bbff7869cbdb8f8bbd234d886ab88b9e6675868d2588ee3d8b7b0daaa95  scripts/migrat
 
 2819f9b8c7d223e47fa9305d8e2df3861e19f5b4a6c28f7b1f0164acaf77ed86  scripts/test-staging-postgres.py
 
-e8ba8434f7775f2b8f10444b2142b4cf3a1deef2860f8a3bf82360482df68034  tests/trusted-migrations.test.ts
+6af33cee3114d4aca9b57ed929175fffd991c6905accdfd5acc00b021a6b4a65  tests/trusted-migrations.test.ts
 
-070a87391bb879801dd2d56badef2c21f4fd9af38a470a459249990460846214  tests/static/test_staging_synthetic.py
+d7e8a2b655519d7effb6b40e44a08c597aed805b604d04d1460b4a7c6d77fbbf  tests/static/test_staging_synthetic.py
 
 c933d60121ee8ceb20a45f0c062b0ab7c64c1268866d42051a9edaf1a041213b  deploy/staging/RESOURCE_RECORD.json
 
@@ -330,7 +330,7 @@ c933d60121ee8ceb20a45f0c062b0ab7c64c1268866d42051a9edaf1a041213b  deploy/staging
 
 a26ea6d1b2b1825568b9d212585f4d08c1e4edacd2cf10ac0ffaca736fc2d9af  .github/workflows/b1-staging-synthetic.yml
 
-Fixture offline de envelope (NO permiso de aplicar): daf4bfd1ed9c6ed035ec42e62a4cf1a2125251ec97809e7619eaf81ce361614d.
+Fixture histórico offline de envelope de 3d38b78 (NO permiso de aplicar; no es el envelope actual): daf4bfd1ed9c6ed035ec42e62a4cf1a2125251ec97809e7619eaf81ce361614d.
 Este procedimiento se excluye de sus propios hashes.
 
 ## Corrección sobre 3d38b78 — env privado y harness nativo preparado
@@ -377,7 +377,7 @@ en este turno. Se comprueba import pg antes de crear recursos nativos; fallo de
 prerrequisito no intenta limpiar un volumen inexistente. Nada de esta preparación
 prueba que estos casos ya pasen con PostgreSQL; necesita autorización nativa nueva.
 
-PASS actuales: 25/25 tests offline de test_staging_synthetic.py, incluidos tres
+PASS de la corrección 849279e: 25/25 tests offline de test_staging_synthetic.py, incluidos tres
 regresiones nuevas de env/transporte. Una bloquea Path.open para el dotenv y revisa
 las cuatro invocaciones Compose; otra rechaza ruta ausente/relativa/interna/symlink
 antes de Docker y conserva verify-only; la tercera importa el harness con procesos
@@ -391,3 +391,93 @@ repitieron porque el runner/migraciones no cambiaron. Sin FAIL final en las prue
 de esta corrección. SKIP explícito: native main, PostgreSQL/SQL/servicios, CI con DB,
 instalación, build, merge/despliegue y conexión al VPS. Rama y candidato de custodia
 se conservan separados; no se abre PR ni se relanzan workflows.
+
+
+## Corrección Semgrep de PR #30 sobre 849279e
+
+### QG-0 e inventario de reutilización
+
+Objetivo: eliminar los dos findings nuevos en migrate-postgres.mjs conservando
+el único runner, la verificación previa de hashes y las salidas offline. Flujo:
+CLI → artifacts → runMigrations → connect diferido; staging-sql14 continúa usando
+sql14InstallBatch del mismo módulo. Inspeccionados runner, contrato .d.mts,
+trusted-migrations, sus pruebas Vitest, harness estático y workflow Quality con
+check-semgrep-reviewed.py. Decisión: corregir/extend en origen, sin otro runner,
+sin reglas/exclusiones/manifiesto nuevo ni suppressions. Diff de esta corrección:
+runner, sus dos suites existentes y este procedimiento; sin archivos nuevos.
+Riesgos: conservar control de roles adicional B1, evitar cargar pg en offline y
+no atribuir al nuevo SQL generado una prueba nativa del SHA anterior. Reversión:
+revertir este commit de preparación; ninguna base o servicio se ha modificado.
+
+freshnessQuery es un literal SQL estático completo. runMigrations lo envía sin
+concatenación/interpolación, con [profile === "b1"] ligado a $1::boolean. El único
+predicado de roles se exige cuando ese booleano es true; los demás predicados
+se mantienen para ambos perfiles. sql14InstallBatch reutiliza esa misma consulta
+como subconsulta escalar, sustituyendo exclusivamente el placeholder fijo por
+TRUE para su guard B1 offline (no existe protocolo bind en el envelope psql).
+No se duplica el guard ni se interpola SQL de perfiles en una variable intermedia.
+El envelope cambia y necesita validación nativa posterior del nuevo SHA; los bytes
+de SQL14 y SQL0001 no cambian.
+
+La carga diferida usa createRequire(import.meta.url) y require("pg") literal,
+después del rechazo por DSN ausente y solo dentro de connect. El import estático
+de node:module es builtin. No hay import dinámico, fallback o nueva dependencia.
+La regresión CLI usa registerHooks para rechazar cualquier resolución de pg y
+elimina variables PG*/DATABASE_URL: foundation/b1 --offline-plan y
+--emit-sql14-batch funcionan sin resolver pg ni conectar. --plan sin DSN rechaza
+antes de cargar pg. La regresión del protocolo comprueba texto idéntico entre
+perfiles y valores ligados [false]/[true]; es simulación, no ejecución SQL.
+
+### Evidencia actual sin PostgreSQL
+
+PASS: 19/19 Vitest (tests/trusted-migrations.test.ts), 26/26 unittest staging
+estáticos y 16/16 unittest del guard Semgrep. Los 26 estáticos se verificaron
+también sin node_modules en el checkout. Lint completo eslint .: exit0, con un
+warning heredado de useEffect en components/auth-panel.tsx:66. Lint del runner/test y typecheck
+completo --noEmit --incremental false: exit0. Scan REAL Semgrep 1.177.0, igual al
+pin de Quality, mediante scripts/check-semgrep-reviewed.py: PASS, 17 findings
+históricos revisados, unreviewed_findings=[], rules_disabled=[], suppressions
+inline desactivadas. Se mantiene la limitación histórica de parser del worker
+minificado MapLibre. No se tocaron reglas, exclusiones ni manifiesto histórico.
+
+Comandos actuales (sin DB):
+
+```sh
+npx --no-install vitest run tests/trusted-migrations.test.ts
+python -B -m unittest discover -s tests/static -p test_staging_synthetic.py -v
+python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
+npx --no-install eslint .
+npx --no-install eslint scripts/migrate-postgres.mjs tests/trusted-migrations.test.ts
+npx --no-install tsc --noEmit --incremental false
+SEMGREP_SETTINGS_FILE=/tmp/migrations-semgrep-settings.yml SEMGREP_LOG_FILE=/tmp/migrations-semgrep.log python scripts/check-semgrep-reviewed.py
+```
+
+El scanner se instaló solo como herramienta local en /tmp, fuera del checkout;
+las variables SEMGREP_* trasladan settings/log al espacio escribible, sin alterar
+el scan ni sus exclusiones. Se reutilizaron dependencias Node locales disponibles.
+FAIL iniciales de esta intervención: el primer intento del scan no pudo escribir
+settings en el HOME de solo lectura (no fue un scan válido); corregido mediante
+las rutas /tmp anteriores. La primera regresión CLI dentro del worker Vitest no
+obtuvo stdout fiable de subprocesos; se trasladó al harness Python estático ya
+existente, donde ejecuta y comprueba la salida real del CLI. Sin FAIL final en la
+selección ejecutada. No se falsean estos intentos como PASS.
+
+### Evidencia nativa anterior: atribuida, no reejecutada
+
+Consulta de logs existentes, sin relanzar:
+https://github.com/novo34/cleanops-360/actions/runs/40760989792
+job preparation 123072537667, 28/10/2026 20:11:38 UTC. Head del PR:
+849279e1fe913dfd6bb2b86bd32986153ded083c; checkout de CI:
+f55932346cbf49a994b4104e16dfefaf7f6e7a62 (merge temporal sobre staging 6d89888).
+El reporte STAGING_SYNTHETIC_PG_PACKAGING fue PASS con 11 checks, incluidos los
+siete de migraciones y cleanup PASS, hostingerAccessed=false. Acredita baseline
+con procedencia, plan ausente, foundation idempotente, rechazo de historial/checksum,
+registro legacy, exclusión concurrente real y rollback conjunto para ESOS bytes.
+Se conserva igualmente el smoke Bao anterior en ese run, sin atribuirlo a esta
+corrección. Esta evidencia actualiza el SKIP histórico de la preparación local,
+pero NO acredita el nuevo envelope/runner ni se presenta como ejecución nueva.
+
+SKIP actual local: todo PostgreSQL/SQL, harness nativo, servicios, operaciones VPS,
+instalación, build, merge y despliegue. El push al mismo PR #30 puede ejecutar su
+CI aislada ya autorizada; su resultado posterior se atribuirá al SHA que pruebe.
+No se cambian SQL14/SQL0001, custodia, R4, CRM, AUD-031, main ni staging.

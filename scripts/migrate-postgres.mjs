@@ -1,4 +1,5 @@
 import process from "node:process"
+import { createRequire } from "node:module"
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
@@ -27,12 +28,14 @@ const journalDDL = `CREATE TABLE public._migrations (
   applied_at timestamptz NOT NULL DEFAULT clock_timestamp()
 )`
 const sealJournal = "ALTER TABLE public._migrations " + columns.slice(1, 7).map(([name]) => `ALTER COLUMN ${name} SET NOT NULL`).join(", ")
-const freshPredicate = `NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname !~ '^pg_' AND nspname NOT IN ('public','information_schema'))
+const freshnessQuery = `SELECT (NOT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname !~ '^pg_' AND nspname NOT IN ('public','information_schema'))
  AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname<>'_migrations')
  AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public')
- AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname<>'plpgsql')`
-export const freshB1Predicate = `${freshPredicate}
- AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname LIKE 'cleanops_%' AND rolname<>'cleanops_bootstrap')`
+ AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname<>'plpgsql')
+ AND (NOT $1::boolean OR NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname LIKE 'cleanops_%' AND rolname<>'cleanops_bootstrap'))) AS fresh`
+// The offline installer has no bind protocol: specialize only this fixed boolean.
+// Reuse the same static guard as a scalar subquery; never interpolate a profile.
+export const freshB1Predicate = `(${freshnessQuery.replace('$1::boolean', 'TRUE')})`
 
 async function artifacts(profile) {
   if (profile === "foundation") return { queue: await loadTrustedMigrations(), baseline: null }
@@ -101,7 +104,7 @@ export async function runMigrations({ connect, mode = "apply", profile = "founda
     const rows = await history(client)
     const seen = validateHistory(rows, profile, queue, baseline)
     let fresh = null
-    if (!rows?.length) fresh = (await client.query(`SELECT (${profile === "b1" ? freshB1Predicate : freshPredicate}) AS fresh`)).rows[0]?.fresh === true
+    if (!rows?.length) fresh = (await client.query(freshnessQuery, [profile === "b1"])).rows[0]?.fresh === true
     if (fresh === false) fail("UNREGISTERED_OBJECTS_NO_AUTOMATIC_ADOPTION")
     const pending = queue.filter(m => !seen.has(m.id))
     if (mode === "apply") {
@@ -176,7 +179,8 @@ export async function main(argv = process.argv.slice(2)) {
   try {
     const result = await runMigrations({ mode, profile, source, connect: async () => {
       if (!process.env.DATABASE_URL) fail("MIGRATION_DATABASE_URL_REQUIRED")
-      const { default: pg } = await import("pg")
+      const require = createRequire(import.meta.url)
+      const pg = require("pg")
       pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
       return pool.connect()
     } })
