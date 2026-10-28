@@ -2,7 +2,7 @@
 FROM node:24-bookworm-slim AS unpack
 ARG TARGETARCH
 RUN test "$TARGETARCH" = amd64
-ADD --checksum=sha256:0e2f1ce10d124e03112b50dd2fbec6b78003783253bc3a91587938f39d1e2243 https://github.com/openbao/openbao/releases/download/v2.7.1/openbao_2.7.1_linux_amd64.tar.gz /tmp/bao.tar.gz
+ADD --checksum=sha256:582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96 https://github.com/openbao/openbao/releases/download/v2.7.2/openbao_2.7.2_linux_amd64.tar.gz /tmp/bao.tar.gz
 RUN mkdir /unpacked && tar -xzf /tmp/bao.tar.gz -C /unpacked
 
 FROM node:24-bookworm-slim

@@ -9,8 +9,8 @@ Production PR006/PR007/AUTH-GATE-05 requirements remain unchanged.
 ## Real components and current boundary
 
 Base compose.yaml is the existing web + PG16 packaging from staging c85b4987.
-The included, profile-gated compose.openbao.yaml adds native pinned OpenBao2.7.1 on the SAME VPS,
-not a new VM: read-only/non-root image, verified binary checksum, 512MiB/0.5CPU
+The included, profile-gated compose.openbao.yaml adds native pinned OpenBao2.7.2 on the SAME VPS,
+not a new VM: read-only/non-root image, independently verified signed binary checksum, 512MiB/0.5CPU
 trial limits, private mTLS, persistent project-specific Raft and audit volumes.
 These are configurable trial limits, not production sizing or proof of capacity.
 Only amd64 is currently packaged; confirm the VPS architecture before use.
@@ -171,5 +171,12 @@ The default full-stack gate remains 4608 MiB/2000 millicpus. Selective memory is
 2816 MiB including the existing 1536 MiB build reserve. CPU peak is max(500,
 explicit buildMillicpus), build before runtime; unknown build/CPU remains blocked.
 Service limits do not constrain image build. No idle-to-reservation conversion.
-Current evidence and pending build envelope/signature/advisories are detailed in
+Current evidence, completed 2.7.2 signature check and pending build envelope/advisory recheck are detailed in
 openbao/OPENBAO-STAGING-01.md. No build or installation was performed.
+
+The selective capacity scope is evaluation-only: --compose-out, --inputs, --out
+and --include-ingress are rejected before I/O. Whole-stack Compose and general
+workload packages require the default full-stack gate, never selective receipts.
+OpenBao 2.7.2 pin/signature verification and four corrected advisories with scope
+analysis are recorded in openbao/OPENBAO-STAGING-01.md and its CHECKS report.
+A valid signature is not a vulnerability assessment; CPU/build remain BLOCKED.

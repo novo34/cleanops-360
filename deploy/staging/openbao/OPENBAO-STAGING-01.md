@@ -10,7 +10,7 @@ existente. Esta rama no debe configurarse como fuente de Dokploy.
 Objetivo: incorporar únicamente el servidor OpenBao al mismo staging sintético.
 Ruta: Dokploy → deploy/staging/compose.yaml → include compose.openbao.yaml →
 Dockerfile existente → server.json y TLS privados → health existente.
-Se reutilizan overlay, imagen 2.7.1, template, políticas, renderers y pruebas.
+Se reutilizan overlay, imagen 2.7.2, template, políticas, renderers y pruebas.
 El consolidator y su prueba dejan de pasar explícitamente el overlay, ya incluido
 por el entrypoint canónico, evitando importar dos veces los mismos recursos.
 No se crean runners, motores ACL, SQL ni servicios auxiliares. El diff ejecutable principal
@@ -58,7 +58,12 @@ QG-0 de capacidad: reutilizar capacity() y el harness existentes, extender con
 scope explícito; ningún wrapper ni runner nuevo. full-stack sigue por defecto,
 con 4608 MiB, 2000 millicpus y todos sus rechazos previos. Ese presupuesto cubre
 planificación del conjunto, no es el mínimo incremental para añadir Bao sellado
-sin reconstruir/reiniciar web ni PostgreSQL. El selector no autoriza operaciones.
+sin reconstruir/reiniciar web ni PostgreSQL. El selector no autoriza operaciones. El scope selectivo solo evalúa capacidad:
+se rechaza combinarlo con --compose-out, --inputs, --out o --include-ingress,
+incluso argumentos parciales, antes de leer el registro o escribir archivos.
+Generar Compose del stack o paquete general de workloads exige full-stack
+(predeterminado), cuya evaluación queda reflejada en el manifiesto. Un resultado
+selectivo nunca se adjunta a esos artefactos.
 
 Ajuste mínimo propuesto: --capacity-scope openbao-sealed-addition, únicamente
 HOST_BUILD selectivo; MemAvailable ya descuenta web/PG running, no cobrarlos de
@@ -110,7 +115,8 @@ producción, comunicaciones externas ni coste nuevo; principal custodio=propieta
 No reabrir la residencia suiza de producción ni declarar PR006/PR007 satisfechos.
 
 Pendiente para servidor/ceremonia: autorización de instalación, verificación
-independiente de firma/fingerprint y advisories de release 2.7.1; TTL global y
+de advisories vigente antes de aplicar; firma/checksum 2.7.2 comprobados
+en esta revisión con las fuentes y límites descritos abajo; TTL global y
 máximo: la plantilla pública sigue null, no se inspeccionó la configuración
 privada ya verificada por el propietario; responsable y almacenamiento
 offline de CA; custodios adicionales, shares/threshold y procedimiento humano
@@ -292,7 +298,7 @@ docker compose -p cleanops360-f4fxmd --env-file /etc/cleanops360-staging/openbao
 Registrar digest/image ID realmente construido (no inventar digest desde el
 Dockerfile), hashes config/trust, propiedad de volúmenes y ausencia de ports.
 Binario existente amd64 SHA256
-0e2f1ce10d124e03112b50dd2fbec6b78003783253bc3a91587938f39d1e2243;
+582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96;
 base Node está por tag mutable: registrar su digest antes del build y revisar
 el resultado, no afirmar reproducibilidad completa por checksum de Bao.
 
@@ -341,24 +347,69 @@ alternativos ni lee tokens antes de validar. Necesita las variables obligatorias
 existentes en el entorno seguro; un perfil apagado no evita este requisito.
 No se ha ejecutado backup ni se ha cambiado el instalador SQL histórico.
 
-## Firma y advisories: pendientes específicos
+## OpenBao 2.7.2: firma, checksum y aplicabilidad
 
-Metadatos oficiales consultados por GitHub, sin descargar/ejecutar binarios:
-https://github.com/openbao/openbao/releases/tag/v2.7.1 . Hay checksums.txt,
-checksums.txt.gpgsig y firma detached del tarball amd64; también bundles Sigstore.
-El checksum fijado del Dockerfile no autentica al firmante. Pendiente obtener
-fingerprint de mantenedor por canal independiente y validar la firma de
-checksums/tarball con esa confianza (o identidad/issuer/transparencia Sigstore
-según procedimiento oficial); conservar recibo, hash y versión de herramienta.
-Descargar la clave del mismo release sin esa comprobación no completa confianza.
-No se verificó ninguna firma en este encargo.
+Diff mínimo del Dockerfile: únicamente versión en URL y SHA256 del tarball amd64.
+Se conservan Node base, usuario, TLS/config preparada, health, entrypoint, límites,
+mounts y redes. Evidencia runtime anterior 2.7.1 es histórica: no se relabela como
+prueba de 2.7.2. No se ha construido la imagen ni arrancado/instalado el binario.
+La descarga pública para hash no se extrajo ni ejecutó. CPU/build siguen BLOCKED.
 
-Las notas 2.7.1 declaran correcciones GHSA-3237-j65r-m5rp,
-GHSA-q74w-hv5x-6hxf, GHSA-7m59-mp95-w6ph, GHSA-5v22-543h-wg96 y
-GHSA-gf3j-hm38-jhh5. Son fixes declarados, no dictamen de ausencia de advisories
-posteriores ni prueba de que cada uno aplique a este listener sellado. Pendiente
-inventario vigente de advisories, rangos afectados/fixed y análisis para 2.7.1,
-Raft/mTLS/audit y futura AppRole; comprobar soporte del release y vulnerabilidades
-del Node/base OS mutable. La API security-advisories fue rechazada por el conector
-(HTTP400 endpoint no permitido): catálogo actual NO comprobado. Revisar por canal
-oficial soportado antes de instalar. No cambiar versión/checksum sin nueva revisión.
+Verificación independiente realizada en esta revisión, separada de la afirmación
+del propietario: descarga HTTPS de checksums.txt y checksums.txt.gpgsig desde
+https://github.com/openbao/openbao/releases/tag/v2.7.2 ; clave de firma obtenida
+por separado en https://openbao.org/assets/openbao-gpg-pub-20240618.asc .
+Fingerprint contrastado con https://openbao.org/docs/install/#gpg :
+primary 66D15FDD87287219C8E15478D200CD702853E6D0, signing subkey
+E617DCD4065C2AFC0B2CF7A7BA8BC08C0F691F94. La clave web coincide byte a byte
+con el asset del release, pero la confianza se ancla en la documentación HTTPS
+del sitio oficial, no solo en la clave distribuida junto al tarball. No se afirma
+validación fuera de banda por humanos ni certificación Web of Trust.
+
+GnuPG 2.4.7 devolvió exit0 y VALIDSIG de esa subkey para checksums.txt, firmado
+26/10/2026 19:47:13 UTC. TRUST_UNDEFINED es esperado en keyring aislado: no se
+alteró ownertrust para fabricar confianza. Entrada única del manifiesto firmado:
+582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96
+openbao_2.7.2_linux_amd64.tar.gz. Hash calculado del archivo descargado coincide;
+una copia de checksums alterada devuelve exit1/BADSIG. Recibos y hashes en CHECKS.
+
+Comandos de reproducción solo de verificación pública (no build/install/unpack):
+
+```sh
+review_dir="$(mktemp -d /tmp/bao272-review.XXXXXX)"
+chmod 700 "$review_dir"
+release=https://github.com/openbao/openbao/releases/download/v2.7.2
+curl --fail --location "$release/checksums.txt" -o "$review_dir/checksums.txt"
+curl --fail --location "$release/checksums.txt.gpgsig" -o "$review_dir/checksums.txt.gpgsig"
+curl --fail --location https://openbao.org/assets/openbao-gpg-pub-20240618.asc -o "$review_dir/key.asc"
+gpg --batch --no-autostart --homedir "$review_dir" --dearmor --output "$review_dir/key.gpg" "$review_dir/key.asc"
+gpg --batch --no-autostart --homedir "$review_dir" --no-default-keyring --keyring "$review_dir/key.gpg" --with-colons --fingerprint
+# Comparar primary/subkey con documentación oficial antes de aceptar la firma.
+gpg --batch --no-autostart --homedir "$review_dir" --no-default-keyring --keyring "$review_dir/key.gpg" --status-fd 1 --verify "$review_dir/checksums.txt.gpgsig" "$review_dir/checksums.txt"
+curl --fail --location "$release/openbao_2.7.2_linux_amd64.tar.gz" -o "$review_dir/openbao_2.7.2_linux_amd64.tar.gz"
+# Comparar entrada única del manifiesto firmado y SHA256 calculado con el pin.
+sha256sum "$review_dir/openbao_2.7.2_linux_amd64.tar.gz"
+```
+
+Advisories oficiales consultados por HTTPS en
+https://api.github.com/repos/openbao/openbao/security-advisories?per_page=100
+(51 entradas, sin Link de paginación). El fallo histórico del conector se resolvió
+para esta consulta usando curl con permiso de red, sin eludir proxy ni TLS.
+Los cuatro publicados 26/10/2026 y corregidos por 2.7.2, según las fichas:
+
+| Advisory | Corrección / precondición | Aplicabilidad al paquete |
+|---|---|---|
+| [GHSA-736f-82w7-hj22](https://github.com/openbao/openbao/security/advisories/GHSA-736f-82w7-hj22) | Canonicalización de rutas AppRole RoleID y cert CRL; también plugins LDAP/RADIUS separados. | Relevante al AppRole futuro. Sellado sin auth configurada no ejecuta esas operaciones. mTLS del listener no es el método auth/cert; no se habilita este último aquí. Plugins LDAP/RADIUS no incorporados; si se habilitan, requieren versiones corregidas propias >=0.2.0. |
+| [GHSA-q824-44ff-f5j5](https://github.com/openbao/openbao/security/advisories/GHSA-q824-44ff-f5j5) | OIDC provider podía emitir credenciales para cliente público mal configurado. | Provider OIDC no habilitado/propuesto por este paquete; no justifica habilitarlo. |
+| [GHSA-h76r-48x5-36hg](https://github.com/openbao/openbao/security/advisories/GHSA-h76r-48x5-36hg) | Wildcards en identidades de certificados SSH; nuevo default false. | Motor SSH y plantillas de identidad fuera del alcance. |
+| [GHSA-5pmx-2p74-x478](https://github.com/openbao/openbao/security/advisories/GHSA-5pmx-2p74-x478) | Path traversal al importar claves Transit podía sortear restricciones de nombre. | Motor Transit/import no habilitado. Custodia B1 preparada usa KVv2, no Transit. |
+
+Las fichas incluyen 2.7.1 en la rama afectada y 2.7.2 como corregida (también
+2.6.5, rama que upstream declara no soportada). Los límites/versiones exactos
+son los de cada ficha; no extrapolar la corrección a plugins externos. Los
+advisories anteriores tienen fixes anteriores según el catálogo; esto no es una
+auditoría completa del binario, de sus dependencias ni de los controles de ACL.
+Revalidar catálogo/revocaciones/advisories antes de instalar. Firma válida prueba
+procedencia/integridad bajo la clave contrastada, NO ausencia de vulnerabilidades.
+Node/base OS siguen por tag mutable y necesitan revisión de digest y advisories;
+no se ha escaneado una imagen ni acreditado consumo del build o seguridad runtime.

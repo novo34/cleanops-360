@@ -1,52 +1,40 @@
-# OPENBAO-STAGING-01 — gate selectivo, evidencia 28/10/2026
+# OPENBAO-STAGING-01 — scope CLI y OpenBao 2.7.2, 28/10/2026
 
-Corrección sobre f506a2870e1bc46a7201fa24b8aac18b20302e08 en PR #27.
-Historial de consumidores, pruebas y limitaciones anteriores: este mismo archivo
-en f506a287. Se conserva el mecanismo de mantenimiento, ownership y include único.
-No se ejecutó instalación, build, SQL, backup, servicios ni generación de secretos.
+Corrección sobre 716ada676ea35f7aef0a555e1761cdce518a1cff en PR #27.
+Evidencia histórica de gates/consumidores: versión de este informe en ese SHA.
+Sin cambios en main/staging/CRM, TLS privado/config preparada, límites, redes,
+health ni volúmenes. CPU/build siguen BLOCKED; RESOURCE_RECORD no se rellena con
+estimaciones. Sin build, instalación, SQL, secretos, init/unseal o despliegue.
 
-## QG-0 / decisión
+## QG-0 / reutilización
 
-Se reutilizan capacity() en prepare-staging-synthetic.py, RESOURCE_RECORD y el
-harness test_staging_synthetic.py. No otro gate/runner. Diff mínimo: parámetro
-scope con default full-stack y selector CLI explícito, rama de presupuesto
-incremental, dos regresiones en el harness y documentación/evidencia existentes.
-No cambia Compose, Dockerfile, healthcheck ni runtime. Inventario consultado:
-capacity(), consumidores CLI/render/manifest, budget/capacity del registro,
-Dockerfile (descarga/descompresión, no build web), pruebas de capacidad y controles
-de mantenimiento. Riesgo: confundir idle con reserva o límites runtime con build;
-ambos se rechazan explícitamente. Plan de prueba: fronteras y desconocidos offline.
+Se extiende el argparse existente antes de leer el registro: el scope selectivo
+es exclusivamente evaluación. Rechazo de --compose-out, --inputs, --out y
+--include-ingress, solos/parciales/combinados, antes de I/O. Artefactos generales
+requieren full-stack predeterminado; el manifiesto de workloads recibe ese gate.
+Se añaden tres regresiones CLI y una del pin al harness existente, sin nuevo
+runner. Dockerfile: un solo ADD cambia versión y checksum. Pruebas históricas
+2.7.1/SQL/ejecución aislada no se reescriben como si fueran pruebas 2.7.2.
+Riesgos tratados: scope insuficiente acreditando artefactos amplios, confundir
+hash con autenticidad y firma válida con ausencia de vulnerabilidades.
 
-2000 millicpus/4608 MiB siguen siendo el control full-stack. No aplican como
-mínimo incremental de añadir solo Bao sellado. Nuevo scope explícito:
-openbao-sealed-addition: 2816 MiB (512+768+1536 incluyendo build), CPU pico
-max(500, buildMillicpus) por fases sin solapamiento. El build conserva memoria y
-disco presupuestados; su CPU/envolvente no se presume conocida. Propuesta build
-500 millicpus/1536 MiB, pendiente de comprobar capacidad/límites reales del builder
-existente; no se rellena buildMillicpus ni buildEnvelopeVerified con la propuesta.
+## PASS: pruebas offline
 
-## Evidencia aportada / procedencia
+14/14 pruebas del harness en 0.033s, subprocess.run bloqueado durante la suite.
+Nuevas pruebas:
+- test_cli_selective_rejects_all_artifact_options_before_io (6 combinaciones;
+  record inexistente y read_text prohibido, sin render ni archivos creados).
+- test_cli_default_full_stack_labels_workload_and_compose_artifacts (main/argparse,
+  generación temporal no secreta de workloads y Compose simulado; manifiesto usa
+  full-stack, 2000 millicpus y 4608 MiB).
+- test_cli_selective_evaluation_only_retains_blocked_result_without_writes.
+- test_staging_image_pins_authenticated_272_without_changing_boundary.
 
-Propietario, 28/10/2026 14:31:16 Europe/Madrid (12:31:16 UTC): 2 CPU compartidas,
-5687 MiB disponibles, 83 GB libres, sin swap; idle 74/73/84/94/92 y steal
-10/13/10/5/7 %. TLS/permisos/Compose comprobados por propietario; variables en
-Dokploy/.env, Autodeploy OFF. Registrado como observaciones atribuidas, sin
-inspeccionar secretos ni auditar el VPS aquí. Disco normalizado conservadoramente
-a 79154 MiB asumiendo GB decimales. Arquitectura amd64: observación previa x86_64.
-No se infieren UUID/grants/TTL, CPU reservada ni autorizaciones de instalación.
-
-## PASS
-
-10/10 pruebas offline en 0.009s, subprocess.run bloqueado globalmente. Sin Docker,
-Compose ni procesos externos durante esta ejecución. Dos regresiones nuevas:
-- test_selective_capacity_keeps_full_stack_gate_and_counts_build
-- test_selective_capacity_rejects_unknown_build_cpu_scope_and_stale_data
-
-Acreditan full-stack intacto (2000/4608), selectivo 2816, pico build mayor que
-runtime, memoria/CPU insuficiente, build null/0/negativo/bool, datos obsoletos o
-futuros, memoria/CPU desconocidas, scope desconocido e idle sin conversión a CPU.
-También pasan 8 pruebas existentes de mantenimiento/include, capacidad y fronteras
-sintéticas (selección reproducible a continuación). Sintaxis Python por compile().
+Se repitieron las 10 regresiones anteriores de capacidad/include/mantenimiento.
+Adicionalmente, 6 invocaciones CLI reales de Python -B verificaron exit2 y mensaje
+SELECTIVE_CAPACITY_EVALUATION_ONLY con record inexistente para cada combinación;
+ningún archivo creado y ningún proceso Docker/SQL/build ejecutado.
+Sintaxis Python mediante compile(): PASS.
 
 ```python
 import importlib.util, unittest
@@ -54,52 +42,87 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('suite', 'tests/static/test_staging_synthetic.py')
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 names = [n for n in dir(m.Synthetic) if n.startswith('test_') and any(v in n for v in
- ['selective_capacity', 'canonical_include', 'maintenance_', 'hostinger_non_swiss',
-  'unknown_low_stale', 'non_synthetic_data', 'network_scope', 'backup_is_blocked'])]
+ ['cli_', 'staging_image_pins', 'selective_capacity', 'canonical_include',
+  'maintenance_', 'hostinger_non_swiss', 'unknown_low_stale', 'non_synthetic_data',
+  'network_scope', 'backup_is_blocked'])]
 with patch('subprocess.run', side_effect=AssertionError('External processes forbidden')):
     result = unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(m.Synthetic(n) for n in names))
 assert result.wasSuccessful()
 ```
 
-## FAIL / BLOCKED
+## PASS: firma y checksum independientes
 
-Evaluación del registro a la hora observada, now=2026-10-28T12:31:16Z (evaluación
-histórica explícita, no reloj falsificado para una aplicación actual): BLOCKED.
-Memoria/disco superan presupuesto aritmético; faltan webPostgresUnchanged,
-buildOpenbaoOnly, buildEnvelopeVerified, buildMillicpus, availableMillicpus,
-subnetConflictChecked y otherProjectsIsolated. Las dos primeras condiciones
-requieren comprobar el plan efectivo, no significan que se deba tocar web/PG.
-No cambiar a true sin evidencia. La CLI real siempre usa su reloj actual y
-rechaza datos futuros o >24h. Ningún fallo de regresión actual.
+Descargas HTTPS públicas por proxy existente con permiso de red de ejecución.
+No se ha eludido proxy/TLS. Tarball únicamente descargado para SHA256, nunca
+extraído ni ejecutado. GnuPG 2.4.7; keyring temporal solo público, sin claves
+privadas generadas/importadas ni cambios de ownertrust. Clave desde dominio web
+oficial, fingerprint contrastado con documentación HTTPS del mismo sitio, ambos
+separados del asset release:
+- https://openbao.org/docs/install/#gpg
+- https://openbao.org/assets/openbao-gpg-pub-20240618.asc
+- https://github.com/openbao/openbao/releases/tag/v2.7.2
 
-Consulta GET security-advisories del repositorio OpenBao rechazada HTTP400 por
-conector (endpoint no permitido): catálogo actual no comprobado. No equivale a
-cero advisories ni a revisión de rangos afectados. Metadatos release v2.7.1 sí
-leídos: firmas presentes, fixes GHSA enumerados en el procedimiento. Ningún
-binario/firma descargado ni ejecutado; fingerprint independiente y validación
-criptográfica, advisories posteriores y base Node/OS siguen pendientes.
+Primary fingerprint: 66D15FDD87287219C8E15478D200CD702853E6D0.
+Subkey: E617DCD4065C2AFC0B2CF7A7BA8BC08C0F691F94.
+Firma de checksums.txt: exit0, GOODSIG y
+VALIDSIG E617DCD4065C2AFC0B2CF7A7BA8BC08C0F691F94 2026-10-26 1793044033 0 4 0 1 10 00 66D15FDD87287219C8E15478D200CD702853E6D0.
+Copia del manifiesto con bytes añadidos: exit1, BADSIG. TRUST_UNDEFINED documentado:
+no Web of Trust local ni comprobación humana fuera de banda; confianza basada en
+fingerprint publicado por el sitio oficial HTTPS. La clave web y la del release
+coinciden byte a byte. Una entrada única del manifiesto firmado coincide con el
+hash proporcionado, pin Dockerfile y SHA256 del tarball realmente descargado:
+582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96.
+Comandos públicos de reproducción en OPENBAO-STAGING-01.md.
 
-## SKIP
+## Advisories comprobados
 
-Suite completa, SQL, build/perfilado real, enforce de límites del builder, TLS y
-Compose efectivo propios del servidor, instalación/custodia/backend, revisión
-independiente del nuevo SHA. Los reportes del propietario no se presentan como
-comprobaciones independientes realizadas aquí. Gates de autorización permanecen.
-Orden: configuración preparada → render efectivo comprobado → autorización
-integración/instalación; luego, solo bajo esa autorización, plan build selectivo
-verificado y arranque únicamente Bao, inicialmente sellado/unhealthy.
+Notas oficiales 2.7.2 y fichas de los cuatro GHSA corregidos consultadas. Catálogo
+https://api.github.com/repos/openbao/openbao/security-advisories?per_page=100
+leído con curl: 51 entradas, sin Link de paginación; distinto del intento previo
+con endpoint bloqueado del conector. Aplicabilidad detallada en el procedimiento:
+GHSA-736f-82w7-hj22 relevante al futuro AppRole (mTLS listener no es auth/cert);
+GHSA-q824-44ff-f5j5 OIDC provider, GHSA-h76r-48x5-36hg SSH y
+GHSA-5pmx-2p74-x478 Transit, funcionalidades fuera de este alcance. Los cuatro
+fijan 2.7.2 como parche en la rama 2.7.x. Plugins LDAP/RADIUS tienen versiones
+propias corregidas, no inferir cobertura de plugins externos por el binario.
+No se declara ausencia de vulnerabilidades: revalidar advisories/revocaciones al
+aplicar; dependencias, base Node/OS mutable e imagen final siguen sin auditar.
 
-## SHA256 actuales (informe excluido)
+## FAIL / BLOCKED / SKIP
 
-eab7b19ac6be4bf05ee9bea272cc9531c78e9b509c107df4d38e2758887dc069  scripts/prepare-staging-synthetic.py
+- Gate CPU/build: BLOCKED, datos pendientes intactos. Sin aprobación de instalación.
+- Diagnóstico de transporte inicial: curl en sandbox sin permiso de red no pudo
+  alcanzar proxy; resuelto con network enabled manteniendo proxy/TLS. El conector
+  no pudo servir assets release; descarga HTTPS directa soportada sí funcionó.
+- gpgv no disponible; no se instaló. Verificación equivalente realizada con gpg
+  --no-autostart y keyring público; exit0 y negativo exit1 comprobados.
+- Ninguna regresión final FAIL. Suite completa, build, prueba runtime 2.7.2,
+  consumo/limitación real del builder, SQL, custodia, backend y revisión independiente
+  final: SKIP. Los PASS de firma/hash no cubren estos requisitos.
 
-f1b257241e28aef36a5a231e9ffad24e863f4007e716eb10922a261f2b9f0ca0  tests/static/test_staging_synthetic.py
+## SHA256 de evidencia pública descargada
 
-42df987531cf67d135171c1babc6873aea302fd21129b078eeb9d92b36b8feb9  deploy/staging/RESOURCE_RECORD.json
+d839d376448eceef3ccb5cdd44c4a0749a92a6e4aa2fdaf47255cfa949dfb77e  checksums.txt
 
-567796bd6d60f87e8d9f5e7ce21ba09b43e30b6791cf042aa01f8fde99f1076c  deploy/staging/README.md
+9307adebc1d5df49bd5c72a59950aa7993dae0450aa837747dae3075f92a34ea  checksums.txt.gpgsig
 
-cfdedf0ab2703dcc3eba47afb4080ffcaba69763767e5c3878005e93a6ff14be  deploy/staging/synthetic-plan.json
+1862a196422947124282e026ea4e09d6f7c5d383b628d90c17906936e6e5a8e0  site-key.asc
 
-4a973f4f0d4937fc82ea7276a898299b60a9bda934e983475dad17aaff88b9ff  deploy/staging/openbao/OPENBAO-STAGING-01.md
+582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96  openbao_2.7.2_linux_amd64.tar.gz
+
+09495987babd01eeec46ad7c49d671c0dae9a6fd54ec51ccc94fbe0e9b260e2d  install.html
+
+2d61efc1cf7b7f8725d65efe2ee9de30229cf272de3d24a53cfb287909dd2947  advisories.json
+
+## SHA256 de archivos propuestos (este informe se excluye)
+
+2092afd6649e2d451a29518767dd13c9a9cbfa05c04cfb5a78fe4409117ae0c7  scripts/prepare-staging-synthetic.py
+
+d30a9f5ddbe87b556f5126dcccc62c2f8331dc43e9482377a18f5ad2f3326a69  tests/static/test_staging_synthetic.py
+
+c8a67f3170d6f96517d15b760c6cf96ae9aeec424ce0af504cb037eb57d4756b  deploy/staging/openbao/Dockerfile
+
+d651913b7f60f4609b9d48120b700f0a15b22e1c3e6ad6277cb23efcb73405fd  deploy/staging/README.md
+
+69ad788cb5dbc1cfff9b3fc50ca3620a34616e155860777a80199bd32c071ca3  deploy/staging/openbao/OPENBAO-STAGING-01.md
 

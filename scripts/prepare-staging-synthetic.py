@@ -134,6 +134,11 @@ def main():
     parser.add_argument("--include-ingress", action="store_true")
     parser.add_argument("--capacity-scope", choices=["full-stack", "openbao-sealed-addition"], default="full-stack")
     args = parser.parse_args()
+    if args.capacity_scope == "openbao-sealed-addition" and (
+        args.compose_out is not None or args.inputs is not None or args.out is not None
+        or args.include_ingress
+    ):
+        parser.error("SELECTIVE_CAPACITY_EVALUATION_ONLY: full-stack required for artifact generation")
     record = json.loads(args.record.read_text())
     result = capacity(record, scope=args.capacity_scope)
     if args.compose_out:

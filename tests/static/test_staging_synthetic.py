@@ -41,6 +41,59 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def test_cli_selective_rejects_all_artifact_options_before_io(self):
+        from unittest.mock import patch
+        import contextlib, io
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "must-not-exist"
+            cases = [["--compose-out", str(target)], ["--inputs", str(target)],
+                     ["--out", str(target)], ["--inputs", str(target), "--out", str(target)],
+                     ["--include-ingress"], ["--compose-out", str(target), "--inputs", str(target), "--out", str(target)]]
+            for options in cases:
+                argv = ["prepare-staging-synthetic.py", "--capacity-scope", "openbao-sealed-addition",
+                        "--record", str(target), *options]
+                with self.subTest(options=options), patch("sys.argv", argv), patch.object(Path, "read_text", side_effect=AssertionError("No reads before rejection")), patch.object(prepare, "render", side_effect=AssertionError("No workload render")), patch.object(prepare, "consolidated_compose", side_effect=AssertionError("No Compose render")), contextlib.redirect_stderr(io.StringIO()) as error:
+                    with self.assertRaises(SystemExit) as rejected: prepare.main()
+                    self.assertEqual(rejected.exception.code, 2)
+                    self.assertIn("SELECTIVE_CAPACITY_EVALUATION_ONLY", error.getvalue())
+                self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_cli_default_full_stack_labels_workload_and_compose_artifacts(self):
+        from unittest.mock import patch
+        import contextlib, io
+        record, inputs = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); record_file = root / "record.json"; inputs_file = root / "inputs.json"
+            record_file.write_text(json.dumps(record)); inputs_file.write_text(json.dumps(inputs))
+            argv = ["prepare-staging-synthetic.py", "--record", str(record_file), "--inputs", str(inputs_file),
+                    "--out", str(root / "package"), "--compose-out", str(root / "compose.json")]
+            with patch("sys.argv", argv), patch.object(prepare, "consolidated_compose", return_value={"services": {}}) as compose, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(prepare.main(), 0)
+                compose.assert_called_once()
+            manifest = json.loads((root / "package/manifest.json").read_text())
+            self.assertEqual(manifest["capacity"]["scope"], "full-stack")
+            self.assertEqual(manifest["capacity"]["requiredAvailableMillicpus"], 2000)
+            self.assertEqual(manifest["capacity"]["requiredAvailableMemoryMiB"], 4608)
+
+    def test_cli_selective_evaluation_only_retains_blocked_result_without_writes(self):
+        from unittest.mock import patch
+        import contextlib, io
+        record, _ = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"; path.write_text(json.dumps(record))
+            with patch("sys.argv", ["prepare-staging-synthetic.py", "--record", str(path), "--capacity-scope", "openbao-sealed-addition"]), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(prepare.main(), 2)
+            self.assertEqual(json.loads(output.getvalue())["scope"], "openbao-sealed-addition")
+            self.assertEqual(list(Path(directory).iterdir()), [path])
+
+    def test_staging_image_pins_authenticated_272_without_changing_boundary(self):
+        image = (ROOT / "deploy/staging/openbao/Dockerfile").read_text()
+        self.assertIn("--checksum=sha256:582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96", image)
+        self.assertIn("/v2.7.2/openbao_2.7.2_linux_amd64.tar.gz", image)
+        self.assertNotIn("2.7.1", image)
+        self.assertIn("USER node", image)
+        self.assertIn('CMD ["server", "-config=/etc/openbao/server.json"]', image)
+
     def test_selective_capacity_keeps_full_stack_gate_and_counts_build(self):
         r, _ = fixture(); s = r["STAGING_SYNTHETIC"]
         s["capacity"].update(availableMemoryMiB=5687, availableMillicpus=1000)
