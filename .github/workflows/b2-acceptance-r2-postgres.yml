@@ -175,14 +175,14 @@ jobs:
       github.event_name == 'workflow_dispatch' && inputs.confirm_reservation_probe == true &&
       github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' &&
       github.actor == 'novo34' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' &&
-      github.run_attempt == 1 && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-diag1' &&
-      github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-diag1' &&
+      github.run_attempt == 1 && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' &&
+      github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1' &&
       vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA != '' &&
       github.sha == vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA &&
       github.workflow_sha == vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA
     permissions:
       contents: read
-    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@9428870f7e0462be1d837ce2e0c2fc61ef7462c5
+    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@9a4c8b90a159f2853f040dc5597042c17408da00
     with:
       reservation_probe: true
     secrets:
