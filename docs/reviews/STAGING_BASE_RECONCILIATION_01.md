@@ -82,3 +82,15 @@ Se incorpora docs/ENGINEERING_QUALITY_POLICY.md exactamente desde main 4f19c36f8
 Triggers precisos: abrir PR dispara Quality con PostgreSQL. staging-b1-integration requiere push a staging Y coincidencia de paths: lib/b1/**, tests/b1/**, scripts/openbao-b1-integration.ts, tests/static/test_b1_openbao_integration.py, tests/static/test_b1_custody_harness_wiring.py o su propio workflow. Ninguno de los diez archivos del candidato coincide con esos filtros. No se ha modificado ningún trigger.
 
 PASS documental: igualdad byte por byte con la política de main y las referencias de plantilla; igualdad de los otros blobs canónicos con f8c8af5 y main; inventario de cambios comprobado contra filtros paths. SKIP deliberado: repetición de las 34 pruebas y build, porque esta actualización solo cambia documentación. Sin PR, CI, SQL, merge, despliegue ni cambios de main/staging/PR 27. Los resultados de pruebas anteriores permanecen históricos y no se vuelven a atribuir a una nueva ejecución.
+
+## PR 28: runner Quality sobre f241dc3
+
+Autorización posterior del propietario: publicar este ajuste en el mismo PR 28; el push dispara su CI con PostgreSQL aislado ya autorizado. Esta autorización no cubre VPS, despliegue ni merge. Las restricciones previas sobre abrir PR/CI eran el estado histórico de la preparación; no se relanza manualmente ningún run. Inventario actual frente a staging: once archivos, al añadirse quality.yml al candidato. Diff incremental: solo ese workflow y este informe.
+
+FAIL comprobado: https://github.com/novo34/cleanops-360/actions/runs/40699406592 sobre f241dc350ce14d92f50fb1c765ae9a9f71c1e92e, job quality 122854803379. El paso Install Chromium Firefox WebKit browser engines falló al ejecutar npx playwright install --with-deps chromium firefox webkit. El log indica fallback ubuntu26.04-x64 y rechazo de ese sistema por Playwright 1.56.1; termina con exit1 antes de las pruebas de navegador. No se atribuye el fallo a la aplicación ni se afirma que sus pruebas browser hayan pasado.
+
+Corrección propuesta: fijar únicamente jobs.quality.runs-on de ubuntu-latest a ubuntu-24.04. Se mantiene Playwright 1.56.1, Chromium/Firefox/WebKit, instalación con dependencias, pruebas CSP y demo, todos los demás pasos, servicios, triggers, permisos y guards. No se actualizan paquetes ni se elimina cobertura.
+
+PASS estático: comparación byte por byte contra HEAD anterior prueba que el workflow completo solo cambia esa línea; el comando de los tres navegadores permanece idéntico. Diff incremental limitado a workflow e informe; git diff --check del incremental sin errores. SKIP local: build, instalación de navegadores y repetición de las 34 pruebas; el resultado del nuevo run queda pendiente de CI y no se presenta como PASS. Sin operaciones en el VPS, SQL local, merge ni despliegue.
+
+.github/workflows/quality.yml SHA256 0c7b406b95485893a9df26423a44e909f84cf776d50313948a87458ca6d25051.
