@@ -56,7 +56,7 @@ Production quorum2-of-3 is only an unapproved alternative; principal owner confi
    Even BLOCKED capacity may render review artifacts, never authorize applying.
 6. Keep the permanent Dokploy branch staging, compose path deploy/staging/compose.yaml,
    project cleanops-360/environment staging/service cleanops-staging. Autodeploy is
-   unconfirmed and must not be changed.
+   reported disabled by the owner at 2026-10-28 12:31:16 UTC; do not change it.
    Changes exist on the B1 development branch only until reviewed staging integration.
    Do not repoint Dokploy at the feature branch.
 
@@ -70,7 +70,7 @@ Required order BEFORE integration: prepare required non-secret configuration,
 private files and variables → verify Dokploy effective render preserves ingress,
 web/PG and volumes → obtain integration/installation authorization. A disabled
 profile does not guarantee parsing compatibility when required variables are
-missing. Autodeploy is unconfirmed; do not change it or repoint Dokploy.
+missing. Autodeploy is reported disabled; do not change it or repoint Dokploy.
 
 ## Future synthetic secret ceremony — not executed
 
@@ -162,3 +162,14 @@ For data rollback, recover into NEW owned targets, validate first, then separate
 approve cutover. Capture redacted receipts; delete only inventoried temporary
 resources. Backups and audit volumes are never removed as application rollback.
 
+
+## Selective sealed OpenBao capacity scope
+
+For the observed running staging, use prepare-staging-synthetic.py with explicit
+--capacity-scope openbao-sealed-addition only for a plan leaving web/PG unchanged.
+The default full-stack gate remains 4608 MiB/2000 millicpus. Selective memory is
+2816 MiB including the existing 1536 MiB build reserve. CPU peak is max(500,
+explicit buildMillicpus), build before runtime; unknown build/CPU remains blocked.
+Service limits do not constrain image build. No idle-to-reservation conversion.
+Current evidence and pending build envelope/signature/advisories are detailed in
+openbao/OPENBAO-STAGING-01.md. No build or installation was performed.

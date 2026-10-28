@@ -41,6 +41,47 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def test_selective_capacity_keeps_full_stack_gate_and_counts_build(self):
+        r, _ = fixture(); s = r["STAGING_SYNTHETIC"]
+        s["capacity"].update(availableMemoryMiB=5687, availableMillicpus=1000)
+        s["selectiveOpenbao"].update(webPostgresUnchanged=True, buildOpenbaoOnly=True,
+                                    buildEnvelopeVerified=True, buildMillicpus=1000)
+        full = prepare.capacity(r)
+        self.assertEqual(full["status"], "BLOCKED")
+        self.assertEqual(full["requiredAvailableMillicpus"], 2000)
+        self.assertEqual(full["requiredAvailableMemoryMiB"], 4608)
+        result = prepare.capacity(r, scope="openbao-sealed-addition")
+        self.assertEqual(result["status"], "PASS_HEADROOM_ONLY")
+        self.assertEqual(result["requiredAvailableMemoryMiB"], 2816)
+        self.assertEqual(result["requiredAvailableMillicpus"], 1000)
+        self.assertFalse(result["cpuReservationGuaranteed"])
+        s["capacity"]["availableMemoryMiB"] = 2815
+        self.assertIn("availableMemoryMiB", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["capacity"].update(availableMemoryMiB=5687, availableMillicpus=999)
+        self.assertIn("availableMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+
+    def test_selective_capacity_rejects_unknown_build_cpu_scope_and_stale_data(self):
+        r, _ = fixture(); s = r["STAGING_SYNTHETIC"]
+        for field in ["webPostgresUnchanged", "buildOpenbaoOnly", "buildEnvelopeVerified", "buildMillicpus"]:
+            self.assertIn(field, prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["selectiveOpenbao"].update(webPostgresUnchanged=True, buildOpenbaoOnly=True,
+                                    buildEnvelopeVerified=True, buildMillicpus=500)
+        s["capacity"]["availableMillicpus"] = None
+        s["observedOpenbaoPreparation"]["vmstatIdlePercent"] = [99]*5
+        self.assertIn("availableMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["capacity"].update(availableMillicpus=500, measuredAt="2001-01-01T00:00:00Z")
+        self.assertIn("staleOrFutureMeasurement", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        for unknown in [None, 0, -1, True]:
+            s["selectiveOpenbao"]["buildMillicpus"] = unknown
+            self.assertIn("buildMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["selectiveOpenbao"]["buildMillicpus"] = 500
+        s["capacity"]["measuredAt"] = "2999-01-01T00:00:00Z"
+        self.assertIn("staleOrFutureMeasurement", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        with self.assertRaisesRegex(ValueError, "UNKNOWN_CAPACITY_SCOPE"):
+            prepare.capacity(r, scope="arbitrary")
+        s["capacity"]["availableMemoryMiB"] = None
+        self.assertIn("availableMemoryMiB", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+
     def test_canonical_include_is_used_once_by_every_command_producer(self):
         from unittest.mock import patch
         entry = (ROOT / "deploy/staging/compose.yaml").read_text()

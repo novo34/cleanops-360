@@ -30,27 +30,80 @@ Si no puede comprobarse antes, la integración permanece bloqueada.
 El perfil synthetic-custody sigue opt-in. La futura activación del perfil en
 Dokploy requiere autorización específica; hoy no cambia COMPOSE_PROFILES ni
 Autodeploy. La observación del usuario prevalece sobre synthetic-plan.json y
-README históricos: web/PG ya funcionan y Autodeploy está SIN CONFIRMAR.
+README históricos: web/PG ya funcionan. Evidencia posterior del propietario
+(28/10/2026 14:31:16 Europe/Madrid, 12:31:16 UTC): Autodeploy desactivado;
+variables guardadas en Dokploy y .env; TLS, permisos y Compose actual+overlay
+verificados por el propietario. No se inspeccionaron aquí esos archivos privados.
 Incluir la definición no equivale a iniciar OpenBao. Incluso con perfil apagado,
 Compose puede exigir las variables requeridas al cargar el include: integrarlo
 solo cuando estén preparados sus archivos/variables y se autorice el cambio.
 
 Aceptación: config válida, recursos web/PG idénticos, Bao sin puertos publicados,
-solo custody interna y traefik.enable=false; no activación B1. Riesgos: auto deploy
-no confirmado, IP candidata que puede colisionar después, secretos/permisos,
+solo custody interna y traefik.enable=false; no activación B1. Riesgos: contención de CPU, IP candidata que puede colisionar después, secretos/permisos,
 readiness sellada, CPU compartida y rollback sin borrar estado. Pruebas offline;
 no se ejecutan comandos contra el VPS ni se valida infraestructura por inferencia.
 
 ## Observaciones y gates
 
-Servidor observado: x86_64, 2 CPU, 5701 MiB disponibles; /var/lib/docker con
-84 GB libres; carga 0.85/0.41/0.31; Compose v5.0.2. Presupuesto existente:
-768+1024+512+768+1536=4608 MiB, disco 8192 MiB, CPU 2000 millicpus.
-Memoria supera el presupuesto en 1093 MiB; 2 CPU nominales y carga no prueban
-2000 millicpus libres. No fabricar measuredAt, availableMillicpus ni
-otherProjectsIsolated=true para conseguir PASS. Revalidar con hora UTC precisa,
-redes/rutas, swap deshabilitado, espacio, aislamiento y capacidad de build.
-El RESOURCE_RECORD existente queda sin falsificar ni marcar desplegado.
+Evidencia del propietario, 28/10/2026 14:31:16 Europe/Madrid (12:31:16 UTC):
+2 CPU totales compartidas, MemAvailable 5687 MiB, 83 GB libres, sin swap.
+vmstat idle 74/73/84/94/92%; steal 10/13/10/5/7%. Cinco muestras son una
+observación breve, no una reserva, SLA ni prueba de estabilidad bajo build.
+El mínimo idle observado es 73%; no se convierte en availableMillicpus. Steal
+es tiempo sustraído por el hipervisor, no CPU utilizable adicional. No sumarlo
+al idle ni descontarlo de nuevo para fabricar una reserva. Conservar muestras
+crudas y repetir observación reciente antes de aplicar.
+
+QG-0 de capacidad: reutilizar capacity() y el harness existentes, extender con
+scope explícito; ningún wrapper ni runner nuevo. full-stack sigue por defecto,
+con 4608 MiB, 2000 millicpus y todos sus rechazos previos. Ese presupuesto cubre
+planificación del conjunto, no es el mínimo incremental para añadir Bao sellado
+sin reconstruir/reiniciar web ni PostgreSQL. El selector no autoriza operaciones.
+
+Ajuste mínimo propuesto: --capacity-scope openbao-sealed-addition, únicamente
+HOST_BUILD selectivo; MemAvailable ya descuenta web/PG running, no cobrarlos de
+nuevo. Exigir 512 Bao + 768 reserva host + 1536 reserva build = 2816 MiB disponibles
+(conservador: se suman Bao y build aunque las fases no se solapen). Observado
+5687 deja margen aritmético de 2871 MiB sobre esta propuesta; el disco supera
+8192 MiB. Se conserva el presupuesto de disco. Los 83 GB se registran como
+79154 MiB, cota conservadora asumiendo GB decimales; no se inventan bytes exactos.
+Esto acredita comparación aritmética, no consumo medido del build ni aceptación.
+
+CPU runtime: límite 500 millicpus existente. Build: CPU NO limitada por cpus:0.5
+ni por mem_limit:512m del servicio. El Dockerfile descarga Node/Bao, descomprime
+y prepara permisos; no compila web/PG. Su pico CPU, RAM, red y disco/caché siguen
+sin medir. Propuesta de ensayo: presupuesto build 500 millicpus y 1536 MiB, sin
+paralelismo con arranque ni otro build de este proyecto; NO asignación aprobada.
+Para aceptarlo, comprobar que el builder existente soporta y aplica límites de
+CPU/memoria para ESA invocación, o justificar su envolvente observada dentro de
+capacidad disponible; no inventar flags de Compose/BuildKit ni crear otro builder,
+runner o VPS. Si no puede comprobarse, buildEnvelopeVerified permanece false y
+no se ejecuta build. Los comandos build posteriores quedan condicionados a esa
+comprobación; el comando sin límites no la acredita por sí solo.
+
+El gate requiere buildMillicpus explícito validado; calcula pico CPU como
+max(500, buildMillicpus), porque el build termina antes del arranque (Bao antes
+no existe). No suma ambos ni presume que build consume cero. El presupuesto
+build de 500 es una propuesta: buildMillicpus=null en el registro hasta resolver
+la envolvente real. Las pruebas usan cifras sintéticas para validar fronteras.
+availableMillicpus sigue null: idle no lo rellena automáticamente. Un valor futuro
+representaría una evaluación documentada y reciente de margen compartido, jamás
+CPU reservada. Desconocido/insuficiente, build desconocido, alcance sin confirmar,
+datos >24h/futuros, red o aislamiento desconocidos siguen bloqueando.
+
+```sh
+# Solo evaluación offline; no build ni despliegue. Exit 2 = BLOCKED.
+python3 scripts/prepare-staging-synthetic.py --record /private/resource.json --capacity-scope openbao-sealed-addition
+# Control completo conservado, sin selector:
+python3 scripts/prepare-staging-synthetic.py --record /private/resource.json
+```
+
+El RESOURCE_RECORD separa observedOpenbaoPreparation (relato comprobado por el
+propietario, no auditado aquí) de selectiveOpenbao (condiciones pendientes). CPU
+usable, envolvente de build, constancia del plan selectivo, revalidación de red y
+otherProjectsIsolated no se fabrican. deploymentAuthorized/backupAuthorized siguen
+false. Tras límites/plan de build comprobados, aprobar instalación por separado;
+no se deriva autorización de un PASS de headroom.
 
 Aprobado y reutilizado: mismo VPS Hostinger, solo datos ficticios, sin copias de
 producción, comunicaciones externas ni coste nuevo; principal custodio=propietario.
@@ -58,7 +111,8 @@ No reabrir la residencia suiza de producción ni declarar PR006/PR007 satisfecho
 
 Pendiente para servidor/ceremonia: autorización de instalación, verificación
 independiente de firma/fingerprint y advisories de release 2.7.1; TTL global y
-máximo (null en server-inputs.json); vigencia TLS; responsable y almacenamiento
+máximo: la plantilla pública sigue null, no se inspeccionó la configuración
+privada ya verificada por el propietario; responsable y almacenamiento
 offline de CA; custodios adicionales, shares/threshold y procedimiento humano
 aprobados para este staging, destino cifrado independiente, retención y recuperación.
 No adoptar 1-de-1 del harness ni 2-de-3 propuesto como quórum aprobado.
@@ -286,3 +340,25 @@ conserva guards de project/service labels y rechazo de ports. No busca proyectos
 alternativos ni lee tokens antes de validar. Necesita las variables obligatorias
 existentes en el entorno seguro; un perfil apagado no evita este requisito.
 No se ha ejecutado backup ni se ha cambiado el instalador SQL histórico.
+
+## Firma y advisories: pendientes específicos
+
+Metadatos oficiales consultados por GitHub, sin descargar/ejecutar binarios:
+https://github.com/openbao/openbao/releases/tag/v2.7.1 . Hay checksums.txt,
+checksums.txt.gpgsig y firma detached del tarball amd64; también bundles Sigstore.
+El checksum fijado del Dockerfile no autentica al firmante. Pendiente obtener
+fingerprint de mantenedor por canal independiente y validar la firma de
+checksums/tarball con esa confianza (o identidad/issuer/transparencia Sigstore
+según procedimiento oficial); conservar recibo, hash y versión de herramienta.
+Descargar la clave del mismo release sin esa comprobación no completa confianza.
+No se verificó ninguna firma en este encargo.
+
+Las notas 2.7.1 declaran correcciones GHSA-3237-j65r-m5rp,
+GHSA-q74w-hv5x-6hxf, GHSA-7m59-mp95-w6ph, GHSA-5v22-543h-wg96 y
+GHSA-gf3j-hm38-jhh5. Son fixes declarados, no dictamen de ausencia de advisories
+posteriores ni prueba de que cada uno aplique a este listener sellado. Pendiente
+inventario vigente de advisories, rangos afectados/fixed y análisis para 2.7.1,
+Raft/mTLS/audit y futura AppRole; comprobar soporte del release y vulnerabilidades
+del Node/base OS mutable. La API security-advisories fue rechazada por el conector
+(HTTP400 endpoint no permitido): catálogo actual NO comprobado. Revisar por canal
+oficial soportado antes de instalar. No cambiar versión/checksum sin nueva revisión.

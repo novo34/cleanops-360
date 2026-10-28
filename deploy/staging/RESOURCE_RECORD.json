@@ -25,11 +25,11 @@
     "productionQuorumApproved": false,
     "workloadSecrets": "STAGING_ONLY_NOT_CREATED",
     "capacity": {
-      "measuredAt": null,
-      "availableMemoryMiB": null,
-      "freeDiskMiB": null,
+      "measuredAt": "2026-10-28T12:31:16Z",
+      "availableMemoryMiB": 5687,
+      "freeDiskMiB": 79154,
       "availableMillicpus": null,
-      "architecture": null,
+      "architecture": "amd64",
       "subnetConflictChecked": false,
       "otherProjectsIsolated": false
     },
@@ -73,7 +73,41 @@
       "web": null,
       "openbao": null
     },
-    "composeProject": "cleanops360-f4fxmd"
+    "composeProject": "cleanops360-f4fxmd",
+    "selectiveOpenbao": {
+      "runtimeMillicpus": 500,
+      "buildMillicpus": null,
+      "webPostgresUnchanged": false,
+      "buildOpenbaoOnly": false,
+      "buildEnvelopeVerified": false
+    },
+    "observedOpenbaoPreparation": {
+      "source": "OWNER_REPORT_2026_10_28",
+      "measuredAt": "2026-10-28T12:31:16Z",
+      "totalCpus": 2,
+      "availableMemoryMiB": 5687,
+      "freeDiskGBReported": 83,
+      "swapPresent": false,
+      "vmstatIdlePercent": [
+        74,
+        73,
+        84,
+        94,
+        92
+      ],
+      "vmstatStealPercent": [
+        10,
+        13,
+        10,
+        5,
+        7
+      ],
+      "cpuReservationGuaranteed": false,
+      "tlsPermissionsAndComposeReportedVerified": true,
+      "dokployAndDotenvVariablesReportedSaved": true,
+      "autodeployReportedEnabled": false,
+      "independentlyVerifiedHere": false
+    }
   },
   "PRODUCTION_SWISS": {
     "provider": null,

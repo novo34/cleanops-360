@@ -23,7 +23,7 @@
     "offlineConsolidator": "scripts/prepare-staging-synthetic.py --compose-out NEW_FILE (review only; not a second deployment path)",
     "dokployBranch": "staging",
     "dokployComposePath": "deploy/staging/compose.yaml",
-    "autodeploy": "UNCONFIRMED_DO_NOT_MODIFY",
+    "autodeploy": "OWNER_REPORTED_OFF_2026_10_28_12_31_16Z_DO_NOT_MODIFY",
     "changedOnHost": false,
     "includedOverlay": "compose.openbao.yaml",
     "integrationMethod": "CANONICAL_COMPOSE_INCLUDE_ONCE_PRESERVE_DOKPLOY_INGRESS",
