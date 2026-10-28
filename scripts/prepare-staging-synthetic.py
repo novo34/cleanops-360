@@ -24,7 +24,7 @@ def validate_scope(record):
     return s
 
 
-def capacity(record, now=None):
+def capacity(record, now=None, scope="full-stack"):
     s = validate_scope(record)
     c, b = s["capacity"], s["budget"]
     failures = []
@@ -37,10 +37,33 @@ def capacity(record, now=None):
             raise ValueError("EXACT_PREBUILT_DIGESTS_REQUIRED")
     elif s.get("imageMode", "HOST_BUILD") != "HOST_BUILD" or type(b["buildReserveMiB"]) is not int or b["buildReserveMiB"] <= 0:
         raise ValueError("HOST_BUILD_HEADROOM_REQUIRED")
-    needed = sum(b[k] for k in ["webMiB", "postgresMiB", "openbaoMiB", "hostReserveMiB", "buildReserveMiB"])
+    if scope not in {"full-stack", "openbao-sealed-addition"}:
+        raise ValueError("UNKNOWN_CAPACITY_SCOPE")
+    cpu_needed = b["millicpus"]
+    memory_keys = ["webMiB", "postgresMiB", "openbaoMiB", "hostReserveMiB", "buildReserveMiB"]
+    if scope == "openbao-sealed-addition":
+        # MemAvailable already excludes the running web/PG; retain host and build reserves.
+        selective = s.get("selectiveOpenbao", {})
+        for flag in ["webPostgresUnchanged", "buildOpenbaoOnly", "buildEnvelopeVerified"]:
+            if selective.get(flag) is not True:
+                failures.append(flag)
+        if s.get("imageMode", "HOST_BUILD") != "HOST_BUILD":
+            raise ValueError("SELECTIVE_HOST_BUILD_SCOPE_REQUIRED")
+        memory_keys = ["openbaoMiB", "hostReserveMiB", "buildReserveMiB"]
+        runtime_cpu = selective.get("runtimeMillicpus")
+        build_cpu = selective.get("buildMillicpus")
+        if runtime_cpu != 500 or type(runtime_cpu) is not int:
+            raise ValueError("SELECTIVE_OPENBAO_LIMIT_REQUIRED")
+        if type(build_cpu) is not int or build_cpu <= 0:
+            failures.append("buildMillicpus")
+            cpu_needed = None
+        else:
+            # Build completes before runtime starts: peak, not concurrent sum.
+            cpu_needed = max(runtime_cpu, build_cpu)
+    needed = sum(b[k] for k in memory_keys)
     for key, minimum in [("availableMemoryMiB", needed), ("freeDiskMiB", b["diskReserveMiB"]),
-                         ("availableMillicpus", b["millicpus"])]:
-        if type(c.get(key)) is not int or c[key] < minimum:
+                         ("availableMillicpus", cpu_needed)]:
+        if minimum is None or type(c.get(key)) is not int or c[key] < minimum:
             failures.append(key)
     try:
         measured = dt.datetime.fromisoformat(c["measuredAt"].replace("Z", "+00:00"))
@@ -55,7 +78,9 @@ def capacity(record, now=None):
         if c.get(key) is not True:
             failures.append(key)
     return {"status": "BLOCKED" if failures else "PASS_HEADROOM_ONLY",
-            "requiredAvailableMemoryMiB": needed, "blockers": failures,
+            "scope": scope, "requiredAvailableMemoryMiB": needed,
+            "requiredAvailableMillicpus": cpu_needed, "cpuReservationGuaranteed": False,
+            "blockers": failures,
             "deploymentAuthorized": s.get("deploymentAuthorized") is True,
             "productionAcceptance": False}
 
@@ -81,7 +106,7 @@ def render(record, inputs):
 
 
 def consolidated_compose(prebuilt=False, ingress=False):
-    files = ["compose.yaml", "compose.openbao.yaml"]
+    files = ["compose.yaml"]  # Canonical path includes compose.openbao.yaml.
     if ingress: files.append("compose.ingress.yaml")
     if prebuilt: files.append("compose.prebuilt.yaml")
     command = ["docker", "compose"]
@@ -107,9 +132,15 @@ def main():
     parser.add_argument("--out", type=Path)
     parser.add_argument("--compose-out", type=Path, help="NEW offline consolidated Compose artifact, never deployed")
     parser.add_argument("--include-ingress", action="store_true")
+    parser.add_argument("--capacity-scope", choices=["full-stack", "openbao-sealed-addition"], default="full-stack")
     args = parser.parse_args()
+    if args.capacity_scope == "openbao-sealed-addition" and (
+        args.compose_out is not None or args.inputs is not None or args.out is not None
+        or args.include_ingress
+    ):
+        parser.error("SELECTIVE_CAPACITY_EVALUATION_ONLY: full-stack required for artifact generation")
     record = json.loads(args.record.read_text())
-    result = capacity(record)
+    result = capacity(record, scope=args.capacity_scope)
     if args.compose_out:
         merged = consolidated_compose(record["STAGING_SYNTHETIC"].get("imageMode") == "PREBUILT", args.include_ingress)
         with args.compose_out.open("x") as output:
@@ -137,3 +168,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError):
         raise SystemExit("STAGING_PREPARATION_REJECTED: no runtime operation attempted")
+

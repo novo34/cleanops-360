@@ -9,8 +9,8 @@ Production PR006/PR007/AUTH-GATE-05 requirements remain unchanged.
 ## Real components and current boundary
 
 Base compose.yaml is the existing web + PG16 packaging from staging c85b4987.
-The optional compose.openbao.yaml adds native pinned OpenBao2.7.1 on the SAME VPS,
-not a new VM: read-only/non-root image, verified binary checksum, 512MiB/0.5CPU
+The included, profile-gated compose.openbao.yaml adds native pinned OpenBao2.7.2 on the SAME VPS,
+not a new VM: read-only/non-root image, independently verified signed binary checksum, 512MiB/0.5CPU
 trial limits, private mTLS, persistent project-specific Raft and audit volumes.
 These are configurable trial limits, not production sizing or proof of capacity.
 Only amd64 is currently packaged; confirm the VPS architecture before use.
@@ -55,17 +55,22 @@ Production quorum2-of-3 is only an unapproved alternative; principal owner confi
    Output includes server/ACL/AppRole JSON and hashes; no server or keys created.
    Even BLOCKED capacity may render review artifacts, never authorize applying.
 6. Keep the permanent Dokploy branch staging, compose path deploy/staging/compose.yaml,
-   project cleanops-360/environment staging/service cleanops-staging and Autodeploy OFF.
+   project cleanops-360/environment staging/service cleanops-staging. Autodeploy is
+   reported disabled by the owner at 2026-10-28 12:31:16 UTC; do not change it.
    Changes exist on the B1 development branch only until reviewed staging integration.
    Do not repoint Dokploy at the feature branch.
 
-To preserve the fixed Compose Path without changing Dokploy's file-list settings,
-the same tool can build a NEW consolidated artifact offline:
-python3 scripts/prepare-staging-synthetic.py --record /private/resource.json --compose-out /private/new-compose.yaml --include-ingress
-Variables remain unexpanded and build context stays relative to deploy/staging.
-Review it and, only after authorized integration, place it at the permanent
-deploy/staging/compose.yaml path. No existing file is overwritten by the generator.
-Keep COMPOSE_PROFILES blank until synthetic-custody is explicitly authorized.
+The canonical Compose Path now includes compose.openbao.yaml exactly once.
+Use only -f deploy/staging/compose.yaml, never add -f compose.openbao.yaml.
+The existing consolidator follows that entrypoint; do not deploy a second
+consolidated copy or add the historical ingress overlay to the observed Dokploy
+ingress. Current instructions: openbao/OPENBAO-STAGING-01.md.
+
+Required order BEFORE integration: prepare required non-secret configuration,
+private files and variables → verify Dokploy effective render preserves ingress,
+web/PG and volumes → obtain integration/installation authorization. A disabled
+profile does not guarantee parsing compatibility when required variables are
+missing. Autodeploy is reported disabled; do not change it or repoint Dokploy.
 
 ## Future synthetic secret ceremony — not executed
 
@@ -89,27 +94,9 @@ Do not expose OpenBao to Traefik; no host8200/8201 or database port publishing.
 
 ## Exact future Dokploy sequence (requires explicit deployment authorization)
 
-Confirm current capacity and fill record approval reference; integrate reviewed
-B1 preparation to staging preserving its history and existing projects. Confirm
-actual Traefik network, HTTPS entrypoint and certificate resolver names; none are
-guessed. Domain cleanops.nuvurent.com is fixed, DNS remains unchanged.
-compose.ingress.yaml attaches ONLY web to existing ingress; PG and Bao remain
-internal. Compose overrides require a separately approved Dokploy file-list setting
-or a reviewed consolidation into the fixed compose path; no such change was made.
-
-With a private env file containing paths only:
-docker compose --env-file /private/staging.env -f deploy/staging/compose.yaml -f deploy/staging/compose.openbao.yaml -f deploy/staging/compose.ingress.yaml --profile synthetic-custody config -q
-
-After approval, deploy these exact files (plus prebuilt overlay only if chosen)
-and inspect owned-service health. Install SQL ONLY with separately recorded
-sql14FreshInstallAuthorized=true on a NEW empty owned PG16:
-python3 scripts/staging-sql14.py --record /private/resource.json --apply
-No fixtures, extra grants or runtime activation occur in that installer.
-
-The SQL14 verification-only command is safe now: python3 scripts/staging-sql14.py.
-It hashes the unchanged approved artifact. Runtime ordinary identity provisioning,
-approved synthetic fixture setup and the public authentication gate are separate;
-SQL installation alone must never be reported as functional login.
+Use openbao/OPENBAO-STAGING-01.md for the current observed same-staging procedure.
+No whole-project redeploy, extra overlay -f, SQL installation or B1 activation is
+authorized by this preparation. Preserve the effective Dokploy ingress injections.
 
 ## Acceptance tracks and browser checks
 
@@ -132,6 +119,14 @@ Production still needs residence, approved custodians/quorum, independent review
 and coherent independent recovery/RPO/RTO evidence. No44/44 inference.
 
 ## Synthetic backup, restore and rollback
+
+The maintenance project identity is STAGING_SYNTHETIC.composeProject in the
+canonical deploy/staging/RESOURCE_RECORD.json: cleanops360-f4fxmd. A private record
+must match that project and composePath exactly. Maintenance validates the same
+canonical Compose with config --format json before exact-service discovery, then
+requires matching project/service labels and no published ports. It uses inherited
+required Compose variables; missing/invalid configuration fails closed before
+reading the token or running backup. It does not search alternate projects.
 
 Before any future stateful test changes, stop/deny new synthetic writes at the
 approved boundary and record the checkpoint. With backupAuthorized=true and a
@@ -166,3 +161,22 @@ Never docker compose down -v, prune, reset, force-push or replace shared network
 For data rollback, recover into NEW owned targets, validate first, then separately
 approve cutover. Capture redacted receipts; delete only inventoried temporary
 resources. Backups and audit volumes are never removed as application rollback.
+
+
+## Selective sealed OpenBao capacity scope
+
+For the observed running staging, use prepare-staging-synthetic.py with explicit
+--capacity-scope openbao-sealed-addition only for a plan leaving web/PG unchanged.
+The default full-stack gate remains 4608 MiB/2000 millicpus. Selective memory is
+2816 MiB including the existing 1536 MiB build reserve. CPU peak is max(500,
+explicit buildMillicpus), build before runtime; unknown build/CPU remains blocked.
+Service limits do not constrain image build. No idle-to-reservation conversion.
+Current evidence, completed 2.7.2 signature check and pending build envelope/advisory recheck are detailed in
+openbao/OPENBAO-STAGING-01.md. No build or installation was performed.
+
+The selective capacity scope is evaluation-only: --compose-out, --inputs, --out
+and --include-ingress are rejected before I/O. Whole-stack Compose and general
+workload packages require the default full-stack gate, never selective receipts.
+OpenBao 2.7.2 pin/signature verification and four corrected advisories with scope
+analysis are recorded in openbao/OPENBAO-STAGING-01.md and its CHECKS report.
+A valid signature is not a vulnerability assessment; CPU/build remain BLOCKED.

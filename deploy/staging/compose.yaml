@@ -1,3 +1,7 @@
+# OPENBAO-STAGING-01: same Compose Path; profile remains opt-in.
+include:
+  - compose.openbao.yaml
+
 name: cleanops360-staging
 services:
   web:
@@ -83,4 +87,5 @@ volumes:
 secrets:
   postgres_bootstrap_password:
     file: ${CLEANOPS_PG_PASSWORD_FILE:?Absolute path to private file outside repo}
+
 

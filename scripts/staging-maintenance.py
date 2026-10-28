@@ -12,6 +12,34 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def maintenance_base(record, docker):
+    # The canonical staging record pins identity and entrypoint, never enumerate projects.
+    canonical = json.loads((ROOT / "deploy/staging/RESOURCE_RECORD.json").read_text())["STAGING_SYNTHETIC"]
+    target = record["STAGING_SYNTHETIC"]
+    project = target.get("composeProject")
+    if not project or project != canonical["composeProject"]:
+        raise ValueError("COMPOSE_PROJECT_MISMATCH")
+    if target.get("composePath") != canonical["composePath"]:
+        raise ValueError("COMPOSE_PATH_MISMATCH")
+    base = ["compose", "-p", project, "-f", str(ROOT / canonical["composePath"]),
+            "--profile", "synthetic-custody"]
+    # Parse/validate the exact entrypoint used below, before ps/inspect/exec or token reads.
+    config = json.loads(docker([*base, "config", "--format", "json"]))
+    if config.get("name") != project:
+        raise ValueError("COMPOSE_PROJECT_MISMATCH")
+    for service in ["postgres", "openbao"]:
+        if service not in config.get("services", {}) or config["services"][service].get("ports"):
+            raise ValueError("PRIVATE_MAINTENANCE_COMPOSE_REQUIRED")
+    return base, project
+
+
+def require_owned_service(meta, project, service):
+    labels = meta["Config"]["Labels"]
+    if (labels.get("com.docker.compose.project") != project
+        or labels.get("com.docker.compose.service") != service or meta["HostConfig"].get("PortBindings")):
+        raise ValueError("OWNERSHIP_REQUIRED")
+
+
 def backup(record, token_file, key_file, output):
     s = record["STAGING_SYNTHETIC"]
     if (s["syntheticOnly"] is not True or any(s.get(k) is not False for k in
@@ -37,17 +65,13 @@ def backup(record, token_file, key_file, output):
             raise ValueError("REDACTED_BACKUP_DEPENDENCY_FAILURE")
         return r.stdout
 
-    base = ["compose", "-p", "cleanops360-staging", "-f", str(ROOT / "deploy/staging/compose.yaml"),
-            "-f", str(ROOT / "deploy/staging/compose.openbao.yaml"), "--profile", "synthetic-custody"]
+    base, project = maintenance_base(record, docker)
     for service in ["postgres", "openbao"]:
         cid = docker([*base, "ps", "-q", service]).decode().strip()
         if not cid or len(cid.splitlines()) != 1:
             raise ValueError("OWNED_RUNNING_SERVICE_REQUIRED")
         meta = json.loads(docker(["inspect", cid]))[0]
-        labels = meta["Config"]["Labels"]
-        if (labels.get("com.docker.compose.project") != "cleanops360-staging"
-            or labels.get("com.docker.compose.service") != service or meta["HostConfig"].get("PortBindings")):
-            raise ValueError("OWNERSHIP_REQUIRED")
+        require_owned_service(meta, project, service)
     token = token_file.read_bytes().strip()
     if not token or len(token) > 1024:
         raise ValueError("TOKEN_FORMAT")
@@ -84,3 +108,4 @@ if __name__ == "__main__":
         print(backup(json.loads(a.record.read_text()), a.snapshot_token_file, a.key_file, a.out))
     except (ValueError, KeyError, OSError, subprocess.SubprocessError):
         raise SystemExit("SYNTHETIC_BACKUP_REJECTED")
+

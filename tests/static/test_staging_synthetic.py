@@ -41,6 +41,161 @@ def fixture():
 
 
 class Synthetic(unittest.TestCase):
+    def test_cli_selective_rejects_all_artifact_options_before_io(self):
+        from unittest.mock import patch
+        import contextlib, io
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "must-not-exist"
+            cases = [["--compose-out", str(target)], ["--inputs", str(target)],
+                     ["--out", str(target)], ["--inputs", str(target), "--out", str(target)],
+                     ["--include-ingress"], ["--compose-out", str(target), "--inputs", str(target), "--out", str(target)]]
+            for options in cases:
+                argv = ["prepare-staging-synthetic.py", "--capacity-scope", "openbao-sealed-addition",
+                        "--record", str(target), *options]
+                with self.subTest(options=options), patch("sys.argv", argv), patch.object(Path, "read_text", side_effect=AssertionError("No reads before rejection")), patch.object(prepare, "render", side_effect=AssertionError("No workload render")), patch.object(prepare, "consolidated_compose", side_effect=AssertionError("No Compose render")), contextlib.redirect_stderr(io.StringIO()) as error:
+                    with self.assertRaises(SystemExit) as rejected: prepare.main()
+                    self.assertEqual(rejected.exception.code, 2)
+                    self.assertIn("SELECTIVE_CAPACITY_EVALUATION_ONLY", error.getvalue())
+                self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_cli_default_full_stack_labels_workload_and_compose_artifacts(self):
+        from unittest.mock import patch
+        import contextlib, io
+        record, inputs = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); record_file = root / "record.json"; inputs_file = root / "inputs.json"
+            record_file.write_text(json.dumps(record)); inputs_file.write_text(json.dumps(inputs))
+            argv = ["prepare-staging-synthetic.py", "--record", str(record_file), "--inputs", str(inputs_file),
+                    "--out", str(root / "package"), "--compose-out", str(root / "compose.json")]
+            with patch("sys.argv", argv), patch.object(prepare, "consolidated_compose", return_value={"services": {}}) as compose, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(prepare.main(), 0)
+                compose.assert_called_once()
+            manifest = json.loads((root / "package/manifest.json").read_text())
+            self.assertEqual(manifest["capacity"]["scope"], "full-stack")
+            self.assertEqual(manifest["capacity"]["requiredAvailableMillicpus"], 2000)
+            self.assertEqual(manifest["capacity"]["requiredAvailableMemoryMiB"], 4608)
+
+    def test_cli_selective_evaluation_only_retains_blocked_result_without_writes(self):
+        from unittest.mock import patch
+        import contextlib, io
+        record, _ = fixture()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "record.json"; path.write_text(json.dumps(record))
+            with patch("sys.argv", ["prepare-staging-synthetic.py", "--record", str(path), "--capacity-scope", "openbao-sealed-addition"]), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(prepare.main(), 2)
+            self.assertEqual(json.loads(output.getvalue())["scope"], "openbao-sealed-addition")
+            self.assertEqual(list(Path(directory).iterdir()), [path])
+
+    def test_staging_image_pins_authenticated_272_without_changing_boundary(self):
+        image = (ROOT / "deploy/staging/openbao/Dockerfile").read_text()
+        self.assertIn("--checksum=sha256:582b1f3c2fdc5afd443b2d57a225ef654de75adea609fdb66731fd582a9cbc96", image)
+        self.assertIn("/v2.7.2/openbao_2.7.2_linux_amd64.tar.gz", image)
+        self.assertNotIn("2.7.1", image)
+        self.assertIn("USER node", image)
+        self.assertIn('CMD ["server", "-config=/etc/openbao/server.json"]', image)
+
+    def test_selective_capacity_keeps_full_stack_gate_and_counts_build(self):
+        r, _ = fixture(); s = r["STAGING_SYNTHETIC"]
+        s["capacity"].update(availableMemoryMiB=5687, availableMillicpus=1000)
+        s["selectiveOpenbao"].update(webPostgresUnchanged=True, buildOpenbaoOnly=True,
+                                    buildEnvelopeVerified=True, buildMillicpus=1000)
+        full = prepare.capacity(r)
+        self.assertEqual(full["status"], "BLOCKED")
+        self.assertEqual(full["requiredAvailableMillicpus"], 2000)
+        self.assertEqual(full["requiredAvailableMemoryMiB"], 4608)
+        result = prepare.capacity(r, scope="openbao-sealed-addition")
+        self.assertEqual(result["status"], "PASS_HEADROOM_ONLY")
+        self.assertEqual(result["requiredAvailableMemoryMiB"], 2816)
+        self.assertEqual(result["requiredAvailableMillicpus"], 1000)
+        self.assertFalse(result["cpuReservationGuaranteed"])
+        s["capacity"]["availableMemoryMiB"] = 2815
+        self.assertIn("availableMemoryMiB", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["capacity"].update(availableMemoryMiB=5687, availableMillicpus=999)
+        self.assertIn("availableMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+
+    def test_selective_capacity_rejects_unknown_build_cpu_scope_and_stale_data(self):
+        r, _ = fixture(); s = r["STAGING_SYNTHETIC"]
+        for field in ["webPostgresUnchanged", "buildOpenbaoOnly", "buildEnvelopeVerified", "buildMillicpus"]:
+            self.assertIn(field, prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["selectiveOpenbao"].update(webPostgresUnchanged=True, buildOpenbaoOnly=True,
+                                    buildEnvelopeVerified=True, buildMillicpus=500)
+        s["capacity"]["availableMillicpus"] = None
+        s["observedOpenbaoPreparation"]["vmstatIdlePercent"] = [99]*5
+        self.assertIn("availableMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["capacity"].update(availableMillicpus=500, measuredAt="2001-01-01T00:00:00Z")
+        self.assertIn("staleOrFutureMeasurement", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        for unknown in [None, 0, -1, True]:
+            s["selectiveOpenbao"]["buildMillicpus"] = unknown
+            self.assertIn("buildMillicpus", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        s["selectiveOpenbao"]["buildMillicpus"] = 500
+        s["capacity"]["measuredAt"] = "2999-01-01T00:00:00Z"
+        self.assertIn("staleOrFutureMeasurement", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+        with self.assertRaisesRegex(ValueError, "UNKNOWN_CAPACITY_SCOPE"):
+            prepare.capacity(r, scope="arbitrary")
+        s["capacity"]["availableMemoryMiB"] = None
+        self.assertIn("availableMemoryMiB", prepare.capacity(r, scope="openbao-sealed-addition")["blockers"])
+
+    def test_canonical_include_is_used_once_by_every_command_producer(self):
+        from unittest.mock import patch
+        entry = (ROOT / "deploy/staging/compose.yaml").read_text()
+        self.assertEqual(entry.count("  - compose.openbao.yaml"), 1)
+        with patch.object(prepare.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = '{"services": {}}'
+            prepare.consolidated_compose()
+            command = run.call_args.args[0]
+        self.assertEqual(command.count("-f"), 1)
+        self.assertFalse(any(str(x).endswith("compose.openbao.yaml") for x in command))
+        record, _ = fixture()
+        calls = []
+        def docker(args):
+            calls.append(args)
+            return json.dumps({"name": record["STAGING_SYNTHETIC"]["composeProject"],
+                               "services": {"postgres": {}, "openbao": {}}}).encode()
+        base, _ = maintenance.maintenance_base(record, docker)
+        self.assertEqual(base.count("-f"), 1)
+        self.assertEqual(base[base.index("-f")+1], str(ROOT / "deploy/staging/compose.yaml"))
+        self.assertEqual(calls, [[*base, "config", "--format", "json"]])
+        self.assertFalse(any(str(x).endswith("compose.openbao.yaml") for x in base))
+
+    def test_maintenance_rejects_wrong_project_path_and_ownership(self):
+        record, _ = fixture()
+        expected = record["STAGING_SYNTHETIC"]["composeProject"]
+        self.assertEqual(expected, "cleanops360-f4fxmd")
+        for field, value in [("composeProject", "cleanops360-staging"),
+                             ("composeProject", None), ("composePath", "another/compose.yaml")]:
+            bad = copy.deepcopy(record); bad["STAGING_SYNTHETIC"][field] = value
+            with self.assertRaises(ValueError):
+                maintenance.maintenance_base(bad, lambda *_: self.fail("Must reject before Docker"))
+        def meta(project=expected, service="postgres", ports=None):
+            return dict(Config=dict(Labels={"com.docker.compose.project": project,
+                                            "com.docker.compose.service": service}),
+                        HostConfig=dict(PortBindings=ports or {}))
+        maintenance.require_owned_service(meta(), expected, "postgres")
+        for bad in [meta(project="cleanops360-staging"), meta(project="other"),
+                    meta(service="web"), meta(ports={"5432/tcp": [{}]})]:
+            with self.assertRaisesRegex(ValueError, "OWNERSHIP_REQUIRED"):
+                maintenance.require_owned_service(bad, expected, "postgres")
+
+    def test_maintenance_validates_its_exact_compose_before_discovery(self):
+        record, _ = fixture(); project = record["STAGING_SYNTHETIC"]["composeProject"]
+        configs = [{"name": "wrong", "services": {"postgres": {}, "openbao": {}}},
+                   {"name": project, "services": {"postgres": {}}},
+                   {"name": project, "services": {"postgres": {}, "openbao": {"ports": [8200]}}}]
+        for config in configs:
+            calls = []
+            def docker(args):
+                calls.append(args)
+                self.assertEqual(args[-3:], ["config", "--format", "json"])
+                return json.dumps(config).encode()
+            with self.assertRaises(ValueError): maintenance.maintenance_base(record, docker)
+            self.assertEqual(len(calls), 1)
+        def invalid_compose(args):
+            self.assertEqual(args[-3:], ["config", "--format", "json"])
+            raise ValueError("REDACTED_BACKUP_DEPENDENCY_FAILURE")
+        with self.assertRaisesRegex(ValueError, "DEPENDENCY_FAILURE"):
+            maintenance.maintenance_base(record, invalid_compose)
+
     def test_offline_consolidation_keeps_variables_relative_paths_and_fixed_deploy_path(self):
         merged = prepare.consolidated_compose(ingress=True)
         self.assertEqual(merged["services"]["web"]["build"]["context"], "../..")
@@ -159,7 +314,7 @@ class Synthetic(unittest.TestCase):
                        CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
                        CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
             result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
-                                     "deploy/staging/compose.openbao.yaml", "-f", "deploy/staging/compose.ingress.yaml",
+                                     "deploy/staging/compose.ingress.yaml",
                                      "--profile", "synthetic-custody", "config", "--format", "json"],
                                     cwd=ROOT, env=env, capture_output=True, text=True, check=True)
             config = json.loads(result.stdout)
@@ -179,3 +334,4 @@ class Synthetic(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
