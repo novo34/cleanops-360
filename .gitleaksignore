@@ -1,3 +1,8 @@
 # Confirmed checksum, not a credential. Exact immutable commit/path/rule/line only.
 # SHA256(lib/b1/password.ts), verified in docs/reviews/SEMGREP_STAGING_17.md.
 04b8925cff9333e7f02116618e0df3deb322d598:.semgrep/reviewed-findings.json:generic-api-key:12
+
+# Confirmed public OpenBao GPG signing-subkey fingerprint, not a credential.
+# Official source: https://openbao.org/docs/install/#gpg
+# Exact immutable commit/path/rule/line only; no broader exclusions.
+4a12e31744ce89487f0cba1b4ab50188e4abd0b7:deploy/staging/openbao/OPENBAO-STAGING-01-CHECKS.md:generic-api-key:66

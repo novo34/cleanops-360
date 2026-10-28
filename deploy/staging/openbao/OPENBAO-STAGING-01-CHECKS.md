@@ -126,3 +126,22 @@ d651913b7f60f4609b9d48120b700f0a15b22e1c3e6ad6277cb23efcb73405fd  deploy/staging
 
 69ad788cb5dbc1cfff9b3fc50ca3620a34616e155860777a80199bd32c071ca3  deploy/staging/openbao/OPENBAO-STAGING-01.md
 
+
+## Reconciliación posterior: falso positivo Gitleaks acotado
+
+Quality del candidato ce7c81151af0314e6d30a8d1da55ebd612c25981 falló en Secret scanning, run https://github.com/novo34/cleanops-360/actions/runs/40704565314 . Audit, Semgrep real y fixtures pasaron; las fases posteriores a Gitleaks quedaron SKIP. Engineering-policy, preparación y regresión de origen pasaron por separado. No se presenta Quality como PASS.
+
+QG-0: inspeccionados el log, el hallazgo histórico de la línea 66, la documentación oficial de firma, .gitleaksignore y el comando del workflow. Se reutiliza .gitleaksignore, que ya contiene un registro exacto de checksum público. No se añade config, runner, regla desactivada, exclusión de ruta ni patrón global. Los dos archivos propuestos son ese registro y esta evidencia; Dockerfile, healthcheck, Compose, inputs y datos permanecen intactos.
+
+Clasificación revisada: la línea histórica contiene la huella pública de la subclave GPG de OpenBao, no material privado ni una credencial. Coincide con la documentación oficial https://openbao.org/docs/install/#gpg y con la firma del manifiesto verificada anteriormente. No es la CA TLS privada de este staging. El detector generic-api-key interpreta el texto Subkey como etiqueta de una posible clave, pero aquí el valor es una identidad pública.
+
+Único registro propuesto, sin modificar el anterior:
+4a12e31744ce89487f0cba1b4ab50188e4abd0b7:deploy/staging/openbao/OPENBAO-STAGING-01-CHECKS.md:generic-api-key:66
+
+Verificación independiente fuera del VPS con Gitleaks 8.24.3, la misma versión que CI. Tarball oficial linux_x64 SHA256 9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c, contrastado con checksums del release oficial. Mismo rango histórico y flags que CI: --no-merges --first-parent c2911e0c7db7e5bead68fb7ea54456f3283c80ab^..ce7c81151af0314e6d30a8d1da55ebd612c25981; redacción de valores activa.
+
+PASS de reproducción: registro anterior devuelve exit2 y exactamente ese hallazgo; registro propuesto devuelve exit0 y cero hallazgos. PASS de frontera: escaneo separado con el mismo registro propuesto sigue devolviendo exit2 y dos hallazgos, uno para la misma huella pública en otro archivo y otro para un token ficticio. Ninguna credencial real se generó ni utilizó. No se repiten pruebas de producto ni build por este cambio de clasificación.
+
+Alcance y aprobación: propuesta pendiente del propietario; no se ha movido la rama del PR con esta excepción. Su alcance se agota en ese commit/archivo/regla/línea inmutables; cualquier otro hallazgo requiere revisión propia. Retirar el registro si desaparece ese hallazgo del historial sometido al control y deja de ser necesario para revalidaciones históricas. No altera la entrada histórica ya aprobada ni sustituye controles de secretos, firma, capacidad o autorización.
+
+.gitleaksignore SHA256 5d4c69614b5a3e238e1c7e8a3787bbd821c27c4db89dbfde6676f1d5604127ea.
