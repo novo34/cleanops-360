@@ -32,8 +32,9 @@ test('shared directory is one tenant-resolved call, clients is a filter and no c
  assert.deepEqual(log,[['crmCompanies',['contact',true,null]]])
 })
 test('safe conflict is returned without a false success; malformed/foreign backend responses fail closed',async()=>{
- const detail={id,...company,version:'1',contacts:[],can_edit:false}
- assert.deepEqual(await crmRecord(broker(detail),'getCrmCompany',{company_id:id.toUpperCase()},binding,id),{data:detail})
+ const caseId='abcdefab-cdef-4abc-8abc-abcdefabcdef'
+ const detail={id:caseId,...company,version:'1',contacts:[],can_edit:false}
+ assert.deepEqual(await crmRecord(broker(detail),'getCrmCompany',{company_id:caseId.toUpperCase()},binding,id),{data:detail})
  const result=await crmRecord(broker({error:'CRM_CONFLICT'}),'changeCrmRecord',change,binding,id,owned)
  assert.equal('code' in result&&result.code,'CRM_CONFLICT')
  await assert.rejects(crmRecord(broker({id:tenant,version:'2'}),'changeCrmRecord',change,binding,id,owned),{code:'INVALID_BACKEND_RESPONSE'})
