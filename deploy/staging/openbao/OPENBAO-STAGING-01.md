@@ -413,3 +413,245 @@ Revalidar catálogo/revocaciones/advisories antes de instalar. Firma válida pru
 procedencia/integridad bajo la clave contrastada, NO ausencia de vulnerabilidades.
 Node/base OS siguen por tag mutable y necesitan revisión de digest y advisories;
 no se ha escaneado una imagen ni acreditado consumo del build o seguridad runtime.
+
+## RUNTIME-CUSTODY-01 — siguiente incremento, preparación sobre 6d89888
+
+Este asiento prevalece para el estado de staging comunicado por el propietario;
+las instrucciones anteriores de instalación/ceremonia quedan como historia, no
+como operaciones a repetir. Checkout 6d89888804ffa4e2ba7635878c88eaf7f3b9c997;
+web/PostgreSQL/OpenBao healthy sin reinicios, Bao 2.7.2 inicializado/desellado,
+custodia staging 1-de-1, auditoría privada con solicitud/respuesta correlacionadas,
+token HMAC y rechazo sin token. Backend cerrado, Autodeploy OFF. CRM-01 se conserva
+en 09c578137860cfc3726e67a21304a228c0657061. Son observaciones del propietario,
+no inspección independiente del VPS ni evidencia de recuperación/custodia integral.
+No reabrir init/unseal, instalación, quórum ni build para documentar este estado.
+
+### QG-0 y diff de esta preparación
+
+Objetivo REQ-AUTH-001/002/003/022/040, PR006/007: preparar login/TOTP/sesión con
+custodia real sin activar runtime ni declarar CRM/R4 completos. Fuente: AGENTS,
+ENGINEERING_QUALITY_POLICY, SRS §4, ROADMAP fase1/3, IMPLEMENTATION_GATES,
+KEY_OPERATIONS, CUSTODY_AND_RECOVERY y contratos canónicos B1. Inventario: runtime,
+proxy bootstrap, private-adapter, approved-backend/factors, custody-composition,
+openbao-keys, pg-identity-driver, custody-deadline de main, v4-broker/config,
+renderer/políticas, scripts de integración privada y ramas R4/CRM fijadas por SHA.
+Se reutiliza el código canónico; no se convierte un harness de CI en servidor ni
+se crea setter, feature flag de activación, segundo login, motor ACL o token client.
+
+Diff ejecutable mínimo: ocho blobs EXACTOS de main
+4f19c36f8eda2c846c6e3c7164814f26841b3bce, procedentes de a809604:
+lib/b1/{custody-composition,custody-deadline,openbao-keys,pg-identity-driver}.ts
+y sus cuatro tests/b1 correspondientes. Dos rutas deadline se añaden porque no
+existen en staging; owner B1/seguridad, consumidor composición privada, prueba de
+lease/COMMIT. No son un mecanismo paralelo ni temporal. Ningún cambio a runtime,
+proxy, permisos, SQL14, service/contracts, B2, R4, CRM, Dockerfile/Compose/TLS.
+
+El cambio elimina el riesgo de expirar claves después de permitir efectos/COMMIT:
+lease compartida, statement_timeout acotado al presupuesto restante sin alargar
+uno más estricto, descarte de conexión tardía, rollback de efectos no confirmados,
+limpieza de buffers incluso con trabajo pendiente. Un COMMIT confirmado puede
+entregar su recibo tardío sin autorizar nuevas consultas/claves. El fallo de
+release se sanea sin reintentar un efecto. Los tests usan transportes/saldos en
+memoria; no demuestran cancelación real de PostgreSQL bajo carga ni memoria JS
+perfectamente borrada. Revert de estos ocho blobs restaura el código anterior sin
+SQL inverso/volúmenes y sin arrancar servicios. Evidencia en CHECKS existente.
+
+Se añade runtime-catalog.review.sql, propiedad B1/DBA, consumidor revisión del
+catálogo desplegado y preparación de conexión; no runner/migración/instalador.
+Su ejecución queda pendiente. Cambios documentales en este procedimiento y su
+CHECKS mantienen una sola fuente para operaciones futuras y su evidencia.
+
+### Dependencias reales y frontera de R4/CRM
+
+Ruta existente: proxy.ts /login → runtimeHandler().bootstrap() → digest CSRF;
+app/auth/* → handleAuth → createAuthHandler → backend privado → withB1Custody →
+createOpenBaoKeys → createApprovedPrivateBackend → repositorio V4 → PG dedicado.
+Hoy runtimeHandler siempre usa closedBackend, incluida bootstrap. La custodia
+healthy no cambia esa frontera. Abrir solo handleAuth dejaría bootstrap cerrado.
+
+R4 remoto inspeccionado: codex/r4-aud-031 en
+9a4c8b90a159f2853f040dc5597042c17408da00. AUD-031 cambia la cadena de invitación:
+UI Idempotency-Key → invitation-acceptance-http.accept(cap,csrf,key,corr) → digest
+vinculado → broker consume_invitation_acceptance(text,text,bytea,uuid) → candidato
+SQL5 con efecto/auditoría/consumo atómicos. No degradar a la firma de tres args,
+no usar SQL histórico como sustituto ni quitar guards de autorización W/ref/App.
+Las barreras nativas de AUD-031 y sus callers fijados se conservan intactos.
+Login de identidad YA provisionada, TOTP y sesión no consumen esa operación de
+invitación. Si el usuario de staging depende de aceptar invitación, la corrección
+AUD-031 y sus permisos/SQL/validación exactos son requisito previo separado,
+no un motivo para insertar usuario, grants o factor por SQL administrativo aquí.
+No se incorpora ni ejecuta R4 en este diff; se consulta solo su firma de catálogo.
+
+Dependencias de main además de la lease: private-adapter/approved-backend/service
+incluyen absoluteExpiresAt y renovación de actividad autenticada mediante
+SQL14 touch_activity y relectura de binding. Staging carece de esa renovación.
+Para un recorrido que mantenga sesión debe seleccionarse ese fix mínimo y probar
+CSRF, absolutos/idle y COMMIT; no copiar approved-backend completo de main porque
+arrastra módulos B2. Esta preparación no lo instala ni declara R4 cerrado.
+
+CRM-01 en 09c5781 añade rutas /auth/crm/*, contratos, dispatch, crmRecord y SQL
+candidato; no existe en staging. Su página renderiza el shell, pero el servidor
+exige sesión ACTIVE y autorización efectiva; mostrar shell no prueba acceso.
+El propio CRM-01 conserva closedBackend y crm_module_guard() que DENIEGA todo.
+Aún requiere contrato/permisos companies/contacts, SQL/ACL revisados, vínculo
+feature_flags.organization_id ↔ tenant app.organizations y evidencia multi-tenant,
+idempotencia/CAS/auditoría. No suponemos igualdad de UUID ni levantamos el guard.
+Por ello Bao→login→sesión se prepara primero; sesión→datos CRM sigue bloqueado por
+su autorización y código propios. No importar toda R4/CRM para conectar Bao.
+
+### Inputs concretos pendientes (no contienen valores secretos aquí)
+
+Servidor ya configurado: conservar endpoint privado, CA, SAN, config y quórum
+comunicados; confirmar sus referencias/hashes al autorizar, sin pedir ni mostrar
+claves/token inicial en chat. Los null de plantillas públicas NO significan que
+se deba sobrescribir la configuración privada healthy con plantillas vacías.
+
+Para la conexión faltan: base/rol PG efectivo y TLS/socket de la identidad dedicada
+(no bootstrap/owner), grants/firmas desplegadas y roles heredados; tenant de ensayo,
+usuario/principal/MFA provisionados por el mecanismo aprobado (no consultar datos
+personales en la consulta de catálogo); método/algorithm/version y formato AAD;
+mount real KVv2, catálogo tenant/purpose/key_id/version inmutables y sus lectores;
+AppRole mount/RoleID e identidad nominal, TLS cliente workload propio y canal de
+entrega/rotación; TTL token/max/SecretID, wrapping y lifetime/timeout explícitos.
+No asignar versiones 1/key-v1/UUID de fixtures como inputs operativos.
+
+withB1Custody exige una sola identidad de tenant en los refs y cuatro HMAC
+(audit, otp, recovery, cursor), más las versiones TOTP de lectura necesarias.
+El tenant inicial para bootstrap/login debe venir de una decisión de composición
+server-side aprobada; no del body/header ni de un default global de tenant. Si
+se requiere login multi-tenant, resolver el alcance previo a tenant seleccionado
+es un contrato pendiente: no escalar la allowlist a todos los tenants como atajo.
+
+También faltan dummyPasswordHash real de admisión (misma política Argon2), regla
+normalizeEmail coherente con provisión, transport() con dimensiones HMAC de ingress
+real confiable (no IP de header, buffers constantes o fixture), labels privados de
+sesión y límite de métodos TOTP/política según config canónica. Reutilizar
+openEnrollmentSecret con AAD tenant/user/method/generación/algorithm/keyVersion;
+no red/segundo pool dentro de decryptTotp, fallback a latest ni cache de claves
+entre peticiones. Enrolamiento/rotación de TOTP es otro scope: si ya hay factor
+válido, no precisa credenciales de issuer/mail-worker; tampoco activar EMAIL.
+
+### Plan exacto de conexión posterior, aún bloqueado por esos inputs
+
+El siguiente parche deberá afectar runtime.ts y su consumidor proxy bootstrap
+solo si la forma de pasar contexto de ingress lo exige, con tests del runtime.
+Reutilizar los factories existentes en el mismo entrypoint, no duplicar Backend.
+Pool pg dedicado con identidad operativa; createOpenBaoKeys con mTLS/allowlist
+revisada y token provider acotado; dependencias privadas por operación; ejecutar
+bootstrap y handle dentro de withB1Custody hasta terminar la transacción HTTP.
+No cachear backend con Buffer prestado, copiar keys a un singleton, activar por
+un flag vacío, montar secretos en build o reutilizar el token inicial. El actual
+provider acepta token():Promise<string> pero no implementa un lifecycle AppRole
+operativo; el harness lo hace con credenciales sintéticas y root de ensayo.
+Resolver entrega/renovación/expiración/revocación de ese callback es requisito
+antes de escribir el parche de encendido, no se añade un proveedor ficticio ahora.
+Fallos Bao/PG/deadline siguen 503/no-store; falta MFA nunca crea ACTIVE/CRM.
+
+Pruebas posteriores exigidas: bootstrap privado, login correcto/incorrecto, TOTP
+correcto/repetido/versión o tenant equivocado, sesión expirada/revocada, CSRF,
+ninguna operación tras lease y recuperación de respuesta tras COMMIT tardío,
+fallo de auditoría fail-closed, pool sin owner/BYPASSRLS y negación cross-tenant.
+Para CRM, además catálogo, módulo aprobado, grants, CAS/idempotencia/auditoría y
+negativos de guard. La matriz no se presenta como ejecutada por este paquete.
+
+### Catálogo PostgreSQL propuesto: autorización A, solo lectura
+
+El archivo runtime-catalog.review.sql contiene exclusivamente catálogos, atributos
+de roles, firmas/ACL/owner/security-definer/settings y hashes de funciones del
+recorrido, más tres firmas CRM y la firma AUD-031 como sentinelas. Consulta tipos
+de columnas/RLS/ACL sin filas de app; nunca credentials/secret_ciphertext reales,
+pg_authid, hashes de passwords o valores de tenant/usuario. Esperados del repositorio
+cleanops_identity_service y cleanops_auth_broker NO son identidades observadas.
+Si faltan o son incompatibles, registrar GAP y detenerse, no usar bootstrap como
+runtime ni conceder permisos. Esta consulta no prueba que toda RLS sea correcta;
+si sus flags/ACL revelan discrepancias, una consulta posterior de políticas/DDL
+concreta requiere nueva selección revisada. Los MD5 de función son huellas del
+catálogo, no certificación contra SQL14 ni hashes de secretos.
+
+Comando futuro, SOLO tras autorización del archivo/hash, endpoint y rol lector;
+PGSERVICEFILE/PG_CATALOG_SERVICE deben identificar una conexión privada ya aprobada,
+sin password en argumentos ni salida. No se define otro entorno ni otro PG:
+
+```sh
+: "${PGSERVICEFILE:?Archivo privado de conexión aprobado}"
+: "${PG_CATALOG_SERVICE:?Alias aprobado para el PostgreSQL staging existente}"
+: "${CATALOG_OUTPUT:?Archivo nuevo privado fuera de Git}"
+test ! -e "$CATALOG_OUTPUT"
+umask 077
+psql -X --set=ON_ERROR_STOP=1 --dbname="service=$PG_CATALOG_SERVICE" \
+  --file=deploy/staging/openbao/runtime-catalog.review.sql > "$CATALOG_OUTPUT"
+```
+
+BEGIN READ ONLY con statement_timeout 5s/lock_timeout 1s limita esta inspección;
+son límites técnicos propuestos para la consulta, no TTL de negocio aprobados.
+No ejecutar funciones auth_api/identity_private ni GRANT/CREATE/ALTER/INSERT/UPDATE,
+ningún instalador staging-sql14 ni SQL14 otra vez. Resultados privados y revisión
+redactada de presentes/ausentes/firmas antes de preparar cualquier escritura.
+
+### Sustituir token inicial sin perder administración: autorización B separada
+
+Separar control plane humano de identity-verifier. Verifier solo READ en paths
+exactos de los HMAC/TOTP aprobados; sin default policy, LIST/metadata/writes/sys,
+otro tenant, grants ni snapshots. Reutilizar renderer prepare-b1-openbao.py y sus
+políticas/AppRoles con bind_secret_id, SecretID de un uso, CIDRs y TTL explícitos.
+No dar al servidor web el token root, shares, key-creator, snapshot o restore.
+El health cliente mTLS no sustituye la identidad AppRole ni el cliente workload.
+
+Administración: identificar administrador humano y método de autenticación ya
+aprobado, política de control exacta y recuperación; eso sigue pendiente. Poder
+editar políticas/roles es poder otorgar privilegios: no se presenta como rol sin
+riesgo. No renderizar ni instalar un admin genérico de sys/* o un nombre supuesto.
+Snapshot reader, restore y key-creator son identidades separadas para operaciones
+futuras que las requieran; no se crean para poder hacer login. Shares 1-de-1 de
+staging no son credenciales web ni aceptación de recuperación de producción.
+
+Secuencia futura exacta de gates, sin ejecutar en este encargo:
+1. Revisar inputs y catálogo; render offline a directorio NUEVO únicamente con
+   inputs aprobados; revisar hashes de policy/AppRole contra paths y tenant.
+2. Aprobar por separado políticas de administrador nominal y canal/authentication,
+   probar login de administrador en una sesión independiente del token inicial,
+   capacidades necesarias, denegaciones y una operación administrativa inocua
+   expresamente aprobada con rollback, auditada. Verificar TTL/renovación/revocación
+   y que esa identidad sobrevivirá a revocar el token inicial (sin parentesco que
+   la revoque en cascada; comprobarlo, no suponer orphan).
+3. Bajo esa administración, comprobar mount KVv2/CAS y versión existente. No recrear
+   mount, cambiar claves existentes, sobrescribir config server.json ni reinit.
+   Crear solo las policies/AppRole exactas aprobadas y canal de entrega de SecretID
+   wrapped de un uso; no transportar tokens por URL, terminal/CI/chat o build args.
+   Validar login AppRole, allowlist y negaciones, expiración y rotación del token
+   operativo. No usar el token inicial como token() callback ni fallback.
+4. Solo después de las pruebas de administración/recovery independiente y workload,
+   autorización del propietario para revocar el token inicial en su sesión aislada.
+   Revocar antes de montar/activar web; verificar que él y sus accesores/descendientes
+   no necesarios ya no autentican y el administrador sí puede administrar. No revocar
+   primero para luego descubrir que todas las sesiones admin dependían de él.
+5. Preparar el parche de conexión real y su diff, revisar otra vez y solicitar
+   autorización C para build/despliegue web selectivo y prueba de login/TOTP/sesión;
+   preservar PostgreSQL/Bao, Autodeploy OFF y volúmenes. CRM necesita autorización D.
+
+Comandos propuestos de preparación y comprobación (sin material privado en argv):
+
+```sh
+# Offline, no credenciales ni aplicación. El server.json de salida NO se instala.
+python3 scripts/prepare-b1-openbao.py --inputs /private/approved-workload-inputs.json --out /private/NEW-review-workload-pack
+# En una sesión futura con token-helper privado y mTLS aprobados, nunca BAO_TOKEN root en web:
+bao status -format=json
+: "${APPROVED_ENV:?Entorno aprobado}" "${APPROVED_TENANT:?Tenant aprobado}"
+: "${APPROVED_PURPOSE:?Propósito aprobado}" "${APPROVED_KEY_ID:?Key ID aprobado}"
+bao token capabilities "b1-keys/data/$APPROVED_ENV/$APPROVED_TENANT/$APPROVED_PURPOSE/$APPROVED_KEY_ID"
+# Solo en la sesión del token inicial y tras gates 1-4 y permiso expreso:
+bao token revoke -self
+```
+
+No se suministran comandos de alta de administrador/policies con nombres o grants
+inventados. Sus JSON y destinos exactos, TTL/canales y hashes deberán adjuntarse a
+la autorización B una vez decididos. Una receta con placeholders no es permiso
+para crear credenciales. Tampoco se suministra comando de despliegue C antes de
+que exista y se revise el parche de runtime; no hay encendido oculto en esta rama.
+
+Rollback futuro C: volver al artefacto web previo/closedBackend bajo autorización,
+revocar solo identidad workload afectada si procede, conservar PG/Bao/keys/audit y
+volúmenes. No reactivar root ni deshacer SQL/datos para ocultar un fallo; preservar
+recibos sin secretos. Rollback de esta preparación: revert del diff de código y
+documentación en rama, sin servicios. No se declara R4, CRM ni custodia integral
+completos ni se heredan PASS nativos por disponibilidad del servidor.

@@ -163,3 +163,102 @@ CI real y revisión independiente del nuevo candidato: pendientes. Publicar un P
 SHA256 de los archivos actualizados (informe excluido):
 73a5565d12d1e9b60abb88d305d93acad4a05a60140a2c8c32847b36f46ec478  .github/workflows/staging-preflight.yml
 d9a590a5c16247a4f59b1c6c839e7e33af2a7a867b37088d6dc6b1d454d8f661  tests/static/test_staging_synthetic.py
+
+## RUNTIME-CUSTODY-01 — preparación sobre staging 6d89888
+
+Fuente base oficial 6d89888804ffa4e2ba7635878c88eaf7f3b9c997; main leído
+4f19c36f8eda2c846c6e3c7164814f26841b3bce; R4 9a4c8b90a159f2853f040dc5597042c17408da00;
+CRM conservado 09c578137860cfc3726e67a21304a228c0657061. QG-0, inputs/decisiones,
+ruta bootstrap y auth, política operativa/admin y futuras autorizaciones A-D
+en la sección nueva del procedimiento OPENBAO-STAGING-01.md. Los bloques previos
+son evidencia histórica de instalación/preparación, no operaciones a repetir.
+
+Estado comunicado por el propietario: web/PG/Bao healthy sin reinicios, Bao2.7.2
+inicializado y desellado, staging 1-de-1, auditoría privada correlacionada y token
+HMAC con rechazo sin token; backend cerrado, Autodeploy OFF. No se inspeccionó
+VPS ni auditoría real aquí. No basta para afirmar custodia integral/R4/CRM completos.
+
+Inventario del diff: ocho blobs canónicos de main (cuatro módulos de lease/PG y
+sus cuatro suites), dos documentos existentes actualizados y un archivo nuevo
+runtime-catalog.review.sql. Deadline módulo/test son nuevos en staging pero ya
+canónicos en main. Cero nuevos runners ni motor de permisos, setter de runtime,
+cliente AppRole duplicado o tabla SQL. No se toca Dockerfile, Compose, TLS,
+private-adapter, runtime/proxy, service/backend/contracts/broker, R4/CRM/historia.
+
+PASS ejecutados localmente:
+
+- npm ci --ignore-scripts --audit=false --fund=false, lock existente: 570 paquetes;
+  únicamente dependencias de desarrollo en este workspace, ningún lifecycle script,
+  ningún servicio/build ni clave real. Lock y package.json sin cambios.
+- 26/26 Node tests de custody-composition, custody-deadline, openbao-keys y
+  pg-identity-driver, 764ms. Mock HTTPS/provider y pool en memoria, sin PG/Bao.
+- 28/28 Node tests de private-adapter/service/v4-broker, 477ms, fronteras
+  HTTP/transacción en memoria. Sin sockets/consultas reales a PostgreSQL.
+- 16/16 tests estáticos de guard/contexto Semgrep, 105ms. Manifiesto histórico
+  y findings no se modifican. Esto NO es un scan Semgrep nuevo.
+- 2/2 tests estáticos custody_harness_wiring, 1ms: runtime permanece cerrado y
+  no importa harness; el consumidor sintético usa la composición privada.
+- ESLint de los ocho archivos canónicos: exit0; tsc --noEmit --incremental false
+  sobre proyecto: exit0. Sin next build ni generación de tipos/build.
+- Igualdad de los ocho blobs importados con main comprobada byte por byte.
+  Trece rutas protegidas del runtime/despliegue/config iguales a 6d89888.
+- Archivo catálogo: inspección léxica de solo lectura, sin DDL/DML fuera de
+  literales ni SELECT sobre filas app/identity_private/auth_api; sin pg_authid.
+  Se propone BEGIN READ ONLY y límites locales; NO se ejecutó/parseó en PG.
+
+Comandos reproducibles offline tras disponer de dependencias del lock:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/pg-identity-driver.test.ts tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/private-adapter.test.ts tests/b1/service.test.ts tests/b1/v4-broker.test.ts
+python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
+python -B -m unittest discover -s tests/static -p test_b1_custody_harness_wiring.py -v
+npx --no-install eslint lib/b1/custody-composition.ts lib/b1/custody-deadline.ts lib/b1/openbao-keys.ts lib/b1/pg-identity-driver.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/openbao-keys.test.ts tests/b1/pg-identity-driver.test.ts
+npx --no-install tsc --noEmit --incremental false
+```
+
+FAIL/diagnóstico conservado: primera ejecución sin node_modules falló al resolver
+otpauth; instalación local con scripts desactivados y repetición de esa suite dio
+26/26 PASS. Comprobación léxica inicial demasiado simple detectaba UPDATE dentro
+del literal de has_table_privilege; se corrigió la comprobación para separar
+literales/comentarios, sin cambiar consulta ni ejecutar SQL. git diff --check
+señala una línea vacía final en pg-identity-driver.ts y su test, ambas ya exactas
+en main; se conservan los blobs canónicos, no se oculta como PASS global.
+
+BLOCKED: conectar runtime real hasta catálogo/identidad/keys/ingress y renovación
+del token provider aprobados, más verificación de bootstrap/renovación de sesión.
+No se introduce un encendido incompleto en nombre de este objetivo. El diff de
+conexión posterior se delimita por archivo en el procedimiento y requerirá los
+inputs reales. R4/AUD-031 solo es previo si la provisión requiere invitación; no
+se importa ni degrada su firma. CRM tiene SQL/ACL/guard de módulo pendientes.
+
+SKIP: consulta runtime-catalog.review.sql, parser PostgreSQL real (pglast no
+disponible), funciones/roles/datos desplegados, Bao APIs/capabilities, credenciales
+operativas, revocación root, build/deploy, aplicación de SQL14 u otro SQL, TLS real,
+recuperación, E2E login/TOTP/CRM, CI remota y revisión independiente del nuevo SHA.
+No se abre PR que dispare Quality/PG ni se reutiliza autorización de CI de PR28
+para este incremento nuevo. Rama revisable sin modificar main/staging/R4/CRM.
+
+### SHA256 de RUNTIME-CUSTODY-01
+
+5002de44512401ac5c052d3ef0f495781309317d59426d7f0201cd1af95761f2  lib/b1/custody-composition.ts
+
+b9314a806e6c52088bd86871ea6b53e0b2f6f4f477f184877f0cb2268d8f795a  lib/b1/custody-deadline.ts
+
+265611c3d706f7c8406faa08d9660074621871cb014502493ba34b77d051c13f  lib/b1/openbao-keys.ts
+
+6f5ec3ccc65a9a20796615824e8e8f920849eef54e3e10ba6cae0923a482c3e0  lib/b1/pg-identity-driver.ts
+
+34cef8de0b8cbee97b781a2d22d739e0d056b408430b59f0a38fd160a95c9bc4  tests/b1/custody-composition.test.ts
+
+5b5592b003422422c83cd130ce7032fe06ca712fddd382b8fcba4ca87e4e26f0  tests/b1/custody-deadline.test.ts
+
+488084cc5cc989dfc15d3e4cab23f150fc721f3085858cdabdb2ba28fda085d7  tests/b1/openbao-keys.test.ts
+
+368ad6f4ef0585f11df356726a55673b5726593c2e439dbf213dc4ab02145e87  tests/b1/pg-identity-driver.test.ts
+
+200a10a086bcf100f3c3dedb5b37aa80c079709d9f23a88f20c710545bd6775c  deploy/staging/openbao/runtime-catalog.review.sql
+
+0c9bff92bb252b7b9358d07574e79bc358fabb5c5f1f7cdaa869d3fcc7638e04  deploy/staging/openbao/OPENBAO-STAGING-01.md
+
+Los hashes anteriores del informe se conservan como historia del SHA entonces revisado; este bloque identifica los bytes de la preparación actual. El informe se excluye a sí mismo.

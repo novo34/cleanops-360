@@ -25,7 +25,12 @@ function fixture() {
           if (!key) throw Error('Not allowed')
           return fn(key)
         }
-        try { return await work(borrow) }
+        const deadline = performance.now() + _lifetime
+        const lease = {
+          remainingMs() { const value = Math.floor(deadline - performance.now()); if (value < 1) throw Error('expired'); return value },
+          acknowledgeCommit() {},
+        }
+        try { return await work(borrow, lease) }
         finally { for(const key of keys.values())key.fill(0);zeroed=true }
       },
     },
