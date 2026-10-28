@@ -1,3 +1,4 @@
+import { messageParameters, type MessageParameters } from './parameters.ts'
 import en from './catalogs/en.json' with { type: 'json' }
 import de from './catalogs/de.json' with { type: 'json' }
 import es from './catalogs/es.json' with { type: 'json' }
@@ -10,14 +11,7 @@ export type Locale = typeof locales[number]
 /** Autonyms are proper language names, never a fallback translation. */
 export const languageNames: Record<Locale, string> = { de: 'Deutsch', es: 'Español', en: 'English', it: 'Italiano', pt: 'Português', sq: 'Shqip' }
 export type MessageKey = { [N in keyof typeof en]: `${N}.${keyof typeof en[N] & string}` }[keyof typeof en]
-export const messageParameters = {
-  'crm.contactCount': { count: 'number' },
-  'crm.editNamedContact': { name: 'string' },
-  'crm.suppressedAt': { at: 'string' },
-} as const
-export type MessageParameters = { [K in keyof typeof messageParameters]: {
-  [P in keyof typeof messageParameters[K]]: typeof messageParameters[K][P] extends 'number' ? number : string
-} }
+export { messageParameters, type MessageParameters } from './parameters.ts'
 type Arguments<K extends MessageKey> = K extends keyof MessageParameters ? [parameters: MessageParameters[K]] : []
 export type Translator = <K extends MessageKey>(key: K, ...args: Arguments<K>) => string
 const catalogs = { de, es, en, it, pt, sq }

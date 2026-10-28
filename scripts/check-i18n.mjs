@@ -1,5 +1,5 @@
 import ts from 'typescript'
-import { messageParameters } from '../lib/i18n/index.ts'
+import { messageParameters } from '../lib/i18n/parameters.ts'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
