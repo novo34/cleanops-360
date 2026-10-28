@@ -536,3 +536,442 @@ npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
 npm notice To update run: npm install -g npm@12.2.1
 npm notice
 
+
+
+CRM-01 REVIEW CORRECTIONS — NEW EVIDENCE
+Implementation source: f795835ac96ca59638cee91b175b7158d07e4be4
+No SQL execution, service activation, build/browser run, deployment or live staging inspection.
+Historical evidence above remains baseline-only.
+
+
+COMMAND: npm run lint
+
+> cleanops-360@0.1.0 lint
+> eslint . && node --experimental-strip-types scripts/check-i18n.mjs
+
+
+/workspace/cleanops-360/components/auth-panel.tsx
+  70:6  warning  React Hook useEffect has a missing dependency: 'endCeremony'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 1 problem (0 errors, 1 warning)
+
+(node:11825) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/cleanops-360/lib/i18n/parameters.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/cleanops-360/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"status":"PASS","messages":76,"locales":["de","es","en","it","pt","sq"]}
+
+
+COMMAND: npm run typecheck
+
+> cleanops-360@0.1.0 typecheck
+> tsc --noEmit
+
+
+
+COMMAND: npm test
+
+> cleanops-360@0.1.0 test
+> vitest run && node --experimental-strip-types --test --test-isolation=none tests/i18n.test.mjs
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.3 /workspace/cleanops-360
+
+
+ Test Files  6 passed (6)
+      Tests  22 passed | 3 skipped (25)
+   Start at  09:14:35
+   Duration  1.88s (import 43%, transform 39%, tests 14%, worker 4%)
+
+    Isolate  6 workers spawned · ~136ms startup each (spawn + environment, per file)
+             at least ~680ms faster with isolate: false — reuses workers across files instead of one per file
+
+✔ six UI languages have exactly the same 76 nonempty messages, valid references and no uncatalogued CRM copy (144.619272ms)
+✔ missing language, missing keys and empty translations fail; another language cannot hide omissions (15.732219ms)
+✔ raw duplicate keys are rejected before JSON.parse can overwrite either namespace or message (1.082642ms)
+✔ incompatible placeholders, invalid plural forms and nonnumeric plural declarations fail (31.83938ms)
+✔ checker rejects unknown key references and catalog bypasses including aria, conditional copy and message maps (38.413017ms)
+✔ language negotiation has no implicit global fallback and explicit unsupported choices are not replaced (0.600904ms)
+✔ plurals and safe interpolation preserve customer input without interpreting HTML or recursively translating it (11.283522ms)
+✔ regional date format and timezone are explicit and independent from UI translation or currency (6.635045ms)
+✔ local render helpers cannot hide literal UI copy behind arrow functions, blocks, declarations or wrappers (40.758788ms)
+✔ CRM inventory discovers new roots, nested components and arbitrarily named shared import consumers (33.135066ms)
+(node:11948) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/cleanops-360/lib/i18n/index.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/cleanops-360/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 763.743127
+
+
+COMMAND: npm run test:b1:offline
+
+> cleanops-360@0.1.0 test:b1:offline
+> node --experimental-strip-types --test --test-isolation=none tests/b1/access-broker.test.ts tests/b1/access-http.test.ts tests/b1/approved-backend.test.ts tests/b1/approved-factors.test.ts tests/b1/ceremony-contract.test.ts tests/b1/ceremony-preparation.test.ts tests/b1/closure-traceability.test.ts tests/b1/consolidated-execution.test.ts tests/b1/consolidated-sql.test.ts tests/b1/contracts.test.ts tests/b1/crm-records.test.ts tests/b1/custody-composition.test.ts tests/b1/d1-broker.test.ts tests/b1/demo-model.test.ts tests/b1/design-directions.test.ts tests/b1/email-ceremony.test.ts tests/b1/enrollment-backend.test.ts tests/b1/extension-contract.test.ts tests/b1/extension-sql-review.test.ts tests/b1/mail-delivery-plan.test.ts tests/b1/mail-dispatch-store.test.ts tests/b1/mail-envelope.test.ts tests/b1/mail-worker.test.ts tests/b1/password-admission.test.ts tests/b1/password.test.ts tests/b1/pg-identity-driver.test.ts tests/b1/pg-test-01-review.test.ts tests/b1/private-adapter.test.ts tests/b1/private-operations.test.ts tests/b1/proxy-origin.test.ts tests/b1/rate-limit.test.ts tests/b1/recovery-http.test.ts tests/b1/reset-http.test.ts tests/b1/selector-json-limit.test.ts tests/b1/sequential-status.test.ts tests/b1/service.test.ts tests/b1/totp-candidate.test.ts tests/b1/totp-orchestration.test.ts tests/b1/totp-selection-contract.test.ts tests/b1/totp-selection-labels.test.ts tests/b1/totp-sha256-rfc.test.ts tests/b1/totp.test.ts tests/b1/trusted-http.test.ts tests/b1/ui-request-keys.test.ts tests/b1/v4-broker.test.ts
+
+✔ AUTHZ preparation uses existing fixed SQL with policy CAS as bound data on one connection (240.345621ms)
+✔ AUTHZ private broker does not convert a rejected CAS or authorization result into success (0.334641ms)
+✔ AUTHZ HTTP accepts locators and CAS but rejects asserted tenant roles authorization and duplicate selectors (98.92388ms)
+✔ AUTHZ PREAUTH cannot mutate and successful HTTP result remains one-time without cookies (13.356417ms)
+✔ AUTHZ cannot transition or clear ACTIVE from a malformed adapter or claim success on failed COMMIT (2.752666ms)
+(node:11487) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/cleanops-360/tests/b1/access-broker.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/cleanops-360/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ HTTP identity uses approved Binding and one transaction; foreign tenant cannot leak (932.299925ms)
+✔ RBAC and step-up deny before own-session effect or idempotency; no ALLOW cache (2.96695ms)
+✔ revocation, audit correlation and owned completion commit together; uncertain commit has no cookie success (14.530791ms)
+✔ real step-up TOTP keeps current session and absolute lifetime distinct from idle expiry (9.322024ms)
+✔ real active TOTP confirmation returns ten recovery codes once, stores only HMACs/marker (4.975547ms)
+✔ cursor cannot cross tenant/kind and abandoned reservations cannot commit (3.960223ms)
+✔ unsupported material-dependent ceremony fails closed and runtime remains closed (2.534543ms)
+✔ unreviewed database profile rejects before binding and recovery requires one-time reservation (1.109297ms)
+✔ D1 does not enable EMAIL OTP without D4; HTTP errors contain no proof or cookie (2.035854ms)
+✔ approved adapter touches once after valid identity and rereads the persisted deadline before COMMIT (1.364594ms)
+✔ expired bindings and failed or over-absolute persisted renewal never commit activity (4.685997ms)
+✔ wrong GET CSRF and revoked-session operations do not refresh the approved adapter (2.03863ms)
+✔ real Argon2id rehash and version-bound preauth use unforgeable one-shot transaction proof (4883.880782ms)
+✔ bad or absent password proof commits only a pseudonymous denial; credential CAS race throws (4313.801782ms)
+✔ real TOTP passes exact method version/counter CAS, replays and foreign tenants are denied (400.043455ms)
+✔ invalid TOTP records one failed proof, secret-provider failure aborts without attestation (351.120757ms)
+✔ step-up revalidates server grant/session authorization before decrypt or counter CAS (830.486173ms)
+✔ PostgreSQL base64 wrapping preserves ciphertext bytes; malformed whitespace never reaches decryption or CAS (363.995857ms)
+✔ review-only guard and exact five-function signature inventory; no hidden surface (0.686844ms)
+✔ privilege/schema delta is explicit, broker-only and minimal; legacy entry points removed (0.477295ms)
+✔ method snapshot is written after locked eligibility and consumed under generation checks (0.188047ms)
+✔ trusted context, expiry after wait, no redundant membership upgrade, assigned enrollment scope (0.232389ms)
+✔ canonical V4/B1-X unchanged; approved D1 calls match pinned contract without runtime activation (1.422509ms)
+✔ risk durations use existing V4 values and never default (0.294059ms)
+✔ method selection rejects ambiguity, absent selections and duplicates (0.531583ms)
+✔ method identity exists before authenticated encryption; URI matches encrypted secret (2.306609ms)
+✔ AEAD rejects tampering and cross-tenant/user/method/key replay (5.820008ms)
+✔ EMAIL OTP uses approved verifier HMAC domain and binding (0.586774ms)
+✔ algorithm and envelope revision are authenticated; malformed policy cannot default (0.566675ms)
+✔ key rewrap preserves the secret and counter identity; old ciphertext stays readable with old key (0.979261ms)
+✔ private preparation redacts default JSON/inspection and excludes secret properties from spreads (0.75203ms)
+✔ owner-approved session limits are 12h/24h independently of idle and trusted-device lifetime (0.156797ms)
+✔ B1 closure inventory includes every AuthSpec SRS requirement without pretending real acceptance (712.445118ms)
+✔ closure inventory preserves all canonical cases and effective HTTP operations (3.759029ms)
+✔ SQL authorization request pins unexecuted artifacts and does not alter runtime safety (1.357682ms)
+✔ SQL11 acceptance is backed by real role/resource matrix, denied HTTP audit, row locks and COMMIT failures (2.117546ms)
+✔ standard-app compatibility acceptance requires actual installed applications and both real proof phases (0.417135ms)
+✔ SQL13 approval and24 cases retain historical exact-artifact provenance (6.2205ms)
+✔ SQL14 acceptance requires exact approved bytes and all20 native plus8 real scenario groups (9.467097ms)
+✔ authorized consolidated run records exact submitted SQL, atomic failure and cleanup without accepting B1 (1.303317ms)
+✔ consolidated proposal is deterministic, byte-pinned, uninstalled and preserves all original contracts (0.707523ms)
+✔ exact V4 provenance; 60 original V4 values plus owner-approved absolute policy overlay (0.285494ms)
+✔ missing, duplicated, altered approved and unreviewed trial values fail closed (0.581091ms)
+✔ 31 existing B1 operations plus eight B2 and three CRM operations; all inputs and success/error schemas validate and reject unknown fields (43.826173ms)
+✔ Unicode code points, UUID, method, unknown selectors and step-up resource binding (0.479778ms)
+✔ pending company switch purges source records and one-time secrets (0.216398ms)
+✔ strict company/contact contract rejects authority, unsupported roles, incomplete compliance and stale token shapes (0.46886ms)
+✔ adapter refuses PREAUTH and invalid input before broker effects (1.92617ms)
+✔ shared directory is one tenant-resolved call, clients is a filter and no caller authority is forwarded (0.215337ms)
+✔ safe conflict is returned without a false success; malformed/foreign backend responses fail closed (1.43799ms)
+✔ real HTTP ingress rejects client authority and invalid contact without executing mutations (3.143119ms)
+✔ HTTP does not acknowledge a failed transaction and does not disclose diagnostics (1.169947ms)
+✔ runtime remains closed for every CRM operation (0.639841ms)
+✔ candidate is outside migration allowlist; module boundary denies and does not invent ALLOW grants (0.588867ms)
+✔ maximum contract-valid contacts remain readable one at a time inside B1 envelope and PostgreSQL spacing budget (88.139344ms)
+✔ SQL candidate validates before writes, audits semantic denials and uses canonical specialized capability without edit implication (0.862118ms)
+✔ all response schema upper bounds include UTF-8, JSON escaping, JSONB separators, cursor and meta without lifting B1 limit (0.565036ms)
+✔ private B1 composition opens no connection until business operation and zeroes scope (0.718223ms)
+✔ cross-tenant and wrong-purpose references deny before custody or PostgreSQL (0.38956ms)
+✔ custody loss and mismatched key dependency cannot invoke backend (1.081827ms)
+✔ malformed version and invalid custody key length fail closed before database work (0.642562ms)
+✔ business failure never leaks private details and custody closes (0.253504ms)
+✔ private dependencies are not accepted when their HMAC buffers belong to wrong purposes (0.297307ms)
+✔ OpenBao custody is reacquired independently for each HTTP-facing operation (0.517541ms)
+✔ custody rejection cannot proceed to PostgreSQL even when a mock pool is available (0.630234ms)
+✔ TOTP AEAD versions must be explicit, tenant scoped and nonduplicated (0.682058ms)
+✔ D1 exact typed calls keep authorization/reservation/material/effect/audit/completion on one connection (5.310584ms)
+✔ denial, revocation, stale generation, audit and uncertain COMMIT never return successful effects (1.506771ms)
+✔ unowned mutation poisons transaction even when caller catches denial (0.304322ms)
+✔ strict private material rejects corrupt and privilege-expanding shapes and redacts recipient (0.91796ms)
+✔ assigned enrollment is a typed low-level contract only, with explicit scope and one-time reservation (5.294941ms)
+✔ concurrent simulated counter CAS yields one winner and replay cannot advance global counter (0.378454ms)
+✔ pinned approval inventory and both existing replacement signatures remain unchanged (0.725327ms)
+✔ generation stays an exact decimal string up to PostgreSQL bigint limit (0.634421ms)
+✔ public demo scenarios have isolated coherent synthetic references and no shared mutable state (0.5648ms)
+✔ demo coverage explains gaps and overlaps without asserting compliance or publishing (4.630956ms)
+✔ module allowlist and accent-insensitive search reject unknown/deep routes (0.420274ms)
+✔ D1 final approval pins exact SQL/ACL; no design direction authorizes execution (0.826031ms)
+✔ D3 candidate remains data/test-only, canonical period/digits/window preserved (0.350109ms)
+✔ operational specifications and unresolved recipient/completion contracts are explicit (0.26165ms)
+✔ planner is side-effect free and all dependent routes stay unwired (0.336505ms)
+✔ EMAIL adds four operations without changing any approved V4/H1-H3 operation or schema (3.843262ms)
+✔ EMAIL queues authenticated ciphertext and persists only private non-proof routing references (2.26388ms)
+✔ EMAIL unknown challenge, wrong ceremony purpose and missing binding fail closed (1.136767ms)
+✔ EMAIL failed native consumption is never promoted to success (0.636101ms)
+✔ EMAIL duplicate JSON selectors reject before dependency access with a safe HTTP error (0.705567ms)
+✔ multiple enabled EMAIL methods use a trusted stable locator without a client selector or invented limit (9.477472ms)
+✔ PREAUTH enrollment seals assigned UUID and emits URI only after commit with nonreplayable owned result (37.159987ms)
+✔ commit/custody failures never emit provisioning secret or cookies; transaction rolls back (3.75999ms)
+✔ foreign material, denied permission and one-time replay never read custody or provision a method (3.703549ms)
+✔ missing method bound or full ACTIVE set denies provisioning before key access (3.580828ms)
+✔ extension is an unapplied owner-review proposal, never an implementation unblock (0.284466ms)
+✔ canonical V4 SQL remains byte-for-byte unchanged at the reviewed base (0.205876ms)
+✔ proposal preserves closed runtime, transaction ordering and no execution authority (0.269409ms)
+✔ SQL overlay is abort-guarded REVIEW ONLY with an exact reviewed signature inventory (0.881401ms)
+✔ all proposed functions have fixed search_path, broker ownership and PUBLIC revoke (0.918638ms)
+✔ credential proposal rechecks hash AND generation, with principal lock before credential (0.284564ms)
+✔ TOTP proposal versions method material, has no implicit algorithm, and rejects stale global counters (0.284205ms)
+✔ Binding preserves preauth boundaries; step-up includes current policy and exact resource (0.23743ms)
+✔ reservation discard requires same scope, hash, backend and xid, never COMPLETED (0.583738ms)
+✔ contract model: generation reset and stale rehash cannot issue preauth (0.240725ms)
+✔ contract model: two purposes share a method counter; stale version and owner cannot consume (0.220235ms)
+✔ explicit V4 trial retry budget and expiry never extend OTP lifetime (0.225626ms)
+✔ bad policy/metadata fails closed; no default retry plan (0.378344ms)
+✔ idempotency is stable per tenant/outbox, isolated and contains no recipient or OTP (0.177913ms)
+✔ simulated accepted-but-timeout delivery is quarantined without second send (0.140545ms)
+✔ simulated transient sequence exhausts budget or expiry with one stable key (0.362525ms)
+✔ worker broker calls are parameterized and material is returned only after COMMIT (1.554299ms)
+✔ malformed broker result and failed COMMIT rollback/discard without exposing claim (0.610209ms)
+✔ mail AEAD authenticates immutable context and retains old version until key retirement (1.397207ms)
+✔ expired/future/malformed mail rejects; secret artifact is not serializable in ordinary sinks (1.482865ms)
+✔ mail sends only after committed claim and dispatch; output redacted and owned bytes cleared (0.826183ms)
+✔ revoked/foreign/stale material is denied before transport; no accidental success on COMMIT failure (1.327372ms)
+✔ uncertain delivery/invalid replies quarantine; never silently retry provider exceptions (0.992359ms)
+✔ failed finish COMMIT returns unconfirmed, not acceptance or a second send (0.55147ms)
+✔ expiry during committed dispatch prevents transport; definitive transient/permanent outcomes retained (0.693363ms)
+✔ local admission uses an integrity-pinned versioned corpus without normalizing or transmitting passwords (0.381847ms)
+✔ missing corrupt malformed oversized or duplicate corpus cannot become an admit-all checker (0.772573ms)
+✔ Argon2id verifies real passwords with the exact B1 trial profile (1284.174499ms)
+✔ malformed, corrupt, foreign algorithm and excessive PHC costs fail closed (891.54026ms)
+✔ valid legacy parameters upgrade progressively with fresh salts and CAS before success (2231.286547ms)
+✔ replacement failure or credential race throws 503; runtime remains closed (1161.694228ms)
+✔ reset hash preparation uses explicit private admission and independent Argon2id salts (799.759133ms)
+✔ reset hash preparation cannot bypass unavailable policy or admit malformed passwords (0.371471ms)
+✔ successful effect commits before returning, using one connection (0.333674ms)
+✔ typed failed-factor outcome commits attempt state rather than rolling it back (0.157278ms)
+✔ thrown identity failure rolls back and discards the connection (0.217499ms)
+✔ commit failure never releases a successful effect or reuses connection (0.259402ms)
+✔ bootstrap writer must commit; errors reject and do not create an active binding (0.781654ms)
+✔ begin failure is hidden, connection discarded, runtime remains closed (0.18929ms)
+✔ pool release failures are sanitized after commit and rollback without retrying effects (0.56775ms)
+✔ PG-TEST-01 proposed execution copies change only the reviewed syntax and stop guards (1.375281ms)
+✔ PG-TEST-01 evidence reports failed compilation and blocked product tests without accepting B1 (0.857761ms)
+✔ limited PATCH-01 authorization pins SHA-256 and forbids further SQL changes or activation (0.696031ms)
+✔ PATCH-02 stays uninstalled and changes only the demonstrated CASE and terminal transaction decision (1.133726ms)
+✔ locked ACTIVE context is bound to its own tenant and shortest expiry (0.276571ms)
+✔ revocation, MFA pending, membership, credential reset and time all fail closed (0.6625ms)
+✔ own-session checks cannot cross tenant or user or bulk-revoke the current session (0.190019ms)
+✔ private driver is not runtime enabled and hides storage failures (0.29556ms)
+✔ session identity/listing use the same connection and reject foreign tenant rows (1.425641ms)
+✔ self revocation reserves, mutates/audits in broker, completes and commits together (0.66718ms)
+✔ safe idempotent replay skips effect; foreign replay and commit failures never return success (1.227726ms)
+✔ revoked context/foreign own-session target rolls back without fallback (0.665627ms)
+✔ EMAIL_OTP uses HMAC digest only; false commits attempts and errors roll back (1.707588ms)
+✔ simulated concurrent OTP consumers produce exactly one success, no session issuance (1.479964ms)
+✔ simulated bulk revocation preserves current session, another user and tenant B (0.437842ms)
+✔ simulated completion failure rolls back effect, audit and idempotency as one unit (0.365061ms)
+✔ every B1 operation reaches closedBackend through public HTTPS and exact internal transports (99.491825ms)
+✔ HTTPS proxy metadata and direct internal HTTP preserve input validation order (4.969557ms)
+✔ unlisted URLs and forged Host/forwarding authorities cannot replace deployment trust (2.199006ms)
+✔ Forwarded is inert and cannot authorize a foreign browser Origin or Referer (1.720919ms)
+✔ method, static/dynamic path, query and selector contracts remain strict on HTTP (18.835586ms)
+✔ HTTP transport preserves cookie validation and never emits insecure cookies (1.178272ms)
+✔ malformed or absent internal configuration fails closed without enabling a backend (1.88199ms)
+✔ rate dimensions and progressive backoff preserve 900s window without permanent lockout (0.4386ms)
+✔ recovery HTTP accepts only a recovery code and never client identity or versions (0.242296ms)
+✔ malformed private recovery adapter cannot emit ACTIVE or cookies (1.028709ms)
+✔ reset HTTP accepts receipt and secrets only, never client identity or policy authority (0.190898ms)
+✔ reset refuses an adapter attempting ACTIVE or an early credential cookie (0.67545ms)
+✔ native JSON grammar plus scan rejects duplicate decoded keys at every object scope (0.538973ms)
+✔ eligible-method limit is explicit integer configuration with a derived resource ceiling (0.576402ms)
+✔ sequential B1 progress counts real accepted requirements and never treats demo as complete (1.124806ms)
+✔ consolidated execution request pins reviewed SQL/diff/ACL without granting execution (0.472029ms)
+✔ closed runtime dependency and invalid origin configuration never enable authentication (1.505807ms)
+✔ bootstrap persists only digests before emitting secure host cookies (0.806961ms)
+✔ origin, fetch metadata, duplicate cookies, server CSRF binding, unknown query and illegal selectors (5.53848ms)
+✔ body byte limit, compression, MIME, invalid UTF-8 and no-body requests are rejected (2.756079ms)
+✔ preauth and expiry never authorize ACTIVE operations; policy and step-up deny before effects (1.689995ms)
+✔ rate-limit counters and failed factor outcomes commit without success or token disclosure (1.709252ms)
+✔ login → selection → destination MFA → ACTIVE: only committed server transitions set cookies (29.574074ms)
+✔ concurrent identical idempotency keys have one effect, mismatches fail and secrets are not replayed (1.947702ms)
+✔ backend token leakage or premature ACTIVE login aborts and never sets cookies (1.19825ms)
+✔ all effective HTTP operations dispatch validated requests and responses through a transaction (203.203345ms)
+✔ pending switch preserves source cookie and replay never crosses a tenant binding (1.189384ms)
+✔ step-up verification cannot create a session or extend the existing absolute deadline (1.094007ms)
+✔ even a malformed private adapter cannot return another tenant identity or session (0.583633ms)
+✔ login and MFA verification never become replayable when a caller adds an idempotency header (0.782802ms)
+✔ internal HTTP preserves digest-bound CSRF denial before any business effect (0.475625ms)
+✔ activity renewal uses the persisted deadline and unchanged cookies under both approved risk policies (0.813816ms)
+✔ renewal never exceeds the original absolute deadline or accepts invalid persisted expiry (1.532153ms)
+✔ expired, revoked and no-longer-valid activity never commits a renewal (1.062388ms)
+✔ GET with an unverified CSRF cookie cannot touch activity or overwrite CSRF (0.445879ms)
+✔ denied, rate-limited and invalid responses do not renew activity (0.617928ms)
+✔ commit failure never emits refreshed cookies and a delayed expired response does not delete newer cookies (0.585681ms)
+✔ concurrent authorized idempotent replays renew without repeating the business effect (0.641189ms)
+✔ D3 candidate SHA256 reproduces RFC6238 vectors at canonical six digits (0.994934ms)
+✔ D3 candidate is explicit 32-byte CSPRNG and CleanOps 360 URI, not installed policy (1.156499ms)
+✔ real Argon2 login creates a version-bound TOTP challenge, owned marker and PREAUTH cookie only after commit (289.005838ms)
+✔ PREAUTH real TOTP CAS and risk-specific session issuance share one transaction with private projection (4.996831ms)
+✔ step-up prepares TOTP only, replays safe descriptor and revalidates method generation on retry (3.784339ms)
+✔ TOTP resend binds old method/context, replaces challenge and never invokes EMAIL (1.922783ms)
+✔ ambiguous/no-TOTP, foreign context, stale generation and expiry abort preparation without effects (10.087792ms)
+✔ missing trusted labels, audit failure and COMMIT failure roll back factor consumption and session together (6.485127ms)
+✔ concurrent PREAUTH verification has one session winner; consumed proof cannot be retried (2.924584ms)
+✔ rollback permits fresh whole-request retry; no implicit retry of uncertain COMMIT (3.271241ms)
+✔ invalid TOTP commits bounded attempt and discards internal reservation; EMAIL remains closed (4.376574ms)
+✔ replay after expiry and foreign-tenant verification never emit session/cookie (4.091007ms)
+✔ approved PREAUTH confirmation rejects absent stored enrollment before CAS or session issuance (2.907917ms)
+✔ approved missing selection response exposes own locators only; concurrent discovery has no challenge/factor effects (3.205195ms)
+✔ V4 HTTP rejects unapproved selector and all client authority fields without broker side effects (1.591644ms)
+✔ resend selects the prior trusted UUID among multiple methods; revoked/duplicate/stale choices stay closed (38.748538ms)
+✔ session metadata is normalized at the private callback boundary and never reflected in HTTP (4.242629ms)
+✔ approved selector creates bound TOTP challenges in ACTIVE and proven PREAUTH without consuming any factor (3.025102ms)
+✔ multi-method login returns own choices and PREAUTH only after commit, never an ACTIVE session (254.594472ms)
+✔ selector schema and context reject authority injection, missing ACTIVE grant, forbidden PREAUTH grant and bootstrap (38.154197ms)
+✔ duplicate and escaped duplicate selector keys reject before connection with generic HTTP error (1.255835ms)
+✔ foreign/revoked/stale/expired choices and audit/COMMIT failure roll back selector effects (19.805322ms)
+✔ concurrent same-key selection has one challenge/audit and replay revalidates generation (4.529826ms)
+✔ explicit limit is required and enforced; rate and cooldown never issue a challenge (4.664398ms)
+✔ candidate selector accepts only opaque locator/grant/resource, never client authority (0.467782ms)
+✔ candidate selection response projects only own opaque IDs/kind/expiry; duplicates/secrets reject (0.1947ms)
+✔ approved patch is scoped: 14 operations and no widening of AuthResult (1.778972ms)
+✔ effective OpenAPI is exactly the approved delta; original canonical HTTP remains unchanged (4.436453ms)
+✔ explicit selector is a UUID locator, never a client version/risk/identity object (0.567109ms)
+✔ ambiguous selection uses safe 409; no implicit preference or EMAIL fallback (0.403657ms)
+✔ revoked, foreign and stale locators are indistinguishable; malformed/duplicate trusted sets reject (0.354337ms)
+✔ selection is immutable and always reads generation from the current trusted set (0.090257ms)
+✔ private labels normalize NFC/space separators and count PostgreSQL characters without truncation (0.462765ms)
+✔ missing, malformed, control/bidi and raw-header objects fail closed without reflecting values (0.576899ms)
+✔ private labels redact default JSON/inspection/spread while explicit persistence remains available (0.154312ms)
+✔ approved SHA256 profile matches all six independent RFC6238 vectors (4.286135ms)
+✔ provisioning round-trip preserves SHA256, issuer and canonical period/digits; not an app compatibility claim (3.747743ms)
+✔ RFC 6238 vectors verify using explicit method algorithm and V4 trial settings (1.088399ms)
+✔ current and adjacent windows pass; expired/future-outside-window and malformed codes fail (2.285093ms)
+✔ authorization binds user, tenant, method, purpose and ceremony before secret access (1.457151ms)
+✔ counter is monotonic: used codes and older windows never succeed again (0.754843ms)
+✔ simultaneous valid proofs race on persistent CAS; exactly one succeeds (0.988405ms)
+✔ a consumed method counter cannot be reused across purposes or ceremonies (0.557073ms)
+✔ CAS rejection, revocation/version race and persistence errors never produce a proof (38.240027ms)
+✔ clock/decryption delay cannot extend ceremony or code validity (2.160314ms)
+✔ corrupt method/secret fails closed, plaintext is wiped, and runtime stays closed (0.911375ms)
+✔ caller context is snapshotted before asynchronous authorization (0.752823ms)
+✔ trusted cookie is HttpOnly post-COMMIT and never part of HTTP JSON or idempotent result (3.054669ms)
+✔ trusted registration cannot create trust from PREAUTH or leak a cookie on failed COMMIT (0.713764ms)
+✔ trusted response cannot create ACTIVE or omit its validated bounded cookie (3.915695ms)
+✔ trusted selectors accept only opaque locators, never client owner tenant version or tokens (0.206654ms)
+✔ uncertain mutation retries keep identity, changed body/path and confirmed actions do not (11.178641ms)
+✔ ceremony cancellation drops request keys and delayed confirmation cannot clear a new key (0.987196ms)
+✔ cancellation during asynchronous hashing cannot reserve a key for a later ceremony (0.35229ms)
+✔ SQL13 selection scope rolls back expected late denial but retains the outer owned unit (1.329566ms)
+✔ SQL13 recoverable SQL denial restores only its selection savepoint; serialization remains poisoned (0.478741ms)
+✔ broker uses canonical functions and placeholders; no SQL value interpolation (8.54187ms)
+✔ database error poisons the transaction even if the consumer catches it (1.06824ms)
+✔ SQL08 reset material is strict, private and bound to the same transaction as CAS (1.28885ms)
+✔ EMAIL verified recipient material is private under serialization and spread (0.247192ms)
+✔ escaped broker cannot query a released connection or rebind another tenant (0.271893ms)
+✔ unawaited work drains before rollback and never commits (0.294584ms)
+✔ expected TOTP material denial restores a savepoint for durable counters while unknown SQL errors still poison (0.644685ms)
+ℹ tests 253
+ℹ suites 0
+ℹ pass 253
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22825.61829
+
+
+COMMAND: npm run test:b2
+
+> cleanops-360@0.1.0 test:b2
+> node --experimental-strip-types --test --test-isolation=none tests/b2/*.test.ts
+
+✔ temporary DENY serializes an unambiguous interval and ignores forged form tenant/actor/policy selectors (66.335771ms)
+✔ invalid, reversed and zero-duration periods are rejected before submitting a mutation (1.184243ms)
+✔ a missing existing role is never silently replaced by a random role; malformed locators/actions/reasons fail closed (1.677098ms)
+✔ target-permission reads use a fixed SQL function with separate actor context and bound locators (1.746614ms)
+✔ B2 access queries reject caller-supplied tenant, actor, role and duplicate target claims before dependencies (9.949069ms)
+✔ a malformed access adapter cannot rotate or clear the current session on a read (2.602097ms)
+✔ review-only candidate factors the exact existing evaluator instead of introducing independent policy logic (1.093654ms)
+✔ limited acceptance rejects asserted authority, cross-origin and missing CSRF before private calls (7.906819ms)
+✔ only invitation cookies follow successful committed preparation; no B1 session or preauth (4.41912ms)
+✔ failed preparation or commit emits no cookies and redacts private diagnostics (2.404039ms)
+✔ invitation capability digest is purpose separated and rejects noncanonical values (0.627097ms)
+✔ acceptance consumes only the invitation capability in one B1 transaction; no issuer call exists (0.712296ms)
+✔ unknown factor commits a generic denial without a B1 session and malformed input never connects (1.087889ms)
+✔ existing identity cannot substitute enrollment for its previous factors or change credentials (3.973688ms)
+(node:11527) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/cleanops-360/tests/b2/access-form.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/cleanops-360/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ new invitee chooses a real Argon2 credential and proves B1-encrypted SHA256 TOTP before consume (622.674471ms)
+✔ invitation HTTP rejects asserted identities, roles, MFA/TTL and duplicate selectors before connecting (4.303678ms)
+✔ invitation mutations complete one-time ownership only after success and refresh but never rotate or clear a B1 session (3.056117ms)
+✔ private invitation adapter binds SQL, verifies trusted material, seals only for outbox and returns no secret (3.198268ms)
+✔ unavailable custody or foreign/malformed invitation material cannot publish or commit a secret (24.714215ms)
+✔ invitation secrets have 256-bit entropy, protected projection and context-bound verifiers (1.083145ms)
+✔ dedicated invitation mail accepts the approved 24-hour link, binds all AAD and redacts plaintext (1.865606ms)
+✔ approved invitation limits remain separate from B1 session and OTP lifetimes (0.244053ms)
+✔ user changes reject tenant/role/risk assertions and duplicate JSON selectors before any dependency (2.228649ms)
+✔ self-disable clears cookies only after committed success and completes an owned one-time marker without response plaintext (2.603045ms)
+✔ a user change response cannot clear another user session or emit a new token (1.267871ms)
+✔ the private adapter uses a fixed owned function, preserves the bound name and never chooses a target tenant (0.904607ms)
+✔ a principal NOWAIT collision rolls back the whole unit and only the exact B2 message maps to a safe conflict (0.600989ms)
+✔ a valid uppercase UUID still identifies self-disable after PostgreSQL canonicalizes the returned UUID (1.127745ms)
+✔ B2 strict HTTP validation rejects tenant/actor claims, unknown/duplicate query and invalid bounds before the backend (1.625011ms)
+✔ B2 successful directory read refreshes existing cookies and is only returned after commit; commit failures do not leak diagnostics (1.75432ms)
+✔ B2 output validation rejects secret fields and session transitions do not occur in the real reader (1.940064ms)
+✔ B2 detail validates the organization against the trusted binding; foreign or malformed output rolls back (6.241305ms)
+✔ B2 resume reads only the current active session without issuing a cookie or accepting a foreign identity or extended lifetime (2.75518ms)
+✔ a schema-valid detail for another user in the same tenant is rejected, while UUID casing is equivalent (1.394387ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1141.338391
+
+
+COMMAND: node --experimental-strip-types --test --test-isolation=none tests/b1/crm-records.test.ts
+✔ strict company/contact contract rejects authority, unsupported roles, incomplete compliance and stale token shapes (4.058984ms)
+✔ adapter refuses PREAUTH and invalid input before broker effects (2.863594ms)
+✔ shared directory is one tenant-resolved call, clients is a filter and no caller authority is forwarded (0.614093ms)
+✔ safe conflict is returned without a false success; malformed/foreign backend responses fail closed (1.880879ms)
+✔ real HTTP ingress rejects client authority and invalid contact without executing mutations (85.779801ms)
+✔ HTTP does not acknowledge a failed transaction and does not disclose diagnostics (3.053914ms)
+✔ runtime remains closed for every CRM operation (2.284555ms)
+✔ candidate is outside migration allowlist; module boundary denies and does not invent ALLOW grants (1.09306ms)
+✔ maximum contract-valid contacts remain readable one at a time inside B1 envelope and PostgreSQL spacing budget (95.188625ms)
+✔ SQL candidate validates before writes, audits semantic denials and uses canonical specialized capability without edit implication (1.900716ms)
+✔ all response schema upper bounds include UTF-8, JSON escaping, JSONB separators, cursor and meta without lifting B1 limit (0.764154ms)
+(node:11812) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/cleanops-360/tests/b1/crm-records.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/cleanops-360/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 512.070991
+
+
+COMMAND: pglast 6.17: parse_sql and parse_plpgsql on candidate text (no connection/execution)
+Parser version: v6.17
+SQL outer statements: 28
+PLpgSQL syntax trees: 8
+PASS: syntax parsing only. No PostgreSQL connection, SQL execution, catalog/type/ACL validation or service startup.
+
+
+COMMAND: Gitleaks 8.24.3 git --redact 0ce32ed..implementation
+9:18AM INF 1 commits scanned.
+9:18AM INF scanned ~54462 bytes (54.46 KB) in 202ms
+9:18AM INF no leaks found

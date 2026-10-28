@@ -1,16 +1,24 @@
 {
-  "schemaVersion": 1,
-  "status": "REVIEW_ONLY_BLOCKED_NOT_EXECUTABLE",
-  "sourceCommit": "33b513e574fb55e0140c500cd23e2181e40ef0e3",
+  "schemaVersion": 2,
+  "status": "REVIEW_CORRECTED_BLOCKED_FOR_FUNCTIONAL_STAGING",
+  "sourceCommit": "f795835ac96ca59638cee91b175b7158d07e4be4",
+  "reviewBase": "0ce32ed8a4efd0f81b879c832d111c7d6b543882",
   "baseMainVerified": "4f19c36f8eda2c846c6e3c7164814f26841b3bce",
   "branch": "codex/crm-01-companies-contacts",
-  "remotePrCreated": false,
-  "preservedCheckpoint": "08d6c07",
-  "authorization": "Development and review preparation only; no SQL/PostgreSQL/OpenBao/backend activation/deploy/merge/protection changes.",
+  "previousEvidence": {
+    "publishedCommit": "0ce32ed8a4efd0f81b879c832d111c7d6b543882",
+    "implementationCommit": "33b513e574fb55e0140c500cd23e2181e40ef0e3",
+    "manifestPath": "docs/proposals/crm-01/trial-request.json",
+    "originalVerification": {
+      "bytes": 42810,
+      "sha256": "1f8f78e9944aa9e14afdb68c3bb8c0d45fc4e8187c562dcf9a755c0174a17c53"
+    },
+    "interpretation": "Immutable baseline in Git; previous Chromium/build/CI-trial statements are not new evidence or an authorization for another staging."
+  },
   "candidate": {
     "path": "docs/proposals/crm-01/schema.review.sql",
-    "bytes": 13908,
-    "sha256": "9eac1ba97faedae0ac17d19bd00265407150c8f25692c58117f63ba1792a1618"
+    "bytes": 23072,
+    "sha256": "1d3e4e82f75def9109d1c927746c72fb3f5ef36b4efcbdec735ff29dcf9e82de"
   },
   "implementationArtifacts": [
     {
@@ -45,8 +53,8 @@
     },
     {
       "path": "components/crm-workspace.tsx",
-      "bytes": 17719,
-      "sha256": "e6f2b72f00717dae69301dff8f721170051046f9472c77d994d2388464abb25b"
+      "bytes": 18144,
+      "sha256": "b9b3045f0ae15909b9eb4682a450ebd306c125a2039d4a74f50382d978a61b9c"
     },
     {
       "path": "components/demo/workspace.tsx",
@@ -55,8 +63,8 @@
     },
     {
       "path": "docs/proposals/crm-01/schema.review.sql",
-      "bytes": 13908,
-      "sha256": "9eac1ba97faedae0ac17d19bd00265407150c8f25692c58117f63ba1792a1618"
+      "bytes": 23072,
+      "sha256": "1d3e4e82f75def9109d1c927746c72fb3f5ef36b4efcbdec735ff29dcf9e82de"
     },
     {
       "path": "e2e/crm-boundary.spec.ts",
@@ -80,23 +88,23 @@
     },
     {
       "path": "lib/b1/v4-broker.ts",
-      "bytes": 34651,
-      "sha256": "8cad6ffe3e547d25804c403870746640881423bb1c3ff53c5670368f24bb6d82"
+      "bytes": 34675,
+      "sha256": "3048bd05be15af66c2bf77a0f57b8a11ac6d9658fc9a59b7f13d49c26eddc924"
     },
     {
       "path": "lib/crm/http.json",
-      "bytes": 24691,
-      "sha256": "57f65ff490ccac2446197ab9730acdae868b32f793faeb8f1596268807d1e25b"
+      "bytes": 21127,
+      "sha256": "2b20c62ee3206571dd0a7329358f96390a0fab22a2589ac79d8ff8a8bb359979"
     },
     {
       "path": "lib/crm/model.ts",
-      "bytes": 1129,
-      "sha256": "7f22ec0f00f7af96266f2f4b2cfb8efca84c7db7464d3587337886845c7a6080"
+      "bytes": 1188,
+      "sha256": "d78e2e6997c42831b17a478e204ff57cff0d1b4420c985476b1a297071c1a3a3"
     },
     {
       "path": "lib/crm/records.ts",
-      "bytes": 2497,
-      "sha256": "a9ee31ce675fa05d385dcee2b823a4e312819862b36d2bb5c3548330fed936e7"
+      "bytes": 2557,
+      "sha256": "94fa3b688c33496d9c953bf4ad5d9df8234f1e590026d46d43a7b01dbca5773a"
     },
     {
       "path": "lib/i18n/catalogs/de.json",
@@ -150,8 +158,8 @@
     },
     {
       "path": "scripts/check-i18n.mjs",
-      "bytes": 8000,
-      "sha256": "7c06258716080d47e38bf151ff3c4a5603c1e85c49c340eafce4660debd753d7"
+      "bytes": 10991,
+      "sha256": "db035bb5ac52008df52618b7b285f87de09ce2c22a3d901d4462a1b140a89037"
     },
     {
       "path": "tests/b1/contracts.test.ts",
@@ -160,8 +168,8 @@
     },
     {
       "path": "tests/b1/crm-records.test.ts",
-      "bytes": 6431,
-      "sha256": "dc86945cf7cb6d21a51c2b645a53cd4c36e8850814bce7796497d0afb5057237"
+      "bytes": 11257,
+      "sha256": "aa68589ea3778608406ebd0050bd9d504be98f210af1ac690da522a0d100163c"
     },
     {
       "path": "tests/b1/email-ceremony.test.ts",
@@ -175,45 +183,85 @@
     },
     {
       "path": "tests/crm-i18n.test.ts",
-      "bytes": 2134,
-      "sha256": "63b3842a64338f1df03c5c2cfb1c361801ae7a279e18d4fcc22dfeed6d2fecd3"
+      "bytes": 2182,
+      "sha256": "ac5ac10d8df89d41245681a75aa9fde0b7455abbd73a078e864f9fffaf3821bc"
     },
     {
       "path": "tests/i18n.test.mjs",
-      "bytes": 5736,
-      "sha256": "01f90092c6046fe589e3c7ee1f3b7e86a2e2b3b8857968fd958b2d75a17b5235"
+      "bytes": 7889,
+      "sha256": "00e1a993852f10d98f3dcea16ea329aa3ce3e6e551fd39c4a8e1d507c0210703"
     }
   ],
   "dependencies": [
+    {
+      "path": "deploy/staging/README.md",
+      "bytes": 11186,
+      "sha256": "0962904f308434c881d6bdf5c9ca8e6ed1eb3696c6843029ef71c1d0549a576c"
+    },
+    {
+      "path": "deploy/staging/compose.yaml",
+      "bytes": 2388,
+      "sha256": "2338092ec78526ff5f918ed420c6835104a9e26bf6609467f31a221a3f39d7e0"
+    },
+    {
+      "path": "docs/API_SPEC.md",
+      "bytes": 19184,
+      "sha256": "34758957e95439e595d75933bb1f72b80045046c520bfb3f8e7ca121170fd9b3"
+    },
+    {
+      "path": "docs/CLEANOPS_RECOVERY_TODO.md",
+      "bytes": 224568,
+      "sha256": "166034fa62487a69bef3e6cd3a8307d25e7759233208dd2d5f838a6617a7714d"
+    },
+    {
+      "path": "docs/RBAC_PERMISSIONS.md",
+      "bytes": 13479,
+      "sha256": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3"
+    },
     {
       "path": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
       "bytes": 211988,
       "sha256": "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
     },
     {
-      "path": "scripts/b2-directory-postgres.py",
-      "bytes": 34852,
-      "sha256": "f7aa921f0cd1362913a4264d653e8b73cd1d2919fc0ee06a17bdd99b06d1cbdb"
+      "path": "lib/b1/approved-factors.ts",
+      "bytes": 10097,
+      "sha256": "2c7ca3481bb526f01dd1d57d82ff27fd3668ee088718a1317cf385c15068255f"
     },
     {
-      "path": "scripts/pg-test-01.py",
-      "bytes": 22358,
-      "sha256": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e"
+      "path": "lib/b1/custody-composition.ts",
+      "bytes": 4038,
+      "sha256": "5002de44512401ac5c052d3ef0f495781309317d59426d7f0201cd1af95761f2"
     },
     {
-      "path": "scripts/pg-http-integration.py",
-      "bytes": 3657,
-      "sha256": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a"
+      "path": "lib/b1/custody-deadline.ts",
+      "bytes": 3044,
+      "sha256": "b9314a806e6c52088bd86871ea6b53e0b2f6f4f477f184877f0cb2268d8f795a"
     },
     {
-      "path": "scripts/b2-browser-backend.ts",
-      "bytes": 2550,
-      "sha256": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272"
+      "path": "lib/b1/openbao-keys.ts",
+      "bytes": 7661,
+      "sha256": "265611c3d706f7c8406faa08d9660074621871cb014502493ba34b77d051c13f"
     },
     {
-      "path": "scripts/b2-real-browser-server.mjs",
-      "bytes": 5391,
-      "sha256": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944"
+      "path": "lib/b1/pg-identity-driver.ts",
+      "bytes": 3687,
+      "sha256": "6f5ec3ccc65a9a20796615824e8e8f920849eef54e3e10ba6cae0923a482c3e0"
+    },
+    {
+      "path": "lib/b1/private-adapter.ts",
+      "bytes": 4367,
+      "sha256": "8d968b73658d5384b2e4d9970d324bb9840a0ee2559b08565e6c38e316175d83"
+    },
+    {
+      "path": "lib/b1/runtime.ts",
+      "bytes": 1386,
+      "sha256": "1ee57f2f960c6d86d22bf5e1c0056a67f099f5ead53fed5ee8754005bef54e02"
+    },
+    {
+      "path": "lib/b1/security-values.json",
+      "bytes": 15133,
+      "sha256": "4640511dd6c82a882f9fe651e6bde883ca3802ee574a0c5e024c073d84a7c5ab"
     },
     {
       "path": "package-lock.json",
@@ -221,9 +269,39 @@
       "sha256": "2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4765"
     },
     {
-      "path": "lib/b1/runtime.ts",
-      "bytes": 1386,
-      "sha256": "1ee57f2f960c6d86d22bf5e1c0056a67f099f5ead53fed5ee8754005bef54e02"
+      "path": "scripts/b2-browser-backend.ts",
+      "bytes": 2550,
+      "sha256": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272"
+    },
+    {
+      "path": "scripts/b2-directory-postgres.py",
+      "bytes": 34852,
+      "sha256": "f7aa921f0cd1362913a4264d653e8b73cd1d2919fc0ee06a17bdd99b06d1cbdb"
+    },
+    {
+      "path": "scripts/b2-real-browser-server.mjs",
+      "bytes": 5391,
+      "sha256": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944"
+    },
+    {
+      "path": "scripts/pg-http-integration.py",
+      "bytes": 3657,
+      "sha256": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a"
+    },
+    {
+      "path": "scripts/pg-test-01.py",
+      "bytes": 22358,
+      "sha256": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e"
+    },
+    {
+      "path": "scripts/staging-online-check.mjs",
+      "bytes": 1073,
+      "sha256": "24635a5605ebcfebf3901e25ca704705bc91e749a6ff4ec4132be84cbb0213ad"
+    },
+    {
+      "path": "scripts/staging-sql14.py",
+      "bytes": 3792,
+      "sha256": "a45faba0547b297bda3feefcd2fa449faab47f2f6bbece3af6f8934a5c38b090"
     },
     {
       "path": "scripts/trusted-migrations.mjs",
@@ -232,204 +310,335 @@
     }
   ],
   "verification": {
-    "environment": {
-      "node": "24.19.0",
-      "chromium": "154.0.8037.57",
-      "browser": "System Chromium via /usr/bin/chromium; local production build only; no private backend installed"
-    },
     "commands": [
       {
         "command": "npm run lint",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "57036cdc8c1fde745b1f15e46cedb2a1b69dc090403d8a0c90999be59012b730"
+        "logSha256": "22521bc6f778353b815aff21a1af79f09f1354f8dd1c506ebfb0600c7a1a473e"
       },
       {
         "command": "npm run typecheck",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "8b242cab1436e9c0ea7cb88be788183b2009d53d21497995bbbcd6518d7eebf5"
+        "logSha256": "8b242cab1436e9c0ea7cb88be788183b2009d53d21497995bbbcd6518d7eebf5"
       },
       {
         "command": "npm test",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "dea85a62109e59ec45976c4bc281da32776dad0657959ac9215188a1f1d551e8"
+        "logSha256": "204e29477bdae9d0f320e6997dc4cf5fc7b64fceea1151508b59d6d063d12de3"
       },
       {
         "command": "npm run test:b1:offline",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "f7143bf21c9b66f4d29d9f319d50e5d64ecff3548d91e466039f8ac3da14f040"
+        "logSha256": "94839885b52ed840b97029d860e2d06bff9e92a9bc1e8c752475e42f395d2894"
       },
       {
         "command": "npm run test:b2",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "9cc46b453fa4bc0d0bf37b251b1b8a57718ff8938fbf34b165273bbb7a6d71a5"
+        "logSha256": "5a975596ff8c9c5a4f68b30fd64e340981d8d6a701e2fc5d0275092576e6eeca"
       },
       {
-        "command": "npm run build",
+        "command": "node --experimental-strip-types --test --test-isolation=none tests/b1/crm-records.test.ts",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "b314dccf862f3531758772f30e6a703f36c9d8b29e4c0a689e7bb13d25df6479"
+        "logSha256": "47be382e7d5d8263065e917a04388e99bc887e70c6c2c23fc2efaa1b39572d45"
       },
       {
-        "command": "npx playwright test --config /tmp/crm-playwright.config.ts demo-workspace.spec.ts demo-security-boundary.spec.ts crm-boundary.spec.ts",
+        "command": "pglast 6.17: parse_sql and parse_plpgsql on candidate text (no connection/execution)",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "750c6fee65c666433818fa3565d49252bbab67f2968d6f5cdf50b79f8b65679a"
+        "logSha256": "76ae075d90bbeb79e053545faeeb030196742d9cff2cf7a05ff4b3f28d382316"
       },
       {
-        "command": "npx playwright test --config /tmp/crm-playwright.config.ts crm-boundary.spec.ts (after final metadata extraction)",
+        "command": "Gitleaks 8.24.3 git --redact 0ce32ed..implementation",
         "status": "PASS",
         "exitCode": 0,
-        "fullLogSha256": "0ef51158d75ba606f0c30b48d9e0ad57bb4792684f2d3449de9887867a323e16"
+        "logSha256": "53f5c3b66f0ba7fbf62d23606a8c6dfceba4f17c732b12c7bd348252668bf00e"
       }
     ],
     "PASS": {
-      "b1Offline": 250,
+      "b1Offline": 253,
       "b2WithoutDatabase": 34,
       "vitest": 22,
-      "i18nChecksAndNegativeTests": 8,
-      "chromiumDistinctCases": 14,
-      "chromiumRevalidatedOnFinalBuild": 4,
-      "messagesPerUiLanguage": 76,
-      "languages": [
-        "de",
-        "es",
-        "en",
-        "it",
-        "pt",
-        "sq"
-      ]
+      "i18n": 10,
+      "crmTargetedCasesIncludedInB1": 11,
+      "sqlSyntaxOnly": {
+        "parser": "pglast 6.17",
+        "outerStatements": 28,
+        "plpgsqlTrees": 8
+      },
+      "messageCoveragePerLanguage": 76
     },
     "FAIL": [],
-    "SKIP": {
-      "vitestDatabaseCases": 3,
-      "reason": "CLEANOPS_TEST_DATABASE_URL not configured; no database authorized",
-      "crmRealPersistenceAndTenantAclCasAtomicityCases": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10
-      ],
-      "firefox": true,
-      "webkit": true,
-      "linguisticHumanAcceptance": true,
-      "independentFinalShaReview": true
-    },
-    "limits": [
-      "Unit transaction fakes are not proof of database atomicity/concurrency/tenant isolation.",
-      "Browser tests prove public regression and closed CRM/i18n, not a successful CRM database mutation.",
-      "The 14-case browser run predates metadata-only extraction and UUID-case adapter fix; its UI/catalog/CSS/test bytes match this source. Four CRM cases were rerun on the final build after extraction.",
-      "Legacy auth-panel exhaustive-deps lint warning remains; no new lint errors.",
-      "76/76 technical message coverage per language is not complete-language or linguistic acceptance."
+    "SKIP": [
+      "3 historical Vitest PostgreSQL integrations",
+      "PostgreSQL compilation, catalog/type resolution and direct validation cases",
+      "Effective ACL/RLS, contacts.suppress and tenant/native permission tests",
+      "Atomic mutation/audit/owned-journal commit and concurrent CAS/idempotency/failure injection",
+      "New build/browser tests: services not authorized in this request",
+      "Live Hostinger/Dokploy/OpenBao/database inspection",
+      "PO online login→MFA→session→CRM→persistence→audit",
+      "Deployment, activation, migration, merge, phase acceptance"
     ],
-    "resolvedInitialFailures": [
-      "npm cache permission failure fixed using /tmp cache without lockfile edits",
-      "B1 operation and broker function inventories extended; canonical preservation still asserted",
-      "CRM node:test moved into existing B1 suite instead of Vitest",
-      "CSRF test fixture missing Sec-Fetch-Site fixed; commit failure test now reaches effect",
-      "Raw JSX/attribute checker refined for structural attributes with negative regression cases",
-      "Dev-mode alert ambiguity and hydration race; final browsers use production build without CSP changes",
-      "Playwright dynamic ESM import fixed in test with static import",
-      "German navigation overflow at 390px fixed in private CRM CSS"
+    "diagnosedAndCorrectedFailures": [
+      "Stale embedded detail schema was replaced with reference to the one CRMCompany schema",
+      "Summary contact_name received the same bounded text pattern as stored contact names",
+      "pglast 7.7 was unavailable; only temporary pglast 6.17 was installed and syntax parsing succeeded"
+    ],
+    "limitations": [
+      "Maximum-size pagination tests use contract-valid synthetic values, complete envelopes and schema byte upper bounds; they do not execute SQL or prove persistence.",
+      "Parser checks syntax only, not live pg_proc, ownership, types, ACL/RLS, locks, extensions or transaction behavior.",
+      "Broker reconciliation is textual by name, with literal consumer search; overloads, nested/dynamic calls and deployed catalog remain unverified.",
+      "Lint has one pre-existing AuthPanel exhaustive-deps warning.",
+      "i18n discovery follows local imports/re-exports and CRM root directories; it is scoped static analysis, not complete JS program verification."
     ],
     "evidence": {
       "path": "docs/proposals/crm-01/verification.txt",
-      "bytes": 42810,
-      "sha256": "1f8f78e9944aa9e14afdb68c3bb8c0d45fc4e8187c562dcf9a755c0174a17c53"
+      "bytes": 81878,
+      "sha256": "b243bfc93789dbb954552a1e0d1f5f0872e18abb632cfb094a2ddd1ee3dbf306"
     }
   },
-  "trialRequest": {
-    "requestedScope": "CRM-01 isolated synthetic trial; current bytes support denial only; positive trial BLOCKED",
-    "approvalGranted": false,
+  "corrections": {
+    "size": {
+      "globalB1LimitUnchanged": 16384,
+      "companyListMaxRows": 5,
+      "companyContactPageMaxRows": 1,
+      "maxContactsPerCompanyCandidate": 100,
+      "cursor": "contacts_after / contacts_next_after (last returned visible contact id)",
+      "writeValidation": "Exact keys, field maxima, no control characters/unpaired surrogates, timestamps <=35 characters, roles and data types; SQL checks precede all DML.",
+      "regression": "100 maximum-sized contacts, multibyte/quote/backslash cases, every bounded page and complete wire envelope/meta; conservative schema UTF-8/JSONB separator bounds."
+    },
+    "suppression": {
+      "normativePermission": "contacts.suppress / COM-07",
+      "preparedCanonicalCheck": "auth_api.binding_authorization(NULL,'contacts.suppress',contact_id)",
+      "currentOutcome": "DENY: canonical B1 only represents B1-SELF-01..08; no implicit edit grant, no new action enum or approved ALLOW",
+      "triggers": [
+        "New suppression mark",
+        "False/unmarked to marked contact",
+        "Change of suppressed email/identifier",
+        "Missing suppression ledger entry"
+      ],
+      "preservation": "Existing suppression retained; no removal flow.",
+      "requiresApproval": [
+        "Canonical specialized-capability representation, actor/resource scopes, explicit DENY/expiry and step-up policy",
+        "Create-contact scope and exact permission matrix/grants"
+      ]
+    },
+    "sqlAudit": {
+      "technical": "Shared specific validators in constraints/RPC, semantic denial audit and before/after version/role/suppression/relationship transitions plus changed field names. Raw names/emails/source URLs/legal free text are not duplicated into audit metadata. Infrastructure errors throw and require rollback.",
+      "requiresProductOrSecurityDecision": [
+        "Privacy/legal catalogs and interpretation (no inferred basis)",
+        "Retention and audit access policy",
+        "Suppression removal and normalization policy",
+        "Tenant/module link and commercial enablement",
+        "All positive permission assignments and new candidate SQL/ACL bytes"
+      ]
+    },
+    "i18n": {
+      "fixedReproduction": "const label=()=>\"Guardar\"; <button>{label()}</button>",
+      "discovery": "CRM roots/directories plus transitive local imports/re-exports, including arbitrarily named shared components",
+      "exceptions": [
+        "Customer-entered data through data expressions",
+        "Explicit CleanOps proper-name list",
+        "Language autonyms",
+        "Typed catalog t() and explicit regional data formatter"
+      ]
+    }
+  },
+  "brokerReconciliation": {
+    "brokerFunctionCount": 88,
+    "notDefinedInSql14": [
+      "crm_companies",
+      "crm_company",
+      "crm_change",
+      "invitation_link_material",
+      "invitation_credential_denied",
+      "prepare_invitation_acceptance",
+      "invitation_factor_material",
+      "invitation_factor_cas",
+      "invitation_factor_denied",
+      "consume_invitation_acceptance",
+      "invitation_draft_owned",
+      "publish_invitation_owned",
+      "administration_invitations",
+      "change_user_owned",
+      "user_effective_access",
+      "assignable_role_catalogue",
+      "administration_users",
+      "administration_user"
+    ],
+    "explicitlyRevokedFromIdentityService": [
+      "set_user_access_rule",
+      "set_access_role",
+      "set_role_membership",
+      "set_role_access_rule",
+      "revoke_access_assignment",
+      "begin_totp_enrollment_explicit",
+      "email_otp_material",
+      "consume_email_otp",
+      "login_material",
+      "new_preauth",
+      "issue_challenge",
+      "challenge_material",
+      "enrollment_material",
+      "verify_challenge",
+      "begin_totp_enrollment",
+      "confirm_totp_enrollment",
+      "reserve_idempotency",
+      "complete_idempotency",
+      "reserve_ceremony",
+      "complete_ceremony"
+    ],
+    "notExplicitlyGrantedInSql14": [
+      "crm_companies",
+      "crm_company",
+      "crm_change",
+      "invitation_link_material",
+      "invitation_credential_denied",
+      "prepare_invitation_acceptance",
+      "invitation_factor_material",
+      "invitation_factor_cas",
+      "invitation_factor_denied",
+      "consume_invitation_acceptance",
+      "invitation_draft_owned",
+      "publish_invitation_owned",
+      "administration_invitations",
+      "change_user_owned",
+      "user_effective_access",
+      "assignable_role_catalogue",
+      "administration_users",
+      "administration_user",
+      "set_user_access_rule",
+      "set_access_role",
+      "set_role_membership",
+      "set_role_access_rule",
+      "revoke_access_assignment",
+      "begin_totp_enrollment_explicit",
+      "email_otp_material",
+      "consume_email_otp",
+      "login_material",
+      "new_preauth",
+      "issue_challenge",
+      "challenge_material",
+      "enrollment_material",
+      "verify_challenge",
+      "begin_totp_enrollment",
+      "confirm_totp_enrollment",
+      "reserve_idempotency",
+      "complete_idempotency",
+      "reserve_ceremony",
+      "complete_ceremony"
+    ],
+    "method": "Textual name-level analysis; not live pg_proc/signature/role ACL validation",
+    "literalConsumersOfRevokedNames": {
+      "set_user_access_rule": [],
+      "set_access_role": [],
+      "set_role_membership": [],
+      "set_role_access_rule": [],
+      "revoke_access_assignment": [],
+      "begin_totp_enrollment_explicit": [],
+      "email_otp_material": [
+        "lib/b1/approved-factors.ts"
+      ],
+      "consume_email_otp": [
+        "lib/b1/approved-factors.ts"
+      ],
+      "login_material": [],
+      "new_preauth": [],
+      "issue_challenge": [],
+      "challenge_material": [],
+      "enrollment_material": [],
+      "verify_challenge": [],
+      "begin_totp_enrollment": [],
+      "confirm_totp_enrollment": [],
+      "reserve_idempotency": [],
+      "complete_idempotency": [],
+      "reserve_ceremony": [],
+      "complete_ceremony": []
+    },
+    "note": "Empty consumer list means no literal broker.call found, not a proof of unreachability; dynamic calls and SQL nested calls require R4 reconciliation."
+  },
+  "stagingConnectionPreparation": {
+    "target": "EXISTING Hostinger/Dokploy only",
+    "gitStagingReference": "a217cfeda74431b77ffa30d117febb62695c70d0",
+    "deployedShaOrDigest": "NOT_OBSERVED",
+    "noNewEnvironment": true,
+    "noNewRunner": true,
+    "noNewPermissionEngine": true,
+    "identity": {
+      "project": "cleanops-360",
+      "environment": "staging",
+      "service": "cleanops-staging",
+      "branch": "staging",
+      "composePath": "deploy/staging/compose.yaml",
+      "origin": "https://cleanops.nuvurent.com",
+      "autodeploy": "Must remain OFF; verify actual setting"
+    },
+    "reuse": [
+      "handleAuth/createAuthHandler",
+      "withB1Custody/createApprovedPrivateBackend",
+      "createCustodyDeadlinePool/createPgIdentityUnitOfWork",
+      "Existing OpenBao exact-version custody/AppRole/mTLS",
+      "Existing private PG and identity-service pool",
+      "Existing Playwright/B2 harness as appropriate to the distinct test track"
+    ],
+    "minimumFutureDelta": [
+      "Reconcile R4 reachable broker functions/signatures/return/ACL versus actually installed SQL, without broad reGRANT",
+      "Integrate reviewed missing custody deadline/provider/PG/backend changes from the existing lineage, preserving staging-specific files",
+      "Approve trusted tenant/session/PREAUTH custody reference resolution and workload identity/provisioning; never derive authority from payload/headers",
+      "Approve exact app.organizations ↔ public.feature_flags.organization_id link and CRM flag key with server-side disable/commit locking",
+      "Approve proposed minimal view/create/edit plus independent contacts.suppress and audit_logs.view scopes for designated synthetic users",
+      "Prepare an explicit reviewed extension of the one private runtime composition for the allowed functional route set; keep unrelated capabilities closed",
+      "Review actual DB catalog and derive a non-destructive SQL delta; do not run fresh-only staging-sql14.py against an existing database",
+      "Only after separate activation/deploy/SQL authorization integrate to permanent staging and its existing Dokploy service; do not point it at this feature branch"
+    ],
+    "r4Dependencies": {
+      "AUD-013/024": "Signatures/ACL and revoked reachable calls; two literal consumers in approved-factors plus legacy broker entries",
+      "AUD-027": "Actual B2 and proposed CRM RLS/ACL/owners/tenant isolation",
+      "AUD-031": "Owned reservation/result/retry/CAS contract; preserve prior VERIFIED/PASS reservations probe, do not repeat it or claim integral closure",
+      "AUD-033": "Durable allowed/denied audit and failure atomicity across tenants",
+      "AUD-028": "Absolute expiry, risk, activity limits and human acceptance of parameters",
+      "AUD-034": "Verified transaction context, pool lifetime, key lease/deadline before commit and performance"
+    },
+    "currentDeploymentInventory": [
+      "Running SHA/image digest and effective Compose/overrides/branch/path/Autodeploy",
+      "Existing project isolation/capacity/TLS/origin/internal origins/Traefik networks",
+      "PG version/UTF-8 encoding/schema/function signatures/ownership/effective ACL/FORCE RLS/install history",
+      "OpenBao health/unseal/path-version/policies/workload AppRole/CA/SAN/expiry/lease deadlines without revealing values",
+      "Synthetic actors/memberships/TOTP/session lifecycle and ordinary minimal database role",
+      "Tenant-to-feature mapping, flags and absence of unexpected ALLOW grants",
+      "Existing backups and recovery checkpoint; no changes to other projects"
+    ],
+    "tenantModuleAndPermissions": "REVIEW.md: explicit proposed matrix, no assigned user/role grants; specialized capability and module guard remain closed.",
+    "ciVsOnline": {
+      "ci": "Existing ephemeral synthetic CI harness/socket/TLS and exact separate approval; no new runner and no execution here.",
+      "onlinePO": "Existing public HTTPS service, real login→password PREAUTH→MFA TOTP→ACTIVE tenant session/CSRF→CRM create/edit/paginated reload→persistent audit and negative cases; separate authorization/evidence, not implied by CI.",
+      "closedBoundary": "staging-online-check.mjs currently expects 503; PASS is not functional B1 or CRM."
+    },
+    "authorizationGranted": false,
     "executionCommand": null,
-    "historicalAuthorizationsReused": false,
-    "proposedImage": "postgres@sha256:d81f7b51697014367236d07ec58b54153fc28f828b72bf247fe5c7487520bcb0",
-    "imageProvenance": "docs/implementation/b2/sql5-first-execution/report.json; dependency reference only, not reused execution authority; no image pulled here.",
-    "baseline": "Exact revision/14 SQL bytes in dependencies; install into a fresh empty instance only after NEW exact authorization.",
-    "tenants": [
-      {
-        "id": "10000000-0000-4000-8000-000000000001",
-        "label": "CRM SYNTHETIC A",
-        "actorId": "10000000-0000-4000-8000-000000000002"
-      },
-      {
-        "id": "20000000-0000-4000-8000-000000000001",
-        "label": "CRM SYNTHETIC B",
-        "actorId": "20000000-0000-4000-8000-000000000002"
-      }
-    ],
-    "testData": {
-      "companies": [
-        "CRM Synthetic A",
-        "CRM Synthetic B"
-      ],
-      "contacts": [
-        "Synthetic Facility Manager",
-        "Synthetic Purchasing"
-      ],
-      "emails": [
-        "facility@example.invalid",
-        "purchasing@example.invalid"
-      ],
-      "noRealPersonalData": true
-    },
-    "operations": [
-      "GET /auth/crm/companies",
-      "GET /auth/crm/company",
-      "POST /auth/crm/change: CREATE_COMPANY, EDIT_COMPANY, CREATE_CONTACT, EDIT_CONTACT",
-      "Read tenant-scoped audit/version/suppression and owned journal solely for assertions",
-      "Concurrent same-key/same-version operations from separate database connections",
-      "Inject audit write and COMMIT failures only in the owned ephemeral test instance"
-    ],
-    "cases": "REVIEW.md table: 1–10 plus disabled/absent module denial and data preservation",
-    "isolation": {
-      "network": "none",
-      "ports": [],
-      "mounts": [],
-      "database": "fresh empty PostgreSQL 16 core inside uniquely labelled owned container",
-      "transport": "Existing Unix-socket private B1/B2 backend plus existing test-only TLS browser bridge; no productive runtime setter",
-      "executionHost": "Owned hosted-CI instance after approval, no remote/existing DB, no persistent credentials, synthetic sessions only"
-    },
-    "cleanup": [
-      "On success, failure or cancellation remove only the container with the exact per-run ownership label",
-      "Destroy temporary TLS directory and synthetic factor/key buffers; verify no mounts/volumes/ports",
-      "Record cleanup evidence without passwords, cookies, SQL row PII or secret values",
-      "Do not touch existing databases, staging, OpenBao, protected refs or other projects"
-    ],
-    "blockingDecisions": [
-      "Approve companies/contacts resource/action/scope grants matrix and exact proposed SQL/ACL, including resource catalogue INSERT. No user ALLOW grants exist in these bytes.",
-      "Approve the link between public.feature_flags.organization_id and B1 app.organizations, the CRM flag key and locking/disable policy; current crm_module_guard denies all use.",
-      "After decision, replace the guard in this canonical candidate, complete defense-in-depth SQL review, and generate NEW exact hashes before any positive run.",
-      "Prepare and approve exact CRM fixture/grant/integration test bytes and the extension of existing harness inventory/TLS backend operation allowlist; current B2 harness has no approved CRM package. Do not invent an executable --package crm command.",
-      "Separate explicit execution authorization for the entire commit/SQL/fixture/harness/image bundle; historical SQL5/R4/AUD-031 approvals cannot authorize it."
-    ],
-    "readyForAuthorizationOfPositiveTrial": false
+    "readyForUserTest": false
   },
   "unchangedBoundaries": [
-    "lib/b1/runtime.ts closedBackend",
-    "scripts/trusted-migrations.mjs allowlist",
-    "AGENTS.md",
-    "all .github workflows and protections",
-    "historical SQL/ACL and canonical V4 bytes",
-    "PR23 DRAFT",
-    "R0–R3/AUD-031 reservations not repeated"
+    "closedBackend in lib/b1/runtime.ts",
+    "crm_module_guard denial body unchanged",
+    "Global B1 limits/security values",
+    "Historical SQL/ACL and specialized capability vocabulary",
+    "Migration allowlist",
+    "Workflows and deploy/staging files",
+    "Main and staging refs; no merge",
+    "R0–R3 closures and AUD-031 reservation evidence preserved"
   ],
   "acceptance": {
-    "QG0": "Documented before each extension",
-    "QG1QG2": "Single implementations; failures diagnosed and corrected in existing consumers/tests",
-    "QG3": "Local evidence and inventory present; real DB/ACL/concurrency/atomicity/independent review incomplete, so no false acceptance or PR checklist",
-    "phase3Accepted": false,
+    "QG0": "Inventory and bounded design documented before edits",
+    "QG1QG2": "Original candidate and tests extended; no new runner or engine",
+    "QG3": "INCOMPLETE: native/online/security/owner evidence still pending",
+    "complete": false,
     "readyForUserTest": false,
-    "complete": false
+    "phaseAccepted": false
   }
 }
