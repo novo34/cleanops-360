@@ -454,6 +454,40 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertNotIn('INSERT INTO app.users', body)
         self.assertNotIn('INSERT INTO identity_private.credentials', body)
 
+    def test_first_actor_native_diagnostics_are_useful_and_do_not_disclose_material(self):
+        native = module("first_actor_diagnostics_offline", "scripts/test-staging-postgres.py")
+        javascript = "import assert from 'node:assert/strict'\n" + native.FIRST_ACTOR_DIAGNOSTICS + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const diagnostics=[]
+try { assertion('FA-A014').equal(2,3,secret) } catch(e) { diagnostics.push(failure(e)) }
+try { await assertion('FA-A017').rejects(Promise.resolve(secret)) } catch(e) { diagnostics.push(failure(e)) }
+phase='FA-S01-EXECUTE'
+diagnostics.push(failure(Object.assign(Error(secret),{code:'42501',detail:secret,query:secret,parameters:[secret]})))
+diagnostics.push(failure(Object.assign(Error(secret),{code:secret,name:secret,actual:secret,expected:secret})))
+try { assertion('FA-A014').equal(secret,'another-private-value') } catch(e) { diagnostics.push(failure(e)) }
+try { assertion('FA-A079').equal(5,6,secret) } catch(e) { diagnostics.push(failure(e)) }
+process.stdout.write(JSON.stringify(diagnostics))
+"""
+        result = subprocess.run(['node', '--input-type=module', '-'], input=javascript,
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        self.assertNotIn('another-private-value', result.stdout)
+        rows = json.loads(result.stdout)
+        self.assertEqual(rows[0], dict(id='FA-A014', type='AssertionError', sqlstate=None, actual=2, expected=3))
+        self.assertEqual(rows[1]['id'], 'FA-A017')
+        self.assertEqual(rows[2], dict(id='FA-S01-EXECUTE', type='PostgreSQLError', sqlstate='42501'))
+        self.assertEqual(rows[3]['type'], 'OtherError')
+        for row in rows:
+            self.assertTrue(native.valid_native_diagnostic(row))
+        for row in rows[4:]:
+            self.assertNotIn('actual', row)
+            self.assertNotIn('expected', row)
+        self.assertFalse(native.valid_native_diagnostic(dict(id='PRIVATE_TOKEN', type='OtherError', sqlstate=None)))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], actual='PRIVATE_PASSWORD')))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], sqlstate='UNREVIEWED')))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], message='PRIVATE_SQL')))
+
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()
         with self.assertRaises(ValueError):
