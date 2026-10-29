@@ -678,3 +678,171 @@ No se han ejecutado SQL/Bao ni generado credenciales operativas. Hechos del VPS
 siguen siendo comunicados por el propietario, no comprobados aquí. Sin provisión,
 instalación, activación, build/deploy, push, PR o merge. closedBackend, SQL14,
 Compose efectivo, Autodeploy OFF, CRM y AUD-031 intactos.
+
+## FIRST-ACTOR-NATIVE-01 — preparación, NO EJECUTADO
+
+Base local revisada: 7e8c04896cc00854e2fbf8b67e1c94fec963d3bd. El propietario
+comunica revisión independiente favorable de ambas correcciones y 5/5 pruebas
+independientes del sink. No se repiten ni se atribuyen como ejecución propia.
+FIRST-ACTOR SQL continúa sin aceptación nativa; no se anuncia login funcional.
+
+QG-0: inspeccionados test-staging-postgres.py (owned container/socket/limpieza,
+instalador SQL14 y checks MIGRATIONS-01), pg-b1-real-protocols.py y
+pg-b1-pool-real.ts (roles ordinarios y concurrencia), test_staging_synthetic.py,
+loader/runner MIGRATIONS-01, incremental propuesta y servicio FIRST-ACTOR.
+Se EXTIENDE el primer harness con --first-actor y autorización explícita; se
+REUTILIZAN instalador, loader hash-verificado, ceremonia, TOTP/AAD, recovery,
+unidad de trabajo y pool pg. Los otros harnesses no son adecuados: sus fixtures
+preinstalan actores, mientras aquí la base debe comenzar vacía. No se crea otro
+runner/CLI de provisioning, workflow, VPS o servicio permanente. Dueño B1;
+consumidor único: aceptación efímera del operador después de autorización.
+Diff local: scripts/test-staging-postgres.py, un test del harness estático
+existente y este registro. No modifica SQL14, incremental, catálogo ni runtime.
+
+### Alcance EXACTO propuesto para UNA ejecución posterior
+
+Entorno: checkout local/CI de revisión, dependencias del lock YA instaladas,
+Node con strip-types, Python/PyYAML, Docker local y sudo/chgrp del harness
+existente. Imagen postgres:16-bookworm YA disponible: --pull=never impide pulls;
+si falta, detener, no instalar ni descargar implícitamente. Se comprueba versión
+16.x nativa y se registra el image ID efectivo, sin prometer digest aún observado.
+No es aceptación de transporte TLS/HBA de producción ni de Bao/Agent.
+
+Un contenedor non-root --user=postgres, --network=none, sin puertos, cap-drop ALL,
+no-new-privileges, máximo 1 CPU/768 MiB/128 PIDs. Un volumen con label/owner único,
+directorio temporal /tmp/cleanops-staging-pg-* y socket Unix privado; se ignoran
+DSN/variables PG/DOCKER operativas. Sin acceso VPS. La credencial de bootstrap
+es sintética temporal, solo inicializa este cluster; no se usa para operaciones
+funcionales de ceremonia. Tres LOGINs de fixture sin contraseña (executor,
+reader y outsider) usan trust local del socket aislado; executor hereda solo
+cleanops_first_actor_executor, INHERIT TRUE/SET FALSE de PG16. No se cambia HBA
+operativo ni se crea credencial real. Ninguno se instala en el VPS.
+
+Instalación SQL14 UNA vez en cleanops_staging mediante staging-sql14.py canónico,
+solo en volumen vacío efímero. Se verifica su journal/checksum. La propuesta
+0002_first_actor se lee con loadTrustedMigrations(...,'b1',true), se ejecutan sus
+bytes exactos en UNA transacción de prueba, y el journal conserva solo baseline.
+No se promociona proposed=true ni se usa runMigrations apply; la cola aplicable
+sigue VACÍA. Esta aplicación directa es fixture de aceptación bajo el harness
+propietario, nunca procedimiento operativo para instalar la incremental.
+Se clona first_actor_template después de cerrar las conexiones a la fuente y
+se crean diez bases fa_native_1 a fa_native_10 desde ese template. No se repiten
+DDL/instalación SQL14 por escenario, ni tests históricos de migraciones/root
+startup/reinstalación, ni AUD-031. No se insertan actores como fixtures: todos
+los actores se crean mediante la ceremonia canónica.
+
+Trece grupos previstos (NO son trece PASS acreditados):
+
+1. Arranque PG16 non-root del recurso efímero.
+2. Instalación SQL14 exacta mediante instalador existente.
+3. Incremental nativa sobre SQL14, hash/versión/journal y cola vacía.
+4. Roles NOLOGIN y flags; membresía PG16 exacta; SET ROLE denegado; EXECUTE
+   permitido solo en las ocho transiciones al executor, solo status al reader,
+   ninguno al outsider/PUBLIC; helper/scope privados. SELECT/DELETE directos
+   rechazan y catálogo deniega todos los privilegios de tabla al caller.
+   FORCE RLS en las ocho tablas empresariales usadas; INSERT del owner fuera
+   de scope transaccional rechaza. Reader no lee preparación ni puede preparar,
+   pero recupera recibo COMMITTED. Incluye recorrido real prepare/confirm/commit.
+5. Trigger sintético que falla INSERT en app.audit_logs durante commit: PG debe
+   revertir organizaciones, actor, credencial, TOTP, recovery y configuración,
+   manteniendo CONFIRMED. Se retira solo ese fault del clone de prueba.
+   Después se pierde deliberadamente el ack tras COMMIT real: status/reader y
+   reintento deben recuperar el mismo recibo, un actor y un evento final.
+   TOTP persistido se descifra con AAD canónico y coincide con URI entregada;
+   digests recovery coinciden con todos los códigos/HMAC canónicos; contraseña
+   verifica Argon2, ocho self rules exactas, cero sesiones y deployment_enabled
+   false. Material privado final borrado; aborto y nueva operación postcommit
+   rechazan; prepare repetido no reentrega.
+6. Ack perdido de preparación, aborto sin capability entregada, ack de aborto
+   perdido, reintento idempotente, nueva generación explícita, writers antiguos
+   rechazados e historial/evento únicos; nuevo TOTP puede confirmar y cometer.
+7. Expiración: modificación controlada del timestamp SOLO por administrador del
+   clone para evitar esperar diez minutos; status ejecuta expiración real,
+   borra material, abort(EXPIRED) y operación nueva. Capacidad antigua inválida.
+8. Agotamiento de otp_attempts mediante pruebas inválidas del servicio; mismo
+   aborto y nueva generación, sin alterar política/contador administrativamente.
+9. Aborto frente a commit válido: abort gana, commit rechaza, cero actores.
+10. Aborto frente a confirm válida: abort gana, confirm rechaza.
+11. Confirm frente a aborto: ambas transiciones serializan; acaba ABORTED.
+12. Commit frente a aborto: commit gana, abort rechaza; un actor COMMITTED.
+13. Aborto frente a prepare de operación nueva y después dos generaciones
+    nuevas competidoras: una sola generación materializada y contador histórico
+    conservado. En cada carrera se retiene la transacción A DESPUÉS de ejecutar
+    su función real y se observa B esperando Lock con pg_blocking_pids antes de
+    liberar A; no se acredita concurrencia solo con Promise.all o un sleep.
+
+Resultado incierto: pérdida de RESPUESTA inyectada en cliente después de COMMIT
+real, sin repetir efectos SQL. No es corte de red/kernel/caída de PostgreSQL;
+no acredita esos modos de fallo. Criptografía y persistencia serán reales con
+material exclusivamente sintético en memoria; admisión de contraseña y custodia
+inyectadas con fixtures; Bao/PKI/custodia real no participan.
+El administrador solo instala/verifica, inyecta el fallo de auditoría y mueve el
+timestamp de expiración del clone. Sin grants para superar un FAIL funcional.
+
+Presupuesto: cuerpo Node máximo 300 s, cada proceso Docker máximo 120 s y
+statement_timeout de cada conexión 10 s; barrera 10 s/observación lock acotada.
+finally cierra pools, borra buffers prestados y verifica labels antes de eliminar
+contenedor/volumen; TemporaryDirectory retira socket y password sintético.
+Abortos externos duros del proceso no acreditan cleanup: requieren inspección de
+los recursos con el owner de sus labels antes de una nueva ejecución.
+Informe previsto: artifacts/staging-synthetic/first-actor-native.json con 13
+checks, scope FIRST_ACTOR_NATIVE_EPHEMERAL, sourceCommit, artifactSha256, pgImageId,
+resultado, cleanup, runtime closedBackend y hostingerAccessed=false. El sourceCommit
+identifica HEAD; artifactSha256 identifica los bytes locales si el checkout tiene
+delta sin commit. Fallos se sanean, sin SQL/contraseñas/TOTP/recovery en informe.
+
+### Comandos completos, SOLO para autorización posterior
+
+Desde el checkout con esos requisitos preexistentes; NO ejecutados aquí:
+
+```sh
+cd /workspace/cleanops-360
+sha256sum scripts/test-staging-postgres.py tests/static/test_staging_synthetic.py db/migrations/0002_first_actor.review.sql docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+python3 -B scripts/test-staging-postgres.py --first-actor --authorization FIRST-ACTOR-NATIVE-01
+cat artifacts/staging-synthetic/first-actor-native.json
+sha256sum artifacts/staging-synthetic/first-actor-native.json
+```
+
+La cadena FIRST-ACTOR-NATIVE-01 delimita el modo, NO concede autorización por sí
+misma. Antes de invocarlo, propietario debe autorizar esos hashes y UN arranque,
+instalación SQL14 + propuesta sobre el cluster efímero, LOGINs sintéticos y diez
+clones con los trece grupos indicados. Cualquier cambio de bytes exige revisar
+el delta; no repetir automáticamente un fallo ni modificar roles/SQL para pasarlo.
+No incluye instalar dependencias, descargar imagen, operar VPS, SQL14 existente,
+Bao, login web, activación, deploy, PR/merge, ni modificar Compose/Autodeploy/CRM.
+
+### Evidencia OFFLINE de preparación
+
+Ejecutado: compile() Python y node --input-type=module --check sobre ambos cuerpos
+JavaScript extraídos por import, sin ejecutar sus imports/cuerpo; ESLint por stdin
+con filename scripts/first-actor-native.mjs: PASS. Un primer lint señaló import
+createHash no utilizado: retirado y revalidado. Se ejecutó:
+
+```sh
+python3 -B -m unittest discover -s tests/static -p test_staging_synthetic.py -k native_ -v
+npx --no-install eslint --stdin --stdin-filename scripts/first-actor-native.mjs < /tmp/cleanops-first-actor-native.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+3/3 pruebas Python PASS (la selección también coincide con el test existente de
+alternativa prebuilt); importación y rechazos de CLI con subprocess.run prohibido,
+contratos estáticos y aislamiento de conexión. NO validan semántica SQL/PG ni
+constituyen aceptación nativa. Offline-plan confirmado migrations=[] y propuesta
+executable=false. No se repiten pruebas de dominio/sink ni auditorías cerradas.
+
+SHA256 preparados:
+
+- scripts/test-staging-postgres.py:
+  84b9e7a3bac0661f7e8df460cd23477b53f6b68b8285eeecaa794be30b5c3732
+- tests/static/test_staging_synthetic.py:
+  76ad72f37436a700aa2f2b9965e15317dd5164804e23c598cfe980bb5200e9ec
+- db/migrations/0002_first_actor.review.sql (sin cambios):
+  89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102
+- SQL14 (sin cambios):
+  965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa
+
+Estado: PREPARED / NATIVE NOT RUN. closedBackend, SQL14, cola vacía, Compose,
+Autodeploy OFF, CRM y AUD-031 conservados. Sin SQL/Bao, credenciales operativas,
+provisión real, contenedor iniciado, instalación, despliegue, publicación o PR.

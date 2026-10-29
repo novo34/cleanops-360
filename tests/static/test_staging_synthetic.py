@@ -431,6 +431,29 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertIn("host: socket", native.NATIVE_MIGRATION_CHECKS)
         self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
+    def test_first_actor_native_preparation_is_explicit_owned_and_offline_on_import(self):
+        from unittest.mock import patch
+        with patch("subprocess.run", side_effect=AssertionError("Native execution forbidden")):
+            native = module("first_actor_native_preparation", "scripts/test-staging-postgres.py")
+            for args in [["--first-actor"], ["--authorization", "FIRST-ACTOR-NATIVE-01"], ["--first-actor", "--authorization", "OTHER"]]:
+                with self.assertRaises(SystemExit) as error:
+                    native.main(args)
+                self.assertEqual(error.exception.code, 2)
+        source = (ROOT / "scripts/test-staging-postgres.py").read_text()
+        self.assertIn('if not options.first_actor:', source)
+        self.assertIn('FIRST_ACTOR_NATIVE_CHECKS if options.first_actor', source)
+        self.assertIn('timeout=300 if options.first_actor else 120', source)
+        self.assertIn('first-actor-native.json', source)
+        body = native.FIRST_ACTOR_NATIVE_CHECKS
+        self.assertIn("host:socket", body)
+        self.assertNotIn('connectionString', body)
+        for contract in ['proposal.sql', 'pg_blocking_pids', 'first_actor_history', 'SYNTHETIC_ACK_LOST_AFTER_REAL_COMMIT',
+                         'fa_fail_audit', 'relforcerowsecurity', 'openEnrollmentSecret', 'ATTEMPTS_EXHAUSTED',
+                         'cleanops_first_actor_reader', 'deployment_enabled', 'app.sessions']:
+            self.assertIn(contract, body)
+        self.assertNotIn('INSERT INTO app.users', body)
+        self.assertNotIn('INSERT INTO identity_private.credentials', body)
+
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()
         with self.assertRaises(ValueError):
