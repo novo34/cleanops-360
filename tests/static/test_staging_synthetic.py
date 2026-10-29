@@ -431,6 +431,30 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertIn("host: socket", native.NATIVE_MIGRATION_CHECKS)
         self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
+    def test_first_actor_ciphertext_bounds_and_pg_regex_quantifiers(self):
+        import re
+        sql = (ROOT / 'db/migrations/0002_first_actor.review.sql').read_text()
+        length_check = re.search(r"length\(coalesce\(p->>'ciphertext',''\)\) NOT BETWEEN ([0-9]+) AND ([0-9]+)", sql)
+        self.assertIsNotNone(length_check)
+        low, high = map(int, length_check.groups())
+        self.assertEqual((low, high), (90, 314))
+        pattern = re.search(r"coalesce\(p->>'ciphertext',''\) !~ '([^']+)'", sql).group(1)
+        self.assertEqual(pattern, '^[a-f0-9]+$')
+        # Offline predicate evaluation; native PostgreSQL acceptance is pending.
+        accepts = lambda value: low <= len(value or '') <= high and re.fullmatch(pattern, value or '') is not None
+        for size, expected in [(89, False), (90, True), (314, True), (315, False), (91, True), (313, True)]:
+            self.assertEqual(accepts('a' * size), expected)
+        for value in [None, '', 'A' * 90, 'g' * 90, 'a' * 89 + ' ', 'a' * 89 + '\n', 'a' * 89 + 'é', 'a' * 89 + '\x00']:
+            self.assertFalse(accepts(value))
+        self.assertTrue(accepts('0123456789abcdef' * 10))
+        # Every remaining counted repetition must fit PostgreSQL's 0..255 bounds.
+        bounds = re.findall(r'\{([0-9]+)(?:,([0-9]*))?\}', sql)
+        self.assertEqual(bounds, [('64', ''), ('64', '')])
+        for pair in bounds:
+            for bound in pair:
+                if bound:
+                    self.assertLessEqual(int(bound), 255)
+
     def test_first_actor_native_preparation_is_explicit_owned_and_offline_on_import(self):
         from unittest.mock import patch
         with patch("subprocess.run", side_effect=AssertionError("Native execution forbidden")):

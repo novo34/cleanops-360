@@ -141,7 +141,8 @@ BEGIN
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF r.state<>'RESERVED' OR r.owner_backend<>pg_backend_pid() OR r.owner_xid<>pg_current_xact_id() OR r.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'FIRST_ACTOR_STATE'; END IF;
  IF coalesce(p->>'passwordHash','') NOT LIKE '$argon2id$%' OR coalesce(p->>'capDigest','') !~ '^[a-f0-9]{64}$' OR
-    coalesce(p->>'ciphertext','') !~ '^[a-f0-9]{90,314}$' OR coalesce(jsonb_array_length(p->'recovery'),-1)<> (r.manifest->'policy'->>'recovery_count')::integer OR
+    length(coalesce(p->>'ciphertext','')) NOT BETWEEN 90 AND 314 OR
+    coalesce(p->>'ciphertext','') !~ '^[a-f0-9]+$' OR coalesce(jsonb_array_length(p->'recovery'),-1)<> (r.manifest->'policy'->>'recovery_count')::integer OR
     p->>'keyVersion' IS DISTINCT FROM r.manifest->'keyCatalog'->>'keyVersion' THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;
  PERFORM (p->>'methodId')::uuid;
  IF EXISTS(SELECT 1 FROM jsonb_array_elements_text(p->'recovery') x WHERE x !~ '^[a-f0-9]{64}$') OR
