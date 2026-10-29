@@ -148,14 +148,19 @@ process.stdout.write(JSON.stringify(results))
 
 FIRST_ACTOR_DIAGNOSTICS = r"""
 const diagnosticErrors = new WeakMap()
+const causalErrors = new WeakMap()
+const authPairs = new Map([['AUTH_DEPENDENCY_UNAVAILABLE',503],['FIRST_ACTOR_CONFLICT',409],['AUTH_INVALID',401],['INVALID_INPUT',422]])
 const sqlstates = new Set(['42501','23502','23503','23505','23514','42P01','42703','42883','42601','55006','40P01','40001','57014','P0001','08006'])
 const safeAssertions = new Set(['FA-A014', 'FA-A016', 'FA-A017', 'FA-A018', 'FA-A019', 'FA-A020', 'FA-A022', 'FA-A023']) // populated with explicitly selected count/boolean assertions below
 let phase = 'FA-SETUP'
 function failure(error) {
  const id = diagnosticErrors.get(error) ?? phase
- const state = sqlstates.has(error?.code) ? error.code : null
- const type = error instanceof assert.AssertionError ? 'AssertionError' : state ? 'PostgreSQLError' : error instanceof TypeError ? 'TypeError' : 'OtherError'
+ const cause = causalErrors.get(error)
+ const state = cause?.sqlstate ?? (sqlstates.has(error?.code) ? error.code : null)
+ const type = error instanceof AuthError ? 'AuthError' : error instanceof assert.AssertionError ? 'AssertionError' : state ? 'PostgreSQLError' : error instanceof TypeError ? 'TypeError' : 'OtherError'
  const result = {id, type, sqlstate:state}
+ if (cause) result.operation = cause.operation
+ if (error instanceof AuthError && authPairs.has(error.code) && authPairs.get(error.code) === error.status) { result.authCode=error.code;result.authStatus=error.status }
  if (type === 'AssertionError' && safeAssertions.has(id)) {
   for (const key of ['actual','expected']) {
    const v=error[key]
@@ -163,6 +168,45 @@ function failure(error) {
   }
  }
  return result
+}
+// Harness-only observation, below the production sanitization boundary. No SQL or
+// error object is retained: only fixed operation identifiers and allowed SQLSTATE.
+function observedCeremony(pool, deps, factory) {
+ let operation='CUSTODY', causal
+ const record=(error,op=operation)=>{causal ??= {operation:op,sqlstate:sqlstates.has(error?.code)?error.code:null}}
+ const observed={async connect(){
+  operation='CONNECT'
+  let c
+  try {c=await pool.connect()} catch(error){record(error);throw error}
+  return {async query(sql,args){
+   const names=['begin','stage','material','confirm','denied','commit','status','abort']
+   const name=names.find(n=>sql.startsWith('SELECT identity_provision.first_actor_'+n+'('))
+   const op=name ? 'FIRST_ACTOR_'+name.toUpperCase() : sql==='COMMIT' ? 'COMMIT' :
+    sql==='BEGIN ISOLATION LEVEL READ COMMITTED' ? 'BEGIN' : sql==='ROLLBACK' ? 'ROLLBACK' : 'DEADLINE_CONFIG'
+   if(op!=='ROLLBACK') operation=op
+   try {
+    const value=await c.query(sql,args)
+    if(op==='FIRST_ACTOR_BEGIN')operation='CRYPTO_PREPARE'
+    return value
+   } catch(error){if(op!=='ROLLBACK')record(error,op);throw error}
+  },release(discard){c.release(discard)}}
+ }}
+ const custody={async withKeys(...args){
+  operation='CUSTODY'
+  let entered=false
+  const work=args[2]
+  args[2]=(...values)=>{entered=true;return work(...values)}
+  try{return await deps.custody.withKeys(...args)}
+  catch(error){if(!entered)record(error,'CUSTODY');throw error}
+ }}
+ const service=factory(observed,{...deps,custody})
+ return Object.fromEntries(Object.entries(service).map(([name,method])=>[name,async(...args)=>{
+  causal=undefined;operation='CUSTODY'
+  try{return await method(...args)}catch(error){
+   if(error && typeof error==='object')causalErrors.set(error,causal ?? {operation,sqlstate:null})
+   throw error
+  }
+ }]))
 }
 function assertion(id) {
  const mark = error => { if(error && typeof error==='object') diagnosticErrors.set(error,id); throw error }
@@ -185,6 +229,7 @@ import { createFirstActorCeremony, firstActorRules } from './lib/b1/first-actor.
 import { openEnrollmentSecret } from './lib/b1/ceremony-preparation.ts'
 import { canonical } from './lib/b1/contracts.ts'
 import { numeric } from './lib/b1/config.ts'
+import { AuthError } from './lib/b1/service.ts'
 const socket=process.env.CLEANOPS_NATIVE_SOCKET
 assert(socket && socket.startsWith('/tmp/cleanops-staging-pg-'))
 const password=fs.readFileSync(process.env.CLEANOPS_NATIVE_PASSWORD_FILE,'utf8')
@@ -211,7 +256,7 @@ const custody={async withKeys(refs,lifetime,work){
 }}
 const deps={custody,totpKey:key('totp-aead'),recoveryKey:key('recovery-hmac'),totpKeyVersion,lifetimeMs:30000,
  passwordAdmission:async p=>p===testPassword,normalizeEmail:s=>s.toLowerCase()}
-const ceremony=(p,m=manifest)=>createFirstActorCeremony(p,m,deps)
+const ceremony=(p,m=manifest)=>observedCeremony(p,deps,(observed,dependencies)=>createFirstActorCeremony(observed,m,dependencies))
 const value=async(p,sql,args)=>(await p.query(sql,args)).rows[0]
 async function denied(p,sql,args){await assertion('FA-A004').rejects(p.query(sql,args),e=>e.code==='42501')}
 async function prepare(c){const p=await c.prepare(testPassword);assertion('FA-A005').ok('capability' in p);return p}
@@ -395,11 +440,13 @@ try{
 def valid_native_diagnostic(d):
     if d is None:
         return True
-    return (isinstance(d, dict) and set(d) <= {"id", "type", "sqlstate", "actual", "expected"}
+    return (isinstance(d, dict) and set(d) <= {"id", "type", "sqlstate", "actual", "expected", "operation", "authCode", "authStatus"}
             and {"id", "type", "sqlstate"} <= set(d)
             and isinstance(d["id"], str) and re.fullmatch(r"FA-(?:A[0-9]{3}|SETUP|S[0-9]{2}(?:-[A-Z-]+)?)", d["id"])
-            and d["type"] in ("AssertionError", "PostgreSQLError", "TypeError", "OtherError")
+            and d["type"] in ("AssertionError", "PostgreSQLError", "TypeError", "OtherError", "AuthError")
             and d["sqlstate"] in (None, "42501", "23502", "23503", "23505", "23514", "42P01", "42703", "42883", "42601", "55006", "40P01", "40001", "57014", "P0001", "08006")
+            and ("operation" not in d or d["operation"] in ("CUSTODY", "CONNECT", "BEGIN", "COMMIT", "DEADLINE_CONFIG", "CRYPTO_PREPARE", "FIRST_ACTOR_BEGIN", "FIRST_ACTOR_STAGE", "FIRST_ACTOR_MATERIAL", "FIRST_ACTOR_CONFIRM", "FIRST_ACTOR_DENIED", "FIRST_ACTOR_COMMIT", "FIRST_ACTOR_STATUS", "FIRST_ACTOR_ABORT"))
+            and (("authCode" not in d and "authStatus" not in d) or (d["type"] == "AuthError" and (d.get("authCode"),d.get("authStatus")) in (("AUTH_DEPENDENCY_UNAVAILABLE",503),("FIRST_ACTOR_CONFLICT",409),("AUTH_INVALID",401),("INVALID_INPUT",422))))
             and all(type(d[k]) is bool or (type(d[k]) is int and 0 <= d[k] <= 10000) for k in ("actual", "expected") if k in d))
 
 

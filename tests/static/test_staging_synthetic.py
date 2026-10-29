@@ -456,7 +456,7 @@ registerHooks({ resolve(specifier, context, next) {
 
     def test_first_actor_native_diagnostics_are_useful_and_do_not_disclose_material(self):
         native = module("first_actor_diagnostics_offline", "scripts/test-staging-postgres.py")
-        javascript = "import assert from 'node:assert/strict'\n" + native.FIRST_ACTOR_DIAGNOSTICS + r"""
+        javascript = "import assert from 'node:assert/strict'\nimport { AuthError } from './lib/b1/service.ts'\n" + native.FIRST_ACTOR_DIAGNOSTICS + r"""
 const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
 const diagnostics=[]
 try { assertion('FA-A014').equal(2,3,secret) } catch(e) { diagnostics.push(failure(e)) }
@@ -468,7 +468,7 @@ try { assertion('FA-A014').equal(secret,'another-private-value') } catch(e) { di
 try { assertion('FA-A079').equal(5,6,secret) } catch(e) { diagnostics.push(failure(e)) }
 process.stdout.write(JSON.stringify(diagnostics))
 """
-        result = subprocess.run(['node', '--input-type=module', '-'], input=javascript,
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'], input=javascript,
                                 text=True, capture_output=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('PRIVATE_', result.stdout)
@@ -487,6 +487,57 @@ process.stdout.write(JSON.stringify(diagnostics))
         self.assertFalse(native.valid_native_diagnostic(dict(rows[0], actual='PRIVATE_PASSWORD')))
         self.assertFalse(native.valid_native_diagnostic(dict(rows[0], sqlstate='UNREVIEWED')))
         self.assertFalse(native.valid_native_diagnostic(dict(rows[0], message='PRIVATE_SQL')))
+
+    def test_first_actor_prepare_preserves_sql_cause_before_auth_sanitization(self):
+        native = module("first_actor_causal_offline", "scripts/test-staging-postgres.py")
+        setup = native.FIRST_ACTOR_NATIVE_CHECKS.split("const aead=", 1)[1].split("const value=", 1)[0]
+        javascript = """import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { AuthError } from './lib/b1/service.ts'
+import { createFirstActorCeremony } from './lib/b1/first-actor.ts'
+import { createPgIdentityUnitOfWork } from './lib/b1/pg-identity-driver.ts'
+const held=[]
+""" + native.FIRST_ACTOR_DIAGNOSTICS + "const aead=" + setup + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const sqlError=()=>Object.assign(Error(secret),{code:'42501',query:secret,parameters:[secret]})
+const cleanupError=()=>Object.assign(Error(secret),{code:'23505'})
+const reports=[]
+phase='FA-S01-PREPARE'
+let rollbacks=0,releases=0
+const p={async connect(){return {async query(sql){
+ if(sql==='ROLLBACK'){rollbacks++;throw cleanupError()}
+ if(sql.startsWith('SELECT identity_provision.first_actor_begin('))throw sqlError()
+ return {rows:[]}
+},release(){releases++;throw cleanupError()}}}}
+try{await ceremony(p).prepare(testPassword);assert.fail('must reject')}
+catch(error){assert(error instanceof AuthError);reports.push(failure(error))}
+assert.equal(rollbacks,1);assert.equal(releases,1)
+assert.deepEqual(reports[0],{id:phase,type:'AuthError',sqlstate:'42501',operation:'FIRST_ACTOR_BEGIN',authCode:'AUTH_DEPENDENCY_UNAVAILABLE',authStatus:503})
+for(const [sql,operation] of [['BEGIN ISOLATION LEVEL READ COMMITTED','BEGIN'],['SELECT identity_provision.first_actor_stage(','FIRST_ACTOR_STAGE'],['COMMIT','COMMIT']]){
+ const pool={async connect(){return {async query(q){if(q===sql)throw sqlError();if(q==='ROLLBACK')throw cleanupError()},release(){throw cleanupError()}}}}
+ const service=observedCeremony(pool,deps,(observed)=>({async prepare(){return createPgIdentityUnitOfWork(observed).run(c=>c.query('SELECT identity_provision.first_actor_stage('))}}))
+ try{await service.prepare();assert.fail('must reject')}catch(error){assert.equal(failure(error).operation,operation);assert.equal(failure(error).sqlstate,'42501')}
+}
+for(const operation of ['CUSTODY','CRYPTO_PREPARE']){
+ const pool={async connect(){return {async query(){return {rows:[{value:{state:'RESERVED'}}]}},release(){}}}}
+ const dependencies={...deps,custody:operation==='CUSTODY'?{async withKeys(){throw Error(secret)}}:deps.custody,passwordAdmission:async()=>{throw Error(secret)}}
+ const service=observedCeremony(pool,dependencies,(p,d)=>createFirstActorCeremony(p,manifest,d))
+ try{await service.prepare(testPassword);assert.fail('must reject')}catch(error){reports.push(failure(error));assert.equal(failure(error).operation,operation)}
+}
+assert(!('authCode' in failure(Object.assign(Error(secret),{name:'AuthError',code:'AUTH_DEPENDENCY_UNAVAILABLE',status:503}))))
+assert(!('authCode' in failure(new AuthError(500,secret))))
+assert(!('authCode' in failure(new AuthError(undefined,secret))))
+assert(held.every(b=>b.every(v=>v===0)))
+process.stdout.write(JSON.stringify(reports))
+"""
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'],
+                                input=javascript, text=True, capture_output=True, timeout=20, cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        for row in json.loads(result.stdout):
+            self.assertTrue(native.valid_native_diagnostic(row))
+        for extra in [dict(operation='PRIVATE_SQL'),dict(authCode='PRIVATE_TOKEN',authStatus=503),dict(authCode='AUTH_DEPENDENCY_UNAVAILABLE',authStatus=500)]:
+            self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE',type='AuthError',sqlstate=None,**extra)))
 
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()
