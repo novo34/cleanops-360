@@ -1601,12 +1601,29 @@ expiración puede borrar material y registrar esa transición al confirmar su
 transacción; no es una consulta libre de efectos cuando expira. Nunca se infiere
 rollback de una respuesta perdida. COMMIT perdido se resuelve consultando status;
 no se vuelve a crear identidad, TOTP o recovery. No reemite URI/codes/capability.
-Si la preparación se confirmó pero se perdió la entrega de secretos, queda
-PREPARED sin reentrega y finalmente EXPIRED: se bloquea la inicialización y exige
-un procedimiento de recuperación revisado, no reset, operación nueva automática
-ni regeneración silenciosa. EXPIRED es terminal para este contrato de ejecución
-única; su desbloqueo no está implementado como bypass. Tras commit, pérdida de
-factor/codes pertenece a recuperación de cuenta, nunca a reinicialización.
+Si se pierde la entrega antes de COMMITTED, el operador original autorizado usa
+abort(reason) con installationId, operationId y digest originales; no necesita la
+capability perdida ni acceso a Bao. Razones: DELIVERY_LOST, EXPIRED,
+ATTEMPTS_EXHAUSTED y OPERATOR_CANCELLED. Las dos razones de agotamiento exigen
+respectivamente expiración o límite otp_attempts alcanzado. El aborto, borrado de
+material y evento ABORTED_reason son atómicos. Si falla auditoría, nada se invalida.
+Si se pierde su respuesta, consultar status y repetir el mismo aborto es idempotente.
+
+ABORTED conserva manifiesto, digest, operador, número de generación, expiración y
+razón en first_actor_history, sin material. Solo tras ese aborto puede el mismo
+operador preparar una generación explícitamente nueva con otro operationId; todos
+los demás campos, política y catálogo deben ser idénticos. El digest nuevo vincula
+el nuevo operationId. No hay reset, borrado de historia ni regeneración automática.
+Repetir prepare de una operación archivada devuelve ABORTED sin secretos. Los
+escritores exigen la operación actual: una capability/generación anterior no puede
+confirmar, cometer ni agotar intentos de la actual. El singleton no cambia.
+
+Status/abort/prepare/confirm/commit comparten advisory lock y bloqueo de fila.
+Abortar primero impide confirm/commit; confirmar primero aún permite aborto;
+COMMITTED primero impide aborto y cualquier nueva inicialización. Dos operaciones
+nuevas compiten por el mismo slot: solo una puede comenzar. Tras COMMITTED, pérdida
+de factor/codes pertenece a recuperación de cuenta, nunca a reinicialización.
+Esta recuperación es propuesta offline y simulada: falta aceptación nativa PG16.
 
 ### Incremental propuesta y permisos
 
@@ -1640,3 +1657,14 @@ identidades de operador y reader/catálogo privado aprobados; canal humano de
 entrega/acuse de TOTP y recovery y recuperación de preparación expirada. Son
 condiciones de operación futura, no implementaciones temporales para staging.
 Runtime, Compose efectivo, Autodeploy OFF, CRM y AUD-031 permanecen intactos.
+
+### Corrección local de revisión: deadline y recuperación precommit
+
+QG-0: reutilizados first_actor, su ledger, executor y funciones de ceremonia;
+control privado de status para abort sin claves; advisory lock, unidad de trabajo
+y guard de deadline existentes. No hay provisioning paralelo, grants web ni
+permisos iniciales nuevos: B1-SELF-01 a B1-SELF-08 permanecen idénticos.
+El sink verifica nuevamente el deadline monotónico después de cerrar todos los
+descriptores y antes de entregar el token. Un cierre que bloquee el event loop
+no puede ganar al timer y entregar material tardío. Se mantienen limpieza y
+semántica de COMMIT confirmado; no se reintentan efectos SQL.

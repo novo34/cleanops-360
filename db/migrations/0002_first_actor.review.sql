@@ -11,67 +11,132 @@ CREATE TABLE identity_provision.first_actor (
  singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
  installation_id uuid NOT NULL UNIQUE, operation_id uuid NOT NULL UNIQUE,
  request_digest bytea NOT NULL CHECK(octet_length(request_digest)=32), manifest jsonb NOT NULL,
- operator name NOT NULL, state text NOT NULL CHECK(state IN('RESERVED','PREPARED','CONFIRMED','COMMITTED','EXPIRED')),
+ operator name NOT NULL, state text NOT NULL CHECK(state IN('RESERVED','PREPARED','CONFIRMED','COMMITTED','EXPIRED','ABORTED')),
  expires_at timestamptz NOT NULL, material jsonb, receipt jsonb,
+ generation bigint NOT NULL DEFAULT 1 CHECK(generation>0), abort_reason text,
  owner_backend integer, owner_xid xid8, attempts integer NOT NULL DEFAULT 0 CHECK(attempts>=0),
  CHECK((state='COMMITTED')=(receipt IS NOT NULL)),
- CHECK(state<>'COMMITTED' OR material IS NULL)
+ CHECK(state NOT IN ('COMMITTED','ABORTED') OR material IS NULL),
+ CHECK((state='ABORTED')=(abort_reason IS NOT NULL))
 );
 ALTER TABLE identity_provision.first_actor OWNER TO cleanops_first_actor_owner;
+-- Immutable aborted generations retain manifest/digest/operator, never material.
+CREATE TABLE identity_provision.first_actor_history (
+ installation_id uuid NOT NULL, operation_id uuid NOT NULL UNIQUE,
+ generation bigint NOT NULL, request_digest bytea NOT NULL CHECK(octet_length(request_digest)=32),
+ manifest jsonb NOT NULL, operator name NOT NULL, expires_at timestamptz NOT NULL,
+ abort_reason text NOT NULL, aborted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ PRIMARY KEY(installation_id,generation)
+);
+ALTER TABLE identity_provision.first_actor_history OWNER TO cleanops_first_actor_owner;
 CREATE TABLE identity_provision.events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), installation_id uuid NOT NULL,
  operation_id uuid NOT NULL, operator name NOT NULL, transition text NOT NULL,
- occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(), request_digest bytea NOT NULL
+ occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(), request_digest bytea NOT NULL, generation bigint NOT NULL
 );
 ALTER TABLE identity_provision.events OWNER TO cleanops_first_actor_owner;
 REVOKE ALL ON ALL TABLES IN SCHEMA identity_provision FROM PUBLIC,cleanops_first_actor_executor;
 
 CREATE FUNCTION identity_provision.first_actor_status(i uuid,o uuid,d bytea) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
-DECLARE r identity_provision.first_actor;
+DECLARE r identity_provision.first_actor; h identity_provision.first_actor_history;
 BEGIN
  PERFORM pg_advisory_xact_lock(1869764913,2);
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF NOT FOUND THEN RETURN jsonb_build_object('state','ABSENT'); END IF;
- IF r.installation_id<>i OR r.operation_id<>o OR r.request_digest<>d OR d IS NULL OR
-    (r.operator<>session_user AND NOT (r.state='COMMITTED' AND pg_has_role(session_user,'cleanops_first_actor_reader','USAGE'))) THEN
+ IF r.installation_id IS DISTINCT FROM i OR d IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT' USING ERRCODE='42501'; END IF;
+ IF r.operation_id IS DISTINCT FROM o THEN
+  SELECT * INTO h FROM identity_provision.first_actor_history
+   WHERE installation_id=i AND operation_id=o AND request_digest=d AND operator=session_user;
+  IF NOT FOUND THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT' USING ERRCODE='42501'; END IF;
+  RETURN jsonb_build_object('state','ABORTED','generation',h.generation,'abortReason',h.abort_reason,
+   'expiresAt',floor(extract(epoch FROM h.expires_at)*1000)::bigint,'receipt',NULL);
+ END IF;
+ IF r.request_digest IS DISTINCT FROM d OR (r.operator<>session_user AND NOT
+   (r.state='COMMITTED' AND pg_has_role(session_user,'cleanops_first_actor_reader','USAGE'))) THEN
   RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT' USING ERRCODE='42501'; END IF;
- IF r.state NOT IN ('COMMITTED','EXPIRED') AND r.expires_at<=clock_timestamp() THEN
+ IF r.state NOT IN ('COMMITTED','EXPIRED','ABORTED') AND r.expires_at<=clock_timestamp() THEN
   UPDATE identity_provision.first_actor SET state='EXPIRED',material=NULL,owner_backend=NULL,owner_xid=NULL WHERE singleton;
-  INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest) VALUES(i,o,session_user,'EXPIRED',d);
+  INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation) VALUES(i,o,session_user,'EXPIRED',d,r.generation);
   r.state:='EXPIRED';
  END IF;
- RETURN jsonb_build_object('state',CASE WHEN r.state<>'COMMITTED' AND r.expires_at<=clock_timestamp() THEN 'EXPIRED' ELSE r.state END,
+ RETURN jsonb_build_object('state',r.state,'generation',r.generation,'abortReason',r.abort_reason,
   'expiresAt',floor(extract(epoch FROM r.expires_at)*1000)::bigint,'receipt',r.receipt);
+END $fn$;
+
+-- Historical status must never authorize a writer against the new active row.
+CREATE FUNCTION identity_provision.first_actor_assert_current(i uuid,o uuid,d bytea) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+DECLARE r identity_provision.first_actor;
+BEGIN
+ PERFORM pg_advisory_xact_lock(1869764913,2);
+ SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
+ IF NOT FOUND OR r.installation_id IS DISTINCT FROM i OR r.operation_id IS DISTINCT FROM o OR d IS NULL OR
+  r.request_digest IS DISTINCT FROM d OR r.operator<>session_user THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT' USING ERRCODE='42501'; END IF;
 END $fn$;
 
 CREATE FUNCTION identity_provision.first_actor_begin(m jsonb,d bytea) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE r identity_provision.first_actor;
 BEGIN
- -- A single installation slot per database, regardless of caller-supplied UUID.
  PERFORM pg_advisory_xact_lock(1869764913,2);
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF FOUND THEN
-  IF r.manifest<>m THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT'; END IF;
-  RETURN identity_provision.first_actor_status((m->>'installationId')::uuid,(m->>'operationId')::uuid,d);
+  IF r.installation_id IS DISTINCT FROM (m->>'installationId')::uuid OR r.operator<>session_user THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT'; END IF;
+  IF r.operation_id=(m->>'operationId')::uuid THEN
+   IF r.manifest IS DISTINCT FROM m THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT'; END IF;
+   RETURN identity_provision.first_actor_status(r.installation_id,r.operation_id,d);
+  END IF;
+  -- A retry of any archived operation is status-only, never regeneration.
+  IF EXISTS(SELECT 1 FROM identity_provision.first_actor_history WHERE operation_id=(m->>'operationId')::uuid) THEN
+   RETURN identity_provision.first_actor_status(r.installation_id,(m->>'operationId')::uuid,d);
+  END IF;
+  IF r.state<>'ABORTED' OR (r.manifest-'operationId') IS DISTINCT FROM (m-'operationId') OR d IS NULL OR octet_length(d)<>32 THEN
+   RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT'; END IF;
+  UPDATE identity_provision.first_actor SET operation_id=(m->>'operationId')::uuid,manifest=m,request_digest=d,
+   generation=generation+1,abort_reason=NULL,state='RESERVED',material=NULL,receipt=NULL,attempts=0,
+   expires_at=clock_timestamp()+interval '10 minutes',owner_backend=pg_backend_pid(),owner_xid=pg_current_xact_id() WHERE singleton;
+ ELSE
+  IF octet_length(d)<>32 OR d IS NULL OR jsonb_typeof(m)<>'object' OR
+     coalesce(length(m->>'approval'),0)=0 OR coalesce(length(m->>'approval'),121)>120 OR
+     m->'rules' IS DISTINCT FROM '["B1-SELF-01","B1-SELF-02","B1-SELF-03","B1-SELF-04","B1-SELF-05","B1-SELF-06","B1-SELF-07","B1-SELF-08"]'::jsonb OR
+     jsonb_typeof(m->'policy') IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'FIRST_ACTOR_MANIFEST'; END IF;
+  IF EXISTS(SELECT 1 FROM app.organizations) OR EXISTS(SELECT 1 FROM identity_private.principals) THEN RAISE EXCEPTION 'FIRST_ACTOR_NOT_EMPTY'; END IF;
+  INSERT INTO identity_provision.first_actor(singleton,installation_id,operation_id,request_digest,manifest,operator,state,expires_at,owner_backend,owner_xid)
+  VALUES(true,(m->>'installationId')::uuid,(m->>'operationId')::uuid,d,m,session_user,'RESERVED',clock_timestamp()+interval '10 minutes',pg_backend_pid(),pg_current_xact_id());
  END IF;
- IF octet_length(d)<>32 OR d IS NULL OR jsonb_typeof(m)<>'object' OR
-    coalesce(length(m->>'approval'),0)=0 OR coalesce(length(m->>'approval'),121)>120 OR
-    m->'rules' IS DISTINCT FROM '["B1-SELF-01","B1-SELF-02","B1-SELF-03","B1-SELF-04","B1-SELF-05","B1-SELF-06","B1-SELF-07","B1-SELF-08"]'::jsonb OR
-    jsonb_typeof(m->'policy') IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'FIRST_ACTOR_MANIFEST'; END IF;
- IF EXISTS(SELECT 1 FROM app.organizations) OR EXISTS(SELECT 1 FROM identity_private.principals) THEN RAISE EXCEPTION 'FIRST_ACTOR_NOT_EMPTY'; END IF;
- INSERT INTO identity_provision.first_actor(singleton,installation_id,operation_id,request_digest,manifest,operator,state,expires_at,owner_backend,owner_xid)
- VALUES(true,(m->>'installationId')::uuid,(m->>'operationId')::uuid,d,m,session_user,'RESERVED',clock_timestamp()+interval '10 minutes',pg_backend_pid(),pg_current_xact_id());
- INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest)
- VALUES((m->>'installationId')::uuid,(m->>'operationId')::uuid,session_user,'RESERVED',d);
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation)
+ VALUES((m->>'installationId')::uuid,(m->>'operationId')::uuid,session_user,'RESERVED',d,(SELECT generation FROM identity_provision.first_actor WHERE singleton));
  RETURN identity_provision.first_actor_status((m->>'installationId')::uuid,(m->>'operationId')::uuid,d);
+END $fn$;
+
+CREATE FUNCTION identity_provision.first_actor_abort(i uuid,o uuid,d bytea,reason text) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+DECLARE r identity_provision.first_actor; result jsonb;
+BEGIN
+ IF reason IS NULL OR reason NOT IN ('DELIVERY_LOST','EXPIRED','ATTEMPTS_EXHAUSTED','OPERATOR_CANCELLED') THEN RAISE EXCEPTION 'FIRST_ACTOR_ABORT_REASON'; END IF;
+ result:=identity_provision.first_actor_status(i,o,d);
+ IF result->>'state'='ABORTED' THEN
+  IF result->>'abortReason' IS DISTINCT FROM reason THEN RAISE EXCEPTION 'FIRST_ACTOR_CONFLICT'; END IF;
+  RETURN result;
+ END IF;
+ PERFORM identity_provision.first_actor_assert_current(i,o,d);
+ SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
+ IF r.state='COMMITTED' OR (reason='EXPIRED' AND r.state<>'EXPIRED') OR
+   (reason='ATTEMPTS_EXHAUSTED' AND r.attempts<(r.manifest->'policy'->>'otp_attempts')::integer) THEN RAISE EXCEPTION 'FIRST_ACTOR_STATE'; END IF;
+ INSERT INTO identity_provision.first_actor_history(installation_id,operation_id,generation,request_digest,manifest,operator,expires_at,abort_reason)
+ VALUES(i,o,r.generation,d,r.manifest,r.operator,r.expires_at,reason);
+ UPDATE identity_provision.first_actor SET state='ABORTED',abort_reason=reason,material=NULL,owner_backend=NULL,owner_xid=NULL WHERE singleton;
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation)
+ VALUES(i,o,session_user,'ABORTED_'||reason,d,r.generation);
+ RETURN identity_provision.first_actor_status(i,o,d);
 END $fn$;
 
 CREATE FUNCTION identity_provision.first_actor_stage(i uuid,o uuid,d bytea,p jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE r identity_provision.first_actor;
 BEGIN
+ PERFORM identity_provision.first_actor_assert_current(i,o,d);
  PERFORM identity_provision.first_actor_status(i,o,d);
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF r.state<>'RESERVED' OR r.owner_backend<>pg_backend_pid() OR r.owner_xid<>pg_current_xact_id() OR r.expires_at<=clock_timestamp() THEN RAISE EXCEPTION 'FIRST_ACTOR_STATE'; END IF;
@@ -82,7 +147,7 @@ BEGIN
  IF EXISTS(SELECT 1 FROM jsonb_array_elements_text(p->'recovery') x WHERE x !~ '^[a-f0-9]{64}$') OR
     (SELECT count(DISTINCT x) FROM jsonb_array_elements_text(p->'recovery') x)<>jsonb_array_length(p->'recovery') THEN RAISE EXCEPTION 'FIRST_ACTOR_RECOVERY'; END IF;
  UPDATE identity_provision.first_actor SET state='PREPARED',material=p,owner_backend=NULL,owner_xid=NULL WHERE singleton;
- INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest) VALUES(i,o,session_user,'PREPARED',d);
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation) VALUES(i,o,session_user,'PREPARED',d,(SELECT generation FROM identity_provision.first_actor WHERE singleton));
  RETURN identity_provision.first_actor_status(i,o,d);
 END $fn$;
 
@@ -90,6 +155,7 @@ CREATE FUNCTION identity_provision.first_actor_material(i uuid,o uuid,d bytea,ca
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE r identity_provision.first_actor;
 BEGIN
+ PERFORM identity_provision.first_actor_assert_current(i,o,d);
  PERFORM identity_provision.first_actor_status(i,o,d);
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF r.state<>'PREPARED' OR r.expires_at<=clock_timestamp() OR cap IS NULL OR r.material->>'capDigest'<>encode(cap,'hex') THEN RETURN NULL; END IF;
@@ -101,19 +167,20 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 BEGIN
  IF identity_provision.first_actor_material(i,o,d,cap) IS NULL OR counter IS NULL OR counter<0 OR ack IS DISTINCT FROM true THEN RETURN false; END IF;
  UPDATE identity_provision.first_actor SET state='CONFIRMED',material=jsonb_set(material,'{counter}',to_jsonb(counter)) WHERE singleton AND state='PREPARED';
- INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest) VALUES(i,o,session_user,'CONFIRMED_RECOVERY_ACK',d);
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation) VALUES(i,o,session_user,'CONFIRMED_RECOVERY_ACK',d,(SELECT generation FROM identity_provision.first_actor WHERE singleton));
  RETURN true;
 END $fn$;
 
 CREATE FUNCTION identity_provision.first_actor_denied(i uuid,o uuid,d bytea) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 BEGIN
+ PERFORM identity_provision.first_actor_assert_current(i,o,d);
  PERFORM identity_provision.first_actor_status(i,o,d);
  IF NOT EXISTS(SELECT 1 FROM identity_provision.first_actor WHERE singleton) THEN RAISE EXCEPTION 'FIRST_ACTOR_ABSENT'; END IF;
  UPDATE identity_provision.first_actor SET attempts=attempts+1 WHERE singleton AND state='PREPARED';
  UPDATE identity_provision.first_actor SET state='EXPIRED',material=NULL,expires_at=clock_timestamp()
  WHERE singleton AND state='PREPARED' AND attempts>=(manifest->'policy'->>'otp_attempts')::integer;
- INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest) VALUES(i,o,session_user,'FACTOR_DENIED',d);
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation) VALUES(i,o,session_user,'FACTOR_DENIED',d,(SELECT generation FROM identity_provision.first_actor WHERE singleton));
  RETURN true;
 END $fn$;
 
@@ -147,6 +214,7 @@ CREATE FUNCTION identity_provision.first_actor_commit(i uuid,o uuid,d bytea,cap 
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE r identity_provision.first_actor;m jsonb;p jsonb;t uuid;u uuid;principal uuid;at_time timestamptz;batch uuid:=gen_random_uuid();v text;
 BEGIN
+ PERFORM identity_provision.first_actor_assert_current(i,o,d);
  PERFORM identity_provision.first_actor_status(i,o,d);
  SELECT * INTO r FROM identity_provision.first_actor WHERE singleton FOR UPDATE;
  IF r.state='COMMITTED' THEN RETURN identity_provision.first_actor_status(i,o,d); END IF;
@@ -174,8 +242,8 @@ BEGIN
  INSERT INTO app.audit_logs(tenant_id,id,actor_user_id,actor_kind,action,resource_id,outcome,correlation_id,occurred_at,safe_metadata)
  VALUES(t,gen_random_uuid(),NULL,'SYSTEM','installation.first_actor.commit',u,'SUCCESS',o,at_time,jsonb_build_object('installation_id',i,'operation_id',o,'approval',m->>'approval','operator',session_user,'request_digest',encode(d,'hex')));
  UPDATE identity_provision.first_actor SET state='COMMITTED',material=NULL,owner_backend=NULL,owner_xid=NULL,
- receipt=jsonb_build_object('installationId',i,'operationId',o,'tenantId',t,'userId',u,'requestDigest',encode(d,'hex')) WHERE singleton;
- INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest) VALUES(i,o,session_user,'COMMITTED',d);
+ receipt=jsonb_build_object('installationId',i,'operationId',o,'tenantId',t,'userId',u,'requestDigest',encode(d,'hex'),'generation',r.generation) WHERE singleton;
+ INSERT INTO identity_provision.events(installation_id,operation_id,operator,transition,request_digest,generation) VALUES(i,o,session_user,'COMMITTED',d,(SELECT generation FROM identity_provision.first_actor WHERE singleton));
  RETURN identity_provision.first_actor_status(i,o,d);
 END $fn$;
 
@@ -189,7 +257,7 @@ BEGIN
 END $owners$;
 GRANT EXECUTE ON FUNCTION identity_provision.first_actor_begin(jsonb,bytea),identity_provision.first_actor_stage(uuid,uuid,bytea,jsonb),
  identity_provision.first_actor_material(uuid,uuid,bytea,bytea),identity_provision.first_actor_confirm(uuid,uuid,bytea,bytea,bigint,boolean),
- identity_provision.first_actor_denied(uuid,uuid,bytea),
+ identity_provision.first_actor_denied(uuid,uuid,bytea),identity_provision.first_actor_abort(uuid,uuid,bytea,text),
  identity_provision.first_actor_commit(uuid,uuid,bytea,bytea),identity_provision.first_actor_status(uuid,uuid,bytea) TO cleanops_first_actor_executor;
 GRANT EXECUTE ON FUNCTION identity_provision.first_actor_status(uuid,uuid,bytea) TO cleanops_first_actor_reader;
 -- No role memberships, LOGIN credentials, web permissions, session, deployment flag

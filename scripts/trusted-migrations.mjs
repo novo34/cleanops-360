@@ -16,7 +16,7 @@ const migrations = [
     profile: "b1",
     proposed: true,
     file: "0002_first_actor.review.sql",
-    sha256: "f699b6aeb057134f98d7b25fc4d8f813f184b46ea55c4194e3b6d9b8e7ea2d62",
+    sha256: "89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102",
   },
 ]
 

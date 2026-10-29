@@ -606,3 +606,75 @@ TLS/renovación/reauth/revocación/reinicio reales; credenciales executor/reader
 canal privado de entrega/acuse. EXPIRED/pérdida de entrega antes del primer actor
 es terminal sin reset/regeneración: falta procedimiento de recuperación revisado
 si ocurre. No se anuncia aceptación de producción ni login web conectado.
+
+## Corrección local de revisión de 9a691332839eb9a08057432dd479460bbe61ba46
+
+Este apartado sustituye la limitación histórica anterior de EXPIRED/pérdida de
+entrega terminal antes del commit. No altera ni amplía las pruebas históricas.
+
+QG-0 previo a escritura: reutilizados la ceremonia privada, singleton/ledger,
+executor nominal, manifest/digest, unidad de trabajo, advisory lock y guard de
+custodia. Abort usa el control privado de status, sin capability perdida ni Bao.
+No hay segundo provisioning, endpoint web, permisos self-service nuevos ni sesión.
+La generación nueva requiere aborto auditado y operationId nuevo explícito; todos
+los otros campos del manifiesto permanecen idénticos. COMMITTED nunca reinicializa.
+El archivo propuesto sigue fuera de la cola aplicable; SQL14 no cambia.
+
+Comandos locales ejecutados (raíz del repositorio; ninguno conecta a PG/Bao):
+
+```sh
+node --experimental-strip-types --test --test-isolation=none --test-name-pattern='final close blocks' tests/b1/agent-sink.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts tests/b1/agent-sink.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts
+npx --no-install vitest run tests/trusted-migrations.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/openbao-keys.ts lib/b1/first-actor.ts tests/b1/agent-sink.test.ts tests/b1/first-actor.test.ts tests/trusted-migrations.test.ts scripts/trusted-migrations.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+Resultados comprobados localmente:
+
+- Regresión de cierre antes de corregir origen: FAIL esperado, 0/1, «Missing
+  expected rejection». Después: PASS, el último close bloquea el event loop
+  1100 ms con presupuesto 1000 ms; el timer no puede ejecutarse antes de la
+  continuación de limpieza. Rechaza con error saneado; todos los descriptores
+  cierran. El check monotónico ocurre después de limpiar buffers/cerrar y antes
+  de devolver el token. Tmpfs sigue SIMULADO mediante statfs sobre FS temporal.
+- Node: 11/11 ceremony/sink; nueva comprobación explícita de pérdida total de la
+  entrega prepare revalidada en 7/7 FIRST-ACTOR. Son 11 casos distintos, no 18.
+  Sink 4 (antes 3), ceremonia 7 (antes 4). Recuperación sin capability entregada,
+  aborto idempotente y respuesta perdida, fallo de auditoría con rollback,
+  expiración, intentos agotados, nueva generación explícita, dos prepares de
+  generación nueva y dos operaciones nuevas compitiendo; bloqueo de manifiesto
+  alterado, invalidación de capacidad/material antiguos y writers históricos,
+  historial sin material, COMMITTED terminal, carreras aborto/confirm y
+  aborto/commit en ambos órdenes. Un único efecto final o ninguno; buffers
+  prestados limpiados. Pool, SQL, auditoría, historial y concurrencia SIMULADOS;
+  TOTP/Argon2/recovery sobre fixtures sintéticos. No aceptación PostgreSQL.
+- Node custodia: 12/12 (8 claves + 4 deadline), incluidos token tardío, KV tardío,
+  limpieza y COMMIT confirmado que llega tras expirar lease. En total 23 casos
+  Node distintos afectados o de preservación, sin skipped/cancelled/todo.
+- Vitest migraciones: 20/20. Hash verificado, controles estáticos de abort/history
+  y writers actuales, ausencia de borrado de historia; loader B1 aplicable vacío.
+  Esto no interpreta/ejecuta PL/pgSQL ni acredita locks/RLS nativos.
+- Typecheck y lint pertinente: exit 0. Avisos Node MODULE_TYPELESS_PACKAGE_JSON y
+  Vite configLoader no bloqueantes. diff --check: exit 0.
+- Offline-plan: registry=UNKNOWN_NOT_CONNECTED, migrations=[], propuesta
+  0002_first_actor executable=false. SHA256 de los bytes propuestos y catálogo:
+  89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102.
+
+Logs locales de trabajo: /tmp/cleanops-sink-close-before.log,
+/tmp/cleanops-corrections-node.log, /tmp/cleanops-corrections-first-actor.log,
+/tmp/cleanops-corrections-custody.log, /tmp/cleanops-corrections-migrations.log,
+/tmp/cleanops-corrections-typecheck.log y /tmp/cleanops-corrections-lint.log.
+
+Pendiente aceptación nativa autorizada: parser/PG16, privilegios y RLS, auditoría
+transaccional, locks/carreras reales, recuperación de respuestas inciertas y
+Agent/tmpfs/renovación/reemplazo reales. La prueba de concurrencia local modela
+serialización transaccional, no demuestra el scheduler o locks de PostgreSQL.
+No se han ejecutado SQL/Bao ni generado credenciales operativas. Hechos del VPS
+siguen siendo comunicados por el propietario, no comprobados aquí. Sin provisión,
+instalación, activación, build/deploy, push, PR o merge. closedBackend, SQL14,
+Compose efectivo, Autodeploy OFF, CRM y AUD-031 intactos.

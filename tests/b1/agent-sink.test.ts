@@ -69,3 +69,28 @@ test('Agent sink wipes material and sanitizes descriptor-close failures instead 
       e=>String(e).includes('AUTH_DEPENDENCY_UNAVAILABLE')&&!String(e).includes('PRIVATE_CLOSE_DETAIL'))
   } finally {opened.mock.restore();mocked.mock.restore();await fs.rm(dir,{recursive:true,force:true})}
 })
+
+test('Agent sink rejects a token when final close blocks past the deadline before the timer can run',async()=>{
+  const dir=await fs.mkdtemp(join(tmpdir(),'cleanops-agent-'))
+  await fs.chmod(dir,0o700);const path=join(dir,'token')
+  await fs.writeFile(path,'synthetic-token',{mode:0o600})
+  const real=await fs.statfs(dir),original=fs.open.bind(fs)
+  let openedCount=0,closedCount=0,blocked=false
+  const mocked=mock.method(fs,'statfs',async()=>({...real,type:0x01021994}))
+  const opened=mock.method(fs,'open',async(...args:Parameters<typeof fs.open>)=>{
+    const handle=await original(...args),close=handle.close.bind(handle);openedCount++
+    handle.close=async()=>{
+      await close();closedCount++
+      // Last completion resumes cleanup in microtasks, ahead of overdue timers.
+      if(closedCount===openedCount){
+        blocked=true;const until=performance.now()+1100
+        while(performance.now()<until){ /* Deliberately prevent timer delivery. */ }
+      }
+    }
+    return handle
+  })
+  try {
+    await assert.rejects(createAgentSinkToken({path,uid:process.getuid!(),gid:process.getgid!(),directoryUid:process.getuid!(),directoryGid:process.getgid!(),mode:0o600,directoryMode:0o700,timeoutMs:1000}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+    assert.equal(blocked,true);assert.equal(closedCount,openedCount)
+  } finally {opened.mock.restore();mocked.mock.restore();await fs.rm(dir,{recursive:true,force:true})}
+})

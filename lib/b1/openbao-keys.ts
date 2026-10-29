@@ -92,6 +92,9 @@ export function createAgentSinkToken(options: Readonly<{
         closeFailed = closed.some(result => result.status === 'rejected')
       }
       if (closeFailed || value === undefined) throw unavailable()
+      // Closing descriptors can resume ahead of an overdue timer. Acquisition
+      // ends only after cleanup: never return a token past the monotonic budget.
+      budget()
       return value
     }
     try {

@@ -18,7 +18,8 @@ export type FirstActorManifest = Readonly<{
   installationId: string; operationId: string; tenantId: string; userId: string; principalId: string
   tenantName: string; displayName: string; email: string; accountLabel: string; approval: string
 }>
-type State = { state: 'ABSENT'|'RESERVED'|'PREPARED'|'CONFIRMED'|'COMMITTED'|'EXPIRED'; expiresAt?: number; receipt?: Record<string, unknown> }
+type State = { state: 'ABSENT'|'RESERVED'|'PREPARED'|'CONFIRMED'|'COMMITTED'|'EXPIRED'|'ABORTED'; generation?: number; abortReason?: string; expiresAt?: number; receipt?: Record<string, unknown> }
+export type FirstActorAbortReason = 'DELIVERY_LOST'|'EXPIRED'|'ATTEMPTS_EXHAUSTED'|'OPERATOR_CANCELLED'
 type Material = { methodId: string; ciphertext: string; keyVersion: string; counter: number|null }
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
 const invalid = () => new AuthError(409, 'FIRST_ACTOR_CONFLICT')
@@ -31,6 +32,7 @@ const statements = {
   denied: 'SELECT identity_provision.first_actor_denied($1::uuid,$2::uuid,$3::bytea) AS value',
   commit: 'SELECT identity_provision.first_actor_commit($1::uuid,$2::uuid,$3::bytea,$4::bytea) AS value',
   status: 'SELECT identity_provision.first_actor_status($1::uuid,$2::uuid,$3::bytea) AS value',
+  abort: 'SELECT identity_provision.first_actor_abort($1::uuid,$2::uuid,$3::bytea,$4::text) AS value',
 } as const
 async function call<T>(c: IdentityConnection, operation: keyof typeof statements, args: unknown[]): Promise<T> {
   const result = await c.query(statements[operation], args) as { rows: { value: T }[] }
@@ -70,6 +72,12 @@ export function createFirstActorCeremony(pool: IdentityPool, manifest: FirstActo
         createPgIdentityUnitOfWork(createCustodyDeadlinePool(pool,lease)).run(c =>
           work(c,borrow(totp,k=>k),totpKeyVersion,borrow(recovery,k=>k))))
     } catch (error) { if (error instanceof AuthError) throw error; throw unavailable() }
+  }
+  async function control(operation: 'status'|'abort', args: unknown[]): Promise<State> {
+    const deadline = performance.now()+5000
+    const lease = { remainingMs:()=>deadline-performance.now(), acknowledgeCommit(){} }
+    try { return await createPgIdentityUnitOfWork(createCustodyDeadlinePool(pool,lease)).run(c=>call<State>(c,operation,args)) }
+    catch {throw unavailable()}
   }
   return Object.freeze({
     async prepare(password: string) {
@@ -123,12 +131,12 @@ export function createFirstActorCeremony(pool: IdentityPool, manifest: FirstActo
       try { return await run(c => call<State>(c,'commit',[...scope,capHash])) }
       finally {capHash.fill(0)}
     },
-    async status(): Promise<State> {
-      const deadline = performance.now()+5000
-      // Same canonical guard, without needing Bao keys to recover a receipt.
-      const lease = { remainingMs:()=>deadline-performance.now(), acknowledgeCommit(){} }
-      try { return await createPgIdentityUnitOfWork(createCustodyDeadlinePool(pool,lease)).run(c=>call<State>(c,'status',scope)) }
-      catch {throw unavailable()}
+    async status(): Promise<State> { return control('status',scope) },
+    async abort(reason: FirstActorAbortReason): Promise<State> {
+      if (!['DELIVERY_LOST','EXPIRED','ATTEMPTS_EXHAUSTED','OPERATOR_CANCELLED'].includes(reason)) throw invalid()
+      // Authorized operator, not a lost capability; no Bao dependency. A new
+      // generation must use an explicitly new operation manifest after abort.
+      return control('abort',[...scope,reason])
     },
   })
 }
