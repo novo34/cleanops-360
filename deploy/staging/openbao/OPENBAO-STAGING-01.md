@@ -416,6 +416,142 @@ no se ha escaneado una imagen ni acreditado consumo del build o seguridad runtim
 
 ## RUNTIME-CUSTODY-01 — siguiente incremento, preparación sobre 6d89888
 
+### Continuación sobre staging 198b4e4 — 28/10/2026
+
+Este apartado actualiza el estado y prevalece sobre los pendientes de instalación
+descritos más abajo. Base exacta: 198b4e41d89c373c7aebda23ee20700643ce339c;
+candidato original: 4d5563899bc327f3c272ef13625ebffc3cc96b46, con base común
+6d89888804ffa4e2ba7635878c88eaf7f3b9c997. Los cuatro commits posteriores de staging
+aportan MIGRATIONS-01 y se conservan íntegros; los once archivos del candidato
+no colisionan con ellos. Reconciliación exclusivamente local, sin integración remota.
+
+Hechos comunicados por el propietario: SQL14 instalado y fila b1_sql14 con
+checksum/procedencia verificados; evidencia privada
+/var/tmp/cleanops-sql14-install-bxwe9_e3. Bao inicializado, desellado y auditoría
+verificada. No se ha leído esa evidencia desde este entorno. Backend cerrado,
+sin usuarios de prueba ni CRM instalado. SQL14 NO vuelve a instalarse ni se
+ejecuta el perfil foundation contra esta base.
+
+QG-0 adicional: mismo objetivo y recorrido privados del inventario inferior;
+reutilizar createOpenBaoKeys, withB1Custody, createCustodyDeadlinePool y
+createPgIdentityUnitOfWork. Revisados además SQL14, MIGRATIONS-01, runtime,
+AUTHENTICATION_SPEC, ROADMAP, IMPLEMENTATION_GATES y KEY_OPERATIONS. El delta
+adicional modifica solo openbao-keys y su test: token y GET KV comparten un
+deadline monotónico; un token tardío no abre red aunque su promesa gane al timer.
+Corrección posterior a revisión independiente del patch af1f15677f3804ee88e854c207b603fd9bab301e021154714e01b66839e179d8:
+el handler KV end vuelve a comprobar ese deadline después de validar/decodificar
+y antes de resolver la clave. Si el event loop retrasa el timer, rechaza el
+material tardío y catch/finally borran clave decodificada, respuesta agregada y
+chunks; no inicia work ni una lease nueva. Regresión adicional con token inmediato
+y end posterior al plazo con timer impedido, en la misma suite canónica.
+No se cambian contratos de lease/COMMIT, permisos, API, R4, CRM ni configuración.
+Prueba negativa de event-loop bloqueado y suites existentes, sin PG/Bao reales.
+
+#### Valores no secretos propuestos, todavía no aprobados
+
+| Campo | Propuesta | Fuente / restricción |
+|---|---|---|
+| Base PG | cleanops_staging | RESOURCE_RECORD; conservar instalación |
+| Identidad PG efectiva | cleanops_identity_service | Rol SQL14 NOLOGIN; conexión dedicada requiere decisión DBA |
+| Broker | cleanops_auth_broker NOLOGIN | SECURITY DEFINER existente; nunca identidad de conexión |
+| Mount / entorno | b1-keys / staging | Renderer existente; contrastar mount real antes de aplicar |
+| Workload | identity-verifier | AppRole separado de administrador/issuer/mail-worker |
+| Token TTL / máximo | 300 / 900 segundos | Propuesta operativa, no valor normativo de sesión |
+| SecretID TTL / usos | 300 segundos / 1 uso | Renderer; nueva entrega para cada autenticación |
+| timeoutMs / lifetimeMs | 5000 / 10000 | Adquisición por clave / lease SQL, ambos ≤30000 |
+| HMAC | audit-hmac, otp-hmac, recovery-hmac, cursor-hmac | Cuatro claves distintas de 32 bytes por tenant |
+| TOTP | totp-aead, 32 bytes | Versión exacta, envelope v2 y AAD existentes |
+
+No hay UUID, key ID, versión o CIDR operativo propuesto: los de tests son
+fixtures. El catálogo aprobado debe fijar tenant UUID, propósito, key ID
+inmutable, versión KV entera y correspondencia con key_version de ciphertext.
+El renderer fija mount b1-keys: si el mount observado difiere, revisar el punto
+canónico antes de emitir políticas; no sustituirlo silenciosamente en runtime.
+KV policy limita paths, no versiones: el cliente exige además la versión exacta.
+Para login y bootstrap se necesita una decisión explícita de alcance server-side
+del tenant inicial; no aceptar tenant de headers/body ni una clave global.
+
+#### Decisiones pendientes que impiden conectar el runtime
+
+1. DBA: elegir autenticar directamente cleanops_identity_service (cambiar NOLOGIN
+   exige aprobación) o una identidad LOGIN separada con membresía mínima aprobada.
+   Revisar herencia/SET ROLE efectivo y permisos transitivos en PG16. No conceder
+   cleanops_auth_broker, cleanops_bootstrap, owner, SUPERUSER o BYPASSRLS, ni acceso
+   directo a tablas. Fijar TLS/CA/SAN o socket y canal privado de credencial.
+   El catálogo inferior consulta el rol contractual; si se elige otro login,
+   ampliar esa misma consulta para inspeccionar también su cadena efectiva.
+2. Operaciones/seguridad: administrador nominal y recuperación independientes del
+   token inicial, identidad mTLS propia, mount AppRole, DNS/CA/SAN/CIDR observados,
+   entrega de SecretID wrapped y token-helper/agente aprobado. No hay lifecycle
+   AppRole productivo implementado: token() es un punto de inyección, no un login.
+3. Lifecycle propuesto: helper privado desenvuelve una sola vez, autentica AppRole,
+   entrega token service solo en memoria y sin default policy. Reautenticar antes
+   de 300 s con NUEVO SecretID; no reutilizar el de un uso. Fallo/expiración/revocación
+   deniega nuevas lecturas; no root fallback ni reintento de SQL. Revocar token y
+   accessor saliente tras rotación/drenaje y al retirar workload. Renovación
+   automática no se presupone: el renderer no concede renew-self y no se amplía
+   policy para hacerlo. Aprobar mecanismo/helper, margen y revocación antes de
+   implementar su consumidor en runtime; no crear otro cliente Bao paralelo.
+4. Provisión: tenant y primer actor autorizado, canal de invitación/correo, política
+   de tenant, passwordAdmission/normalización, dummy Argon2, issuer TOTP y catálogo
+   de escritura/lectura. Ni SQL14 ni Bao healthy crean esos datos/configuración.
+5. Composición: ingress confiable para transport(), labels y fix mínimo de actividad
+   autenticada descrito abajo. Revisión de todos los inputs y pruebas privadas
+   antes de sustituir closedBackend tanto en bootstrap como en handleAuth.
+
+#### Primer usuario con TOTP: dependencia exacta de R4
+
+No se ha identificado un mecanismo aprobado de bootstrap del primer actor/tenant
+en staging. Los fixtures nativos no lo sustituyen. El flujo existente de R4 para
+una identidad nueva es: actor ACTIVE con create/users y step-up → emisión de
+invitación con reserva one-time y outbox → entrega privada del enlace →
+POST /auth/invitations/prepare (password y capability/CSRF) →
+POST /auth/invitations/factor (primer código TOTP, CAS del contador) →
+POST /auth/invitations/accept (capability/CSRF e Idempotency-Key) → alta atómica
+y auditoría → login B1 normal y verificación MFA. Preparar/mostrar QR no activa MFA.
+
+Prerequisito concreto: revisar e integrar por separado el linaje R4/AUD-031
+codex/r4-aud-031 en 9a4c8b90a159f2853f040dc5597042c17408da00, sus dependencias
+SQL1–SQL4/B2 y SQL5 candidato correspondiente, manifests/hashes y autorizaciones
+vigentes, sin repetir SQL14. Revalidar ese ref antes de autorizar: no se afirma
+que siga siendo HEAD. UI → invitation-acceptance-http → accept debe propagar
+Idempotency-Key, digest vinculado y correlation hasta
+auth_api.consume_invitation_acceptance(text,text,bytea,uuid). Exigir efectos,
+consumo y auditoría atómicos y recibo recuperable, incluidos replay/concurrencia.
+La variante histórica de tres argumentos y las autorizaciones para PG16 efímero
+no autorizan staging persistente. Conservar guards/callers AUD-031 fijados.
+SQL14 por sí solo no incluye esa cadena. Además debe aprobarse expresamente la
+creación inicial de tenant/actor; R4 presupone un emisor autorizado y no resuelve
+por sí solo ese arranque. Ningún INSERT manual de principal, password, usuario,
+rol o mfa_methods forma parte de esta entrega.
+
+#### Operaciones remotas que requerirán autorización posterior
+
+La lista define alcance; los destinos pendientes deben concretarse en el paquete
+firmado antes de ejecutar. No es una autorización ni una receta ejecutable con
+identidades inventadas.
+
+| Orden | Operación exacta / artefacto | Condición y resultado requerido |
+|---|---|---|
+| A1 | psql del runtime-catalog.review.sql, comando inferior | Aprobar hash, conexión lectora y salida privada; solo catálogos |
+| A2 | Plan B1 del migrate-postgres existente, --plan --profile=b1 | Conexión lectora aprobada; confirmar b1_sql14 y procedencia sin aplicar SQL |
+| B1 | Establecer autenticación PG dedicada y comprobar rol efectivo | DDL/auth exactos pendientes de opción DBA; aprobación separada de A1/A2 |
+| B2 | Autenticación admin Bao independiente y prueba de capacidades/recuperación | No reinit/unseal; no depender del token inicial para sobrevivir a su revocación |
+| B3 | Aplicar policies y AppRole identity-verifier del renderer | Inputs y hashes aprobados; no instalar server.json, mount/config ni roles extra |
+| B4 | Crear solo claves tenant/purpose/ID ausentes con CAS aprobado | CSPRNG en custodia; ningún overwrite, latest fallback o clave en chat/Git |
+| B5 | Emitir SecretID wrapped, unwrap/login workload y probar alcance/TTL/revocación | Canal/helper y mTLS aprobados; negativos otro tenant/purpose/versión |
+| B6 | bao token revoke -self en sesión aislada del token inicial | Solo tras comprobar admin/recovery y workload independientes; verificar revocación |
+| R4 | Instalar incrementales R4 revisadas y provisionar primer actor/invitación/TOTP | Autorizaciones específicas persistentes, correo y mecanismo inicial todavía pendientes |
+| C | Build/despliegue selectivo web y recorrido bootstrap/login/TOTP/sesión | Solo tras parche runtime completo revisado y pruebas; no autorizado aquí |
+
+No hay comando de B1/R4/C seguro que completar sin esas decisiones; proporcionar
+SQL de alta o un deploy genérico ahora fingiría un paquete autorizado. A1 y el
+renderer offline sí tienen comandos canónicos abajo. A2 requiere DATABASE_URL
+inyectada privadamente y no imprimir su valor. Cada ejecución futura registra
+SHA/artefacto, aprobación, hora, resultado y evidencia privada redactada.
+CRM y AUD-031 conservan código, estado y gates; sesión válida no habilita CRM.
+
+
 Este asiento prevalece para el estado de staging comunicado por el propietario;
 las instrucciones anteriores de instalación/ceremonia quedan como historia, no
 como operaciones a repetir. Checkout 6d89888804ffa4e2ba7635878c88eaf7f3b9c997;
@@ -655,3 +791,676 @@ volúmenes. No reactivar root ni deshacer SQL/datos para ocultar un fallo; prese
 recibos sin secretos. Rollback de esta preparación: revert del diff de código y
 documentación en rama, sin servicios. No se declara R4, CRM ni custodia integral
 completos ni se heredan PASS nativos por disponibilidad del servidor.
+
+## Diseño operativo recomendado — continuación documental de a6d2f45
+
+Estado: PROPUESTA PARA APROBACIÓN, NO IMPLEMENTADA NI EJECUTABLE COMO RUNBOOK.
+Este apartado concreta y sustituye las alternativas abiertas de la preparación
+anterior; no concede autorización. HEAD/base siguen en
+198b4e41d89c373c7aebda23ee20700643ce339c. Antes de escribir este diseño se verificó
+que git diff HEAD --binary coincidía exactamente con el patch revisado
+a6d2f45ac2bd3e83324d4b0a7c5a7a10de5d7bc812104d7c35c67b507442e5c3.
+Ese patch se conserva sin modificar y se incluye separadamente en el ZIP.
+GitHub revalidado en lectura: staging=198b4e41d89c373c7aebda23ee20700643ce339c,
+prep/staging-runtime-custody-01=4d5563899bc327f3c272ef13625ebffc3cc96b46,
+codex/r4-aud-031=9a4c8b90a159f2853f040dc5597042c17408da00.
+La referencia CRM 09c578137860cfc3726e67a21304a228c0657061 se conserva como
+referencia histórica; no se afirma que sea una rama remota revalidada.
+
+### QG-0: alcance, inventario y recorrido elegido
+
+Objetivo: diseño verificable de login → TOTP → sesión, REQ-AUTH-001/002/021,
+aislamiento tenant y custodia, sin modificar decisiones de producto ni runtime.
+Fuente de autoridad: Product Master/SRS, AUTHENTICATION_SPEC, gates y política
+de ingeniería. Inventario leído y decisión de reutilización:
+
+| Responsabilidad | Fuente inspeccionada | Decisión |
+|---|---|---|
+| Rol contractual y ACL | SQL14 schema.review.sql, líneas 9–25, 774–800 y grants posteriores | Conservar NOLOGIN y funciones; no duplicar grants |
+| Consumidor PG | pg-identity-driver.ts, v4-broker.ts, approved-backend.ts | Herencia de permisos al LOGIN, sin SET ROLE ni segundo pool |
+| Presupuesto/limpieza | openbao-keys.ts, custody-composition.ts, custody-deadline.ts | Preservar íntegro el código revisado |
+| ACL/AppRole | prepare-b1-openbao.py y operational-acceptance/openbao/README.md | Renderer canónico para políticas de datos y roles de workload |
+| Login Bao sintético | openbao-isolated-worker.mjs y openbao-b1-integration.ts | Solo referencia de protocolo; root de fixtures nunca se reutiliza |
+| Bootstrap web | runtime.ts, proxy.ts y auth_api.bootstrap_csrf | Solo vínculo anónimo/CSRF, no aprovisiona identidad |
+| Bootstrap infraestructura | compose.yaml, SQL14 y migrate-postgres.mjs | Infra/DDL/historial; no crea actor empresarial |
+| Provisión/aceptación | linaje R4 fijado; invitation-acceptance.ts, SQL4 y SQL5 AUD031 | Reutilizar aceptación solo después de un emisor inicial legítimo |
+
+Ruta propuesta: LOGIN PG dedicado → permisos heredados auth_api → SECURITY
+DEFINER broker → contexto autenticado; claves exactas del tenant desde KV mediante
+token operativo en memoria → withB1Custody → transacción con deadline. El
+supervisor de credenciales controla disponibilidad; nunca elige tenant desde HTTP.
+Diff de ESTE encargo: solo los dos documentos existentes de procedimiento y
+evidencia. SQL/policies siguientes son material de revisión embebido, no nuevas
+migraciones ni configuración instalada. Dueños propuestos: DBA (PG), custodio
+(Bao/distribución), propietario (primer actor), mantenedor B1 (composición).
+
+### PG: conservar NOLOGIN con un LOGIN dedicado y herencia explícita
+
+Recomendación: cleanops_staging_identity_login como credencial de conexión,
+miembro únicamente de cleanops_identity_service con INHERIT TRUE, SET FALSE,
+ADMIN FALSE en PG16. El nombre es propuesto, no observado. El rol contractual
+NOLOGIN/NOINHERIT de SQL14 no se altera. INHERIT de una membresía es independiente
+de la posibilidad SET ROLE; en PG16 hay que inspeccionar inherit_option y
+set_option, no inferirlos del atributo rolinherit. El NOINHERIT del rol destino
+no impide heredar sus permisos propios, pero no debe tener membresías transitivas.
+
+Fuera de SECURITY DEFINER, session_user=current_user=LOGIN dedicado; funciones
+SECURITY DEFINER usan su owner revisado cleanops_auth_broker dentro de la función.
+La búsqueda de session_user/current_user/current_role en SQL14 no encontró una
+dependencia que exija autenticar como el rol contractual. v4-broker no ejecuta
+SET ROLE, y su runner conserva una conexión/transacción. Esta opción funciona
+con esa composición sin añadir inicializadores asíncronos al pool. Heredar EXECUTE
+no permite SELECT/INSERT/UPDATE/DELETE en tablas cuyo acceso SQL14 revoca.
+El LOGIN puede invocar todo EXECUTE concedido al rol contractual: este diseño
+no pretende limitarlo solo a tres endpoints; reducir ese contrato sería otro cambio.
+
+Alternativas comparadas:
+
+| Opción | Efecto | Decisión |
+|---|---|---|
+| LOGIN separado, INHERIT TRUE / SET FALSE | Credencial y revocación separadas; reutiliza ACL; sin estado SET ROLE en pool | Recomendada |
+| LOGIN NOINHERIT, INHERIT FALSE / SET TRUE | Necesita SET LOCAL ROLE por transacción y también en bootstrap; más estado y pruebas | Descartada para este incremento |
+| ALTER ROLE cleanops_identity_service LOGIN | Evita membresía pero cambia contrato SQL14 y mezcla autenticación/ACL | Descartada mientras la herencia basta |
+| Copiar grants al LOGIN | Duplica ACL y deriva con futuras migraciones | Descartada |
+
+SQL propuesto PG-P1, NO EJECUTADO. Destino exclusivo cleanops_staging/PG16 del
+VPS existente; sesión DBA aprobada, nunca conexión web. El rol debe estar AUSENTE;
+CREATE sin IF NOT EXISTS evita adoptar uno ajeno. Revisión previa exige verificar
+ACL, owners y membresías del rol contractual, incluida ausencia de caminos hacia
+broker/bootstrap/owner, roles predefinidos privilegiados o BYPASSRLS. Abort ante
+discrepancias. No se ejecuta directamente este bloque desde el documento.
+
+```sql
+-- PG-P1: PROPOSED, NOT EXECUTED. Credential provisioning is deliberately absent.
+BEGIN;
+SET LOCAL statement_timeout = '5s';
+SET LOCAL lock_timeout = '1s';
+CREATE ROLE cleanops_staging_identity_login LOGIN INHERIT
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS
+  CONNECTION LIMIT 4 PASSWORD NULL;
+GRANT cleanops_identity_service TO cleanops_staging_identity_login
+  WITH INHERIT TRUE, SET FALSE, ADMIN FALSE;
+GRANT CONNECT ON DATABASE cleanops_staging TO cleanops_staging_identity_login;
+ALTER ROLE cleanops_staging_identity_login IN DATABASE cleanops_staging
+  SET search_path = pg_catalog;
+COMMIT;
+```
+
+PASSWORD NULL no entrega una credencial ni habilita una conexión SCRAM utilizable.
+Propuesta: password SCRAM-SHA-256 exclusiva, entregada después por mecanismo
+privado DBA al gestor de secretos del servicio; lectura en memoria al crear Pool,
+nunca DSN con password en argv/env de Compose/build/log ni archivo en Git.
+No elegir la contraseña de cleanops_bootstrap ni usar su archivo Compose.
+Rotación exige crear nuevas conexiones y drenar las antiguas; alterar password
+no mata sesiones abiertas. Retirada: impedir LOGIN, terminar solo sesiones del
+LOGIN identificado tras drenaje autorizado y revocar su membresía; no borrar datos.
+
+Transporte recomendado: TCP en red privada existente con TLS verify-full y SAN
+DNS postgres, CA privada separada del secreto de autenticación. Pool usa host
+postgres, database cleanops_staging, user dedicado, ssl con CA y verificación
+de nombre, sin rejectUnauthorized=false; máximo propuesto 4 conexiones.
+HBA futura, antes de conexiones web: hostssl con DB y LOGIN exactos, CIDR efectivo
+de web aprobado y scram-sha-256; rechazar ese LOGIN desde otras bases/orígenes
+con reglas ordenadas ANTES de reglas generales. El CIDR debe observarse, no usar
+una IP del documento como autorización. Verificar que no haya ruta hostnossl/trust.
+Faltan TLS/HBA/certificados PG observados: el Compose actual no los acredita.
+Es otro parche/config de infraestructura con aprobación; no se toca Compose hoy.
+Socket Unix exigiría un mount/permiso nuevo entre contenedores y peer mapping;
+no ofrece ventaja suficiente frente a la red privada existente. No proponer
+plaintext por el mero hecho de que la red sea interna.
+
+Verificaciones PG-P2 propuestas, NO EJECUTADAS: primera mitad con lector de
+catálogo; segunda con el LOGIN una vez provisionado, en transacción READ ONLY.
+No se llama ninguna función empresarial ni se leen tablas de aplicación.
+
+```sql
+-- PG-P2: PROPOSED, NOT EXECUTED, catalog inspection in cleanops_staging / PG16.
+BEGIN READ ONLY;
+SET LOCAL statement_timeout = '5s';
+SELECT current_database(), current_user, session_user;
+SELECT rolname,rolcanlogin,rolinherit,rolsuper,rolbypassrls,rolcreaterole,
+       rolcreatedb,rolreplication,rolconnlimit
+FROM pg_catalog.pg_roles
+WHERE rolname IN ('cleanops_identity_service','cleanops_staging_identity_login');
+SELECT parent.rolname AS granted_role,member.rolname AS member_role,
+       m.admin_option,m.inherit_option,m.set_option
+FROM pg_catalog.pg_auth_members m
+JOIN pg_catalog.pg_roles parent ON parent.oid=m.roleid
+JOIN pg_catalog.pg_roles member ON member.oid=m.member
+WHERE member.rolname IN ('cleanops_staging_identity_login','cleanops_identity_service');
+WITH RECURSIVE reachable(oid) AS (
+ SELECT oid FROM pg_catalog.pg_roles WHERE rolname='cleanops_staging_identity_login'
+ UNION
+ SELECT m.roleid FROM pg_catalog.pg_auth_members m JOIN reachable r ON m.member=r.oid
+)
+SELECT p.rolname,p.rolsuper,p.rolbypassrls,p.rolcreaterole,p.rolcreatedb
+FROM reachable r JOIN pg_catalog.pg_roles p ON p.oid=r.oid;
+SELECT n.nspname,c.relname
+FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname IN ('app','identity_private') AND c.relkind IN ('r','p','v','m','f')
+AND (has_table_privilege('cleanops_staging_identity_login',c.oid,'SELECT')
+ OR has_table_privilege('cleanops_staging_identity_login',c.oid,'INSERT')
+ OR has_table_privilege('cleanops_staging_identity_login',c.oid,'UPDATE')
+ OR has_table_privilege('cleanops_staging_identity_login',c.oid,'DELETE')
+ OR has_any_column_privilege('cleanops_staging_identity_login',c.oid,'SELECT')
+ OR has_any_column_privilege('cleanops_staging_identity_login',c.oid,'INSERT')
+ OR has_any_column_privilege('cleanops_staging_identity_login',c.oid,'UPDATE'));
+SELECT pg_has_role('cleanops_staging_identity_login','cleanops_identity_service','USAGE') AS inherits,
+       pg_has_role('cleanops_staging_identity_login','cleanops_identity_service','SET') AS can_set,
+       has_schema_privilege('cleanops_staging_identity_login','auth_api','USAGE') AS api_usage,
+       has_function_privilege('cleanops_staging_identity_login','auth_api.bootstrap_csrf(bytea,bytea)','EXECUTE') AS bootstrap_exec;
+SELECT ssl,version,cipher FROM pg_catalog.pg_stat_ssl WHERE pid=pg_backend_pid();
+COMMIT;
+```
+
+Esperado: solo membresía LOGIN→identity, true/false/false para herencia/SET/admin;
+reachable solo esos dos roles; búsqueda de acceso a tablas devuelve cero filas;
+inherits=true, can_set=false, api_usage/bootstrap_exec=true; TLS ssl=true al
+inspeccionar desde el LOGIN. Comparar además TODOS los EXECUTE efectivos con
+los del rol contractual y PUBLIC: usar catálogo inferior ampliando el rol lector,
+no solo el ejemplo bootstrap_exec. Auditor DBA revisa privilegios de columnas,
+secuencias y ownership si el catálogo remoto revela objetos fuera de SQL14.
+Pruebas negativas futuras autorizadas: SET ROLE a identity/broker/bootstrap/owner
+debe fallar; SELECT y mutación de tablas deben fallar en transacciones revertidas;
+DB/origen incorrectos y TLS sin CA deben rechazar conexión. No ejecutadas ahora.
+
+### Bao: distribución independiente y lifecycle sin renew-self
+
+Recomendación operativa: un distribuidor de SecretID en el host, identidad nominal
+cleanops-staging-secretid-distributor, separado de web y del administrador. Usa
+el CLI oficial Bao ya seleccionado por el proyecto como único transporte de
+autenticación/control; createOpenBaoKeys sigue siendo el único lector KV de B1.
+Un supervisor local recibe credenciales por pipe/Unix socket y alimenta token()
+desde memoria. No implementar un segundo cliente HTTPS Bao en TypeScript.
+El CLI disponible y su ejecución privada fuera de stdout de Docker deben
+verificarse; no se da por instalado en el host porque exista en una imagen.
+
+| Mecanismo | Ventaja / límite | Resolución |
+|---|---|---|
+| Operador entrega wrapping con CLI | Aprovecha operación humana; cada reauth depende de presencia manual | Útil para ensayo acotado, no servicio continuo |
+| Bao Agent auto-auth/sink | Herramienta oficial; no elimina quién suministra SecretID nuevo; sink/renewal requieren diseño | No adoptarlo implícitamente como lifecycle ya existente |
+| Harness h.root | Ya muestra unwrap/login y negativos sintéticos | Prohibido operacionalizar root o fixtures |
+| Distribuidor host con auth/cert y supervisor en memoria | Entrega repetible independiente de root; privilegio y componentes explícitos | Recomendada, componentes aún ausentes |
+
+Autenticación propuesta del distribuidor: método auth/cert dedicado
+auth/cleanops-staging-distributor, certificado clientAuth emitido por CA de
+control custodiada fuera del web, sujeto/SAN nominal fijado en el registro cert,
+CIDR de host exacto, policy única sin default, TTL de token distribuidor 120 s,
+máximo 120 s y certificado 24 h para staging (valores a aprobar). Clave del
+certificado solo proceso/UID del distribuidor, archivo privado fuera de checkout,
+no montaje web. La CA admin y la aprobación de emisión/revocación permanecen
+humanas. El mTLS del listener NO habilita auth/cert: hay que configurar y probar
+ese método/binding por separado. TLS de transporte y autenticación de Bao son
+dos verificaciones distintas, aunque se entregue un certificado autorizado para
+ambas explícitamente. Revocar binding/certificado y tokens emitidos ante incidente.
+
+El administrador nominal configura una vez el método cert, binding y policies
+y el AppRole con el renderer. Su método humano/recuperación independiente sigue
+requiriendo aprobación nominal antes de revocar el token inicial. Una vez
+comprobado, el distribuidor obtiene cada token de 120 s mediante cert; no conserva
+token root ni SecretID propio ni una cadena de tokens hija del token inicial.
+El certificado es su raíz de autenticación renovable por el custodio; no se oculta
+ese secreto de larga duración bajo la palabra «sin credenciales».
+
+Policy propuesta del distribuidor, no instalada, un stanza por workload real:
+
+```hcl
+# BAO-B1: template for review, NOT executable until the two segments are bound.
+path "auth/<approved-approle-mount>/role/<exact-rendered-role>/secret-id" {
+  capabilities = ["update"]
+  min_wrapping_ttl = "60s"
+  max_wrapping_ttl = "60s"
+}
+```
+
+No permiso role-id (RoleID público se entrega como config aprobada), ni role
+update, policies, LIST, KV, sys/*, root generation, renew-self o token creation.
+Emitir SecretID es poder obtener tokens de ese workload: distribuidor es parte
+de su frontera de confianza, no un rol inocuo. El path se concreta con nombre
+b1-staging-<tenant-uuid>-identity-verifier del renderer; mount AppRole debe
+observarse y aprobarse. Enrollment-issuer tiene stanza/identidad separada si se
+autoriza primera provisión, nunca permisos sumados al verifier web.
+La extensión de policy de control no la produce hoy prepare-b1-openbao.py:
+mantener el renderer canónico y revisar su punto de extensión antes de implementar;
+no copiarlo ni instalar los otros outputs server.json/mount/snapshot como efecto lateral.
+
+Protocolos recomendados, todos pendientes de implementación/aprobación:
+
+1. Arranque: supervisor sin token, admisión B1 cerrada. Autentica el distribuidor
+   por cert con CLI oficial; identidad del solicitante workload comprobada por
+   UID/peer credentials del socket, environment/tenant/workload desde configuración
+   fija, nunca valores de una request HTTP. Un wrap por proceso/generación.
+2. Distribuidor solicita SecretID nuevo con wrapping 60 s y SecretID TTL 300 s,
+   num_uses=1; guarda accessor/control de entrega en memoria privada, no SecretID
+   sin wrapping. Entrega wrapping token por canal local autenticado solo al UID
+   receptor previsto. Nada en argv/env, URLs, journal/stdout compartido o CI.
+3. Supervisor usa CLI privado por stdin/config seguro para unwrap una sola vez y
+   AppRole login (RoleID fijo + SecretID recién obtenido). Parser de la respuesta
+   exige client_token, accessor, TTL positivo ≤300 y policies exactas sin default.
+   Descarta strings/raw de unwrap/login tras uso; no se promete zeroization de JS.
+   El token operativo se mantiene solo en memoria; token() no ejecuta login por
+   cada clave: devuelve la generación vigente bajo deadline monotónico comprobado.
+4. Caducidad conservadora: medir t0 antes del login, valid_until=t0+lease_duration
+   menos margen 10 s; TTL propuesto 300/max900, reauth a los 240 s. No extenderlo
+   por reloj de pared ni confiar solo en timers. Un único refresh en vuelo evita
+   emitir varios SecretID por peticiones simultáneas. Nunca reutilizar SecretID.
+5. Reauth: distribuidor vuelve a autenticarse por cert para cada emisión; nuevo
+   wrapping, unwrap/login nuevo. Si pierde respuesta de unwrap/login, no reusar
+   su SecretID: marcar generación incierta, registrar incidente sin secretos,
+   emitir otra y dejar expirar/revocar lo conocido. El límite TTL acota el token
+   huérfano cuyo accessor no se recibió; no afirmar revocación inmediata imposible.
+6. Drenaje: publicar nueva generación solo tras validación completa; congelar
+   nuevas adquisiciones con la vieja, esperar a que sus lecturas KV en curso
+   finalicen, con cota 5 s por lectura. Claves ya prestadas siguen exclusivamente
+   la lease SQL de 10 s y limpieza/COMMIT existentes; revocar un token Bao no
+   puede retirar de memoria una clave ya leída ni revertir un COMMIT confirmado.
+7. Expiración/fallo: sin generación válida, token() falla 503; no root fallback,
+   no latest ni caché de claves. Si refresh falla, usar la vieja solo hasta el
+   límite conservador; llegada al límite bloquea nuevas adquisiciones, no renueva.
+   Supervisor verifica reloj en cada entrega, no solo al recibir una señal timer.
+8. Revocación: no se añade renew-self al workload. Administrador/control plane
+   separado registra y revoca accessors de tokens retirados mediante su permiso
+   aprobado auth/token/revoke-accessor, y destruye SecretID no consumidos por su
+   endpoint de accessor del rol exacto. Ese permiso de tokens no es role-scoped:
+   NO se concede al distribuidor de mínimo privilegio. En operación normal, si no
+   hay admin presente, token viejo queda drenado y caduca ≤300 s; no denominar
+   esto revocación inmediata. Para incidente se exige intervención admin y bloqueo
+   de nueva admisión; si se exige revocación automática inmediata, aprobar antes
+   un revocador control-plane y su riesgo adicional, ausente en este diseño mínimo.
+9. Reinicio: memoria vacía, generation counter nuevo, no leer token de disco ni
+   wrapping de un arranque anterior. Distribuidor identifica nueva instancia y
+   emite nuevo SecretID; accessors previos se revocan por administración o expiran.
+   Retirada programada drena, cierra admisión, solicita revocación de accessors y
+   deshabilita emisión/cert del servicio retirado. Caída abrupta depende del TTL.
+
+Componentes REALMENTE ausentes: distribuidor autenticado por cert, canal local
+con peer credentials, supervisor/slot token en memoria y drenaje, binding cert y
+policies de control, integración token() y observabilidad sin secretos. No se
+implementan en esta tarea documental. El CLI debe llamarse sin command substitution
+con credenciales ni logs de respuestas: todavía no hay helper privado aprobado,
+por eso no hay una línea shell segura de unwrap/login que se pueda ejecutar hoy.
+La propuesta no declara esos componentes desplegados por la existencia del renderer.
+
+### Primer tenant/actor: contrato mínimo a aprobar, no un seed
+
+Búsqueda realizada en Product Master/SRS, AUTHENTICATION_SPEC, DATA_MODEL,
+ROADMAP/gates, lib/scripts/docs y git log --all por bootstrap/provision/invitation;
+también grep del árbol R4 fijado. No se encontró un mecanismo aprobado de creación
+del primer tenant y actor. Esta conclusión se limita a esos árboles/historial
+disponibles; un procedimiento privado del propietario no se supone inexistente.
+SRS exige seed data para pruebas, no autoriza insertar un administrador persistente.
+0001_system_status crea public.organizations y metadatos de Foundation; no es
+app.organizations ni provisioning B1. bootstrap_csrf crea el vínculo anónimo y
+su protección CSRF; compose/SQL14/journal preparan infraestructura. Ninguno crea
+principal, password, pertenencia ni factor del primer actor.
+
+SQL4 R4 exige created_by con FK a app.users y actor ACTIVE/create/users/step-up.
+No sirve para crear al mismo emisor que exige. Recomendación: contrato separado
+FIRST-ACTOR-01 de ceremonia de control plane de ejecución única, sin endpoint
+público, que crea UN tenant y UN actor SENSITIVE con TOTP confirmado. Después
+entra por la UI B1 existente, sin sesión automática ni invitación autorreferente.
+Así el recorrido inicial recomendado NO depende de R4. Esta es una propuesta
+normativa nueva: aprobar antes de escribir función, migración o ejecutor.
+
+Contrato mínimo propuesto, con estado durable y recuperación:
+
+| Elemento | Propuesta concreta para aprobación |
+|---|---|
+| Alcance | Una instalación staging identificada por DB/baseline b1_sql14, un tenant, un principal/email verificado por custodio y un user SENSITIVE |
+| Autoridad | Propietario firma aprobación ligada a deployment_id, operation_id y hash del manifiesto no secreto; operador nominal distinto de identidad web |
+| Inputs públicos | UUIDs de operación/tenant/user/method, nombre tenant, referencia privada de destinatario, política y key ID/version, límites, aprobaciones y expiración |
+| Inputs privados | Password elegido por destinatario vía canal seguro; hash Argon2 con política B1, TOTP generado/cifrado dentro de custodia, primer proof; nunca archivos de fixtures |
+| Acceso | Ejecutable local privado futuro, no ruta HTTP; login provisioning exclusivo con EXECUTE solo en funciones FIRST-ACTOR, sin tablas ni membresía broker/owner |
+| Persistencia | Nueva incremental revisada por mecanismo canónico, no editar ni volver a aplicar SQL14; función SECURITY DEFINER con owner/ACL mínimos revisados |
+| Antirreplay | Singleton por deployment más operation_id único, request digest vinculado a inputs inmutables, bloqueo transaccional y restricción UNIQUE; mismo id/hash recupera recibo, id/hash distinto rechaza |
+| Estados | PREPARED sin autoridad empresarial → FACTOR_CONFIRMED → COMMITTED terminal; ABORTED/EXPIRED sin login; TTL propuesta 10 min |
+| Factor | Reutilizar prepareTotpEnrollment/openEnrollmentSecret/verifyTotpFactor y AES-GCM/AAD exactos; activar solo tras primer código y CAS de contador |
+| Efecto único | Commit de tenant, policy_versions, principal, credential, pertenencia SENSITIVE, método TOTP confirmado y recibo/auditoría en una transacción |
+| Privilegios negocio | Solo reglas B1 self-service enumeradas y aprobadas; ningún Super Admin/grant universal por nombre; create/users posterior requiere aprobación separada |
+| Auditoría | SYSTEM/actor_id NULL hasta existir actor, operador y aprobación identificados mediante referencias no secretas; correlation/operation/request digest, IDs, transición y resultado; sin password, hash password, proof, URI, ciphertext o claves en logs |
+| Resultado | Recibo no secreto con IDs, estado, manifest digest y referencia de auditoría; jamás cookie ACTIVE, password, TOTP o token Bao |
+
+PREPARED debe ser un registro de ceremonia privado sin usuario/principal ACTIVE.
+Antes de COMMITTED solo hay material efímero/cifrado y evidencia de primer factor;
+ninguna fila de sesión o permiso empresarial. El escritor futuro comprobará que
+no exista otro tenant/actor inicial y fijará el estado global bajo lock. Los
+intentos/denegaciones previos se auditan por canal control-plane autenticado, ya
+que aún no existe tenant; tras commit, evento en app.audit_logs forma parte de
+la misma transacción. Si auditoría durable falla, no confirmar creación.
+
+Resultado incierto: cerrar admisión y no volver a generar identidades, password,
+TOTP ni ejecutar operación nueva. Consulta status(operation_id,manifest_digest)
+de solo lectura bajo misma identidad de provisioning devuelve recibo COMMITTED,
+PREPARED pendiente o ABSENT tras resolver la transacción original. Una conexión
+perdida no demuestra rollback: esperar/inspeccionar lock/transacción por DBA con
+autorización. Solo ABSENT confirmado permite reintento del MISMO manifiesto; hash
+distinto se rechaza. Recibo idéntico no expone secretos ni reemite QR/recovery.
+Concurrentes: restricción singleton y lock hacen que solo un commit gane, el otro
+obtiene recibo o conflicto sin efecto adicional. Expiración invalida capacidad;
+no limpia evidencia terminal ni permite volver a crear un segundo primer actor.
+
+Después del commit, cerrar permiso de escritura de provisioning (revocar EXECUTE
+y LOGIN de su credencial temporal), conservar status/recibo mediante lector
+separado y completar verificación negativa de ejecución repetida. La protección
+singleton sigue aunque un administrador reotorgue accidentalmente EXECUTE.
+Si la credencial/TOTP se pierde tras commit, procedimiento posterior de recuperación
+de cuenta con revocación y auditoría; nunca resetear singleton ni borrar actor.
+Recovery codes: reutilizar ceremonia B1 aprobada cuando corresponda; aprobación
+de este contrato debe fijar su entrega única segura y recibo, no regenerarlos al
+consultar status. No existe hoy función/protocolo FIRST-ACTOR en el repositorio.
+
+### Dependencia R4 exacta y alternativa limitada
+
+Ruta recomendada para primer actor: FIRST-ACTOR-01 aprobado/implementado/validado
+→ login B1 normal → TOTP → sesión. No requiere cerrar directorio, cambios de
+usuarios, correo de invitaciones ni toda R4. Requiere revisar política B1,
+deployment_enabled y conexión runtime por separado; la ceremonia NO pone
+deployment_enabled=true ni cambia closedBackend. SQL14 require_enabled rechaza
+si esa configuración no está autorizada; healthy PG/Bao no la habilita.
+
+Para un SEGUNDO usuario mediante invitación o si el propietario exige ese canal
+después de crear un emisor legítimo: slice de emisión SQL4 y aceptación SQL5
+AUD-031, no todo R4. Prerrequisitos concretos: actor con create/users, step-up y
+contexto B1; política invitation_policy explícita del tenant; outbox/dispatch
+aprobados y issuer TOTP de escritura separado; UI/HTTP/broker acceptance. SQL5
+AUD031 consume cuatro args, no el r3 de tres args. Artefacto exacto:
+docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql
+en 9a4c8b90a159f2853f040dc5597042c17408da00, SHA256
+06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471;
+manifest sql5-aud031-candidate-manifest.review.json del mismo árbol. Revisar
+SQL1/SQL2/SQL3 como dependencias de definiciones/ACL de esa composición, trasladar
+solo las necesarias en incremental contra SQL14 YA instalado; no ejecutar el
+stack histórico de tests para instalar una base persistente. No se certifica
+ese recorte de migración antes de revisar sus bytes y catálogo observado.
+Idempotency-Key UI→HTTP→accept, digest y correlation→
+auth_api.consume_invitation_acceptance(text,text,bytea,uuid) atómico se preservan.
+AUD-031 y sus callers/guards no se vuelven a ejecutar ni modificar en esta tarea.
+La autorización efímera SQL5 no autoriza estas escrituras en staging.
+
+### Orden operativo y decisiones acotadas del propietario
+
+| Paso | Clase / entorno | Material o acción futura | Condición |
+|---|---|---|---|
+| O1 | OFFLINE, workspace | Congelar manifiesto tenant/key/roles y revisar PG-P1/PG-P2 y BAO-B1 | Sin credenciales; hoy solo diseño |
+| O2 | LECTURA, VPS PG16 existente | runtime-catalog y PG-P2 anterior al alta (consultas del rol nuevo solo tras existir); inspeccionar HBA/TLS y ACL exactos | Autorización de lectura y salida privada; rol ausente no prueba permisos |
+| O3 | LECTURA, VPS Bao existente | Mounts/auth methods/binding/TTL/capabilities/auditoría; no GET de secretos | Selección exacta de APIs y lector aprobados; no init/unseal |
+| O4 | ESCRITURA, control plane PG | PG-P1, SCRAM privado, HBA/TLS y negativos | Revisión DBA de bytes/config; no ejecutar desde este documento |
+| O5 | ESCRITURA, control plane Bao | Admin independiente, cert distributor, ACL/AppRole del renderer, claves exactas faltantes | Inputs/hashes/policies aprobados; root inicial retirado solo después de independencia comprobada |
+| O6 | IMPLEMENTACIÓN OFFLINE futura | Supervisor/distribuidor/canal y FIRST-ACTOR incremental + ejecutor | Aprobar contratos antes de escribir; pruebas nuevas específicas autorizadas aparte |
+| O7 | ESCRITURA, ceremonia privada | Provisión FIRST-ACTOR y cierre de privilegios temporales | Nuevo permiso explícito; no INSERT/fixtures, no activar runtime |
+| O8 | CAMBIO WEB futuro | Composición bootstrap/handleAuth, transporte PG/ingress y lifecycle token, fix mínimo actividad | Diff completo y pruebas de integración revisados; autorización específica build/deploy |
+
+Comandos de inspección/preparación reproducibles, NO ejecutados aquí y NO listos
+para ejecutar hasta aprobar parámetros. En estación offline de revisión, inputs
+sin secretos aprobados y directorio nuevo (se revisan solo outputs workload):
+
+```sh
+# OFFLINE REVIEW ONLY; does not install any output on the healthy server.
+python3 scripts/prepare-b1-openbao.py --inputs /private/approved-workload-inputs.json --out /private/new-workload-review
+```
+
+En sesión VPS de lector PG ya aprobada, servicio privado exacto y salida privada:
+
+```sh
+# REMOTE READ, NOT AUTHORIZED HERE. Connection selected through private service file.
+: "${PGSERVICEFILE:?approved private service file}" "${PG_CATALOG_SERVICE:?approved staging reader}"
+: "${CATALOG_OUTPUT:?new private output file}"
+test ! -e "$CATALOG_OUTPUT"
+umask 077
+psql -X --set=ON_ERROR_STOP=1 --dbname="service=$PG_CATALOG_SERVICE" --file=deploy/staging/openbao/runtime-catalog.review.sql > "$CATALOG_OUTPUT"
+```
+
+PG-P1/PG-P2 se extraen literalmente del documento en artefacto de revisión y se
+aprueban por hash antes de usar psql; no existe script de aplicación autorizado.
+No se entrega comando de BAO-B1 con segmentos vacíos, ni unwrap/login que pudiera
+imprimir un token, ni comando de FIRST-ACTOR inexistente. No pueden ejecutarse hoy.
+Las inspecciones Bao requieren lista exacta de paths del mount observado y policy
+lectora; no dar sys/* por comodidad para completar ese inventario.
+
+Decisiones que el propietario puede aprobar o rechazar por separado:
+
+1. PG-D1: LOGIN separado y membresía PG16 con INHERIT TRUE/SET FALSE/ADMIN FALSE,
+   nombre propuesto, máximo 4 conexiones, SCRAM+TLS verify-full y cambio HBA/TLS
+   posterior; sin alterar el rol NOLOGIN ni conceder tablas.
+2. BAO-D1: certificado nominal auth/cert del distribuidor con vigencia 24 h,
+   token distribuidor 120 s, wrapping60/SecretID300/un uso, workload300/max900,
+   reauth240/margen10; autorizar desarrollo del supervisor/canal propuestos.
+3. BAO-D2: aceptar expiración acotada del token drenado como mínimo y revocación
+   admin en incidente, o exigir revocador automático con análisis propio; designar
+   administrador/custodio y canal de emisión/recuperación del certificado.
+4. INIT-D1: aprobar FIRST-ACTOR-01 limitado a un tenant/actor SENSITIVE y reglas
+   self-service exactas, TOTP confirmado, singleton/recibo/status e identidad de
+   provisioning separada; fijar entrega recovery codes y manifiesto privado.
+   Esto no aprueba de antemano SQL ni una ejecución de provisión.
+5. ROUTE-D1: elegir primer actor por ceremonia separada (recomendado, R4 no previo)
+   y reservar slice de invitaciones para usuarios posteriores. Si se exige
+   invitación inicial, resolver primero el emisor legítimo, no inventarlo.
+
+Los UUID/CIDR/CA observados y el destinatario real se registrarán por canal
+privado al preparar autorización; no se fabrican ni se piden secretos en chat.
+Se mantienen Compose efectivo, Autodeploy OFF, CRM separado y runtime cerrado.
+
+## Incremento canónico entre entornos — 29/10/2026
+
+Este apartado sustituye la recomendación de construir distribuidor/supervisor
+propios del diseño anterior. No modifica sus registros históricos ni autoriza
+operaciones. Revalidación GitHub en lectura: staging 198b4e41d89c373c7aebda23ee20700643ce339c,
+candidato remoto 4d5563899bc327f3c272ef13625ebffc3cc96b46 y R4/AUD031
+9a4c8b90a159f2853f040dc5597042c17408da00. HEAD local sigue en staging; los
+cambios locales NO están publicados. Base revisada a6d2f45 y diseño posterior
+se conservan. Sin ZIP nuevo, sin SQL/Bao, credenciales, provisión ni despliegue.
+
+### Recomendación única y QG-0 del incremento
+
+Usar una sola composición privada PG + custodia para cualquier instalación;
+LOGIN PG independiente que hereda ACL contractual, y herramienta oficial
+OpenBao Agent 2.7.2 con auto-auth cert por workload y sink en memoria de sistema
+(tmpfs). El callback token() existente consumirá ese sink en el futuro; no otro
+cliente Bao, distribuidor/supervisor propio ni bifurcación NODE_ENV. El cambio de
+AppRole a cert del workload es una decisión explícita pendiente de aprobación,
+NO implementada. Si se rechaza, AppRole requiere resolver su emisor de SecretID;
+no se cambia bind_secret_id ni se convierte un SecretID en reutilizable.
+
+Inventario adicional: pg 8.16.3 del lock, pg-identity-driver y sus consumidores
+IdentityPool en v4-broker/custody-composition; extensión de ese único punto para
+configuración/Pool. Riesgos: herencia de entorno del driver, SSL débil, conexión
+como owner, secreto en DSN y CA inválida. Plan: factory explícito con validación,
+sin importar configuración global; prueba local de construcción sin connect,
+negativos y suite PG modificada, typecheck/lint pertinentes y diff. No archivos
+ni dependencias nuevos; no se repiten suites Bao/deadline sin cambios.
+
+### Preparación PG implementada, aún desconectada
+
+createPgIdentityPool en lib/b1/pg-identity-driver.ts es el punto canónico interno
+de composición, sin consumidor HTTP hasta la integración autorizada. Construirlo
+no abre sockets ni solicita contraseña. Acepta exactamente environment, host,
+port, database, loginRole, contractualRole, ca, password (callback privado),
+maxConnections y connectionTimeoutMs. Valida DNS/IP, puerto, identificadores,
+roles distintos, límites, CA X.509 PEM de CA única y callback. Rechaza DSN,
+campos extra, socket implícito y nombres privilegiados conocidos. No prueba
+privilegios por el nombre: inspección de catálogo/ACL sigue siendo obligatoria.
+El callback obtiene credencial solo cuando pg la necesita, valida su formato y
+sanea errores; no genera contraseña ni lee secretos de NODE_ENV/PGPASSWORD.
+El Pool fija TLS rejectUnauthorized=true, CA copiada, opciones GUC vacías y todos
+los parámetros de conexión explícitos. No SET ROLE, SQL propio ni conexión de
+bootstrap. La identidad contractual se valida como dato del manifiesto, no se
+asume autenticación con ella ni se hace ALTER ROLE en código.
+
+Configuración lógica, no valores operativos: manifest de instalación con ID de
+entorno, host/SAN esperado, puerto, DB, LOGIN, rol NOLOGIN observado, CA pública,
+referencia al proveedor privado de password y límites. El loader privado futuro
+resuelve las referencias, valida pertenencia al entorno y pasa el objeto al
+factory; ese loader no se ha inventado ni conectado ahora. No serializar el
+callback/Pool/config privado en logs. La contraseña JS no admite prometer borrado
+perfecto; no se cachea en un singleton adicional.
+
+Propuesta SQL/config única, NO EJECUTADA: PG-P1 anterior se parametriza con
+identificadores aprobados, sin crear una variante para producción. SQL14 conserva
+cleanops_identity_service NOLOGIN. Si el nombre contractual varía, exige una
+instalación SQL aprobada coherente, no renombrarlo por configuración. Roles son
+globales al cluster: separar instancias PG por entorno o demostrar aislamiento
+DB/HBA/ACL; un sufijo de LOGIN no aísla automáticamente un cluster compartido.
+
+```sql
+-- PG-CANONICAL: psql identifier parameters from an approved non-secret manifest.
+-- NOT EXECUTED. No credential here; not an automatic migration or ready runbook.
+BEGIN;
+CREATE ROLE :"login_role" LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE
+  NOREPLICATION NOBYPASSRLS PASSWORD NULL;
+GRANT :"contractual_role" TO :"login_role"
+  WITH INHERIT TRUE, SET FALSE, ADMIN FALSE;
+GRANT CONNECT ON DATABASE :"database_name" TO :"login_role";
+ALTER ROLE :"login_role" IN DATABASE :"database_name" SET search_path = pg_catalog;
+COMMIT;
+```
+
+Los parámetros no son defaults: aprobación debe fijar valores/hash y comprobar
+ausencia del LOGIN antes de CREATE. PG-P2 se ejecutaría con esos mismos roles/DB,
+verificando catálogo, herencia y ningún permiso de tabla/columna/secuencia ni
+membresía a broker/bootstrap/owner/BYPASSRLS; sin SET ROLE transitorio. El guard
+HBA hostssl DB/LOGIN/CIDR exactos y SCRAM+TLS verify-full es idéntico en ambos
+entornos, cambia su configuración. SQL14 y Compose efectivo no cambian hoy.
+
+### Herramienta oficial Bao: capacidades contrastadas con v2.7.2
+
+Se leyeron las fuentes oficiales fijadas al tag (no se ejecutó el binario):
+website/content/docs/agent-and-proxy/autoauth/{index,methods/cert,methods/approle,sinks/file}.mdx
+y agent/index.mdx en https://github.com/openbao/openbao/tree/v2.7.2/website/content/docs/agent-and-proxy .
+Dockerfile selecciona 2.7.2; release-pin.json de aceptación conserva 2.7.1 como
+historia, no acredita ni configura Agent 2.7.2. Antes de usar Agent hay que fijar
+su artefacto 2.7.2 verificado, config y evidencia propios; no cambiar pin histórico.
+
+| Capacidad / contrato | Agent cert | Agent AppRole | Código anterior propuesto |
+|---|---|---|---|
+| Login inicial | Cert/key local + binding nombrado | RoleID + SecretID entregados externamente | Reimplementaba autenticación con CLI |
+| Expiración/reauth | Auto-auth renueva y reautentica al fallar/expirar | Igual, pero necesita SecretID nuevo de un uso | Supervisor propio innecesario si Agent cubre política |
+| Reemplazos | cert reload=true permite recarga en cada autenticación | Nuevos archivos se usan en siguiente autenticación; puede unwrap verificando creation_path | Emisor/canal SecretID propios ausentes |
+| Entrega del token | Sink file con permisos configurables, recomendado ramdisk | Mismo sink | Slot/IPC propio evita archivo pero añade arquitectura |
+| Revocación | Administrador revoca token y bloquea identidad cuando procede | También debe impedir emisión de nuevos SecretID | No elimina autoridad de control plane |
+
+Recomendación: auto_auth method cert con mount y name exactos, reload=true,
+CA/nombre de servidor y client cert/key privados por workload; sink file sin
+wrapping ni cifrado experimental en tmpfs dedicado, modo explícito 0600 y UID
+lector mínimo (o 0640 con grupo dedicado aprobado si procesos separados). Sin
+listener/proxy, caché de respuestas/secretos ni templates KV. B1 sigue leyendo
+KV exacto mediante createOpenBaoKeys, mTLS, allowlist, versiones y deadline.
+No se amplía red/Compose para arrancar Agent en esta entrega.
+
+Las policies actuales sin default NO garantizan renovación. Aprobar expresamente
+update auth/token/renew-self para el token operativo si se selecciona renovación
+de Agent; ninguna ampliación se instala silenciosamente. Revoke-self solo si se
+aprueba un procedimiento que lo use; no se afirma que Agent revoque al salir.
+No se propone periodic token ilimitado: TTL/máximo, CIDR y policies exactas
+se configuran por instalación. Al alcanzar maxTTL, reauth con certificado vigente.
+No asumir soporte de tokens con usos limitados: auto-auth requiere token_num_uses=0;
+esto no convierte SecretID num_uses=1 en reutilizable. La documentación declara
+que wrap_ttl del método impide el lifecycle automático; no activarlo aquí.
+
+Responsabilidad de la credencial inicial y reemplazos: custodio PKI/control plane
+nominal de cada instalación emite el primer cert/key clientAuth, instala el binding
+de cert auth y entrega al UID Agent por canal privado; clave nunca en web/Git/build.
+El mismo custodio (o servicio PKI ya aprobado por él) entrega cada reemplazo antes
+de expirar con escritura atómica/permisos comprobados; reload=true lee el nuevo
+par en la siguiente autenticación. Agent NO emite ni renueva certificados y NO
+distribuye SecretID. No hay servicio PKI automatizado acreditado: hasta aprobarlo,
+la renovación de certificados es tarea operativa con dueño/alertas/ventana definida,
+igual en producción. Si AppRole se mantiene, ese custodio/distribuidor aprobado
+debe emitir y entregar CADA SecretID wrapped nuevo; Agent solo lo consume.
+Ni producción ni staging dependen continuamente del token inicial de Bao.
+
+Arranque: sink vacío y token() indisponible hasta login Agent. Lectura futura del
+sink por token() en cada adquisición (archivo regular, no symlink, tamaño/permisos
+y deadline acotados, errores saneados); no copia perpetua en singleton ni red Bao
+adicional. No implementada todavía: esta mínima integración necesita aprobar el
+sink como canal. No retirar el archivo tras cada lectura: hay múltiples lecturas
+KV; el contrato propio debe distinguir reemplazo de token de sus renovaciones.
+El sink no es una prueba de token vigente: no contiene lease_duration; no inferir
+TTL desde mtime ni prometer deadline local de token sin metadatos. Bao valida cada
+GET y la pérdida/expiración del token debe producir 503, nunca servir claves caché.
+Auto-auth reintenta con backoff documentado; aceptación debe demostrar recuperación
+tras expiración, revocación y cert reemplazado sin requests con identidad ajena.
+
+Drenaje: no se reintenta SQL ni se reinicia una operación confirmada al reemplazar
+token. Lecturas antiguas fallan o terminan bajo su plazo; claves ya prestadas
+siguen lease SQL y borrado existentes. Matar Agent no revoca instantáneamente el
+token; stop/restart supervisados por el gestor de procesos oficial del entorno,
+sin daemon propio. Reinicio elimina sink viejo antes de abrir admisión; token viejo
+se revoca por accessor de control plane o expira. Para incidente: bloquear primero
+binding/cert/renovación de la identidad comprometida y después revocar sus tokens;
+revocar solo un token con cert aún válido permite reauth. Custodio debe controlar
+también certificados ya sustituidos y sesiones emitidas antes de su revocación.
+No prometer que revocación remota borre claves en memoria o deshaga COMMIT.
+
+### FIRST-ACTOR-01: inicialización de instalación, no seed de entorno
+
+Mismo procedimiento en todas las instalaciones. Alcance singleton por
+installation_id estable y baseline aprobada; environment es una etiqueta de
+configuración, no la condición que permite crear un administrador. Propuesta
+normativa pendiente, sin función/migración/ejecutor implementados.
+
+Permisos mínimos: ejecutor nominal temporal con CONNECT y USAGE del schema de
+ceremonia, EXECUTE solo prepare/confirm/commit/status FIRST-ACTOR; sin tablas ni
+membresía broker/owner ni facultad de reasignar permisos. Owner de las funciones
+SECURITY DEFINER revisado con DML exacto requerido en org/principal/credential/
+user/policy/MFA/recovery/receipt/audit, sin LOGIN ni privilegio universal. Runtime
+no recibe EXECUTE de inicialización. Revocar escritura/LOGIN temporal tras commit;
+status posterior mediante lector separado. No deshabilitar singleton para recuperar.
+
+Reutilización: passwordAdmission/prepareReplacementHash, prepareTotpEnrollment,
+openEnrollmentSecret, verifyTotpFactor y CAS de contador, approvedTotpEnrollmentPolicy,
+AAD tenant/user/method/generación/algorithm/keyVersion, primitivas recovery B1 y
+digest/política canónicos. El owner de la ceremonia no fabrica una sesión/contexto
+B1 ni llama a un helper de ENROLLMENT fingiendo PREAUTH. Las transiciones y su
+persistencia requieren contrato nuevo explícito, no copiar lógica de factores.
+
+Entrega TOTP única: tras verificar destinatario y canal privado, prepare muestra
+QR/URI una vez y registra entrega, caducidad y aceptación del destinatario sin
+registrar URI/secret. Primer código confirma posesión; método no ACTIVE hasta
+commit. Si se pierde QR antes de confirmar, abortar esa generación y revocar su
+capacidad antes de preparar otra, sin crear principal activo. Tras commit no se
+vuelve a mostrar QR: se usa recuperación aprobada, no reejecutar inicialización.
+
+Recovery: códigos de un solo uso generados por las primitivas B1, almacenados
+solo como sus digests canónicos, entregados una sola vez por canal privado y
+confirmados por destinatario antes de cerrar ceremonia. Propuesta concreta:
+preparar en estado privado no empresarial, entregar/ack y guardar solo digests;
+commit atómico publica digests junto al factor/principal/recibo/auditoría. No
+regenerarlos al reintentar commit o leer status. Si la entrega/ack queda incierta
+antes de commit, abortar generación y anular todo el material anterior; destinatario
+descarta códigos de generación abortada. Esta secuencia/ack necesita aprobación
+normativa y pruebas; no se anuncia como conducta actual de B1.
+
+Commit: singleton + bloqueo/unique, operation_id e input_digest inmutables,
+auditoría durable dentro de transacción y recibo no secreto. Sin sesión automática,
+ni cookie ACTIVE, ni grants implícitos por nombre Super Admin. Permisos iniciales
+son el conjunto self-service enumerado aprobado; create/users requiere decisión
+separada. Tras commit, login → TOTP → sesión ocurre por interfaz B1 existente.
+R4 no es dependencia del primer actor recomendado; solo slice de invitaciones
+posteriores con emisor legítimo, conservando AUD-031 fijado.
+
+Resultado incierto: bloquear nueva provisión; status(operation_id,input_digest)
+resuelve COMMITTED/ABORTED/PREPARED/ABSENT después de aclarar la transacción
+original. COMMITTED devuelve el MISMO recibo sin secretos; no reentrega QR/codes
+ni crea otra identidad. ABSENT confirmado permite mismo manifiesto; ausencia
+de respuesta no demuestra rollback. Pérdida de TOTP/recovery tras commit exige
+procedimiento de recuperación de cuenta, no borrar actor, singleton o historial.
+
+### Delta mínimo y aceptación restante
+
+| Archivo / responsabilidad | Cambio de este incremento | Idéntico en producción / variable |
+|---|---|---|
+| lib/b1/pg-identity-driver.ts | Factory Pool configurado/validado, sin conectar | Mismo factory y protocolo; cambian endpoints, nombres, CA, credencial y límites |
+| tests/b1/pg-identity-driver.test.ts | Caso positivo en ambos entornos y negativos de configuración | Mismo test de contrato, sin PostgreSQL |
+| OPENBAO-STAGING-01.md | Solo este apartado vigente con recomendación oficial y FIRST-ACTOR genérico | Documento sigue en ruta histórica; diseño no depende del nombre staging |
+| OPENBAO-STAGING-01-CHECKS.md | Evidencia nueva separada de la acreditada | Sin relabel de pruebas históricas |
+
+Sin cambios a createOpenBaoKeys/deadline, renderer de AppRole, SQL14, runtime,
+Compose, CRM o AUD-031. Aprobar Agent cert y self-renew/sink, canal PKI y FIRST-ACTOR
+precede a implementar Agent config/loader de sink/provisión. No añadir código de
+distribuidor ni política cert a un renderer de AppRole antes de esa decisión.
+Falta aceptación real de PG16 ACL/herencia/HBA/TLS y credencial privada; Agent
+2.7.2 contra Bao real con renovación/reauth/cert rotation/restart/revocación y
+canal sink protegido; ceremonia FIRST-ACTOR y entrega única ante concurrencia/
+resultado incierto; integración bootstrap/handleAuth, sesión/actividad y navegador.
+Producción conserva además sus gates de residencia, custodia, recuperación y
+capacidad: misma implementación no equivale a aceptación de infraestructura.

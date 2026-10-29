@@ -107,6 +107,23 @@
       "dokployAndDotenvVariablesReportedSaved": true,
       "autodeployReportedEnabled": false,
       "independentlyVerifiedHere": false
+    },
+    "databaseName": "cleanops_staging",
+    "migrationsObserved": {
+      "source": "OWNER_READ_ONLY_INSPECTIONS_2026_10_28",
+      "observedDate": "2026-10-28",
+      "serverMajor": 16,
+      "database": "cleanops_staging",
+      "composeProject": "cleanops360-f4fxmd",
+      "expectedB1CrmObjectsPresent": false,
+      "additionalSchemas": 0,
+      "publicRelations": 0,
+      "publicRoutines": 0,
+      "additionalCleanopsRoles": 0,
+      "additionalExtensions": 0,
+      "publicMigrationsRegistryPresent": false,
+      "readOnly": true,
+      "independentlyRevalidatedHere": false
     }
   },
   "PRODUCTION_SWISS": {

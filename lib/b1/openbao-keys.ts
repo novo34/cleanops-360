@@ -58,12 +58,16 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
   async function read(input: PrivateKeyReference): Promise<Buffer> {
     const r = Object.freeze({ ...input })
     if (!allowed.has(identity(r))) throw unavailable()
+    // Authentication and KV transport share one absolute acquisition budget.
+    const deadline = performance.now() + timeoutMs
     let tokenTimer: ReturnType<typeof setTimeout> | undefined
     let token: string
     try {
       token = await Promise.race([tokenProvider(), new Promise<never>((_, reject) => { tokenTimer = setTimeout(() => reject(unavailable()), timeoutMs) })])
     } finally { if (tokenTimer) clearTimeout(tokenTimer) }
     if (typeof token !== 'string' || !/^[A-Za-z0-9._-]{1,1024}$/.test(token)) throw unavailable()
+    const remaining = deadline - performance.now()
+    if (remaining <= 0) throw unavailable()
     const path = `/v1/${mount}/data/${environment}/${r.tenantId.toLowerCase()}/${r.purpose}/${r.keyId}?version=${r.version}`
     return new Promise((resolve, reject) => {
       let settled = false
@@ -85,13 +89,17 @@ export function createOpenBaoKeys(options: OpenBaoKeyOptions) {
                 typeof data?.data?.value !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(data.data.value)) throw unavailable()
             key = Buffer.from(data.data.value, 'base64')
             if (key.length !== 32 || key.toString('base64') !== data.data.value) throw unavailable()
+            // Timer delivery can lag behind end/decoding when the event loop
+            // stalls. Reject late material before handing it to a fresh lease;
+            // catch/finally below wipe the decoded key, raw response and chunks.
+            if (performance.now() >= deadline) throw unavailable()
             settled = true; resolve(key)
           } catch { key?.fill(0); fail() }
           finally { raw.fill(0); for (const b of chunks) b.fill(0) }
         })
       })
       // Absolute deadline, including token-independent socket stalls and trickles.
-      const timer = setTimeout(() => { req.destroy(); fail() }, timeoutMs)
+      const timer = setTimeout(() => { req.destroy(); fail() }, remaining)
       req.once('close', () => clearTimeout(timer))
       req.on('error', fail)
       req.end()

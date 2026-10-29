@@ -180,3 +180,18 @@ workload packages require the default full-stack gate, never selective receipts.
 OpenBao 2.7.2 pin/signature verification and four corrected advisories with scope
 analysis are recorded in openbao/OPENBAO-STAGING-01.md and its CHECKS report.
 A valid signature is not a vulnerability assessment; CPU/build remain BLOCKED.
+
+## MIGRATIONS-01 — primera instalación e historial
+
+Antes de aplicar SQL14, seguir MIGRATIONS-01.md. Se conserva verify-only en
+staging-sql14.py y su autorización/ownership; el historial y su envelope proceden
+del runner canónico migrate-postgres.mjs. Plan b1 de solo lectura no crea tablas;
+--offline-plan no conecta. SQL14 es baseline explícita, nunca migración automática
+ni paso suficiente para login. No ejecutar db:migrate foundation en la base B1.
+Las inspecciones comunicadas del 28/10/2026 indican base vacía y registro ausente;
+se revalidan al aplicar autorizado. Esta preparación no ejecuta SQL/servicios/CI.
+
+El --apply de staging-sql14.py requiere --compose-env-file con ruta absoluta
+privada fuera del checkout; en el VPS: /etc/cleanops360-staging/staging.env.
+No copiar ni imprimir sus valores. El harness de MIGRATIONS-01 prepara pruebas
+reales por socket de un PG efímero propio; esas pruebas no se han ejecutado.

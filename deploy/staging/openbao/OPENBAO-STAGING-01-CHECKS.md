@@ -262,3 +262,237 @@ b9314a806e6c52088bd86871ea6b53e0b2f6f4f477f184877f0cb2268d8f795a  lib/b1/custody
 0c9bff92bb252b7b9358d07574e79bc358fabb5c5f1f7cdaa869d3fcc7638e04  deploy/staging/openbao/OPENBAO-STAGING-01.md
 
 Los hashes anteriores del informe se conservan como historia del SHA entonces revisado; este bloque identifica los bytes de la preparación actual. El informe se excluye a sí mismo.
+# Continuación local sobre 198b4e4 — 28/10/2026
+
+QG-3: candidato original 4d5563899bc327f3c272ef13625ebffc3cc96b46 reconciliado
+con staging 198b4e41d89c373c7aebda23ee20700643ce339c. Sin merge remoto, push,
+PR, SQL, Bao, Docker, generación de credenciales ni activación. La entrega queda
+como delta local sobre staging; no hay commit de merge en la rama entregada.
+El alcance y decisiones pendientes están en el apartado de continuación del
+procedimiento OPENBAO-STAGING-01.md. No se han modificado runtime.ts, SQL14,
+migraciones, R4, CRM, AUD-031, Compose ni workflows.
+
+Validación auténtica local con Node v24.19.0:
+
+- PASS: `node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts tests/b1/pg-identity-driver.test.ts`: 27/27, cero omitidos.
+- PASS: `npm run typecheck`.
+- PASS: `npx eslint lib/b1/openbao-keys.ts tests/b1/openbao-keys.test.ts`.
+- PASS: `git diff --check`.
+- PASS tras corrección de comentario lint: suite openbao-keys 7/7.
+- Primer intento: 18 PASS y una suite sin cargar por dependencia otpauth ausente.
+  Resuelto con `npm ci --ignore-scripts --audit=false --fund=false`, usando lock
+  existente, sin modificarlo ni ejecutar lifecycle scripts. La ejecución 27/27
+  posterior es la evidencia completa. Lint señaló un bloque vacío del test nuevo;
+  corregido con comentario que explica el bloqueo intencional del event loop.
+- NO EJECUTADO: integración PG16/Bao, cancelación nativa, TLS real, AppRole,
+  rotación/revocación, R4/invitación/TOTP real, navegador y despliegue.
+
+No se abre PR porque Quality de esta rama iniciaría PostgreSQL y ejecutaría SQL,
+fuera del alcance autorizado. No se alteran guards para evitar esa restricción.
+La revisión independiente y aceptación del propietario siguen pendientes; estas
+pruebas unitarias no acreditan conexión funcional ni custodia operativa completa.
+
+## Corrección KV end tras revisión independiente — 28/10/2026
+
+Referencia revisada: patch af1f15677f3804ee88e854c207b603fd9bab301e021154714e01b66839e179d8.
+HEAD local y base exacta conservados: 198b4e41d89c373c7aebda23ee20700643ce339c.
+El patch actualizado es el delta completo contra esa base, no solo esta corrección.
+Las secciones anteriores son evidencia histórica; sus hashes no identifican los
+bytes posteriores a esta corrección. Ningún resultado del VPS se presenta como
+comprobación local: SQL14 instalado, fila b1_sql14 y procedencia, Bao desellado y
+auditoría verificada siguen siendo hechos comunicados por el propietario.
+
+QG-0: objetivo observable, impedir que una lectura KV completada fuera del plazo
+inicie work bajo una lease nueva; mismo módulo B1 y requisitos de custodia.
+Inventario: read/end/fail de createOpenBaoKeys, withKeys y limpieza de buffers,
+withB1Custody, createCustodyDeadlinePool, unit-of-work PG y cuatro suites originales.
+Se corrige el punto canónico en openbao-keys.ts y se extiende su suite existente;
+no nuevo cliente, runner, contrato de tenant ni dependencia. Documentación existente
+de procedimiento/evidencia actualizada; sin archivos nuevos adicionales en Git.
+Riesgo: timer retrasado por el event loop, clave y respuesta privadas retenidas;
+la comprobación monotónica previa a resolve usa catch/finally existentes para
+borrar clave decodificada, raw y chunks. No cambia acknowledgeCommit ni la entrega
+de un resultado cuyo COMMIT ya fue confirmado. Conserva regresión de token tardío.
+Plan ejecutado: demostrar fallo antes del fix, cuatro suites originales completas,
+typecheck, lint de los ocho módulos/tests del candidato y diff contra HEAD.
+
+### Reproducción auténtica antes del fix
+
+Se añadió únicamente la nueva regresión y se ejecutó contra el código vulnerable:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none --test-name-pattern='KV completion after the acquisition deadline' tests/b1/openbao-keys.test.ts
+```
+
+FAIL esperado, exit 1: 1 test, 0 PASS, 1 FAIL, cero omitidos;
+AssertionError: Missing expected rejection, duración total 203.499058 ms.
+Log completo conservado en el paquete descargable: custody-kv-regression-before.log.
+No se presenta ese FAIL como ejecución final ni como fallo de infraestructura.
+
+### Validación final ejecutada después del fix
+
+Node v24.19.0; dependencias del lock ya instaladas, sin reinstalar paquetes.
+Comandos ejecutados, todos exit 0:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts tests/b1/pg-identity-driver.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/custody-composition.ts lib/b1/custody-deadline.ts lib/b1/openbao-keys.ts lib/b1/pg-identity-driver.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/openbao-keys.test.ts tests/b1/pg-identity-driver.test.ts
+git diff HEAD --check
+```
+
+PASS: 28/28, cero FAIL/cancelled/skipped/todo, duración total 1270.641213 ms.
+Desglose: composición 9, deadline 4, claves Bao 8, driver PG 7.
+Los 27 casos previos se revalidaron, incluida regresión del token tardío y recibo
+tras COMMIT confirmado tardío; la regresión KV es UN caso nuevo, no otra suite.
+El resultado anterior de 27/27 sigue siendo histórico, no se renombra como 28/28.
+
+Nueva regresión:
+OpenBao KV completion after the acquisition deadline rejects and wipes received material before work.
+Token inmediato del fixture, HTTPS totalmente simulado, timeoutMs=10; tras data
+se bloquea el event loop durante al menos 30 ms antes de emitir end, impidiendo
+que el timer sea la causa del rechazo. Comprueba AUTH_DEPENDENCY_UNAVAILABLE,
+exactamente un request simulado, work no invocado, respuesta agregada no vacía
+capturada y borrada, y chunk recibido borrado. La clave decodificada se borra en
+el catch canónico; el test observa directamente raw/chunk, no strings internos JS.
+No se afirma borrado perfecto de strings/base64 o memoria del recolector de JS.
+
+Los logs completos de esta ejecución y checks se entregan como
+custody-kv-suites.log, custody-kv-typecheck.log, custody-kv-lint.log y
+custody-kv-diff-check.log. Lint y diff exitosos no producen salida; el archivo de
+metadatos del paquete registra sus exit codes. Node emitió el aviso no bloqueante
+MODULE_TYPELESS_PACKAGE_JSON; no se cambia package.json para silenciarlo.
+
+### QG-3 / alcance y límites
+
+PASS comprobados localmente: regresiones con EventEmitter/HTTPS simulado, buffers,
+pool en memoria, protocolo transaccional, typecheck, lint y diff limpio.
+NO EJECUTADO: SQL/Bao reales, credenciales reales, TLS/AppRole reales, activación,
+build/despliegue, push, PR, merge ni pruebas de navegador. Ninguna evidencia nueva
+de cancelación real PostgreSQL, ni de conexión funcional del login al VPS.
+runtime.ts, SQL14/migraciones, CRM y AUD-031 permanecen intactos; no cambian gates,
+workflows ni autorizaciones. Revisión independiente del nuevo patch pendiente.
+
+SHA256 de los dos archivos de código/test corregidos:
+
+1936c28c24d47527330e4a6dc2cf19618f0a91eab891095de8d00432052fe78c  lib/b1/openbao-keys.ts
+8658240e1a97ff87ea9527c231cf674bb49efe22871668e65c2abf1be14dbe7d  tests/b1/openbao-keys.test.ts
+
+El SHA256 del patch completo actualizado se entrega fuera de este documento para
+evitar una referencia circular al hash del propio patch que lo incluye.
+
+## Diseño operativo documental posterior a a6d2f45 — 28/10/2026
+
+Alcance autorizado: concretar recomendaciones PG/AppRole/primer actor en los
+documentos existentes. No implementación de decisiones normativas nuevas.
+HEAD/base: 198b4e41d89c373c7aebda23ee20700643ce339c. Antes de editar se calculó
+SHA256 de git diff HEAD --binary y coincidió exactamente con
+a6d2f45ac2bd3e83324d4b0a7c5a7a10de5d7bc812104d7c35c67b507442e5c3.
+El ZIP conserva esos bytes como reviewed-a6d2f45.patch; el delta documental y el
+patch consolidado nuevo se etiquetan aparte. No se atribuye al patch nuevo la
+revisión independiente del anterior.
+
+Referencias revalidadas por conector GitHub, solo lectura:
+
+- staging: 198b4e41d89c373c7aebda23ee20700643ce339c.
+- prep/staging-runtime-custody-01: 4d5563899bc327f3c272ef13625ebffc3cc96b46.
+- codex/r4-aud-031: 9a4c8b90a159f2853f040dc5597042c17408da00.
+
+Se obtuvo el árbol R4 con git fetch origin codex/r4-aud-031 para lectura local,
+sin checkout, merge o push. Se inspeccionaron su aceptación TS, SQL4, variantes
+SQL5 y manifest AUD031. Se encontró exactamente la firma de cuatro argumentos
+en 005-invitation-acceptance.aud031-candidate.review.sql, no en el candidato r3.
+SHA256 de ese SQL verificado offline contra el manifest del mismo árbol:
+06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471.
+No se ejecutaron sus tests ni SQL, no se repitió AUD-031.
+
+Inventario/búsqueda documentados en el nuevo apartado del procedimiento: SQL14
+roles/ACL/require_enabled/tablas, pg-identity-driver/v4-broker/approved-backend,
+renderer y README de Bao, harness sintéticos, runtime/proxy, Product Master/SRS,
+AUTHENTICATION_SPEC/DATA_MODEL/ROADMAP/gates, scripts y git log --all por
+bootstrap/provision/invitation. No se halló contrato aprobado del primer actor
+en esos árboles/historial disponibles; no se extrapola a documentos privados.
+No confundir seed data normativo de pruebas con autorización de provisioning.
+
+Diseño entregado: SQL PG-P1 y verificaciones PG-P2 embebidos NO EJECUTADOS;
+LOGIN separado/herencia PG16 sin SET ROLE, transporte TLS+SCRAM y control HBA;
+policy template BAO-B1 y protocolo de distribuidor cert/supervisor en memoria,
+sin otro cliente Bao ni renovación implícita; FIRST-ACTOR-01 propuesto con
+singleton, auditoría, status/recibo y recuperación de COMMIT incierto.
+R4 no es previo al primer actor recomendado; slice exacto de invitaciones queda
+identificado para usuario posterior, sin exigir cerrar todo R4. No hay emisor
+autorreferente, INSERT administrativo ni fixtures usados como provisioning.
+
+Validación de ESTE encargo: solo inspección/diff/hash y comprobación de paquete.
+No se reejecutaron suites de código, typecheck o lint: no hay cambios ejecutables.
+La evidencia anterior 28/28/typecheck/lint pertenece a la corrección KV ya
+registrada. El propietario comunica revisión independiente del hash a6d2f45 y
+20/20 (19 originales más regresión KV independiente); no se afirma haber ejecutado
+esas 20 pruebas aquí ni se suman a las 28 como si fueran 48 pruebas distintas.
+Estado VPS (SQL14/fila b1_sql14/Bao/auditoría) sigue comunicado, no inspeccionado.
+
+Controles offline de entrega: git diff HEAD --check; igualdad de todos los blobs
+no documentales del delta con la reconstrucción del patch revisado; SHA256 del
+SQL5 AUD031 obtenido por git show; ambos únicos documentos modificados desde
+ese patch; integridad ZIP, hashes, presencia de patch original y docs completos.
+Resultados y lista exacta de entradas en DELIVERY-METADATA.json/SHA256SUMS.txt
+del ZIP. SQL-PG y HCL son propuestas textuales, no sintaxis nativa acreditada.
+
+Sin SQL/Bao reales, credenciales generadas, provisión, activación, build/deploy,
+push, PR, merge o cambios a Compose efectivo/Autodeploy. Runtime cerrado;
+CRM y AUD-031 intactos. Aprobar diseño no autoriza las escrituras futuras O4–O8;
+PG-P1/PG-P2, ACL cert y FIRST-ACTOR necesitan revisión y permisos específicos.
+
+## Incremento canónico entre entornos — 29/10/2026
+
+Solo cuatro archivos cambian desde el diseño anterior: pg-identity-driver.ts,
+su test y estos dos documentos existentes. Runtime no consume aún el factory.
+QG-0/alternativas y puntos de extensión en el apartado final del procedimiento.
+No ZIP nuevo ni documentos históricos repetidos como evidencia nueva.
+
+GitHub revalidado mediante fetch_commit, solo lectura: staging
+198b4e41d89c373c7aebda23ee20700643ce339c, candidato remoto
+4d5563899bc327f3c272ef13625ebffc3cc96b46, codex/r4-aud-031
+9a4c8b90a159f2853f040dc5597042c17408da00. HEAD local sigue en staging;
+no se presenta este delta local como cambio publicado en esas referencias.
+
+Fuentes oficiales leídas mediante fetch_file de openbao/openbao, tag v2.7.2:
+website/content/docs/agent-and-proxy/autoauth/index.mdx,
+autoauth/methods/cert.mdx, autoauth/methods/approle.mdx,
+autoauth/sinks/file.mdx y agent/index.mdx. Acreditan documentalmente auto-auth,
+renew/reauth, cert reload, archivos/unwrap de AppRole y sink de token; NO son
+ejecuciones de Agent/Bao ni prueban configuración instalada. Intentos de lectura
+de código cert en dos rutas supuestas y API cert en otra ruta devolvieron 404;
+no se citan como fuentes ni se infiere que falte el método documentado.
+
+Recomendación vigente pendiente: Agent cert por workload con sink tmpfs, sin
+distribuidor/supervisor propio. Requiere aprobar método, canal de certificados,
+permiso explícito renew-self, sink/loader y pruebas de lifecycle. No se instala
+policy ni se presupone que Agent resuelva distribución de SecretID/certificados.
+FIRST-ACTOR genérico sigue siendo propuesta normativa, no código de provisión.
+
+Validación local nueva, Node v24.19.0; ninguna conexión PG ni credencial obtenida:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/pg-identity-driver.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/pg-identity-driver.ts tests/b1/pg-identity-driver.test.ts
+git diff HEAD --check
+```
+
+PASS: 8/8 en la suite modificada (7 casos previos más 1 de configuración), cero
+FAIL/skipped, ejecución final de la suite 139.736399 ms. Verifica construcción
+sin sockets/password, mismo factory en staging/production, TLS verificado/CA
+copiada/opciones explícitas y rechazo de endpoint/rol/CA/límites/DSN inválidos.
+Typecheck, lint y diff: exit 0. Aviso MODULE_TYPELESS_PACKAGE_JSON no bloqueante.
+Se ejecutó la suite al añadir el factory y se revalidó tras endurecer CA y
+verificación del nombre TLS; no se suman esas ejecuciones como pruebas distintas.
+No se reejecutaron suites Bao/deadline/composición, AUD-031 ni pruebas históricas.
+Sus PASS anteriores permanecen atribuidos a sus entregas; no se afirma que los
+28/28 completos se hayan ejecutado con este factory nuevo.
+
+Sin SQL/Bao reales, generación/provisión de credenciales, activación, VPS, build,
+deploy, push, PR o merge. No cambios a SQL14, Compose efectivo, Autodeploy, CRM,
+AUD-031, openbao-keys/deadline ni renderer/policies. Falta aceptación PG16 real
+de ACL/herencia/SET/HBA/TLS; Agent 2.7.2 real con sink/renew/reauth/revocación y
+rotación PKI; FIRST-ACTOR único con entregas/recuperación; integración web futura.

@@ -1,8 +1,42 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createPgIdentityDriver, type IdentityConnection } from '../../lib/b1/pg-identity-driver.ts'
+import { createPgIdentityDriver, createPgIdentityPool, type PgIdentityConfiguration, type IdentityConnection } from '../../lib/b1/pg-identity-driver.ts'
+import { rootCertificates } from 'node:tls'
 import { createPrivateBackend } from '../../lib/b1/private-adapter.ts'
 import { AuthError, closedBackend, type Transaction } from '../../lib/b1/service.ts'
+
+test('dedicated PG pool validates explicit environment configuration without connecting or obtaining credentials', async () => {
+  let credentials = 0
+  const config: PgIdentityConfiguration = {
+    environment: 'installation-a', host: 'postgres.example.invalid', port: 5432,
+    database: 'installation_auth', loginRole: 'installation_identity_login', contractualRole: 'cleanops_identity_service',
+    ca: Buffer.from(rootCertificates[0]), password: async () => { credentials++; return 'synthetic-only' },
+    maxConnections: 4, connectionTimeoutMs: 5000,
+  }
+  for (const environment of ['staging', 'production']) {
+    const pool = createPgIdentityPool({ ...config, environment })
+    assert.equal(pool.totalCount, 0)
+    assert.equal(pool.options.host, config.host)
+    assert.equal(pool.options.user, config.loginRole)
+    assert.equal(pool.options.options, '')
+    const ssl = pool.options.ssl
+    assert.ok(ssl && typeof ssl === 'object')
+    assert.equal(ssl.rejectUnauthorized, true)
+    assert.equal(typeof ssl.checkServerIdentity, 'function')
+    assert.notEqual(ssl.ca, config.ca)
+    assert.equal(credentials, 0)
+    await pool.end()
+  }
+  for (const change of [
+    { host: 'postgres://user:secret@host/db' }, { host: '/tmp/socket' }, { host: '' },
+    { port: 0 }, { port: 65536 }, { database: 'db; SET ROLE owner' },
+    { loginRole: config.contractualRole }, { loginRole: 'cleanops_bootstrap' },
+    { loginRole: 'cleanops_auth_broker' }, { loginRole: 'pg_read_all_data' },
+    { ca: Buffer.from('not a certificate') }, { maxConnections: 0 }, { connectionTimeoutMs: 30001 },
+    { environment: '' }, { connectionString: 'postgres://fixture.invalid/db' },
+  ]) assert.throws(() => createPgIdentityPool({ ...config, ...change }), /AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(credentials, 0)
+})
 
 function fixture(fail?: string) {
   const commands: string[] = []; const released: boolean[] = []
@@ -111,4 +145,3 @@ test('pool release failures are sanitized after commit and rollback without retr
     assert.deepEqual(commands, ['BEGIN ISOLATION LEVEL READ COMMITTED', failWork ? 'ROLLBACK' : 'COMMIT'])
   }
 })
-

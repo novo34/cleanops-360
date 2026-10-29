@@ -70,3 +70,43 @@ test('OpenBao bounded token acquisition and immutable scope across async authent
   assert.equal(mocked.mock.callCount(),1)
  }finally{mocked.mock.restore()}
 })
+
+test('OpenBao token acquired after the absolute deadline never reaches KV',async()=>{
+ const mocked=transport(200,response());let ran=false
+ try{
+  // Block the event loop so the timer cannot run first: the monotonic check
+  // must reject even when the provider promise wins the timer race.
+  const token=async()=>{const end=performance.now()+20;while(performance.now()<end){ /* Deliberately stall timer delivery. */ }return 'synthetic-token'}
+  await assert.rejects(()=>createOpenBaoKeys({...options(),timeoutMs:5,token}).withKeys([ref],100,async()=>{ran=true}))
+  assert.equal(mocked.mock.callCount(),0);assert.equal(ran,false)
+ }finally{mocked.mock.restore()}
+})
+
+test('OpenBao KV completion after the acquisition deadline rejects and wipes received material before work',async()=>{
+ const received=Buffer.from(JSON.stringify(response()))
+ let raw:Buffer|undefined,ran=false
+ const concat=Buffer.concat.bind(Buffer)
+ const captured=mock.method(Buffer,'concat',(...args:Parameters<typeof Buffer.concat>)=>{
+  raw=concat(...args);return raw
+ })
+ const mocked=mock.method(https,'request',(_url:URL,_options:unknown,callback:(res:EventEmitter&{statusCode:number;destroy:()=>void})=>void)=>{
+  const req=Object.assign(new EventEmitter(),{
+   end(){queueMicrotask(()=>{
+    const res=Object.assign(new EventEmitter(),{statusCode:200,destroy(){}})
+    callback(res);res.emit('data',received)
+    const end=performance.now()+30
+    while(performance.now()<end){ /* Prevent the acquisition timer from running before end. */ }
+    res.emit('end');req.emit('close')
+   })},
+   destroy(){req.emit('close')},
+  })
+  return req as never
+ })
+ try{
+  await assert.rejects(()=>createOpenBaoKeys({...options(),timeoutMs:10}).withKeys([ref],100,async()=>{ran=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
+  assert.equal(mocked.mock.callCount(),1);assert.equal(ran,false)
+  assert.ok(raw&&raw.length>0,'response must reach the completion handler')
+  assert.ok(raw.every(value=>value===0),'aggregated response must be wiped')
+  assert.ok(received.every(value=>value===0),'received chunks must be wiped')
+ }finally{mocked.mock.restore();captured.mock.restore();received.fill(0);raw?.fill(0)}
+})
