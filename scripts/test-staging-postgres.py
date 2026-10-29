@@ -150,16 +150,16 @@ FIRST_ACTOR_DIAGNOSTICS = r"""
 const diagnosticErrors = new WeakMap()
 const causalErrors = new WeakMap()
 const authPairs = new Map([['AUTH_DEPENDENCY_UNAVAILABLE',503],['FIRST_ACTOR_CONFLICT',409],['AUTH_INVALID',401],['INVALID_INPUT',422]])
-const sqlstates = new Set(['42501','23502','23503','23505','23514','42P01','42703','42883','42601','55006','40P01','40001','57014','P0001','08006'])
+const sqlstate = value => typeof value==='string' && value.length===5 && /^[A-Z0-9]{5}$/.test(value) ? value : null
 const safeAssertions = new Set(['FA-A014', 'FA-A016', 'FA-A017', 'FA-A018', 'FA-A019', 'FA-A020', 'FA-A022', 'FA-A023']) // populated with explicitly selected count/boolean assertions below
 let phase = 'FA-SETUP'
 function failure(error) {
  const id = diagnosticErrors.get(error) ?? phase
  const cause = causalErrors.get(error)
- const state = cause?.sqlstate ?? (sqlstates.has(error?.code) ? error.code : null)
+ const state = cause?.sqlstate ?? sqlstate(error?.code)
  const type = error instanceof AuthError ? 'AuthError' : error instanceof assert.AssertionError ? 'AssertionError' : state ? 'PostgreSQLError' : error instanceof TypeError ? 'TypeError' : 'OtherError'
  const result = {id, type, sqlstate:state}
- if (cause) result.operation = cause.operation
+ if (cause) { result.operation = cause.operation; result.check = cause.check }
  if (error instanceof AuthError && authPairs.has(error.code) && authPairs.get(error.code) === error.status) { result.authCode=error.code;result.authStatus=error.status }
  if (type === 'AssertionError' && safeAssertions.has(id)) {
   for (const key of ['actual','expected']) {
@@ -170,10 +170,10 @@ function failure(error) {
  return result
 }
 // Harness-only observation, below the production sanitization boundary. No SQL or
-// error object is retained: only fixed operation identifiers and allowed SQLSTATE.
+// error object is retained: only fixed operation identifiers and format-validated SQLSTATE.
 function observedCeremony(pool, deps, factory) {
- let operation='CUSTODY', causal
- const record=(error,op=operation)=>{causal ??= {operation:op,sqlstate:sqlstates.has(error?.code)?error.code:null}}
+ let operation='CUSTODY', causal, stageReturned=false
+ const record=(error,op=operation,check=sqlstate(error?.code)?'FA-OBS-SQL-REJECT':error instanceof TypeError?'FA-OBS-CLIENT-TYPE':'FA-OBS-QUERY-REJECT')=>{causal ??= {operation:op,sqlstate:sqlstate(error?.code),check}}
  const observed={async connect(){
   operation='CONNECT'
   let c
@@ -187,6 +187,7 @@ function observedCeremony(pool, deps, factory) {
    try {
     const value=await c.query(sql,args)
     if(op==='FIRST_ACTOR_BEGIN')operation='CRYPTO_PREPARE'
+    if(op==='FIRST_ACTOR_STAGE')stageReturned=true
     return value
    } catch(error){if(op!=='ROLLBACK')record(error,op);throw error}
   },release(discard){c.release(discard)}}
@@ -195,15 +196,20 @@ function observedCeremony(pool, deps, factory) {
   operation='CUSTODY'
   let entered=false
   const work=args[2]
-  args[2]=(...values)=>{entered=true;return work(...values)}
+  args[2]=(borrow,lease)=>{entered=true;return work(borrow,{...lease,remainingMs(){
+   const value=lease.remainingMs()
+   if(!Number.isFinite(value)||Math.floor(value)<1||Math.floor(value)>30000)
+    record(null,operation,stageReturned?'FA-OBS-LEASE-AFTER-STAGE':'FA-OBS-LEASE-BEFORE-STAGE')
+   return value
+  }})}
   try{return await deps.custody.withKeys(...args)}
   catch(error){if(!entered)record(error,'CUSTODY');throw error}
  }}
  const service=factory(observed,{...deps,custody})
  return Object.fromEntries(Object.entries(service).map(([name,method])=>[name,async(...args)=>{
-  causal=undefined;operation='CUSTODY'
+  causal=undefined;operation='CUSTODY';stageReturned=false
   try{return await method(...args)}catch(error){
-   if(error && typeof error==='object')causalErrors.set(error,causal ?? {operation,sqlstate:null})
+   if(error && typeof error==='object')causalErrors.set(error,causal ?? {operation,sqlstate:null,check:stageReturned?'FA-OBS-STAGE-RESULT':'FA-OBS-LOCAL'})
    throw error
   }
  }]))
@@ -440,11 +446,12 @@ try{
 def valid_native_diagnostic(d):
     if d is None:
         return True
-    return (isinstance(d, dict) and set(d) <= {"id", "type", "sqlstate", "actual", "expected", "operation", "authCode", "authStatus"}
+    return (isinstance(d, dict) and set(d) <= {"id", "type", "sqlstate", "actual", "expected", "operation", "authCode", "authStatus", "check"}
             and {"id", "type", "sqlstate"} <= set(d)
             and isinstance(d["id"], str) and re.fullmatch(r"FA-(?:A[0-9]{3}|SETUP|S[0-9]{2}(?:-[A-Z-]+)?)", d["id"])
             and d["type"] in ("AssertionError", "PostgreSQLError", "TypeError", "OtherError", "AuthError")
-            and d["sqlstate"] in (None, "42501", "23502", "23503", "23505", "23514", "42P01", "42703", "42883", "42601", "55006", "40P01", "40001", "57014", "P0001", "08006")
+            and (d["sqlstate"] is None or (isinstance(d["sqlstate"], str) and re.fullmatch(r"[A-Z0-9]{5}", d["sqlstate"])))
+            and ("check" not in d or d["check"] in ("FA-OBS-SQL-REJECT", "FA-OBS-CLIENT-TYPE", "FA-OBS-QUERY-REJECT", "FA-OBS-LEASE-AFTER-STAGE", "FA-OBS-LEASE-BEFORE-STAGE", "FA-OBS-STAGE-RESULT", "FA-OBS-LOCAL"))
             and ("operation" not in d or d["operation"] in ("CUSTODY", "CONNECT", "BEGIN", "COMMIT", "DEADLINE_CONFIG", "CRYPTO_PREPARE", "FIRST_ACTOR_BEGIN", "FIRST_ACTOR_STAGE", "FIRST_ACTOR_MATERIAL", "FIRST_ACTOR_CONFIRM", "FIRST_ACTOR_DENIED", "FIRST_ACTOR_COMMIT", "FIRST_ACTOR_STATUS", "FIRST_ACTOR_ABORT"))
             and (("authCode" not in d and "authStatus" not in d) or (d["type"] == "AuthError" and (d.get("authCode"),d.get("authStatus")) in (("AUTH_DEPENDENCY_UNAVAILABLE",503),("FIRST_ACTOR_CONFLICT",409),("AUTH_INVALID",401),("INVALID_INPUT",422))))
             and all(type(d[k]) is bool or (type(d[k]) is int and 0 <= d[k] <= 10000) for k in ("actual", "expected") if k in d))

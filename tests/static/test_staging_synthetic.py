@@ -512,7 +512,7 @@ const p={async connect(){return {async query(sql){
 try{await ceremony(p).prepare(testPassword);assert.fail('must reject')}
 catch(error){assert(error instanceof AuthError);reports.push(failure(error))}
 assert.equal(rollbacks,1);assert.equal(releases,1)
-assert.deepEqual(reports[0],{id:phase,type:'AuthError',sqlstate:'42501',operation:'FIRST_ACTOR_BEGIN',authCode:'AUTH_DEPENDENCY_UNAVAILABLE',authStatus:503})
+assert.deepEqual(reports[0],{id:phase,type:'AuthError',sqlstate:'42501',operation:'FIRST_ACTOR_BEGIN',check:'FA-OBS-SQL-REJECT',authCode:'AUTH_DEPENDENCY_UNAVAILABLE',authStatus:503})
 for(const [sql,operation] of [['BEGIN ISOLATION LEVEL READ COMMITTED','BEGIN'],['SELECT identity_provision.first_actor_stage(','FIRST_ACTOR_STAGE'],['COMMIT','COMMIT']]){
  const pool={async connect(){return {async query(q){if(q===sql)throw sqlError();if(q==='ROLLBACK')throw cleanupError()},release(){throw cleanupError()}}}}
  const service=observedCeremony(pool,deps,(observed)=>({async prepare(){return createPgIdentityUnitOfWork(observed).run(c=>c.query('SELECT identity_provision.first_actor_stage('))}}))
@@ -538,6 +538,110 @@ process.stdout.write(JSON.stringify(reports))
             self.assertTrue(native.valid_native_diagnostic(row))
         for extra in [dict(operation='PRIVATE_SQL'),dict(authCode='PRIVATE_TOKEN',authStatus=503),dict(authCode='AUTH_DEPENDENCY_UNAVAILABLE',authStatus=500)]:
             self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE',type='AuthError',sqlstate=None,**extra)))
+
+    def test_first_actor_prepare_stage_offline_real_wrappers_and_pg_serialization(self):
+        native = module("first_actor_stage_offline", "scripts/test-staging-postgres.py")
+        setup = native.FIRST_ACTOR_NATIVE_CHECKS.split("const aead=", 1)[1].split("const value=", 1)[0]
+        javascript = """import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { createRequire } from 'node:module'
+import { AuthError } from './lib/b1/service.ts'
+import { createFirstActorCeremony } from './lib/b1/first-actor.ts'
+const require=createRequire(import.meta.url)
+const pg=require('pg'),utils=require('pg/lib/utils'),{serialize}=require('pg-protocol')
+const held=[]
+""" + native.FIRST_ACTOR_DIAGNOSTICS + "const aead=" + setup + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const reports=[]
+phase='FA-S01-PREPARE'
+for(const scenario of ['success','client-reject','client-serialization','lease-before-stage','lease-after-stage','bad-result']){
+ let remaining=30000,submitted=0,completed=0,commits=0,rollbacks=0,released=false,discarded=false,serialized=false
+ // Transport/result simulation only. Service, transaction/deadline wrappers,
+ // password/TOTP/recovery preparation and PG Query/Bind serialization are real.
+ const pool={async connect(){return {async query(sql,args){
+  if(sql==='COMMIT'){commits++;return {rows:[]}}
+  if(sql==='ROLLBACK'){rollbacks++;return {rows:[]}}
+  if(sql.startsWith('SELECT identity_provision.first_actor_begin('))return {rows:[{value:{state:'RESERVED'}}]}
+  if(!sql.startsWith('SELECT identity_provision.first_actor_stage('))return {rows:[]}
+  submitted++
+  assert.ok(args.length===4 && typeof args[0]==='string' && typeof args[1]==='string' && Buffer.isBuffer(args[2]) && args[2].length===32 && typeof args[3]==='string')
+  const payload=JSON.parse(args[3])
+  assert.ok(/^\$argon2id\$/.test(payload.passwordHash) && /^[a-f0-9]{90,314}$/.test(payload.ciphertext) && /^[a-f0-9]{64}$/.test(payload.capDigest))
+  assert.ok(payload.recovery.every(x=>/^[a-f0-9]{64}$/.test(x)))
+  assert.ok(utils.prepareValue(args[2])===args[2]) // Buffer is binary, never JSON.
+  assert.ok(utils.prepareValue(args[3])===args[3])
+  assert.ok(utils.prepareValue({digest:args[2]}).includes('"type":"Buffer"')) // nested object differs from direct bytea parameter
+  await new Promise((resolve,reject)=>{
+   const query=new pg.Query(sql,args,error=>error?reject(error):resolve())
+   const connection={parsedStatements:{},stream:{},parse(){},describe(){},execute(){},sync(){},query(){},
+    bind(config){
+     if(scenario==='client-serialization')throw new TypeError(secret)
+     const wire=serialize.bind(config)
+     // Bind: message header, empty portal/statement, parameter formats, values.
+     let at=5;while(wire[at++]!==0){};while(wire[at++]!==0){}
+     assert.equal(wire.readInt16BE(at),4);at+=2
+     const formats=[];for(let j=0;j<4;j++){formats.push(wire.readInt16BE(at));at+=2}
+     assert.deepEqual(formats,[0,0,1,0]);assert.equal(wire.readInt16BE(at),4);at+=2
+     for(let j=0;j<4;j++){
+      const size=wire.readInt32BE(at);at+=4
+      const expected=Buffer.isBuffer(args[j])?args[j]:Buffer.from(args[j])
+      assert.ok(size===expected.length && wire.subarray(at,at+size).equals(expected));at+=size
+     }
+     serialized=true
+    }}
+   const error=query.submit(connection)
+   if(error)reject(error)
+   else if(scenario!=='client-serialization')resolve()
+  })
+  if(scenario==='client-reject')throw Object.assign(Error(secret),{code:'22P02',query:secret,parameters:[secret]})
+  completed++
+  if(scenario==='lease-after-stage')remaining=0
+  return scenario==='bad-result'?{rows:[]}:{rows:[{value:{state:'PREPARED'}}]}
+ },release(discard){released=true;discarded=discard}}}}
+ const dependencies={...deps,passwordAdmission:async()=>{if(scenario==='lease-before-stage')remaining=0;return true},custody:{async withKeys(refs,lifetime,work){
+  const a=Buffer.from(aead),r=Buffer.from(recovery);held.push(a,r)
+  try{return await work((ref,fn)=>fn(ref.purpose==='totp-aead'?a:r),{remainingMs:()=>remaining,acknowledgeCommit(){}})}finally{a.fill(0);r.fill(0)}
+ }}}
+ const service=observedCeremony(pool,dependencies,(p,d)=>createFirstActorCeremony(p,manifest,d))
+ let diagnostic=null
+ try{const artifact=await service.prepare(testPassword);assert.equal(scenario,'success');assert.equal(artifact.state,'PREPARED');assert.ok('capability' in artifact)}
+ catch(error){assert(error instanceof AuthError);diagnostic=failure(error)}
+ if(scenario==='success'){assert.equal(commits,1);assert.equal(discarded,false);assert.equal(completed,1)}
+ else{
+  assert.equal(commits,0);assert.equal(rollbacks,1);assert.equal(discarded,true)
+  assert.equal(diagnostic.type,'AuthError');assert.equal(diagnostic.authStatus,503)
+  assert.equal(diagnostic.operation,scenario==='lease-before-stage'?'CRYPTO_PREPARE':'FIRST_ACTOR_STAGE')
+  assert.equal(diagnostic.sqlstate,scenario==='client-reject'?'22P02':null)
+ }
+ assert.equal(submitted,scenario==='lease-before-stage'?0:1)
+ assert.equal(completed,['success','lease-after-stage','bad-result'].includes(scenario)?1:0)
+ assert.equal(serialized,!['lease-before-stage','client-serialization'].includes(scenario))
+ assert.ok(released && held.every(b=>b.every(v=>v===0)))
+ const checks={'client-reject':'FA-OBS-SQL-REJECT','client-serialization':'FA-OBS-CLIENT-TYPE','lease-before-stage':'FA-OBS-LEASE-BEFORE-STAGE','lease-after-stage':'FA-OBS-LEASE-AFTER-STAGE','bad-result':'FA-OBS-STAGE-RESULT'}
+ if(diagnostic)assert.equal(diagnostic.check,checks[scenario])
+ reports.push({scenario,submitted,completed,diagnostic})
+}
+for(const code of ['22P02','22021','ZZ999','00000'])assert.equal(failure(Object.assign(Error(secret),{code})).sqlstate,code)
+for(const code of ['22p02','22P02\n','É2P02','2202','220021',null,22021])assert.equal(failure(Object.assign(Error(secret),{code})).sqlstate,null)
+process.stdout.write(JSON.stringify(reports))
+"""
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'],
+                                input=javascript, text=True, capture_output=True, timeout=60, cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        self.assertNotIn('argon2id', result.stdout)
+        self.assertNotIn('otpauth:', result.stdout)
+        rows = json.loads(result.stdout)
+        self.assertEqual(len(rows), 6)
+        # Uniqueness uses only the report diagnostic, never fixture names/counters.
+        self.assertEqual(len({json.dumps(row['diagnostic'], sort_keys=True) for row in rows}), 6)
+        self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=None, check='PRIVATE_TOKEN')))
+        for row in rows:
+            self.assertTrue(native.valid_native_diagnostic(row['diagnostic']))
+        for code in ['22P02', '22021', 'ZZ999', '00000']:
+            self.assertTrue(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=code)))
+        for code in ['22p02', '22P02\n', 'É2P02', '2202', '220021', 22021]:
+            self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=code)))
 
     def test_backup_is_blocked_without_signed_synthetic_scope(self):
         r, _ = fixture()
