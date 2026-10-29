@@ -2,7 +2,7 @@
 include:
   - compose.openbao.yaml
 
-name: cleanops360-staging
+name: ${CLEANOPS_COMPOSE_PROJECT:?Explicit Compose project required}
 services:
   web:
     build:
@@ -44,18 +44,52 @@ services:
       start_period: 50s
 
   postgres:
-    image: postgres:16-bookworm
+    image: ${CLEANOPS_PG_IMAGE:?Verified existing PostgreSQL image required}
     # With cap_drop ALL, start as postgres: root entrypoint cannot use gosu/setuid.
     user: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: cleanops_staging
-      POSTGRES_USER: cleanops_bootstrap
+      POSTGRES_DB: ${CLEANOPS_PG_DATABASE:?Existing PostgreSQL database required}
+      POSTGRES_USER: ${CLEANOPS_PG_BOOTSTRAP_USER:?Existing PostgreSQL bootstrap role required}
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_bootstrap_password
     secrets:
       - postgres_bootstrap_password
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - type: bind
+        source: ${CLEANOPS_PG_TLS_CERT_FILE:?Absolute private file path outside checkout required}
+        target: /run/cleanops-pg-tls/server.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CLEANOPS_PG_TLS_KEY_FILE:?Absolute private file path outside checkout required}
+        target: /run/cleanops-pg-tls/server.key
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CLEANOPS_PG_TLS_CA_FILE:?Absolute private file path outside checkout required}
+        target: /run/cleanops-pg-tls/ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${CLEANOPS_PG_HBA_FILE:?Absolute private file path outside checkout required}
+        target: ${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}
+        read_only: true
+        bind:
+          create_host_path: false
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/cleanops-pg-tls/server.crt
+      - -c
+      - ssl_key_file=/run/cleanops-pg-tls/server.key
+      - -c
+      - hba_file=${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}
     networks:
       - private
     security_opt:
@@ -70,7 +104,7 @@ services:
         max-size: 10m
         max-file: "3"
     healthcheck:
-      test: ["CMD", "psql", "-XqAt", "-v", "ON_ERROR_STOP=1", "-U", "cleanops_bootstrap", "-d", "cleanops_staging", "-c", "SELECT 1"]
+      test: ["CMD-SHELL", "psql -XqAt -w -v ON_ERROR_STOP=1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -c 'SELECT 1'"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -78,11 +112,11 @@ services:
 networks:
   private:
     internal: true
-    name: cleanops360_staging_private
+    name: ${CLEANOPS_PRIVATE_NETWORK:?Existing private network required}
 
 volumes:
   pgdata:
-    name: cleanops360_staging_pgdata
+    name: ${CLEANOPS_PG_VOLUME:?Existing PostgreSQL volume name required}
 
 secrets:
   postgres_bootstrap_password:

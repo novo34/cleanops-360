@@ -30,7 +30,19 @@ jobs:
           printf '{}\n' > "$fixture/server.json"
           mkdir "$fixture/tls"
           {
+            printf 'CLEANOPS_COMPOSE_PROJECT=cleanops-offline-fixture\n'
+            printf 'CLEANOPS_PRIVATE_NETWORK=cleanops-offline-network\n'
+            printf 'CLEANOPS_PG_VOLUME=cleanops-offline-volume\n'
+            printf 'CLEANOPS_PG_IMAGE=postgres:16-bookworm\n'
+            printf 'CLEANOPS_PG_DATABASE=cleanops_offline\n'
+            printf 'CLEANOPS_PG_BOOTSTRAP_USER=offline_bootstrap\n'
             printf 'CLEANOPS_PG_PASSWORD_FILE=%s\n' "$fixture/postgres-password"
+            # Paths only for config/build: no certificate generation or PG startup.
+            printf 'CLEANOPS_PG_TLS_CERT_FILE=%s\n' "$fixture/server.crt"
+            printf 'CLEANOPS_PG_TLS_KEY_FILE=%s\n' "$fixture/server.key"
+            printf 'CLEANOPS_PG_TLS_CA_FILE=%s\n' "$fixture/ca.crt"
+            printf 'CLEANOPS_PG_HBA_FILE=%s\n' "$fixture/pg_hba.conf"
+            printf 'CLEANOPS_PG_HBA_TARGET=/var/lib/postgresql/data/pg_hba.conf\n'
             printf 'CLEANOPS_BAO_CONFIG_FILE=%s\n' "$fixture/server.json"
             printf 'CLEANOPS_BAO_TLS_DIR=%s\n' "$fixture/tls"
             printf 'CLEANOPS_BAO_SUBNET=10.249.88.0/24\n'

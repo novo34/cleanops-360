@@ -78,7 +78,10 @@ class Synthetic(unittest.TestCase):
             config = json.loads(result.stdout)
             self.assertEqual(set(config["services"]), {"web", "postgres"})
             for key in ["CLEANOPS_BAO_CONFIG_FILE", "CLEANOPS_BAO_TLS_DIR",
-                        "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4"]:
+                        "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4",
+                        "CLEANOPS_PG_TLS_CERT_FILE", "CLEANOPS_PG_TLS_KEY_FILE",
+                        "CLEANOPS_PG_TLS_CA_FILE", "CLEANOPS_PG_HBA_FILE", "CLEANOPS_PG_HBA_TARGET", "CLEANOPS_COMPOSE_PROJECT", "CLEANOPS_PRIVATE_NETWORK",
+                        "CLEANOPS_PG_VOLUME", "CLEANOPS_PG_IMAGE", "CLEANOPS_PG_DATABASE", "CLEANOPS_PG_BOOTSTRAP_USER"]:
                 missing = dict(env); missing.pop(key)
                 rejected = subprocess.run(command + ["-q"], cwd=ROOT, env=missing,
                                           capture_output=True, text=True)
@@ -463,6 +466,12 @@ registerHooks({ resolve(specifier, context, next) {
                        CLEANOPS_BAO_TLS_DIR=str(p / "tls"), CLEANOPS_BAO_PRIVATE_IPV4="10.249.88.2",
                        CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
                        CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
+            env.update(CLEANOPS_COMPOSE_PROJECT="cleanops-offline-fixture",
+                       CLEANOPS_PRIVATE_NETWORK="cleanops-offline-network", CLEANOPS_PG_VOLUME="cleanops-offline-volume",
+                       CLEANOPS_PG_IMAGE="postgres:16-bookworm", CLEANOPS_PG_DATABASE="cleanops_offline",
+                       CLEANOPS_PG_BOOTSTRAP_USER="offline_bootstrap", CLEANOPS_PG_TLS_CERT_FILE=str(p / "server.crt"),
+                       CLEANOPS_PG_TLS_KEY_FILE=str(p / "server.key"), CLEANOPS_PG_TLS_CA_FILE=str(p / "ca.crt"),
+                       CLEANOPS_PG_HBA_FILE=str(p / "pg_hba.conf"), CLEANOPS_PG_HBA_TARGET="/var/lib/postgresql/data/pg_hba.conf")
             result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
                                      "deploy/staging/compose.ingress.yaml",
                                      "--profile", "synthetic-custody", "config", "--format", "json"],
@@ -474,13 +483,55 @@ registerHooks({ resolve(specifier, context, next) {
             self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "ingress"})
             self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
             self.assertEqual(config["services"]["postgres"]["user"], "postgres")
-            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][-2:], ["-c", "SELECT 1"])
+            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][0], "CMD-SHELL")
+            self.assertIn('SELECT 1', config["services"]["postgres"]["healthcheck"]["test"][1])
             bao = config["services"]["openbao"]
             self.assertEqual(set(bao["networks"]), {"custody"})
             self.assertTrue(config["networks"]["custody"]["internal"])
             self.assertEqual(bao["labels"]["traefik.enable"], "false")
             self.assertEqual(len([v for v in bao["volumes"] if v["type"] == "volume"]), 2)
 
+
+    def test_postgres_tls_compose_changes_only_command_and_readonly_mounts(self):
+        import hashlib
+        import yaml
+        current = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
+        # Fingerprint of the parsed Compose at staging 198b4e41, independent of Git checkout depth.
+        original_sha256 = 'c958b5a9ebfb11da7dd120a1fd06e40ccf3f7a20937a103dfc81795ce5fdf934'
+        for path, variable, original in [
+            (('name',), 'CLEANOPS_COMPOSE_PROJECT', 'cleanops360-staging'),
+            (('networks','private','name'), 'CLEANOPS_PRIVATE_NETWORK', 'cleanops360_staging_private'),
+            (('volumes','pgdata','name'), 'CLEANOPS_PG_VOLUME', 'cleanops360_staging_pgdata'),
+            (('services','postgres','image'), 'CLEANOPS_PG_IMAGE', 'postgres:16-bookworm'),
+            (('services','postgres','environment','POSTGRES_DB'), 'CLEANOPS_PG_DATABASE', 'cleanops_staging'),
+            (('services','postgres','environment','POSTGRES_USER'), 'CLEANOPS_PG_BOOTSTRAP_USER', 'cleanops_bootstrap'),
+        ]:
+            target = current
+            for part in path[:-1]: target = target[part]
+            self.assertIn('${' + variable + ':?', target[path[-1]])
+            target[path[-1]] = original
+        pg = current['services']['postgres']
+        self.assertEqual(pg['healthcheck']['test'], ['CMD-SHELL',
+            'psql -XqAt -w -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -c \'SELECT 1\''])
+        pg['healthcheck']['test'] = ['CMD', 'psql', '-XqAt', '-v', 'ON_ERROR_STOP=1', '-U', 'cleanops_bootstrap', '-d', 'cleanops_staging', '-c', 'SELECT 1']
+        self.assertEqual(pg.pop('command'), ['postgres', '-c', 'ssl=on', '-c',
+            'ssl_cert_file=/run/cleanops-pg-tls/server.crt', '-c',
+            'ssl_key_file=/run/cleanops-pg-tls/server.key', '-c',
+            'hba_file=${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}'])
+        self.assertEqual(pg['volumes'][0], 'pgdata:/var/lib/postgresql/data')
+        mounts = pg['volumes'][1:]
+        self.assertEqual(len(mounts), 4)
+        for mount, variable, destination in zip(mounts,
+            ['CLEANOPS_PG_TLS_CERT_FILE','CLEANOPS_PG_TLS_KEY_FILE','CLEANOPS_PG_TLS_CA_FILE','CLEANOPS_PG_HBA_FILE'],
+            ['/run/cleanops-pg-tls/server.crt','/run/cleanops-pg-tls/server.key','/run/cleanops-pg-tls/ca.crt',
+             '${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}']):
+            self.assertEqual(mount['type'], 'bind')
+            self.assertIs(mount['read_only'], True)
+            self.assertIs(mount['bind']['create_host_path'], False)
+            self.assertIn('${' + variable + ':?', mount['source'])
+            self.assertEqual(mount['target'], destination)
+        pg['volumes'] = pg['volumes'][:1]
+        self.assertEqual(hashlib.sha256(json.dumps(current, sort_keys=True).encode()).hexdigest(), original_sha256)
 
 if __name__ == "__main__":
     unittest.main()

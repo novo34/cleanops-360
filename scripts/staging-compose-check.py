@@ -20,7 +20,8 @@ assert "healthcheck:" in compose and "mem_limit:" in compose
 assert "ports:" not in compose, "Host port publication is forbidden"
 assert "privileged:" not in compose
 assert "docker.sock" not in compose
-assert "cleanops360_staging_pgdata" in compose
+for field in ["CLEANOPS_COMPOSE_PROJECT", "CLEANOPS_PRIVATE_NETWORK", "CLEANOPS_PG_VOLUME", "CLEANOPS_PG_IMAGE", "CLEANOPS_PG_DATABASE", "CLEANOPS_PG_BOOTSTRAP_USER"]:
+    assert field + ":?" in compose
 assert "redis:" not in compose, "No Redis worker exists yet"
 assert "openbao:" not in compose, "Operational custody unapproved"
 print("STAGING-STATIC: PASS (packaging only; no deployment)")
