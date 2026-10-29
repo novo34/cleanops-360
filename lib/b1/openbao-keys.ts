@@ -1,5 +1,8 @@
 import https from 'node:https'
 import { inspect } from 'node:util'
+import fs from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { isAbsolute } from 'node:path'
 import { AuthError } from './service.ts'
 
 export type PrivateKeyReference = Readonly<{
@@ -27,6 +30,78 @@ export interface OpenBaoKeyOptions {
   allowed: readonly PrivateKeyReference[]
 }
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
+/** Linux tmpfs sink only. Trusted configuration; never an HTTP path/selector.
+ * No token cache, mtime-based validity inference or Bao authentication client.
+ */
+export function createAgentSinkToken(options: Readonly<{
+  path: string; uid: number; gid: number; directoryUid: number; directoryGid: number
+  mode: 0o600 | 0o640; directoryMode: 0o700 | 0o750; timeoutMs: number
+}>): () => Promise<string> {
+  if (!options || typeof options.path !== 'string' || !isAbsolute(options.path) || options.path.includes('\0') ||
+      options.path.split('/').slice(1).some(p => !p || p === '.' || p === '..') ||
+      ![options.uid, options.gid, options.directoryUid, options.directoryGid].every(n => Number.isSafeInteger(n) && n >= 0) ||
+      ![0o600, 0o640].includes(options.mode) || ![0o700, 0o750].includes(options.directoryMode) ||
+      !Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > 5000) throw unavailable()
+  const config = Object.freeze({ ...options })
+  return async () => {
+    const deadline = performance.now() + config.timeoutMs
+    const budget = () => { if (performance.now() >= deadline) throw unavailable() }
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const read = async () => {
+      const handles: Awaited<ReturnType<typeof fs.open>>[] = []
+      const raw = Buffer.alloc(1025)
+      let value: string | undefined, closeFailed = false
+      try {
+        // Resolve each directory via its open descriptor, never following a
+        // symlink in a parent component or reopening an attacker-swapped parent.
+        let directory = await fs.open('/', constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW)
+        handles.push(directory)
+        const parts = config.path.split('/').slice(1)
+        for (const part of parts.slice(0, -1)) {
+          budget()
+          directory = await fs.open(`/proc/self/fd/${directory.fd}/${part}`, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW)
+          handles.push(directory)
+        }
+        const parent = await directory.stat()
+        if (parent.uid !== config.directoryUid || parent.gid !== config.directoryGid ||
+            (parent.mode & 0o7777) !== config.directoryMode ||
+            (await fs.statfs(`/proc/self/fd/${directory.fd}`)).type !== 0x01021994) throw unavailable()
+        budget()
+        const file = await fs.open(`/proc/self/fd/${directory.fd}/${parts.at(-1)}`, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
+        handles.push(file)
+        const before = await file.stat()
+        if (!before.isFile() || before.nlink !== 1 || before.uid !== config.uid || before.gid !== config.gid ||
+            (before.mode & 0o7777) !== config.mode || before.size < 1 || before.size > 1024) throw unavailable()
+        let size = 0
+        while (size < raw.length) {
+          budget()
+          const { bytesRead } = await file.read(raw, size, raw.length - size, size)
+          size += bytesRead
+          if (!bytesRead) break
+        }
+        const after = await file.stat()
+        budget()
+        if (size > 1024 || raw.subarray(0, size).some(byte => byte > 127) || size !== before.size || after.size !== before.size ||
+            after.mode !== before.mode || after.uid !== before.uid || after.gid !== before.gid ||
+            !/^[A-Za-z0-9._-]{1,1024}\n?$/.test(raw.subarray(0, size).toString('ascii'))) throw unavailable()
+        value = raw.subarray(0, size).toString('ascii').replace(/\n$/, '')
+      } catch { throw unavailable() }
+      finally {
+        raw.fill(0)
+        const closed = await Promise.allSettled(handles.map(handle => handle.close()))
+        closeFailed = closed.some(result => result.status === 'rejected')
+      }
+      if (closeFailed || value === undefined) throw unavailable()
+      return value
+    }
+    try {
+      return await Promise.race([read(), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(unavailable()), config.timeoutMs)
+      })])
+    } catch { throw unavailable() }
+    finally { if (timer) clearTimeout(timer) }
+  }
+}
 const segment = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const purposes = new Set(['totp-aead', 'mail-aead', 'audit-hmac', 'otp-hmac', 'recovery-hmac', 'cursor-hmac'])

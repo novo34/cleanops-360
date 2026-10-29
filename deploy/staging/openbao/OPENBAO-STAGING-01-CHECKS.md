@@ -496,3 +496,113 @@ deploy, push, PR o merge. No cambios a SQL14, Compose efectivo, Autodeploy, CRM,
 AUD-031, openbao-keys/deadline ni renderer/policies. Falta aceptación PG16 real
 de ACL/herencia/SET/HBA/TLS; Agent 2.7.2 real con sink/renew/reauth/revocación y
 rotación PKI; FIRST-ACTOR único con entregas/recuperación; integración web futura.
+
+## Desarrollo local Agent cert / FIRST-ACTOR-01 — 29/10/2026
+
+Autorización del propietario: desarrollo local de Agent oficial cert/sink y
+ceremonia única por instalación, sin activación ni operaciones reales. QG-0 y
+enumeración exacta B1-SELF-01..08 constan en el apartado final del procedimiento;
+no create/users ni grants por nombre de rol. AGENTS.md/política leídos antes de
+escribir; inventario de renderer, custodia, PG, factores, recovery, auditoría y
+MIGRATIONS-01 completado. No dependencias, frameworks ni runners nuevos.
+
+Refs revalidadas por GitHub en lectura: staging
+198b4e41d89c373c7aebda23ee20700643ce339c, candidato publicado
+87938c0e1d7e8294bbffc58cec6b301a9370093c y R4
+9a4c8b90a159f2853f040dc5597042c17408da00. El propietario aclaró expresamente
+que autoriza SOLO merge local de staging; se efectuó sin conflicto, commit
+43c6446715d2f04a0b8146a6431d63960c9efc10. Staging y candidato publicado son
+ancestros de ese HEAD; el merge no cambió contenido del candidato. La implementación
+nueva queda como cambios locales sin publicar. No force/rebase/PR/merge remoto.
+
+Inventario final de archivos nuevos/modificados de ESTE incremento (16):
+
+```text
+db/migrations/0002_first_actor.review.sql
+lib/b1/first-actor.ts
+lib/b1/recovery-material.ts
+lib/b1/approved-backend.ts
+lib/b1/openbao-keys.ts
+scripts/prepare-b1-openbao.py
+scripts/trusted-migrations.mjs
+scripts/trusted-migrations.d.mts
+scripts/migrate-postgres.mjs
+scripts/migrate-postgres.d.mts
+tests/b1/agent-sink.test.ts
+tests/b1/first-actor.test.ts
+tests/static/test_b1_agent_cert.py
+tests/trusted-migrations.test.ts
+deploy/staging/openbao/OPENBAO-STAGING-01.md
+deploy/staging/openbao/OPENBAO-STAGING-01-CHECKS.md
+```
+
+El renderer comparte políticas/scopes y produce bundle cert para ambos entornos
+sin inputs de servidor/SecretID; usa HCL mínimo y JSON de binding/policy/lector.
+Se consultaron fuentes oficiales v2.7.2, incluidas rutas reales internal/command/
+agent/config/config.go y agentproxyshared/auth/cert/cert.go para forma del config
+y reload. No se ejecutó Agent ni se reabrió la verificación criptográfica del
+artefacto ya fijado. Native parser HCL y operación real siguen NO EJECUTADOS.
+
+### Evidencia ejecutada, exclusivamente offline
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts tests/b1/agent-sink.test.ts tests/b1/openbao-keys.test.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/approved-backend.test.ts
+npx --no-install vitest run tests/trusted-migrations.test.ts
+python3 -B -m unittest discover -s tests/static -p test_b1_agent_cert.py -v
+python3 -B -m unittest discover -s tests/static -p test_b1_openbao_preparation.py -v
+npm run typecheck
+npx --no-install eslint lib/b1/openbao-keys.ts lib/b1/first-actor.ts lib/b1/recovery-material.ts lib/b1/approved-backend.ts tests/b1/agent-sink.test.ts tests/b1/first-actor.test.ts tests/trusted-migrations.test.ts scripts/trusted-migrations.mjs scripts/migrate-postgres.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+- PASS Node: 37/37, cero FAIL/cancelled/skipped/todo, ejecución final 2362.135917 ms.
+  Desglose: sink 3, FIRST-ACTOR 4, claves 8, composición 9, deadlines 4, backend 9.
+  Se revalidaron los módulos tocados y consumidores de recovery/custodia; no toda
+  la aplicación ni AUD-031. Logs locales: /tmp/cleanops-agent-first-actor-node.log.
+- Sink: descriptores reales en directorio temporal con tipo tmpfs SIMULADO mediante
+  statfs; propietario/modos, ausencia, reemplazo, tamaño, bytes inválidos, symlink
+  final/padre, no tmpfs, deadline de I/O tardío, cierre fallido saneado y borrado de
+  buffers capturados. Esto NO demuestra montaje tmpfs/UIDs de contenedores reales.
+- FIRST-ACTOR: pool/store/SQL SIMULADOS con exclusión mutua entre transacciones;
+  TOTP/Argon2/recovery criptográficos sobre fixtures exclusivamente sintéticos.
+  Dos prepares concurrentes entregan una vez; confirm sin ack/proof/cap válida
+  rechaza; dos commits concurrentes con una respuesta perdida conservan un efecto
+  durable/recibo; auditoría fallida después de escrituras simuladas revierte efectos;
+  expiración y límite otp_attempts borran material; instalación/op/digest/tenant
+  ajenos rechazan; pérdida de respuesta prepare no regenera ni reentrega; contraseña
+  no admitida revierte reserva; keys prestadas quedan a cero. Sin sesión automática.
+- PASS migraciones: 20/20 Vitest, simulación de protocolo sin PG; log local
+  /tmp/cleanops-agent-first-actor-migrations.log. Nueva prueba acredita propuesta
+  hash-verificada, no función/DDL ejecutada: migrations=[] y proposed[0].executable=false.
+- PASS Python: 2/2 Agent cert (staging/production con configuración mínima y
+  negativos), 6/6 preparación existente por cambio del renderer. No SQL/Bao/network
+  reales en esas suites. No se reetiquetan sus asserts como aceptación de Agent.
+- PASS typecheck, lint pertinente y diff, exit 0. Un lint intermedio detectó
+  no-unsafe-finally en el manejo de cierre del sink; se corrigió en origen para
+  completar limpieza y sanear fuera de finally. Se revalidaron código/tests afectados.
+  Avisos Node MODULE_TYPELESS_PACKAGE_JSON y Vite configLoader no bloqueantes.
+
+### Integridad y límites QG-3
+
+Incremental propuesta SHA256:
+f699b6aeb057134f98d7b25fc4d8f813f184b46ea55c4194e3b6d9b8e7ea2d62.
+SQL14 mantiene 965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa.
+No hay alteración de SQL14, ni segunda baseline/journal; primera propuesta B1 se
+inspecciona por el loader canónico y NO entra en runMigrations apply. Su ejecución
+futura necesita promoción/revisión de bytes y permiso, no un flag de encendido.
+
+Sin PostgreSQL/Bao reales, credenciales operativas, provisión, instalación Agent,
+cambios VPS, build/deploy, push, PR o merge remoto. Pruebas usan material sintético
+sin identidad operativa. Se conserva el contrato de COMMIT confirmado y los casos
+KV/token tardíos. Runtime sigue closedBackend; Compose efectivo, Autodeploy, CRM
+y AUD-031 intactos. Estado SQL14/Bao del VPS sigue comunicado por el propietario,
+no verificado remotamente en este incremento.
+
+Bloqueos concretos: parser/PG16 nativo y revisión independiente del SQL propuesto
+(pglast ausente, no instalado), privilegios/RLS/locks/auditoría/commit incierto
+nativos; Agent 2.7.2/parser real, PKI y cert binding, tmpfs/propietarios efectivos,
+TLS/renovación/reauth/revocación/reinicio reales; credenciales executor/reader y
+canal privado de entrega/acuse. EXPIRED/pérdida de entrega antes del primer actor
+es terminal sin reset/regeneración: falta procedimiento de recuperación revisado
+si ocurre. No se anuncia aceptación de producción ni login web conectado.

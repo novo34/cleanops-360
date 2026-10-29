@@ -10,6 +10,7 @@ import { selectTotpMethod, sessionPolicyForRisk, prepareSessionLabels, eligibleT
 import { createV4IdentityRepository } from './v4-broker.ts'
 import { createApprovedFactors, type PrivateFactorKeys } from './approved-factors.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
+import { prepareRecoveryCodes } from './recovery-material.ts'
 
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
 const invalid = () => new AuthError(401, 'AUTH_INVALID')
@@ -602,19 +603,8 @@ export function createApprovedPrivateBackend(pool: IdentityPool, deps: ApprovedB
             const authorization = await auth(binding, 'B1-SELF-06')
             if (!authorization.allowed || (binding.kind === 'ACTIVE' && !authorization.step_up)) throw new AuthError(403, 'STEP_UP_REQUIRED')
             if (!Buffer.isBuffer(deps.factors.recoveryKey) || deps.factors.recoveryKey.length < 32 || !binding.tenantId || !binding.userId) throw unavailable()
-            const { Secret } = await import('otpauth')
-            const codes: string[] = [], digests: Buffer[] = []
+            const { codes, digests } = prepareRecoveryCodes(binding.tenantId, binding.userId, deps.factors.recoveryKey)
             try {
-              for (let attempt = 0; attempt < numeric('recovery_count') * 2 && codes.length < numeric('recovery_count'); attempt++) {
-                const secret = new Secret({ size: numeric('recovery_entropy') })
-                let code: string
-                try { code = secret.base32 } finally { secret.bytes.fill(0) }
-                if (!/^[A-Z2-7]{26}$/.test(code)) throw unavailable()
-                if (codes.includes(code)) continue
-                codes.push(code)
-                digests.push(createHmac('sha256', deps.factors.recoveryKey).update(canonical(['RECOVERY', binding.tenantId, binding.userId, code])).digest())
-              }
-              if (codes.length !== numeric('recovery_count')) throw unavailable()
               const result = await factors.totp(String(input.proof), binding, preauth(), String(input.enrollment_id), 'ENROLLMENT', digests)
               if (result instanceof AuthError) return result
               if (binding.kind === 'ACTIVE') return { data: { codes, display_once: true, auth: await activeSummary(binding) } }

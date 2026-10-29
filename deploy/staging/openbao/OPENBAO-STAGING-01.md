@@ -1464,3 +1464,179 @@ canal sink protegido; ceremonia FIRST-ACTOR y entrega única ante concurrencia/
 resultado incierto; integración bootstrap/handleAuth, sesión/actividad y navegador.
 Producción conserva además sus gates de residencia, custodia, recuperación y
 capacidad: misma implementación no equivale a aceptación de infraestructura.
+
+## Desarrollo local autorizado Agent cert + FIRST-ACTOR-01 — 29/10/2026
+
+Este apartado actualiza los anteriores: el propietario autorizó implementar
+localmente ambos contratos, sin aplicación SQL/infraestructura ni activación.
+Refs revalidadas: candidato 87938c0e1d7e8294bbffc58cec6b301a9370093c,
+staging 198b4e41d89c373c7aebda23ee20700643ce339c y R4
+9a4c8b90a159f2853f040dc5597042c17408da00. Tras aclaración expresa del propietario
+se hizo SOLO merge local de staging: su ascendencia y MIGRATIONS-01 quedan
+preservados. Sin rebase, force, publicación, PR o merge en GitHub.
+
+### QG-0 e inventario aplicado antes de escribir
+
+Alcance B1: consumidor de sink y ceremonia interna por instalación. Se reutilizan
+createOpenBaoKeys.token, renderer prepare-b1-openbao, artefacto 2.7.2 ya fijado
+en el Dockerfile con checksum verificado, createPgIdentityUnitOfWork,
+createCustodyDeadlinePool y PrivateCustody. No otro cliente Bao/runner/servidor.
+FIRST-ACTOR reutiliza prepareReplacementHash/passwordAdmission, normalización
+privada de email, prepareTotpEnrollment/openEnrollmentSecret y AAD v2,
+verifyTotpFactor/CAS, approvedTotpEnrollmentPolicy y dominio recovery B1.
+El writer de auditoría final usa el contrato existente de app.audit_logs; eventos
+previos al tenant se guardan en el ledger privado de la ceremonia, sin PII/secrets.
+
+Permisos self-service iniciales EXACTOS: B1-SELF-01 ver identidad propia;
+02 listar sesiones propias; 03 revocar sesión propia; 04 revocar otras sesiones
+propias; 05 enrolar MFA propio; 06 confirmar MFA propio; 07 ver membresías propias;
+08 cambiar a membresía propia verificada. Se conservan predicados/step-up y
+DENY de B1. No create/users, consulta de otros usuarios, grants universales,
+roles de aplicación implícitos ni acceso CRM. configuration.deployment_enabled
+se mantiene false; otorgar estas reglas no abre auth_api ni closedBackend.
+
+Archivos nuevos justificados: first-actor.ts es entrada privada y repositorio de
+esa responsabilidad, sin endpoints; recovery-material.ts extrae la generación
+actual para sus DOS consumidores reales, sin segundo dominio recovery; incremental
+0002_first_actor.review.sql mantiene DDL/ACL/transiciones versionados propuestos;
+tests first-actor/agent-sink y test_b1_agent_cert cubren esas responsabilidades.
+Dueño B1/seguridad; consumidor inmediato operador privado/createFirstActorCeremony,
+composición de custodia y renderer. Se extienden manifiesto/plan canónicos de
+migraciones, tipos y harness existentes. No se crea CLI que inyecte secretos ni
+se toca runtime, Compose, SQL14, workflows, CRM o AUD-031.
+
+Riesgos y pruebas: aislamiento instalación/operación/tenant; pérdida de respuesta
+después de commit; entrega única; expiración y borrado; symlinks/races del sink;
+auditoría y permisos de owner. Modelo transaccional concurrente offline y casos
+negativos, más regresiones de los puntos modificados. Nada acredita PG16/Bao
+nativos; no se repiten auditorías cerradas ni se transforma un SKIP en PASS.
+
+### Agent oficial: configuración y consumidor implementados
+
+El MISMO renderer acepta --agent-cert en cualquier entorno. Usa las lecturas
+tenant/purpose/key_id existentes y exige agent.address HTTPS, cert_mount/cert_name
+exactos, certificado público de confianza para cert auth y Common Name exacto,
+ca_file/client_cert_file/client_key_file, sink_file, sink_uid/gid/mode,
+directory_uid/gid/mode y read_timeout_ms. Inputs proceden del manifiesto privado
+aprobado; no hay UUID, token, CA privada o identidad real predeterminados.
+Las rutas no aceptan interpolación HCL. El bundle Agent devuelve SOLO:
+
+- agent.hcl con vault TLS verificado, method cert/name/mount exactos, reload=true
+  y sink file. Sin listener/proxy, cache, templates ni secret distributor.
+- policy del workload: READ de paths KV exactos y update auth/token/renew-self
+  explícito; sin default policy, LIST, escrituras KV, revoke-accessor ni sys/*.
+- cert-role.json con CA pública, CN, policies, TTL/máximo, CIDR y token_num_uses=0.
+- sink-reader.json con propietario/modos y límite de lectura del mismo input.
+
+La forma HCL se contrastó con parseAutoAuth/parseMethod/parseSinks del código
+oficial internal/command/agent/config/config.go y cert reload con
+internal/command/agentproxyshared/auth/cert/cert.go, tag v2.7.2. Esto no ejecuta
+el parser/binario ni certifica la configuración real. Se reutiliza el mismo
+artefacto 2.7.2 ya verificado; no se instala ni se construye otra imagen.
+El modo anterior del renderer conserva sus límites de autorización de servidor;
+no es una bifurcación de autenticación por NODE_ENV.
+
+createAgentSinkToken se pasa directamente como callback token() de
+createOpenBaoKeys en una composición privada futura; no hay wiring web nuevo.
+Reabre en cada adquisición. Linux: recorre directorios con O_DIRECTORY/NOFOLLOW
+anclados por descriptor en /proc/self/fd, valida dueño/modos de directorio final,
+tipo tmpfs, fichero regular de un enlace con UID/GID/modo aprobados y ≤1024 bytes;
+usa O_NONBLOCK/NOFOLLOW, buffer de 1025 bytes, reloj monotónico y timeout ≤5000 ms.
+Rechaza path relativo/traversal/symlink, bytes no ASCII y token mal formado;
+borra buffer y cierra descriptores incluso tras completarse I/O tardío. No cachea
+tokens ni deduce TTL desde existencia/mtime. No garantiza borrar strings JS.
+
+Comportamiento: ausencia/sink inválido/timeout → error saneado 503. Reemplazo
+atómico/renovación → la siguiente lectura usa el contenido vigente; el token sin
+cambio puede seguir válido por renovación. Un rechazo 403 de Bao sigue 503 y
+work no se invoca; no login/retry SQL automático ni claves cacheadas. Si Agent
+cae y queda token válido en tmpfs, Bao sigue decidiendo su vigencia hasta rechazo
+o expiración: el lector no finge detectar la caída. Para reinicio operativo,
+cerrar admisión y eliminar el sink viejo antes de arrancar Agent; esto es una
+operación futura, no un flag o supervisor nuevo. Claves ya prestadas y COMMIT
+confirmado conservan exactamente su deadline/limpieza/recibo existentes.
+
+PKI inicial/reemplazos, montaje tmpfs/permisos, identidad ejecutora de Agent,
+instalación del binding/policy y revocación por administración son operaciones
+futuras con autorización específica. Agent recarga el certificado al autenticar,
+no lo emite ni lo renueva; no presupone distribución de SecretID. Revocación de
+incidente debe impedir reauth antes de revocar tokens; detener Agent no revoca
+por sí solo un token ni borra claves que una operación ya tomó prestadas.
+
+### FIRST-ACTOR: entrada privada prepare/confirm/commit/status
+
+createFirstActorCeremony recibe pool de provisioning, manifiesto aprobado e
+instalación/operación/tenant/user/principal UUID, nombres/email ya normalizado,
+alias y aprobación; referencias de claves TOTP/recovery y keyVersion explícita,
+custodia, presupuesto, admisión de contraseña y normalizador privados. El digest
+vincula manifiesto, catálogo de claves, política B1 y las ocho reglas exactas.
+No selecciona datos por headers/body, NODE_ENV ni defaults de staging.
+
+prepare reserva bajo lock el singleton por base/instalación y operación/digest
+inmutables, antes de generar nada. En la MISMA transacción prepara hash admitido,
+TOTP/AAD y recovery, guarda solo material cifrado/hash/digests y marca PREPARED;
+devuelve capability, URI y códigos UNA vez, mediante privateArtifact, solo tras
+COMMIT observado. Reintento devuelve estado sin material ni regeneración. No hay
+principal, usuario, factor ACTIVE o autoridad empresarial antes del commit final.
+
+confirm exige capability ligada al manifiesto, primer TOTP verificado con el
+helper canónico y acuse explícito de entrega recovery. Persiste contador inicial
+y estado CONFIRMED. Rechazos se auditan en una transacción confirmada antes de
+devolver AuthError y consumen otp_attempts de la política canónica; agotar el
+límite expira/borra material. No genera nuevos códigos en confirm/replay.
+
+commit bloquea la misma fila y revalida estado/expiry/capability, instala un
+tenant/actor SENSITIVE, credencial, policy_versions, ocho reglas self-service,
+TOTP confirmado y batch de digests, evento app.audit_logs, evento privado y
+recibo en UNA transacción. No inserta sesiones, no invoca un emisor de sesión ni
+activa deployment_enabled. Fallar auditoría revierte todos los efectos. Llamadas
+concurrentes/repetidas devuelven el mismo recibo COMMITTED; no duplican actor.
+El dominio y generación recovery se extrajeron del backend existente a
+prepareRecoveryCodes; backend y FIRST-ACTOR usan exactamente esa implementación.
+
+status no depende de Bao/claves, tiene statement_timeout 5s y serializa contra
+la operación original mediante el mismo advisory lock. Devuelve ABSENT,
+PREPARED, CONFIRMED, COMMITTED o EXPIRED y recibo no secreto. En el caso de
+expiración puede borrar material y registrar esa transición al confirmar su
+transacción; no es una consulta libre de efectos cuando expira. Nunca se infiere
+rollback de una respuesta perdida. COMMIT perdido se resuelve consultando status;
+no se vuelve a crear identidad, TOTP o recovery. No reemite URI/codes/capability.
+Si la preparación se confirmó pero se perdió la entrega de secretos, queda
+PREPARED sin reentrega y finalmente EXPIRED: se bloquea la inicialización y exige
+un procedimiento de recuperación revisado, no reset, operación nueva automática
+ni regeneración silenciosa. EXPIRED es terminal para este contrato de ejecución
+única; su desbloqueo no está implementado como bypass. Tras commit, pérdida de
+factor/codes pertenece a recuperación de cuenta, nunca a reinicialización.
+
+### Incremental propuesta y permisos
+
+db/migrations/0002_first_actor.review.sql es la única fuente propuesta de DDL.
+trusted-migrations la registra con SHA256 y proposed=true. offline-plan B1 muestra
+proposed/executable=false; la cola aplicable permanece VACÍA. No se descubre por
+glob ni se promueve a aplicada por este permiso de desarrollo. La implementación
+canónica MIGRATIONS-01 sigue siendo el único runner/journal; solo se extendió el
+plan offline y los tipos para revisar propuestas. SQL14 queda byte a byte intacto.
+
+Roles nuevos propuestos, sin LOGIN ni credenciales/membresías creadas:
+cleanops_first_actor_owner (owner de funciones/tablas privadas),
+cleanops_first_actor_executor (USAGE schema y EXECUTE de las transiciones) y
+cleanops_first_actor_reader (USAGE y solo status COMMITTED de la instalación).
+Ninguno es miembro del broker/bootstrap/owner existente ni BYPASSRLS. Owner
+tiene SELECT/INSERT mínimos en las tablas explícitas necesarias, políticas RLS
+de INSERT ligadas al tenant/principal y backend/xid de la transacción de commit;
+no UPDATE/DELETE de datos empresariales ni grants de tabla al ejecutor/web.
+Owner registra el evento final usando la forma canónica de app.audit_logs;
+events privados no contienen password/hash, TOTP, ciphertext, capability ni codes.
+Tras aceptar ejecución futura: cerrar LOGIN/EXECUTE de escritura del operador y
+conservar lectura de recibo mediante identidad reader separada. No se crean esas
+credenciales ni se aplica el SQL hoy. La aceptación debe revisar privilegios
+transitivos, FORCE RLS/owners/firmas y logs de parámetros privados en PG16 real.
+
+Bloqueos concretos de aceptación: incremental aún no ejecutada ni validada por
+parser PostgreSQL disponible (pglast ausente; no se instaló); falta aceptación
+PG16 de ACL/RLS/atomicidad/locks y resultado incierto; falta parser/Agent/Bao 2.7.2
+reales, tmpfs/UIDs efectivos, TLS/PKI/renovación/reautenticación/revocación/restart;
+identidades de operador y reader/catálogo privado aprobados; canal humano de
+entrega/acuse de TOTP y recovery y recuperación de preparación expirada. Son
+condiciones de operación futura, no implementaciones temporales para staging.
+Runtime, Compose efectivo, Autodeploy OFF, CRM y AUD-031 permanecen intactos.
