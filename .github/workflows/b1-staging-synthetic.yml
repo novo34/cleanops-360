@@ -1,7 +1,7 @@
 name: B1 synthetic staging preparation
 on:
   push:
-    tags: [review/first-actor-native-01-attempt-3]
+    tags: [review/first-actor-native-01-attempt-4]
   pull_request:
     paths:
       - 'deploy/staging/**'
@@ -47,29 +47,29 @@ jobs:
     if: >-
       github.repository == 'novo34/cleanops-360' &&
       github.event_name == 'push' &&
-      github.ref == 'refs/tags/review/first-actor-native-01-attempt-3' &&
+      github.ref == 'refs/tags/review/first-actor-native-01-attempt-4' &&
       github.run_attempt == 1
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
-      group: first-actor-native-01-attempt-3
+      group: first-actor-native-01-attempt-4
       cancel-in-progress: false
     env:
       PG_IMAGE: postgres@sha256:cf5d353f55240ecc2f811827a15c7d1f2d562f08019b49dca12b5a59f4ab5962
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: 5e28c53e12e91c398b442f5ccd117f08ebf6ec25
+          ref: ee1f0f7800868c821653ce88040066d51187be2d
           persist-credentials: false
       - name: Verify approved source and artifact hashes
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 5e28c53e12e91c398b442f5ccd117f08ebf6ec25
+          test "$(git rev-parse HEAD)" = ee1f0f7800868c821653ce88040066d51187be2d
           test -z "$(git status --porcelain)"
           sha256sum --check <<'HASHES'
-          b62896ffa42ed2e65af71adeaf14c56446a15a25330235ccf0fd2d8c448f908f  scripts/test-staging-postgres.py
-          4a5aa9e14689931afd27a01623d734e043c5ec6971a89d8ef742f8cf21320550  tests/static/test_staging_synthetic.py
+          47e01db67174689cd8cef51ce5e473b4d0f8d6bf64ebbcaf9363a5be67109966  scripts/test-staging-postgres.py
+          e949cb68937be2c2d1db50f1877769eee5571bc596261ba8fa92698a094f6c9d  tests/static/test_staging_synthetic.py
           89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102  db/migrations/0002_first_actor.review.sql
           965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa  docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
           HASHES
@@ -97,7 +97,7 @@ jobs:
           docker --host=unix:///var/run/docker.sock pull --platform linux/amd64 "$PG_IMAGE"
           docker --host=unix:///var/run/docker.sock tag "$PG_IMAGE" postgres:16-bookworm
           test "$(docker --host=unix:///var/run/docker.sock image inspect "$PG_IMAGE" --format '{{.Id}}')" = "$(docker --host=unix:///var/run/docker.sock image inspect postgres:16-bookworm --format '{{.Id}}')"
-      - name: FIRST-ACTOR-NATIVE-01 attempt 3 — once
+      - name: FIRST-ACTOR-NATIVE-01 attempt 4 — once
         run: python3 -B scripts/test-staging-postgres.py --first-actor --authorization FIRST-ACTOR-NATIVE-01
       - name: Hash sanitized native report
         if: always()
@@ -109,7 +109,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: first-actor-native-01-attempt-3
+          name: first-actor-native-01-attempt-4
           path: |
             artifacts/staging-synthetic/first-actor-native.json
             artifacts/staging-synthetic/first-actor-native.json.sha256
