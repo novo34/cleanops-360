@@ -111,6 +111,7 @@ class ReviewGuardTests(unittest.TestCase):
         current.pop('context_reconciliation')
         current.pop('retired_finding_reconciliation')
         current['context_sha256']['lib/b1/approved-backend.ts'] = original['context_sha256']['lib/b1/approved-backend.ts']
+        current['context_sha256']['lib/b1/runtime.ts'] = original['context_sha256']['lib/b1/runtime.ts']
         current['findings'] = original['findings']
         self.assertEqual(current, original)
 
@@ -132,6 +133,7 @@ class ReviewGuardTests(unittest.TestCase):
         self.assertEqual(len({guard.identity(row) for row in registry['findings']}),16)
         self.assertTrue(all(row['id'] != 'FP-09' for row in registry['findings']))
         self.assertEqual(registry['retired_finding_reconciliation']['replacement_git_blob'], guard.B1_APPROVED_BACKEND_BLOB)
+        self.assertEqual(registry['retired_finding_reconciliation']['runtime_git_blob'], guard.B1_RUNTIME_BLOB)
         self.assertTrue(all(row['classification']=='confirmed_false_positive' for row in registry['findings']))
         for name,expected in registry['context_sha256'].items():
             self.assertEqual(guard.digest(ROOT/name),expected,name)
