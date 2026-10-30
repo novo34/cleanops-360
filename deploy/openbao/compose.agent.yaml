@@ -49,10 +49,6 @@ networks:
 volumes:
   identity_agent_sink:
     name: ${CLEANOPS_COMPOSE_PROJECT:?Explicit installation project required}_identity_agent_sink
-    driver: local
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-      o: nodev,nosuid,noexec,size=1m,mode=0700,uid=${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required},gid=${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}
-    labels:
-      cleanops.component: identity-agent
+    # Already provisioned and verified. Compose must neither create/relabel nor
+    # destroy this shared tmpfs. The canonical reader still validates it on use.
+    external: true

@@ -98,8 +98,9 @@ class Synthetic(unittest.TestCase):
                 self.assertEqual(sink.get('read_only', False), readonly)
                 self.assertTrue(sink['volume']['nocopy'])
             sink_volume = agent_config['volumes']['identity_agent_sink']
-            self.assertEqual(sink_volume['driver_opts'], dict(type='tmpfs', device='tmpfs',
-                o='nodev,nosuid,noexec,size=1m,mode=0700,uid=1000,gid=1000'))
+            self.assertTrue(sink_volume['external'])
+            self.assertTrue(sink_volume['name'].endswith('_identity_agent_sink'))
+            self.assertNotIn('driver_opts', sink_volume)
             for v in agent['volumes']:
                 if v['type']=='bind':
                     self.assertTrue(v['read_only'])

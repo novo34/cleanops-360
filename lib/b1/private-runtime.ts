@@ -49,17 +49,14 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
     if (c.passwordPolicy.minimumCodePoints !== numeric('password_min') || c.passwordPolicy.maximumCodePoints !== numeric('password_max')) throw unavailable()
     const passwordAdmission = createPasswordAdmission(c.corpus, c.passwordPolicy)
     const maxEligibleTotpMethods = validateTotpMethodLimit(c.maxEligibleTotpMethods)
-    prepareSessionLabels(c.sessionLabels())
-    const transport = c.transport, sessionLabels = c.sessionLabels, normalizeEmail = c.normalizeEmail, dummyPasswordHash = c.dummyPasswordHash
+    const transport = c.transport, sessionLabels = () => prepareSessionLabels(c.sessionLabels()), normalizeEmail = c.normalizeEmail, dummyPasswordHash = c.dummyPasswordHash
     const readTransport = () => {
       const t = transport()
       if (!t || ![t.network,t.device].every(b => Buffer.isBuffer(b) && b.length === 32)) throw unavailable()
       return { network: Buffer.from(t.network), device: Buffer.from(t.device) }
     }
-    // Validate dimensions without retaining the startup probe in process memory.
-    const startupTransport = readTransport()
-    startupTransport.network.fill(0)
-    startupTransport.device.fill(0)
+    // Request-scoped values cannot be probed at startup. Validate on every use;
+    // missing context fails closed before backend effects instead of using a fixture.
     const refs = structuredClone(c.references), versions = structuredClone(c.totpKeys)
     if (!refs || !Array.isArray(versions) || versions.length < 1 || versions.length > 8 ||
         new Set(versions.map(x => x.keyVersion)).size !== versions.length || versions.some(x => !x.keyVersion || x.reference.purpose !== 'totp-aead')) throw unavailable()

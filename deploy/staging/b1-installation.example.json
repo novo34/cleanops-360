@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "origin": null,
+  "internalOrigins": null,
+  "postgres": {
+    "environment": "staging",
+    "host": null,
+    "port": null,
+    "database": null,
+    "loginRole": "cleanops_staging_identity_login",
+    "contractualRole": "cleanops_identity_service",
+    "maxConnections": null,
+    "connectionTimeoutMs": null
+  },
+  "bao": {
+    "environment": "staging",
+    "mount": "b1-keys",
+    "origin": null,
+    "timeoutMs": null
+  },
+  "catalog": {
+    "tenantId": null,
+    "keys": [
+      {
+        "purpose": "audit-hmac",
+        "keyId": null,
+        "version": null
+      },
+      {
+        "purpose": "cursor-hmac",
+        "keyId": null,
+        "version": null
+      },
+      {
+        "purpose": "otp-hmac",
+        "keyId": null,
+        "version": null
+      },
+      {
+        "purpose": "recovery-hmac",
+        "keyId": null,
+        "version": null
+      },
+      {
+        "purpose": "totp-aead",
+        "keyId": null,
+        "version": null,
+        "keyVersion": null
+      }
+    ]
+  },
+  "sources": {
+    "postgresPassword": {
+      "path": "/run/cleanops-b1-private/identity.password",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 4096
+    },
+    "postgresCa": {
+      "path": "/run/cleanops-b1-private/postgres-ca.crt",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    },
+    "baoCa": {
+      "path": "/run/cleanops-b1-private/bao-ca.pem",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    },
+    "baoCert": {
+      "path": "/run/cleanops-b1-private/web-client.pem",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    },
+    "baoKey": {
+      "path": "/run/cleanops-b1-private/web-client-key.pem",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    }
+  },
+  "sink": {
+    "path": "/run/cleanops-agent/token",
+    "uid": 999,
+    "gid": 999,
+    "directoryUid": 999,
+    "directoryGid": 999,
+    "mode": 384,
+    "directoryMode": 448,
+    "timeoutMs": null
+  },
+  "corpus": {
+    "version": null,
+    "sha256": null,
+    "source": {
+      "path": "/run/cleanops-b1-private/password-corpus.sha256",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    }
+  },
+  "dummyPasswordHash": {
+    "path": "/run/cleanops-b1-private/dummy-password.phc",
+    "uid": 0,
+    "gid": 999,
+    "mode": 288,
+    "maxBytes": 4096
+  },
+  "maximumCorpusBytes": null,
+  "maxEligibleTotpMethods": null,
+  "lifetimeMs": null,
+  "integration": {
+    "source": {
+      "path": "/run/cleanops-b1-private/integration.mjs",
+      "uid": 0,
+      "gid": 999,
+      "mode": 288,
+      "maxBytes": 65536
+    },
+    "sha256": null,
+    "approval": null
+  },
+  "baoClientIdentity": {
+    "scope": "nextjs-identity-verifier",
+    "certificateSha256": null,
+    "approval": null
+  }
+}

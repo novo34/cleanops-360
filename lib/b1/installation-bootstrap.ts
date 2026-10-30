@@ -4,6 +4,8 @@ import type { InstallationKeyCatalog } from './installation-catalog.ts'
 import { prepareStagingPrivateConfiguration } from './installation-config.ts'
 import { createPrivatePgPassword, loadPrivateTls } from './private-material.ts'
 import type { PrivateFileSource } from './private-file.ts'
+import { createHash } from 'node:crypto'
+import type { InstallationRequestScope } from './installation-context.ts'
 
 type Pg = PrivateRuntimeConfiguration['postgres']
 type Bao = PrivateRuntimeConfiguration['bao']
@@ -22,6 +24,9 @@ export type InstallationBootstrapInputs = Readonly<{
   bao: Omit<Bao, 'ca' | 'cert' | 'key'>
   catalog: InstallationKeyCatalog
   sources: InstallationPrivateSources
+  /** Optional for existing private callers; the site loader always supplies both. */
+  requestScope?: InstallationRequestScope
+  baoCertificateSha256?: string
 }>
 
 /** Loads approved private sources. Caller closes resources and zeroes buffers. */
@@ -34,6 +39,11 @@ export async function assembleInstallationPrivateInputs(spec: InstallationBootst
   const tls = await loadPrivateTls(spec.sources)
   const buffers = [tls.postgresCa, tls.bao.ca, tls.bao.cert, tls.bao.key]
   try {
+    if (spec.baoCertificateSha256 !== undefined &&
+        (!/^[a-f0-9]{64}$/.test(spec.baoCertificateSha256) ||
+         createHash('sha256').update(tls.bao.cert).digest('hex') !== spec.baoCertificateSha256)) {
+      throw new Error('INSTALLATION_CERTIFICATE_NOT_APPROVED')
+    }
     const configuration = prepareStagingPrivateConfiguration({
       ...spec.inputs,
       postgres: { ...spec.postgres, ca: tls.postgresCa, password: createPrivatePgPassword(spec.sources.postgresPassword) },

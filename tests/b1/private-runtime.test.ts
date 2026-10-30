@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import https from 'node:https'
 import { EventEmitter } from 'node:events'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import pg from 'pg'
 import { selectAuthBackend, type PrivateRuntimeConfiguration } from '../../lib/b1/private-runtime.ts'
 import { composeTrustedRuntime } from '../../lib/b1/runtime.ts'
@@ -42,9 +44,16 @@ test('private selection defaults closed and rejects incomplete or inconsistent c
   const incomplete={...config()} as unknown as Record<string,unknown>;delete incomplete[field]
   assert.throws(()=>selectAuthBackend({kind:'private',configuration:incomplete as unknown as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
  }
- for(const patch of [{passwordPolicy:{...config().passwordPolicy,minimumCodePoints:8}},{passwordPolicy:{...config().passwordPolicy,maximumCodePoints:129}},{origin:'http://invalid'},{sink:undefined},{normalizeEmail:undefined},{dummyPasswordHash:'invalid'},{transport:()=>({network:Buffer.alloc(1),device:Buffer.alloc(32)})},{sessionLabels:()=>({})},{lifetimeMs:0},{totpKeys:[]},{postgres:{...config().postgres,environment:'other'}},{references:{...config().references,otp:{...config().references.otp,tenantId:'22222222-2222-4222-8222-222222222222'}}}]){
+ for(const patch of [{passwordPolicy:{...config().passwordPolicy,minimumCodePoints:8}},{passwordPolicy:{...config().passwordPolicy,maximumCodePoints:129}},{origin:'http://invalid'},{sink:undefined},{normalizeEmail:undefined},{dummyPasswordHash:'invalid'},{lifetimeMs:0},{totpKeys:[]},{postgres:{...config().postgres,environment:'other'}},{references:{...config().references,otp:{...config().references.otp,tenantId:'22222222-2222-4222-8222-222222222222'}}}]){
   assert.throws(()=>selectAuthBackend({kind:'private',configuration:{...config(),...patch} as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
  }
+})
+test('request context is not invoked outside a request during runtime selection',async()=>{
+ let calls=0
+ const c={...config(),transport:()=>{calls++;throw Error('no request context')},sessionLabels:()=>{calls++;throw Error('no request context')}}
+ const selected=selectAuthBackend({kind:'private',configuration:c})
+ assert.equal(calls,0)
+ await selected.close()
 })
 test('public HTTP remains closed even if process environment attempts private activation',async()=>{
  const oldOrigin=process.env.CLEANOPS_AUTH_ORIGIN
@@ -96,4 +105,37 @@ test('same selected composition serves bootstrap and HTTP transactions with real
   const response=await selected.handler!.handle(new Request('https://fixture.invalid/auth/me',{headers:{'Sec-Fetch-Site':'same-origin'}}),'getCurrentIdentity')
   assert.equal(response.status,401);assert.equal(response.headers.get('Set-Cookie'),null)
  }finally{await selected.close();for(const m of mocks)m.mock.restore()}
+})
+
+test('separately evaluated Next bundles share startup runtime, request scope and shutdown drain', async () => {
+ const probe = async (runtimeUrl: string) => {
+ // nosemgrep: cleanops-code-execution-import -- parent supplies a fixed local test module.
+ const runtime = await import(runtimeUrl)
+ const copyUrl = new URL(runtimeUrl)
+ copyUrl.search = '?b1-independent-bundle'
+ // nosemgrep: cleanops-code-execution-import -- fixed local test module with cache-busting query, no user input.
+ const other = await import(copyUrl.href) as typeof runtime
+ assert.notEqual(runtime.installTrustedRuntime, other.installTrustedRuntime)
+ let entered!: () => void, release!: () => void
+ const ready = new Promise<void>(resolve => { entered = resolve })
+ const barrier = new Promise<void>(resolve => { release = resolve })
+ runtime.installTrustedRuntime(config(), async () => { entered(); await barrier; return new Response('synthetic scope', { status: 418 }) })
+ assert.equal(runtime.runtimeHandler(), other.runtimeHandler())
+ assert.throws(() => other.installTrustedRuntime(config()), /AUTH_CONFIGURATION_REQUIRED/)
+ const pending = other.handleAuth(new Request('https://fixture.invalid/auth/me', { headers: { 'sec-fetch-site': 'same-origin' } }), 'getCurrentIdentity')
+ await ready
+ let drained = false
+ const closing = runtime.closeTrustedRuntime().then(() => { drained = true })
+ await Promise.resolve()
+ assert.equal(drained, false)
+ assert.equal((await other.handleAuth(new Request('https://fixture.invalid/auth/me'), 'getCurrentIdentity')).status, 503)
+ release()
+ assert.equal((await pending).status, 418)
+ await closing
+ assert.equal(drained, true)
+ }
+ const runtimeUrl = new URL('../../lib/b1/runtime.ts', import.meta.url).href
+ const configUrl = new URL('../../lib/b1/config.ts', import.meta.url).href
+ const code = `import assert from 'node:assert/strict'; import {rootCertificates} from 'node:tls'; import {createHash} from 'node:crypto'; import {numeric} from ${JSON.stringify(configUrl)}; const tenantId=${JSON.stringify(tenantId)}; const config=${config.toString()}; await (${probe.toString()})(${JSON.stringify(runtimeUrl)});`
+ await promisify(execFile)(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', code])
 })

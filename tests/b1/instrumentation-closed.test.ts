@@ -5,7 +5,7 @@ import { register } from '../../instrumentation.ts'
 import { handleAuth } from '../../lib/b1/runtime.ts'
 
 test('Next instrumentation does not activate B1 without reviewed private installation', async () => {
-  assert.equal(reviewedB1Installation(), undefined)
+  assert.equal(await reviewedB1Installation(), undefined)
   const original = process.env.NEXT_RUNTIME
   try {
     process.env.NEXT_RUNTIME = 'nodejs'
