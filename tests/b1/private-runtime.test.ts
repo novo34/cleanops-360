@@ -7,6 +7,7 @@ import https from 'node:https'
 import { EventEmitter } from 'node:events'
 import pg from 'pg'
 import { selectAuthBackend, type PrivateRuntimeConfiguration } from '../../lib/b1/private-runtime.ts'
+import { composeTrustedRuntime } from '../../lib/b1/runtime.ts'
 import { closedBackend } from '../../lib/b1/service.ts'
 import { numeric, profile } from '../../lib/b1/config.ts'
 const tenantId='11111111-1111-4111-8111-111111111111'
@@ -26,6 +27,17 @@ function config(): PrivateRuntimeConfiguration {
 }
 test('private selection defaults closed and rejects incomplete or inconsistent configuration before I/O',async()=>{
  assert.equal(selectAuthBackend().backend,closedBackend)
+ const oldOrigin=process.env.CLEANOPS_AUTH_ORIGIN,oldInternal=process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS
+ try{
+  process.env.CLEANOPS_AUTH_ORIGIN='https://fixture.invalid'
+  process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS='[]'
+  const runtime=composeTrustedRuntime()
+  assert.equal(runtime.backend,closedBackend)
+  await runtime.close()
+ }finally{
+  if(oldOrigin===undefined)delete process.env.CLEANOPS_AUTH_ORIGIN;else process.env.CLEANOPS_AUTH_ORIGIN=oldOrigin
+  if(oldInternal===undefined)delete process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS;else process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS=oldInternal
+ }
  for(const field of Object.keys(config())){
   const incomplete={...config()} as unknown as Record<string,unknown>;delete incomplete[field]
   assert.throws(()=>selectAuthBackend({kind:'private',configuration:incomplete as unknown as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
@@ -50,7 +62,7 @@ test('same selected composition serves bootstrap and HTTP transactions with real
  }))
  mocks.push(mock.method(pg.Pool.prototype,'connect',async()=>({async query(sql:string){if(sql==='COMMIT')commits++;return {rows:[{value:sql.includes('security_policy')?profile.values:null}]}},release(){}}) as never))
  const c=config()
- const selected=selectAuthBackend({kind:'private',configuration:c})
+ const selected=composeTrustedRuntime({kind:'private',configuration:c})
  const manifest={installationId:tenantId,operationId:tenantId,tenantId,userId:tenantId,principalId:tenantId,tenantName:'Synthetic',displayName:'Synthetic',email:'user@example.invalid',accountLabel:'Synthetic',approval:'SYNTHETIC_ONLY'}
  const operatorPool={async connect(){throw Error('must not connect during composition')}}
  assert.ok(selected.firstActor!(manifest,operatorPool,'synthetic-v1'))
