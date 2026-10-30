@@ -1,4 +1,43 @@
-# OPENBAO-STAGING-01 — scope CLI y OpenBao 2.7.2, 28/10/2026
+# OPENBAO-STAGING-01 — evidencia vigente y archivo histórico
+
+## Cierre local del incremento de custodia, 30/10/2026
+
+El plan único vigente es el apartado inicial de OPENBAO-STAGING-01.md. Reconoce
+la custodia en KeePassXC del token inicial y clave de desbloqueo comunicada por el
+propietario y propone una ceremonia inicial exclusivamente administrativa, aún
+no autorizada a ejecutarse. No presenta como existentes un administrador no root,
+manifiesto operativo, certificados workload o claves del primer tenant.
+
+Referencias revalidadas mediante GET de GitHub:
+- staging: d3ea84b38fd1574db1610f03b59c8c4a5050ac72.
+- prep/staging-runtime-custody-01: 1bbb9fcac650ba7f2c973a5629931e94385cf217.
+- prep/pg-tls-01: d3ea84b38fd1574db1610f03b59c8c4a5050ac72.
+
+Checkpoint local 34a425e y rama local prep/runtime-agent-saved-20261030 conservan
+los doce archivos del delta previo, incluidos autenticación privada, Agent y sus
+pruebas. Se reconcilia staging mediante merge LOCAL, sin rebase/force/publicación.
+La única resolución de código reutiliza la comprobación PG/TLS ya publicada,
+conserva las adiciones Agent y evita depender de HEAD para el snapshot anterior.
+No añade casos de empaquetado simulado ni cambia PostgreSQL/TLS o el runtime.
+
+Verificación nueva por esa resolución: el caso existente
+test_postgres_tls_compose_changes_only_command_and_readonly_mounts pasa 1/1
+(0.021s). Solo parsea YAML y compara el fingerprint revisado; no invoca Docker,
+PostgreSQL, SQL ni Bao. git diff --check: PASS. Las pruebas acreditadas anteriores
+se conservan como historia y no se repiten por guardar commits o escribir el plan.
+
+FIRST-ACTOR nativo: aceptación del run 40869443575 comunicada y aceptada por el
+propietario, sin reejecución. No se promueve la incremental, no se modifica SQL14
+ni la cola aplicable. Agent/cert/TLS/renovación/reautenticación/revocación/tmpfs
+real e imagen web real siguen SIN ACEPTACIÓN NATIVA en este incremento.
+
+No se ha leído KeePassXC ni un secreto; no se ha ejecutado Bao/Agent, SQL, PKI,
+build, instalación, provisión, VPS, workflow, despliegue o activación. No se ha
+hecho push, PR ni merge remoto. closedBackend, Autodeploy OFF, R4, CRM y AUD-031
+permanecen protegidos. El SHA final del merge local se entrega en el cierre de
+la tarea; no se introduce una referencia autorreferente en este archivo.
+
+## Archivo histórico — scope CLI y OpenBao 2.7.2, 28/10/2026
 
 Corrección sobre 716ada676ea35f7aef0a555e1761cdce518a1cff en PR #27.
 Evidencia histórica de gates/consumidores: versión de este informe en ese SHA.

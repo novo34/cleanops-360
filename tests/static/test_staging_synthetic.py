@@ -475,46 +475,50 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
     def test_postgres_tls_compose_changes_only_command_and_readonly_mounts(self):
+        import hashlib
         import yaml
-        old = yaml.safe_load(subprocess.check_output(['git', 'show', 'HEAD:deploy/staging/compose.yaml'], cwd=ROOT, text=True))
-        new = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
-        # Agent composition is checked separately; preserve the PG/TLS regression.
-        self.assertEqual(new['include'].pop(), '../openbao/compose.agent.yaml')
-        self.assertEqual(new['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
-        self.assertEqual(new['services']['web']['networks'], ['private', 'identity_bao'])
-        new['services']['web']['networks'] = ['private']
-        prior, current = old['services'].pop('postgres'), new['services'].pop('postgres')
-        for path, variable in [(('name',),'CLEANOPS_COMPOSE_PROJECT'),(('networks','private','name'),'CLEANOPS_PRIVATE_NETWORK'),(('volumes','pgdata','name'),'CLEANOPS_PG_VOLUME')]:
-            left, right = old, new
-            for part in path[:-1]: left, right = left[part], right[part]
-            self.assertIn('${' + variable + ':?', right[path[-1]])
-            left[path[-1]] = right[path[-1]]
-        self.assertEqual(old, new)
-        for field, variable in [('image','CLEANOPS_PG_IMAGE')]:
-            self.assertIn('${' + variable + ':?', current[field])
-            prior[field] = current[field]
-        for field, variable in [('POSTGRES_DB','CLEANOPS_PG_DATABASE'),('POSTGRES_USER','CLEANOPS_PG_BOOTSTRAP_USER')]:
-            self.assertIn('${' + variable + ':?', current['environment'][field])
-            prior['environment'][field] = current['environment'][field]
-        health = current['healthcheck']['test']
-        self.assertEqual(health[0], 'CMD-SHELL')
-        self.assertIn('$${POSTGRES_USER}', health[1]); self.assertIn('$${POSTGRES_DB}', health[1])
-        prior['healthcheck']['test'] = health
-        self.assertEqual(current['volumes'][0], prior['volumes'][0])
-        mounts = current['volumes'][1:]
-        self.assertEqual(len(mounts), 4)
-        for mount in mounts:
-            self.assertEqual(mount['type'], 'bind')
-            self.assertIs(mount['read_only'], True)
-            self.assertIs(mount['bind']['create_host_path'], False)
-            self.assertIn(':?', mount['source'])
-        self.assertEqual(mounts[-1]['target'], '${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}')
-        self.assertEqual(current.pop('command'), ['postgres', '-c', 'ssl=on', '-c',
+        current = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
+        # Preserve the published PG/TLS fingerprint after the independently checked Agent additions.
+        self.assertEqual(current['include'].pop(), '../openbao/compose.agent.yaml')
+        self.assertEqual(current['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
+        self.assertEqual(current['services']['web']['networks'], ['private', 'identity_bao'])
+        current['services']['web']['networks'] = ['private']
+        # Fingerprint of the parsed Compose at staging 198b4e41, independent of Git checkout depth.
+        original_sha256 = 'c958b5a9ebfb11da7dd120a1fd06e40ccf3f7a20937a103dfc81795ce5fdf934'
+        for path, variable, original in [
+            (('name',), 'CLEANOPS_COMPOSE_PROJECT', 'cleanops360-staging'),
+            (('networks','private','name'), 'CLEANOPS_PRIVATE_NETWORK', 'cleanops360_staging_private'),
+            (('volumes','pgdata','name'), 'CLEANOPS_PG_VOLUME', 'cleanops360_staging_pgdata'),
+            (('services','postgres','image'), 'CLEANOPS_PG_IMAGE', 'postgres:16-bookworm'),
+            (('services','postgres','environment','POSTGRES_DB'), 'CLEANOPS_PG_DATABASE', 'cleanops_staging'),
+            (('services','postgres','environment','POSTGRES_USER'), 'CLEANOPS_PG_BOOTSTRAP_USER', 'cleanops_bootstrap'),
+        ]:
+            target = current
+            for part in path[:-1]: target = target[part]
+            self.assertIn('${' + variable + ':?', target[path[-1]])
+            target[path[-1]] = original
+        pg = current['services']['postgres']
+        self.assertEqual(pg['healthcheck']['test'], ['CMD-SHELL',
+            'psql -XqAt -w -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -c \'SELECT 1\''])
+        pg['healthcheck']['test'] = ['CMD', 'psql', '-XqAt', '-v', 'ON_ERROR_STOP=1', '-U', 'cleanops_bootstrap', '-d', 'cleanops_staging', '-c', 'SELECT 1']
+        self.assertEqual(pg.pop('command'), ['postgres', '-c', 'ssl=on', '-c',
             'ssl_cert_file=/run/cleanops-pg-tls/server.crt', '-c',
             'ssl_key_file=/run/cleanops-pg-tls/server.key', '-c',
             'hba_file=${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}'])
-        current['volumes'] = current['volumes'][:1]
-        self.assertEqual(prior, current)
+        self.assertEqual(pg['volumes'][0], 'pgdata:/var/lib/postgresql/data')
+        mounts = pg['volumes'][1:]
+        self.assertEqual(len(mounts), 4)
+        for mount, variable, destination in zip(mounts,
+            ['CLEANOPS_PG_TLS_CERT_FILE','CLEANOPS_PG_TLS_KEY_FILE','CLEANOPS_PG_TLS_CA_FILE','CLEANOPS_PG_HBA_FILE'],
+            ['/run/cleanops-pg-tls/server.crt','/run/cleanops-pg-tls/server.key','/run/cleanops-pg-tls/ca.crt',
+             '${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}']):
+            self.assertEqual(mount['type'], 'bind')
+            self.assertIs(mount['read_only'], True)
+            self.assertIs(mount['bind']['create_host_path'], False)
+            self.assertIn('${' + variable + ':?', mount['source'])
+            self.assertEqual(mount['target'], destination)
+        pg['volumes'] = pg['volumes'][:1]
+        self.assertEqual(hashlib.sha256(json.dumps(current, sort_keys=True).encode()).hexdigest(), original_sha256)
 
     def test_first_actor_ciphertext_bounds_and_pg_regex_quantifiers(self):
         import re

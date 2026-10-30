@@ -1,4 +1,184 @@
-# OPENBAO-STAGING-01 — preparación, 28/10/2026
+# OPENBAO-STAGING-01 — incremento operativo preparado, 30/10/2026
+
+## Plan vigente único: bootstrap administrativo y custodia de instalación
+
+PREPARADO, NO AUTORIZADO PARA EJECUCIÓN. Este apartado sustituye las propuestas
+operativas anteriores; se conserva debajo su historia, sin convertir sus comandos
+aislados en un procedimiento aplicable. No se crean archivos privados supuestos,
+identidades, credenciales, claves, certificados ni recursos por escribir este plan.
+
+Referencias GitHub revalidadas en lectura el 30/10/2026:
+staging=d3ea84b38fd1574db1610f03b59c8c4a5050ac72;
+prep/staging-runtime-custody-01=1bbb9fcac650ba7f2c973a5629931e94385cf217.
+El checkpoint local 34a425e conserva todo el delta previo de autenticación/Agent.
+La reconciliación local conserva la ascendencia y el contenido PG/TLS de staging;
+no actualiza ninguna referencia remota ni cambia la fuente configurada de Dokploy.
+
+### Estado confirmado y separación de credenciales
+
+El propietario conserva en KeePassXC la clave de desbloqueo de Bao y el token
+inicial. No hay administrador no root acreditado. La clave de desbloqueo no es
+una credencial administrativa ni una clave emisora PKI; no se utiliza mientras
+Bao permanece desellado y saludable. Bao 2.7.2, su endpoint https://openbao:8200,
+TLS/mTLS obligatorio y la IP 172.30.60.10 son observaciones comunicadas del VPS.
+No se ha inspeccionado aquí la imagen web desplegada ni se ha autenticado a Bao.
+
+Se propone una ceremonia inicial del propietario con el token inicial,
+exclusivamente para establecer la administración nominal. Requiere autorización
+expresa previa sobre recursos, policies, certificados públicos y hashes completos.
+No permite KV, claves de aplicación, Agent, SQL, build, despliegue ni activación
+durante esa sesión. El token inicial no entra en Agent/web, Compose, Git, CI,
+argumentos de procesos o logs. Su uso queda en una sesión privada del CLI oficial,
+con entrega desde KeePassXC por canal privado y tratamiento temporal en memoria.
+
+### Preparación offline: un expediente de instalación
+
+El propietario/custodio debe aportar y aprobar valores reales para los contratos
+existentes: FirstActorManifest, referencias/totpKeys de PrivateRuntimeConfiguration
+e inputs de prepare-b1-openbao.py. No se introduce otro contrato de provisioning.
+Se fijan installationId/tenantId comunes, operación inicial, datos del actor por
+canal privado, entorno, cinco referencias de claves y versiones, etiqueta TOTP,
+TTL/máximos, CIDR efectivo, identidades PKI y referencias de imagen/configuración.
+Los UUID de fixtures y los null de inputs.example.json no son datos operativos.
+Preparar el manifiesto no crea el tenant/actor en PostgreSQL.
+
+Las referencias mínimas del catálogo son totp-aead, otp-hmac, recovery-hmac,
+audit-hmac y cursor-hmac para un único tenant. Las versiones se fijan; no hay
+fallback a latest. Antes de autorizar se materializan nombres/rutas y hashes:
+E, T y K de las tablas siguientes son parámetros de revisión, nunca comodines
+que puedan instalarse como permisos. La autorización no se emite sobre huecos.
+
+El custodio PKI debe identificar la CA cliente ya confiada por el listener y
+emitir certificados cliente distintos para administrador nominal, custodio de
+claves y Agent. Para web se reutiliza su identidad de transporte si está acreditada;
+si falta, se autoriza una cuarta emisión. Ninguno reutiliza certificado o clave
+health. Son hojas CA:FALSE/clientAuth, CN exacto por identidad/entorno, clave privada
+protegida y cadena verificada. No se crea otra CA ni se cambia el trust del servidor.
+La emisión, vigencia, reemplazo y revocación corresponden al custodio identificado;
+esa capacidad PKI no se deduce de poseer la clave de desbloqueo.
+
+### Ceremonia inicial autorizable: solamente administración
+
+Con manifiesto y certificado administrativo preparados, el propietario verifica
+el destino y utiliza el token inicial para estas únicas altas:
+
+| Recurso nuevo | Contenido que debe aprobarse |
+|---|---|
+| auth/cleanops-operators-cert | Método cert, separado del futuro mount Agent |
+| sys/policies/acl/cleanops-installation-admin-<installationId> | Policy administrativa nominal con los permisos enumerados debajo |
+| auth/cleanops-operators-cert/certs/<administrador-nominal> | CA/CN administrativo exactos, esa única policy, sin default policy, TTL/máximo finitos y CIDR aprobado |
+
+Se abre después una sesión cert independiente, sin token inicial disponible en
+su entorno. Debe comprobar policy distinta de root, origen del login, ausencia
+de dependencia de un token padre inicial, TTL y capacidades/denegaciones previstas.
+La renovación y la recuperación por reemisión del certificado administrativo deben
+quedar bajo responsabilidad del custodio PKI. Si falla la comprobación, no se
+continúa con claves o Agent: se conserva el estado y se detiene la ceremonia.
+No existe cambio automático a root para resolver un error posterior.
+
+El cierre borra las copias temporales del token inicial. Su revocación debe figurar
+explícitamente en la autorización de la ceremonia y solo se realiza después de
+probar la administración independiente. Si no está incluida, permanece custodiado
+en KeePassXC y fuera del procedimiento posterior; no constituye un fallback.
+
+### Alcance administrativo y confianza depositada
+
+El operador es un administrador de IAM privilegiado y de confianza. Poder editar
+la policy asignada a Agent permite ampliar la autoridad de Agent; poder editar un
+binding permite cambiar policies/identidades asignadas. Acotar los endpoints de
+administración NO constituye un techo absoluto de la autoridad que puede delegar.
+La revisión del propietario, los hashes y la auditoría permiten controlar y
+atribuir su actuación; no impiden técnicamente que un escritor de ACL la amplíe.
+No se describe esta identidad como incapaz de escalar por esas vías.
+
+| Permisos administrativos propuestos | Alcance exacto antes de autorizar |
+|---|---|
+| read auth/token/lookup-self; update auth/token/renew-self | Su propia sesión administrativa |
+| read sys/auth; list sys/policies/acl | Metadatos para comprobar recursos/colisiones |
+| create/read/update/delete/sudo sys/auth/identity-agent-cert y sys/auth/cleanops-key-custody-cert | Solo los dos mounts nuevos de Agent y custodia; no el mount administrativo |
+| create/read/update/delete auth/identity-agent-cert/certs/identity-verifier y auth/cleanops-key-custody-cert/certs/key-custodian | Solo sus bindings propuestos |
+| create/read/update/delete sys/policies/acl/<P_agent>, <P_creator>, <P_catalog> | Tres nombres completos fijados para E/T; no su propia policy administrativa |
+| create/read/update/sudo sys/mounts/b1-keys; read/update b1-keys/config | Solo para instalar KVv2/CAS si se confirma ausente; un mount existente incompatible bloquea, no se reconfigura automáticamente |
+| update auth/token/lookup | Inspección nativa con token objetivo en entrada privada; la ACL no restringe esta consulta únicamente al token Agent |
+
+P_agent es b1-<E>-<T>-identity-verifier, conforme al renderer. P_creator y P_catalog
+se proponen como b1-<E>-<T>-key-creator y b1-<E>-<T>-key-catalog-reader. Esta es una
+propuesta de recursos/privilegios para autorización, no un renderer administrativo
+implementado ni una policy instalada. No hay sys/* genérico, token creation API,
+snapshot/restore ni acceso KV de datos directo para la sesión administrativa.
+
+### Operaciones posteriores, exclusivamente con administración no root
+
+1. Contrastar metadatos del mount KVv2/CAS y las cinco referencias aprobadas. Si
+   el mount no existe, solicitar su alta exacta; conservar todo mount/clave existente.
+   Instalar P_creator (create en los cinco paths data exactos) y P_catalog (read en
+   sus cinco paths metadata exactos), reutilizando el modelo de ACL del renderer.
+   Un binding cert en cleanops-key-custody-cert entrega solo esas dos policies al
+   custodio, sin default policy y con TTL/CIDR explícitos. No las recibe Agent/web.
+2. El custodio genera en privado exclusivamente las claves que falten: 32 bytes
+   por referencia, value en base64 canónico, CAS=0. Se conserva recibo privado de
+   versión/procedencia; no se sobrescribe, regenera o reintenta ante resultado
+   incierto. Metadatos y auditoría atribuida deben resolverlo; la mera existencia
+   de versión 1 no prueba su origen. Si no se demuestra, se detiene la operación.
+   Tras confirmar el catálogo, deshabilitar el mount de custodia revoca sus tokens.
+3. Renderizar offline el modo --agent-cert existente con el catálogo real. Aplicar
+   únicamente P_agent y el mount/binding dedicado revisados. Si una policy ya existe,
+   comparar sus bytes/semántica y detenerse ante diferencias; no ampliar ni reemplazar
+   automáticamente una policy compartida con AppRole u otro workload.
+4. Instalar el servicio común deploy/openbao/compose.agent.yaml usando la imagen
+   existente 2.7.2 fijada por ID/digest, TLS propio RO y la red Bao existente. El
+   UID/GID se contrasta con el consumidor real; sink tmpfs 0700/token 0600, Agent RW
+   y web RO. Agent renueva y reautentica; al reiniciar elimina el sink anterior.
+   El lector no usa mtime/existencia como prueba de vigencia ni reintenta efectos SQL.
+5. Preparar una imagen web revisada del SHA de este incremento con el Dockerfile
+   existente, sin instalar Python. El renderer es herramienta offline. La imagen
+   contiene lector TS y JSON por COPY /app /app y requiere Node 24. El source
+   staging 198b4e41 no exporta ese lector; no se presume que la imagen desplegada lo
+   contenga. Registrar ID/digest, source SHA, Node y UID/GID de la imagen elegida.
+   Build, eventual descarga de dependencias y recreación selectiva web requieren
+   autorización propia. closedBackend permanece predeterminado incluso en esa imagen.
+6. Mantener el mismo Compose Path de Dokploy y Autodeploy OFF. Incorporar el include
+   común a la fuente Git cuando se autorice su publicación/integración y persistir
+   sus entradas privadas en Dokploy. Añadir solo identity-agent a los perfiles que
+   ya existan. Preservar el Compose efectivo y sus dominios/etiquetas/redes; no
+   sustituirlo con una copia histórica ni recrear PostgreSQL/Bao para instalar Agent.
+
+### Aceptación y cierre operativo del mismo incremento
+
+La autorización nativa posterior debe identificar SHA, hashes, identidades,
+recursos y ventana temporal. Sin imprimir tokens/accessors/hashes de correlación:
+comprobar login cert real y policies; observar renovación AUTOMÁTICA con aumento
+de TTL del mismo token y evento renew-self; observar nueva autenticación y token
+distinto al alcanzar el máximo; comprobar invalidación del token anterior y
+rechazo de nuevo login al deshabilitar el mount dedicado; recuperar con la misma
+composición y PKI autorizada. Un inspector privilegiado compara en memoria y
+devuelve solo resultados/estado/TTL permitidos, nunca respuestas originales.
+
+La lectura nativa del tmpfs se realiza en la imagen web aprobada con su usuario
+real y createAgentSinkToken, incluidos los rechazos por permisos/symlink y montaje
+RO. Acredita el acceso al sink; la vigencia se comprueba por separado contra Bao.
+No se agrega lookup-self a P_agent para facilitar la prueba ni se leen valores KV
+en su salida. La auditoría existente se utiliza para esos eventos nuevos; no se
+repite AUD-031 ni se habilita log_raw.
+
+En una retirada: detener admisión privada si llegó a autorizarse, impedir reauth
+deshabilitando el mount Agent propio y revocando sus tokens, detener Agent y
+limpiar el sink. Si falla el acceso administrativo, detener Agent y conservar
+estado de revocación remota NO COMPROBADO; nunca usar el token inicial como fallback.
+Retirar únicamente identity-agent de los perfiles persistentes. El volumen tmpfs
+se elimina solo tras desmontar todos sus consumidores y verificar propiedad.
+La revocación PKI la ejecuta su custodio; se conservan manifiestos/recibos/auditoría.
+
+La aceptación FIRST-ACTOR del run 40869443575 ya fue acreditada por el propietario:
+no se repite. La incremental sigue siendo propuesta y migrations=[] permanece
+vacía; su eventual aplicación/provisión requiere MIGRATIONS-01 y autorización
+distinta. SQL14 no se reinstala. No hay aceptación de login web ni activación
+por aprobar esta preparación. CRM, R4, AUD-031, PG/TLS y controles históricos se
+conservan. Datos aún necesarios: manifiesto real, operador/custodio PKI nominales,
+certificados/clave privada por canal privado, TTL/CIDR efectivos, imágenes/UID/GID
+verificados y autorización explícita del conjunto de operaciones anterior.
+
+## Histórico conservado — preparación del 28/10/2026
 
 No instalado ni autorizado a aplicar. Base remota verificada: staging
 `a217cfeda74431b77ffa30d117febb62695c70d0`. CRM-01 permanece en
