@@ -71,7 +71,9 @@ class WebCompose(unittest.TestCase):
             operative_path = Path(directory, 'operative.json')
             operative_path.write_text(json.dumps(operative))
             before = render([operative_path])
-            reconciled = render([operative_path, files[2], files[-1]])
+            reconciled = render([operative_path, files[-1]])
+            self.assertNotIn('openbao-agent', reconciled['services'])
+            self.assertEqual(before['services'].keys(), reconciled['services'].keys())
             for name in ('postgres', 'openbao'):
                 self.assertEqual(before['services'][name], reconciled['services'][name])
             self.assertEqual(reconciled['services']['web']['labels'], before['services']['web']['labels'])
@@ -81,6 +83,7 @@ class WebCompose(unittest.TestCase):
 
     def test_overlay_requires_an_explicit_private_package(self):
         env = {k: v for k, v in os.environ.items() if k != 'CLEANOPS_B1_PRIVATE_DIR'}
+        env.update(CLEANOPS_STAGING_WEB_IMAGE='web:fixture', CLEANOPS_AGENT_NETWORK='bao-fixture', CLEANOPS_COMPOSE_PROJECT='b1-fixture')
         result = subprocess.run(['docker', 'compose', '-f', str(ROOT / 'deploy/staging/compose.b1-web.yaml'), 'config'],
                                 env=env, capture_output=True)
         self.assertNotEqual(result.returncode, 0)

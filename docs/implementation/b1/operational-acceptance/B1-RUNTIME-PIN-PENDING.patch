@@ -1,0 +1,11 @@
+--- a/scripts/check-semgrep-reviewed.py
++++ b/scripts/check-semgrep-reviewed.py
+@@ -20,7 +20,7 @@
+ # pinned byte-for-byte; no new false-positive exception is approved.
+ B1_APPROVED_BACKEND_BLOB = '1170521306efff0ecd561396c8096c29818b31b5'
+ B1_RETIRED_FINDING = 'FP-09'
+-B1_RUNTIME_BLOB = 'b08b01fe13de2376d56af7958489d9b1f9de9da0'
++B1_RUNTIME_BLOB = 'f0e91a5ec8a799692947000bff10a7743322015b'
+ 
+ 
+ def git_blob_digest(path):

@@ -90,7 +90,7 @@ identidad. Se añaden tests del cargador/contexto y del merge efectivo de Compos
 la plantilla JSON es el input revisable del cargador, deliberadamente incompleto.
 El overlay web añade solo los montajes/red privada y core=0. El volumen Agent
 existente pasa a external: Compose no lo crea, relabela ni borra. Reversión:
-retirar overlay/imagen y recuperar el único Agent anterior detenido. Riesgos
+retirar overlay/imagen web; conservar el Agent existente activo sin cambios. Riesgos
 cubiertos: cruce entre peticiones, bundle aislado de Next, datos privados,
 configuración incompleta y duplicación del escritor del sink. No se amplían
 permisos SQL, tenant, roles, bootstrap ni autoridad del primer actor.
@@ -185,112 +185,104 @@ Copiar CA/cert/key Bao solo tras la autorización del punto 5. No montar todo el
 directorio TLS Agent: solo los archivos web aprobados en el paquete RO.
 Verificar propietario/modo/tamaño/hash de las copias sin mostrar contenido.
 
-### Reconciliación y despliegue manual (NO EJECUTADOS)
+### Procedimiento operativo consolidado — SOLO WEB, NO EJECUTADO
 
-Precondición: paquete y código de integración aprobados; imagen web construida
-del commit revisado y fijada por digest; Autodeploy OFF. No cambiar la fuente de
-Dokploy a esta rama, no merge ni despliegue general. La aceptación FIRST-ACTOR
-histórica no autoriza una ceremonia nueva. No se incluye migración SQL alguna.
+Este es el UNICO procedimiento vigente de activacion. Sustituye el traspaso
+anterior del Agent a Compose: el propietario exige reutilizar el Agent existente.
+No se detiene, renombra, adopta, reinstala ni sustituye ese contenedor. No se
+activa identity-agent ni se agrega un segundo servicio Agent al Compose vivo.
+La gestion Compose del Agent queda fuera de esta activacion, sujeta a otra decision.
+El overlay web declara directamente su red y sink como external: funciona aunque
+el Compose vivo no contenga la definicion canonica del Agent. No crea volumen/red.
 
-**1. Preservar y preparar.** En una ventana del propietario, guardar privadamente
-el Compose operativo, .env, ficheros deploy/openbao no rastreados y metadatos de
-imagen/nombre/mounts/redes/policy de restart del Agent y web. No adjuntar inspect
-completo/env/HCL a Git o al chat. Obtener el candidato en un worktree separado
-fijado al SHA revisado; no hacer checkout/reset sobre el árbol operativo sucio.
-Preparar el paquete privado y una copia de agent.hcl solo si hay que reconciliar
-rutas: conservar auth mount/name, CA/cert/key, dirección y sink existentes.
-El Compose canónico monta HCL en `/etc/cleanops-agent/agent.hcl` y TLS en
-`/run/cleanops-agent-tls`; los paths referidos en HCL deben resolver con esos
-montajes a los archivos existentes. No cambiar identidad/policy/token ni emitir
-material. `CLEANOPS_AGENT_IMAGE` debe ser la imagen existente verificada,
-CLEANOPS_COMPOSE_PROJECT=cleanops360-f4fxmd, UID/GID=999 y
-CLEANOPS_AGENT_NETWORK la red Bao privada OBSERVADA (no inventar su nombre).
+**A. Decisiones previas (sin comandos de activacion).**
 
-**2. Revisar la fusión antes de tocar contenedores.** Mantener como primer `-f`
-el Compose operativo ORIGINAL con sus includes, redes, labels y TLS/HBA.
-Si ya incluye Agent, actualizar únicamente la definición canónica del sink a
-external y conservar su configuración. Si no lo incluye, pasar el archivo
-`deploy/openbao/compose.agent.yaml` del candidato como segundo `-f`, UNA vez.
-Añadir `deploy/staging/compose.b1-web.yaml` al final. Persistir el equivalente
-exacto de esa selección en Dokploy para que un despliegue posterior no lo pierda.
-Si Dokploy solo admite un Compose Path, preparar una copia reconciliada del
-operativo conservando sus includes (usar paths relativos válidos o absolutos
-aprobados), incorporar Agent una vez y los cambios del overlay únicamente en
-web; revisar esa copia como config efectiva antes de seleccionarla.
+- Revision independiente del runtime, del pin propuesto y de los tres imports
+  indicados en el apartado Quality. Aprobar el cambio exacto y resolver TODOS los
+  hallazgos con el procedimiento canonico antes de exigir Quality completo PASS.
+  El parche PENDING no es una aprobacion ni debe aplicarse por esta instruccion.
+- Aprobar un manifiesto privado completo segun ReviewedInstallationManifest:
+  tenant y cinco key IDs/versiones/keyVersion desde la evidencia existente,
+  PG/origen web/listener/Bao y presupuestos exactos. No rehacer SQL14 ni claves.
+- Aportar el corpus versionado/checksum, dummy PHC y politica de limites; aprobar
+  la normalizacion del provisionador y el origen verificable de dimensiones de
+  ingreso. Instalar integration.mjs revisado con hash y acta, nunca constantes
+  o headers arbitrarios como autoridad. No hay estos valores acreditados en Git.
+- Autorizar expresamente el uso por Next de una identidad TLS existente, su
+  certificado PEM exacto y copia de clave privada. El permiso de Agent no basta;
+  sin ese permiso no copiar su clave. No se emiten CA/certificados ni credenciales.
+- Aprobar SHA e imagen web con digest, ventana, actor de prueba y rollback. Una
+  ceremonia de primer actor, si hiciera falta, requiere aprobacion independiente;
+  el despliegue no crea usuarios. No merge a staging ni activacion automatica.
 
-Guardar en privado `docker compose ... config --format json` antes/después.
-Comparar: PG y Bao idénticos; ninguna publicación de puertos; web conserva sus
-redes/labels Dokploy y añade identity_bao + sink RO + paquete RO; Agent es el único
-RW; volumen existente `cleanops360-f4fxmd_identity_agent_sink` external, mismo
-nombre/opciones reales. El overlay no concede permisos de archivos. Fijar CLEANOPS_STAGING_WEB_IMAGE al digest candidato ya disponible localmente; el
-overlay selecciona solo esa imagen web con pull_policy=never. Conservar
-la imagen web anterior, conservando la referencia anterior para volver.
-No ejecutar si la configuración efectiva modifica otros servicios o duplica Agent.
+**B. Preparacion privada y revision efectiva, a cargo del propietario.**
 
-Con variables de shell locales ya revisadas, la única invocación seleccionada es:
+Con Autodeploy OFF, conservar Compose operativo, .env y ficheros locales no
+rastreados en backup privado; registrar imagen y montajes web previos y el estado
+actual del Agent/PG/Bao. No volcar inspect/env/HCL a Git o al chat. Obtener el
+candidato en checkout/worktree separado, sin sobrescribir el arbol operativo.
+Preparar el paquete root:999/0750 y archivos root:999/0440 fuera del checkout,
+como se detalla arriba. Reutilizar copias del password de servicio y CA existentes;
+conservar originales y no usar bootstrap. TLS web solo despues de la aprobacion.
+La imagen revisada ya debe estar disponible localmente; no build/pull en ventana.
+
+Mantener el Compose operativo como primer archivo; anadir UNICAMENTE
+compose.b1-web.yaml del candidato. El overlay agrega imagen web fijada,
+core=0, paquete RO y sink RO, conservando las redes/labels Dokploy heredadas.
+CLEANOPS_COMPOSE_PROJECT debe ser cleanops360-f4fxmd; CLEANOPS_AGENT_NETWORK es
+el nombre de red Bao realmente observado; CLEANOPS_B1_PRIVATE_DIR y
+CLEANOPS_STAGING_WEB_IMAGE son los valores aprobados, no secretos ni defaults.
+El sink external es cleanops360-f4fxmd_identity_agent_sink, ya verificado tmpfs.
+No agregar compose.agent.yaml si el Compose vivo no lo incluye. Si ya lo incluye,
+conservarlo con perfil inactivo: el comando selectivo tampoco inicia ese servicio.
+No usar --profile identity-agent ni cambiar COMPOSE_PROFILES para esta activacion.
+
+El propietario fija ENV_FILE, LIVE_COMPOSE y CANDIDATE a sus rutas aprobadas.
+Guardar privadamente config efectiva antes/despues y compararla: PG/Bao/Agent
+identicos, ningun servicio nuevo, ningun puerto publicado, redes/labels previas
+web conservadas, exactamente los montajes RO y la imagen web previstos. Los
+external deben apuntar a recursos existentes; rechazar diferencias ajenas a web.
+
+**C. Ejecucion manual aprobada (una actualizacion selectiva).**
 
 ```bash
-# Valores que el propietario fija a sus rutas existentes/aprobadas; no secretos.
-# ENV_FILE: .env operativo; LIVE_COMPOSE: Compose operativo conservado.
-# CANDIDATE: worktree candidato; AGENT_FILE_ARGS: array vacío si ya está incluido,
-# o (-f "$CANDIDATE/deploy/openbao/compose.agent.yaml") si falta.
 B1_COMPOSE=(docker compose --env-file "$ENV_FILE" -p cleanops360-f4fxmd
-  -f "$LIVE_COMPOSE" "${AGENT_FILE_ARGS[@]}"
-  -f "$CANDIDATE/deploy/staging/compose.b1-web.yaml" --profile identity-agent)
+  -f "$LIVE_COMPOSE" -f "$CANDIDATE/deploy/staging/compose.b1-web.yaml")
 "${B1_COMPOSE[@]}" config --quiet
-```
-
-La configuración seleccionada debe apuntar a la imagen web ya revisada y al
-paquete privado; no ejecutar build durante la ventana. No usar `up` sin servicios,
-`down`, `down -v`, `--remove-orphans` o `--force-recreate` del stack.
-
-**3. Traspasar el Agent con un único escritor.** Docker no permite adoptar un
-contenedor añadiendo las labels Compose después de crearlo. Hay que sustituir
-SOLO el Agent, conservando el anterior detenido para rollback. Cerrar el ingreso
-de login durante la ventana y drenar peticiones. Si la web anterior ya usa el
-sink, detener SOLO web antes del traspaso. No tocar PG/Bao ni cleanops-dcc-*.
-Verificar que el nombre de reserva siguiente está libre; no sobrescribirlo.
-
-```bash
-# Ejecuta el propietario, únicamente tras revisar los pasos 1–2.
-docker update --restart=no cleanops360-f4fxmd-openbao-agent-1
-docker stop cleanops360-f4fxmd-openbao-agent-1
-docker rename cleanops360-f4fxmd-openbao-agent-1 cleanops360-f4fxmd-openbao-agent-before-b1
-"${B1_COMPOSE[@]}" up -d --no-deps --no-build --pull never openbao-agent
-# Esperar token nuevo, metadatos 0700/0600 y UID:GID 999:999 y Agent running;
-# no imprimir token ni interpretar mtime como vigencia.
+# SOLO tras aprobar el diff efectivo y drenar/cerrar temporalmente el ingreso B1:
 "${B1_COMPOSE[@]}" up -d --no-deps --no-build --pull never web
 ```
 
-El nuevo Agent usa el volumen EXISTENTE y limpia el token viejo al arrancar.
-Durante la transición el anterior tiene restart=no y permanece detenido: no
-hay dos procesos escribiendo en el sink. No borrar el contenedor de reserva ni
-el volumen antes de aceptar el resultado. PG/Bao no son dependencias a recrear:
-`--no-deps` y la lista explícita de servicios son obligatorios.
+No up general, down, --remove-orphans, restart Agent, borrado de volumen ni
+comando sobre PG/Bao/cleanops-dcc-*. El Agent existente sigue siendo el unico
+escritor; Next solo lee su token. No es necesario adoptar el Agent para leerlo.
+Persistir posteriormente en Dokploy el equivalente revisado de este overlay
+antes de cualquier futuro despliegue; hacerlo es operacion del propietario,
+no una accion remota de Codex ni permiso de deploy automatico. Si la interfaz
+solo admite un Compose Path, preparar una copia reconciliada del vivo con estos
+cambios web/refs external, conservando sus includes y comparar el render antes
+de seleccionarla. No sustituirlo por el Compose del repositorio.
 
-**4. Comprobar y abrir ingreso.** Registrar SHA/digest efectivo, montajes RO,
-UID/GID, redes/labels conservadas y metadatos del nuevo Agent. Ejecutar el checker
-metadata-only existente solo ahora, porque cambiaron los montajes; no repetir
-SQL14, creación de claves, roles ni pruebas del Agent ya acreditadas. Health web
-200 no prueba B1. En una sesión aprobada comprobar login → selección TOTP si
-corresponde → verificación → sesión/consulta/revocación, sin exponer cookies o
-secretos; casos inválidos sin sesión. Para fallos usar primero fixtures/harness
-local; no detener PG/Bao compartidos. Un ensayo operativo posterior necesita
-ventana propia: revocación/expiración de token y denegación de Bao/PG deben dar
-503 sin cookie/efectos nuevos, sin retry SQL ni fallback. No mutar claves o
-bindings compartidos para probar. Registrar PASS/FAIL con evidencia real y
-separarlo de los ensayos locales. Si falta primer actor, ceremonia existente con
-aprobación independiente antes de probar credenciales; no crear usuarios al arrancar.
+**D. Verificacion y apertura del ingreso.**
 
-**5. Rollback.** Cerrar ingreso; detener SOLO web nueva y Agent Compose. Verificar
-que el Agent nuevo está detenido antes de retirar SOLO ese contenedor (sin -v).
-Renombrar `...-openbao-agent-before-b1` a su nombre original, restaurar su policy
-de restart OBSERVADA y arrancarlo con su HCL/TLS previos; limpiar el token anterior
-mediante el mismo procedimiento de arranque aprobado, sin editarlo a mano ni
-aceptarlo por mtime. Restaurar imagen/config/montajes web anteriores y levantar
-SOLO web con `--no-deps --no-build --pull never`; si la anterior era cerrada,
-volver a ese estado. Retirar la selección overlay de Dokploy, conservando las
-copias/evidencia privadas. No borrar volúmenes, rollback SQL, claves ni datos.
+Conservar SHA/digest, mounts/UID/GID y red efectivos. El checker metadata-only
+existente se justifica ahora porque cambiaron los mounts web; no repite la
+instalacion ni las comprobaciones PG/Bao ya acreditadas. Health web 200 no prueba
+B1: comprobar con actor aprobado login, seleccion TOTP cuando corresponda,
+verificacion, consulta/revocacion de sesion y errores sin cookie. Registrar
+PASS/FAIL reales sin secretos. Los fallos PG/Bao/token se cubren primero por
+fixtures ya ensayados; un ensayo operativo necesita ventana propia, sin parar
+PG/Bao compartidos, rotar claves ni modificar bindings. Cualquier fallo debe
+cerrar admision; no hay retry SQL, fallback ni credencial bootstrap.
+
+**E. Rollback exclusivamente web.**
+
+Cerrar ingreso y drenar la web nueva. Recuperar la imagen web anterior y los
+ficheros/config/montajes previos conservados en B; ejecutar la seleccion previa
+con --no-deps --no-build --pull never web. Retirar el overlay de la seleccion
+persistente, conservando evidencia privada. Si antes estaba closedBackend,
+volver a ese estado. Agent, token administrado, SQL14, PG/Bao, claves, certificados,
+redes y volumen no requieren ningun rollback ni recreacion porque no se tocaron.
 
 ### Dependencias que todavía no acredita el repositorio
 
@@ -300,7 +292,7 @@ copias/evidencia privadas. No borrar volúmenes, rollback SQL, claves ni datos.
 | Corpus operativo + checksum/versión, dummy PHC y límites lifetime/TOTP | Aportar snapshot/hash y parámetros canónicos; no copiar fixtures ni crear credenciales | Owner de política/instalación |
 | Regla de email del provisionador y fuente verificable del contexto de ingreso | Revisar y aportar integration.mjs con el contrato anterior, pin/acta; el resolver debe autenticar datos antes de devolverlos | Sí; la evidencia no permite inventar esa confianza |
 | Alcance de uso web del certificado/clave existente | Autorizar explícitamente la identidad elegida y su pin PEM; preparar solo copias RO | Sí; el permiso para Agent no autoriza Next |
-| Reconciliación de archivos vivos, montaje y sustitución Agent/web | Propietario aplica pasos 1–5 con comparación efectiva y ventana | Ejecución manual fuera de Codex |
+| Reconciliación de archivos vivos y montaje/imagen exclusivamente web | Propietario aplica fases A–E con comparación efectiva y ventana, sin tocar Agent | Ejecución manual fuera de Codex |
 | Login/MFA en staging | Probar con actor autorizado y registrar evidencia; ceremonia separada si procede | Sí para ceremonia/ensayo operativo |
 
 B1 no se declara operativo ni cerrado con estas dependencias pendientes. La
@@ -429,3 +421,125 @@ no se altera un control aprobado para cerrar B1 ni se da por superada la revisio
 independiente. Los comentarios/documentacion posteriores no cambian el runtime
 ni los resultados funcionales; el commit final los conserva como evidencia del
 SHA ensayado, sin atribuir a un run resultados que todavia no haya producido.
+
+
+## Continuacion autorizada desde 7cabce3 — cierre de repositorio
+
+Alcance QG-0 de este incremento: resolver el formato del PR existente, preparar
+la revision exacta del pin sin autoaprobarla y hacer autosuficiente el overlay
+para reutilizar Agent ya en ejecucion. Se reutilizan el guard, ledger, plantilla
+PR, lector privado, overlay y harness Compose existentes. No se cambia ningun
+contrato de runtime ni se repiten los 284 tests o el build ya validos. Unico
+archivo nuevo: B1-RUNTIME-PIN-PENDING.patch, artefacto NO ejecutado, dueno del
+control de seguridad, consumidor el revisor independiente; se retira/aplica solo
+tras dictamen y autorizacion exactos. No es otro checker ni otra fuente runtime.
+
+### engineering-policy resuelto
+
+Se actualizo el cuerpo de PR 31 con la plantilla canonica, conservando titulo,
+base staging, condicion draft y alcance. Se conserva INTEGRO su cuerpo anterior
+en un apartado de historico citado: enlaces de evidencia, decisiones y advertencias
+originales siguen accesibles. No se publico comentario ni se abrio otro PR.
+El validador exacto de staging d3ea84b dio PASS local y el check remoto dio
+**PASS**: https://github.com/novo34/cleanops-360/actions/runs/41132240829 .
+Este PASS documental no aprueba codigo, excepciones, merge ni activacion.
+
+### Quality: diagnostico completo y propuesta pendiente de aprobacion
+
+El ultimo pin activo viene de 2b60fcde4355d6668dff1296af829ba9feb86518, que
+fijo b08b01fe13de2376d56af7958489d9b1f9de9da0. El cambio funcional autorizado
+71a95ce083aaa22e9953aa90eb2fa608605693bb produce el blob
+f0e91a5ec8a799692947000bff10a7743322015b. El guard compara bytes exactos como
+limite de una revision independiente anterior; no evalua legitimidad de nuevos
+bytes ni se actualiza automaticamente porque los tests pasen.
+
+Legitimidad documentada por el AUTOR, sin sustituir revision independiente:
+la modificacion recibe un scope exclusivamente del startup revisado, comparte
+backend entre bundles Node, mantiene denegacion de doble instalacion y cierre,
+y contabiliza peticiones activas para drain. No acepta backend por HTTP/ENV,
+credenciales bootstrap ni datos empresariales nuevos. La regresion previa carga
+dos copias independientes y verifica instalacion unica, estado compartido y drain;
+forma parte de los 284 PASS ya conservados. Runtime sigue byte a byte igual a 7cab.
+
+B1-RUNTIME-PIN-PENDING.patch contiene el DIFF EXACTO de una linea para el pin.
+`git apply --check` da PASS, pero NO se aplico. El checker activo, manifest historico,
+reglas, severidad, paths y supresiones permanecen intactos. Para aplicarlo hacen
+falta dictamen independiente y autorizacion sobre esos bytes; despues se publica
+el cambio normal en esta rama, sin force push. No existe excepcion automatica por
+tratarse de B1, ni se agrega nosemgrep o una exclusion para que pase.
+
+Se ejecuto Semgrep 1.177.0 con el mismo comando canonico, --error,
+--disable-nosem, metricas/version-check desactivados y solo las exclusiones de
+fixtures PREEXISTENTES. El motor termino con codigo 1 por 19 hallazgos y el unico
+warning upstream de parser ya revisado. Al evaluar en una simulacion temporal
+UNICAMENTE el pin propuesto: los 16 hallazgos historicos restantes son reconocidos,
+el warning conserva su pin y quedan TRES hallazgos nuevos sin clasificar/aprobar:
+
+| Archivo y linea | Procedencia que debe revisar seguridad |
+|---|---|
+| instrumentation.ts:6 | Especificador literal de modulo del repositorio, dentro de la rama Node de register |
+| instrumentation.ts:8 | Especificador literal del startup existente, sin datos de peticion |
+| lib/b1/reviewed-site-installation.ts:44 | Codigo privado ejecutable: bytes de archivo root:999/0440 y checksum aprobados antes de import nativo; alcance/efectos/imports del modulo requieren revision |
+
+Cambiar SOLO el pin NO hace Quality PASS. El revisor debe evaluar tambien esos
+sitios con su contexto y decidir la correccion o migracion canonica de entradas
+exactas por regla/rango/snippet y hashes de productor. El ledger historico es
+inmutable; no se inventa una clasificacion confirmed_false_positive ni se concede
+una supresion global. El cargador privado no es codigo enviado por navegador.
+Pero su checksum/propietario no sustituyen la aprobacion independiente del patron.
+
+Se ejecutaron las 16 regresiones del guard con el pin candidato solamente en
+memoria de un proceso de prueba: **16 PASS**. Esto valida que la propuesta no
+relaja las propiedades de integridad del guard; NO es Quality PASS ni cambia el
+valor activo. La evaluacion del scan con esa propuesta da **FAIL por los tres
+hallazgos anteriores**, rules_disabled=[], inline_suppressions_enabled=false.
+
+Hashes SHA-256 de archivos completos que debe fijar la revision pendiente:
+- `lib/b1/runtime.ts`: `30c9d61e09e11bc8e21caf5fec3150dec979ec851a812db384c250cdd123872f`.
+- `instrumentation.ts`: `70a511cea1270b21e121c232649193f7cac94ff68665484f8671ee07ad32e7a2`.
+- `lib/b1/reviewed-site-installation.ts`: `867ea66ddfe950b83aaccce0e29dd50744cdaaf5edfa354f3545976c80a762c6`.
+- `scripts/check-semgrep-reviewed.py`: `d1863a99c8285dd44b5009e7fe1c9f20f5cefc8b5083b67077afd66bda9d049e`.
+- `.semgrep/reviewed-findings.json`: `2605f29d3d2bf8d4bd36d7df5d9f7d501a69bb96410404a3ed01c3dc4eb31448`.
+- `.semgrep/cleanops-foundation.yml`: `30ed5e227fafb8b53a794ec2ebb808447bee752679779fadf82aaa7a44ecd681`.
+
+### Dependencias privadas: resultado de la revision dirigida
+
+Las fuentes vigentes siguen delegando normalizacion al provisionador y dimensiones
+a ingreso confiable (APPROVED_ADAPTER y contrato de first-actor); no hay una regla
+concreta ni un emisor/verificador de contexto aprobado que se pueda implementar
+por deduccion. El SQL de runtime-catalog es un instrumento de revision de contratos,
+no un acta de key IDs operativos. La plantilla de instalacion conserva null donde
+faltan esas decisiones; el cargador la rechaza como corresponde. No se eligio una
+politica nueva de correo, un corpus arbitrario, un dummy ni una identidad PKI.
+
+Accion minima, por canal privado: el owner/custodio debe aportar el catalogo ya
+aprobado y endpoints/presupuestos; indicar regla exacta del provisionador y fuente
+verificable del contexto para terminar el modulo de sitio; entregar snapshot de
+corpus/version/checksum y PHC dummy; autorizar uso web del certificado existente
+y copias RO. Los contratos, chequeos, aislamiento, lectura, pin y wiring ya estan
+implementados. No requiere nuevos roles, contrasenas, claves, CA o certificados.
+
+### Pruebas nuevas y reutilizacion de evidencia
+
+- 2/2 tests Compose PASS: overlay sobre canonico y sobre Compose sin servicio
+  Agent, recursos externos existentes, sin agregar Agent, PG/Bao iguales,
+  montajes RO y labels conservadas; negativo determinista de paquete ausente.
+- 16/16 regresiones del guard candidato PASS en simulacion aislada, no cambio activo.
+- Cuerpo PR: validador canonico local y engineering-policy remoto PASS.
+- Scan Semgrep completo ejecutado: 19 hallazgos, 3 nuevos pendientes; no se informa PASS.
+- PASS de B1 preparacion, proxy y preparacion staging reutilizados de 7cab:
+  https://github.com/novo34/cleanops-360/actions/runs/41131270143 ,
+  https://github.com/novo34/cleanops-360/actions/runs/41131278978 ,
+  https://github.com/novo34/cleanops-360/actions/runs/41131278892 .
+  Esos runs no se atribuyen a un SHA posterior. Los 284 tests y build no se repiten
+  porque no ha cambiado ningun contrato/codigo de aplicacion.
+- Quality remoto previo FAIL: https://github.com/novo34/cleanops-360/actions/runs/41131279013 .
+
+Estado vigente: **BLOCKED**, por aprobacion de seguridad (pin y tres imports) y
+por artefactos/decisiones privadas enumerados arriba. engineering-policy ya esta
+resuelto. El procedimiento A–E es unico, reutiliza el Agent actual y actualiza
+solo web. No se ha ejecutado nada sobre VPS ni se declara login/TOTP operativo.
+
+Gitleaks 8.24.3 sobre los cuatro archivos de este incremento: PASS, cero
+hallazgos. git diff --check y git apply --check del parche PENDING: PASS.
+El parche no esta aplicado: git diff del checker y del ledger aprobado queda vacio.

@@ -1,5 +1,6 @@
 # Opt-in web binding. Merge with the PRESERVED operative Compose, never replace it.
-# Does not define/recreate PG or Bao. Include canonical Agent resources exactly once.
+# Reuses the existing Agent network/sink without defining or starting an Agent.
+# The running docker-run Agent remains its sole writer.
 services:
   web:
     image: ${CLEANOPS_STAGING_WEB_IMAGE:?Verified prebuilt web image with digest required}
@@ -19,3 +20,12 @@ services:
       - identity_bao
     ulimits:
       core: {soft: 0, hard: 0}
+
+networks:
+  identity_bao:
+    external: true
+    name: ${CLEANOPS_AGENT_NETWORK:?Existing private Bao network required}
+volumes:
+  identity_agent_sink:
+    external: true
+    name: ${CLEANOPS_COMPOSE_PROJECT:?Explicit installation project required}_identity_agent_sink
