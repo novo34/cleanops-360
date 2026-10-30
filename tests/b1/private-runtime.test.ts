@@ -109,11 +109,11 @@ test('same selected composition serves bootstrap and HTTP transactions with real
 
 test('separately evaluated Next bundles share startup runtime, request scope and shutdown drain', async () => {
  const probe = async (runtimeUrl: string) => {
- // nosemgrep: cleanops-code-execution-import -- parent supplies a fixed local test module.
+ // Trust boundary: parent supplies a fixed local test module.
  const runtime = await import(runtimeUrl)
  const copyUrl = new URL(runtimeUrl)
  copyUrl.search = '?b1-independent-bundle'
- // nosemgrep: cleanops-code-execution-import -- fixed local test module with cache-busting query, no user input.
+ // Trust boundary: fixed local test module with cache-busting query, no user input.
  const other = await import(copyUrl.href) as typeof runtime
  assert.notEqual(runtime.installTrustedRuntime, other.installTrustedRuntime)
  let entered!: () => void, release!: () => void

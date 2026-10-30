@@ -40,7 +40,7 @@ async function loadIntegration(spec: ReviewedInstallationManifest['integration']
   try {
     if (!/^[a-f0-9]{64}$/.test(spec.sha256) || sha256(bytes) !== spec.sha256) throw invalid()
     const url = 'data:text/javascript;base64,' + bytes.toString('base64')
-    // nosemgrep: cleanops-code-execution-import -- owner-controlled private file, strict metadata and SHA-256 checked above; no HTTP/ENV source.
+    // Trust boundary: owner-controlled private file, strict metadata and SHA-256 checked above; no HTTP/ENV source.
     const module = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ url)
     if (typeof module.normalizeEmail !== 'function' || typeof module.resolveRequestContext !== 'function') throw invalid()
     return { normalizeEmail: module.normalizeEmail, resolveRequestContext: module.resolveRequestContext }

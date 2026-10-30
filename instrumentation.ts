@@ -2,9 +2,9 @@
 export async function register() {
   // Next.js invokes register for each runtime; only the Node server owns B1.
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
-  // nosemgrep: cleanops-code-execution-import -- fixed repository module, Node-only import per Next instrumentation contract.
+  // Trust boundary: fixed repository module, Node-only import per Next instrumentation contract.
   const { reviewedB1Installation } = await import('./lib/b1/reviewed-site-installation.ts')
-  // nosemgrep: cleanops-code-execution-import -- fixed repository module, no request-derived specifier.
+  // Trust boundary: fixed repository module, no request-derived specifier.
   const { startTrustedB1Server } = await import('./lib/b1/server-startup.ts')
   const installation = await reviewedB1Installation()
   if (installation) {

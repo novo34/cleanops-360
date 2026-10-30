@@ -350,7 +350,8 @@ Logs locales de esta ejecución (no contienen material del VPS; fuera de Git):
 - `/tmp/b1-gitleaks-report.json` — SHA-256 `37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570`.
 
 Estado de cierre: mecanismos de composición/aislamiento/arranque y reconciliación
-implementados y pruebas disponibles de este cambio completadas. El paquete no
+implementados y pruebas funcionales locales de este cambio completadas.
+Quality y el gate documental del PR siguen pendientes: no hay TECH-READY/ACCEPTED. El paquete no
 está listo para ACTIVACIÓN hasta acreditar los valores/módulo privado y el permiso
 PKI. La instalación/despliegue selectivos y login/MFA en VPS permanecen pendientes.
 
@@ -363,9 +364,11 @@ PKI. La instalación/despliegue selectivos y login/MFA en VPS permanecen pendien
 - Implementación y pruebas: `71a95ce083aaa22e9953aa90eb2fa608605693bb`,
   https://github.com/novo34/cleanops-360/commit/71a95ce083aaa22e9953aa90eb2fa608605693bb
 - Este traspaso se registra en el commit documental siguiente. No se abre PR,
-  se fusiona ni se despliega. La rama de preparación solo activa el workflow
-  B1 preparation validation (contents:read, npm/typecheck/tests), no despliegue.
-  Ningún resultado futuro de CI se presenta aquí como ya ejecutado.
+  se fusiona ni se despliega. El evento push activa B1 preparation validation (contents:read, npm/typecheck/tests).
+  La rama ya era origen del PR draft 31, creado antes de este trabajo: el push
+  tambien sincronizo automaticamente sus checks pull_request/pull_request_target.
+  No se creo otro PR ni se ejecuto un workflow de despliegue. Los resultados
+  observados y los gates pendientes figuran debajo.
 
 Lista exacta (17 archivos de implementación/pruebas y este registro):
 
@@ -389,3 +392,40 @@ tests/b1/reviewed-site-installation.test.ts
 tests/static/test_b1_web_compose.py
 tests/static/test_staging_synthetic.py
 ```
+
+
+### CI observado tras publicar 43875e50ec1d48ff75631bddfc203ece74fdbbf4
+
+| Check | Resultado observado | Evidencia |
+|---|---|---|
+| B1 preparation validation (push) | **PASS** | https://github.com/novo34/cleanops-360/actions/runs/41130665812 |
+| B1 proxy origin regression | **PASS** | https://github.com/novo34/cleanops-360/actions/runs/41130673057 |
+| B1 synthetic staging preparation / preparation | **PASS**; first-actor-native **SKIP** | https://github.com/novo34/cleanops-360/actions/runs/41130672850 |
+| Quality | **FAIL** antes de completar Semgrep: dos errores de test al cargar el registro, runtime distinto del pin aprobado | https://github.com/novo34/cleanops-360/actions/runs/41130672917 |
+| engineering-policy | **FAIL**: cuerpo del PR 31 existente sin las secciones/respuestas/casillas del dialecto exigido | https://github.com/novo34/cleanops-360/actions/runs/41130670335 |
+| Workflows nativos condicionados a autorizaciones históricas | **SKIP**, no se contabilizan como PASS | runs del mismo SHA |
+
+El guard exige B1_RUNTIME_BLOB=b08b01fe13de2376d56af7958489d9b1f9de9da0;
+el runtime implementado tiene blob f0e91a5ec8a799692947000bff10a7743322015b.
+El FAIL es el comportamiento intencional del gate ante codigo cambiado, no prueba
+por si solo de un defecto de ejecucion. No se actualizo ese pin ni el ledger de
+excepciones para maquillar el resultado. Hace falta revision independiente del
+runtime y de la carga de codigo privado, y autorizacion de la migracion exacta
+del contexto de revision; luego ejecutar el scanner completo sin suprimir nuevos
+hallazgos. Las importaciones nuevas conservan comentarios de procedencia pero
+NINGUNA directiva nosemgrep: el runner canonico ya deshabilita esas directivas.
+No se declara Semgrep PASS ni Quality completo por haber pasado Gitleaks.
+
+Se ha preparado FUERA del repositorio `/tmp/b1-pr31-body-proposed.md`, sin publicar
+ni cambiar el PR. El checker exacto de la base staging d3ea84b, extraido con git
+show y ejecutado con un evento local que contiene ese cuerpo, devuelve
+**ENGINEERING_POLICY_GATE PASS (document structure only; review required)**.
+El propietario puede aplicar esa ficha al PR EXISTENTE; no abre otro y no concede
+merge, revision de seguridad o despliegue. El resultado local no convierte el
+check remoto actual en PASS ni autoriza actualizar el cuerpo sin su decision.
+
+Estas dos dependencias de gobernanza se añaden a las de instalacion privada/PKI:
+no se altera un control aprobado para cerrar B1 ni se da por superada la revision
+independiente. Los comentarios/documentacion posteriores no cambian el runtime
+ni los resultados funcionales; el commit final los conserva como evidencia del
+SHA ensayado, sin atribuir a un run resultados que todavia no haya producido.
