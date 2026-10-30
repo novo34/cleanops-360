@@ -24,7 +24,7 @@ B1_RETIRED_FINDING = 'FP-09'
 
 def git_blob_digest(path):
     data = path.read_bytes()
-    return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\\0' + data).hexdigest()
+    return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
 
 
 def reconcile_retired_b1_finding(manifest, root):
