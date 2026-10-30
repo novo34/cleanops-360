@@ -543,3 +543,105 @@ solo web. No se ha ejecutado nada sobre VPS ni se declara login/TOTP operativo.
 Gitleaks 8.24.3 sobre los cuatro archivos de este incremento: PASS, cero
 hallazgos. git diff --check y git apply --check del parche PENDING: PASS.
 El parche no esta aplicado: git diff del checker y del ledger aprobado queda vacio.
+
+
+## Quality PR 31 — correccion acotada desde 1388553
+
+Unico alcance de este incremento: los tres imports y la revision de runtime/pin.
+QG-0: se reutilizan instrumentation.ts, reviewed-site-installation.ts, el guard,
+parche PENDING y pruebas existentes. Diff ejecutable minimo: imports estaticos de
+los DOS modulos literales del repositorio en instrumentation.ts. No se modifica
+el runtime, cargador privado, manifiesto, contratos, reglas o infraestructura.
+La unica otra ruta modificada es este registro. Sin archivos nuevos ni deps.
+
+Los dos imports literales no usaban datos HTTP para elegir modulo. Se sustituyen
+por imports estaticos conocidos; el grafo es analizable y desaparecen los dos
+hallazgos sin excepcion ni bypass. La condicion NEXT_RUNTIME=nodejs sigue
+controlando el arranque/lectura privada. Las factories no abren conexiones ni
+provisionan al importar. Build Next 16.4.3 confirma la compilacion del grafo actual.
+No se agrega soporte Edge nuevo ni se atribuye al test Node una ejecucion Edge.
+
+El tercero es diferente: import nativo de bytes de codigo privado revisados.
+Su ruta y checksum proceden del manifiesto root:999/0440 fijo, el lector rechaza
+symlinks/metadatos invalidos, el modulo es root:999/0440 y se verifican SHA-256 y
+referencia de aprobacion antes de ejecutar EXACTAMENTE los bytes leidos (data
+URL, sin reabrir el path). No hay selector HTTP/ENV. Este analisis del autor no
+constituye dictamen independiente. Existe ejecucion privilegiada intencional del
+modulo de sitio; cambiarla por require/eval/vm/alias o esconderla del scanner no
+corrige esa frontera y no se hace. Retirarla o cambiar el formato de integracion
+alteraria la arquitectura y el contrato existente, fuera de este arreglo minimo.
+
+### Resultado del scan y conclusion
+
+Semgrep 1.177.0 completo, reglas/exclusiones canonicas, --error y --disable-nosem:
+**17 hallazgos** y el warning upstream de parser ya fijado. Simulando solamente
+el pin propuesto, el evaluador reconoce 16 resultados historicos y deja UN
+hallazgo nuevo en reviewed-site-installation.ts:44. Resultado **FAIL**, ninguna
+regla desactivada, ninguna supresion inline. Los dos de instrumentation desaparecen.
+Con el cargador privado y la regla import($VALUE) actuales, **Quality no puede
+pasar sin una nueva decision de revision individual**, ademas del pin. No se
+presenta el pin por si solo como solucion completa.
+
+### UNICA aprobacion pendiente para Quality
+
+El propietario novo34 debe autorizar UN paquete de revision, DESPUES del dictamen
+de un revisor de seguridad independiente del autor. El revisor debe comprobar:
+
+1. El diff exacto del runtime implementado (commit 71a95ce) y blob
+   f0e91a5ec8a799692947000bff10a7743322015b: slot por proceso, scope solo de
+   startup confiable, denegacion de instalacion doble, contador/drain y cierre.
+   El contenido no ha cambiado desde los 284 PASS y las pruebas de bundles.
+   Revisar/aprobar el B1-RUNTIME-PIN-PENDING.patch existente, comprobado en seco.
+2. El UNICO hallazgo residual siguiente y su limite de confianza: manifiesto y
+   modulo protegidos, verificacion de bytes, imports/efectos del codigo de sitio,
+   autoridad del instalador y ausencia de control del navegador. Emitir dictamen
+   individual; solo si es favorable, autorizar su migracion canonica por regla,
+   rango, fragmento y contexto fijados, sin excepcion de archivo/regla completa.
+
+No se aplica el pin ni se clasifica este resultado como confirmed_false_positive.
+Los campos siguientes son hechos derivados del scan, no una aprobacion:
+
+```json
+{
+  "status": "PENDING_INDEPENDENT_REVIEW",
+  "classification": null,
+  "rule": "semgrep.cleanops-code-execution-import",
+  "path": "lib/b1/reviewed-site-installation.ts",
+  "start": {
+    "line": 44,
+    "col": 26,
+    "offset": 2844
+  },
+  "end": {
+    "line": 44,
+    "col": 91,
+    "offset": 2909
+  },
+  "snippet_sha256": "cd1691f3d4074fa53f3fc2124bc332d694e86867630045396a01d5805a9360d1",
+  "source_sha256": "867ea66ddfe950b83aaccce0e29dd50744cdaaf5edfa354f3545976c80a762c6",
+  "runtime_git_blob": "f0e91a5ec8a799692947000bff10a7743322015b"
+}
+```
+
+El ledger historico permanece inmutable. No se modifican controles ni se crea
+una alternativa al checker. La aprobacion debe identificar ambos objetivos,
+SHA de fuente exacta, dictamen y responsable; cualquier cambio de bytes invalida
+esa revision. Esta es la unica decision en la que se detiene el objetivo Quality;
+no se reabren los demas bloqueos B1 ni se solicita permiso para operaciones VPS.
+
+### Comprobaciones de este incremento
+
+- Tres tests existentes dirigidos de instrumentation/cargador: PASS, 0 SKIP.
+- TypeScript: PASS. ESLint de los archivos inspeccionados/modificados: PASS.
+- Build Next 16.4.3/Turbopack: PASS.
+- Scan Semgrep completo ejecutado: 17 hallazgos, uno pendiente tras simular pin;
+  no Quality PASS. Se reutilizan las 16 regresiones de simulacion previas porque
+  ni guard, ni parche, ni runtime han cambiado.
+- Los 284 tests no se repiten: contratos y pruebas existentes conservados.
+- git apply --check del parche PENDING y git diff --check: PASS.
+
+Evidencia local fuera de Git (SHA-256 de bytes reales):
+- `/tmp/b1-quality-tests.log`: `9eb6243fc6f6b97dca550d613d5ed274dbcc3e9e8f0af81fcb4cba5a42c8d638`.
+- `/tmp/b1-quality-build.log`: `1176eacd888e567d7ff46e0a75acc83c9c5f4e73b0df2643cf6b918a40108bfe`.
+- `/tmp/b1-quality-semgrep-raw.json`: `0023c64292c10bf5891002f45db923ca133b2ea65ead7639db7edb2134942f05`.
+- `/tmp/b1-quality-candidate-result.json`: `d34bf38a3ba51b23c6b98cd75000719447dbcdf5a8a679f73074ce2379813432`.
