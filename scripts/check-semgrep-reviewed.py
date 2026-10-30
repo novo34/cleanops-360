@@ -20,6 +20,7 @@ STAGING_LOCK_TO = '2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4
 # pinned byte-for-byte; no new false-positive exception is approved.
 B1_APPROVED_BACKEND_BLOB = '1170521306efff0ecd561396c8096c29818b31b5'
 B1_RETIRED_FINDING = 'FP-09'
+B1_RUNTIME_BLOB = '3308e10e0137530dd0ab67d765947f6814df8418'
 
 
 def git_blob_digest(path):
@@ -38,11 +39,21 @@ def reconcile_retired_b1_finding(manifest, root):
         raise ValueError('B1 historical source integrity guard missing')
     manifest['findings'] = [row for row in manifest['findings'] if row['id'] != B1_RETIRED_FINDING]
     manifest['context_sha256'].pop('lib/b1/approved-backend.ts')
+    # Runtime changed under an independent B1 implementation review; it contains
+    # no historical suppressed finding. Require its exact new Git blob instead.
+    runtime = checked_path(root, 'lib/b1/runtime.ts')
+    if git_blob_digest(runtime) != B1_RUNTIME_BLOB:
+        raise ValueError('B1 runtime differs from pinned implementation')
+    if not any(row['path'] == 'lib/b1/runtime.ts' for row in manifest['findings']):
+        manifest['context_sha256'].pop('lib/b1/runtime.ts', None)
+    else:
+        raise ValueError('B1 runtime has historical findings: separate review required')
     manifest['retired_finding_reconciliation'] = {
         'historical_manifest_sha256': STAGING_HISTORICAL_MANIFESTS['.semgrep/reviewed-findings.json'],
         'retired': B1_RETIRED_FINDING,
         'reason': 'Dynamic import removed; no suppression in replacement code',
         'replacement_git_blob': B1_APPROVED_BACKEND_BLOB,
+        'runtime_git_blob': B1_RUNTIME_BLOB,
     }
     return manifest
 
