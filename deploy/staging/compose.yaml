@@ -9,6 +9,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/staging/Dockerfile
+      args:
+        # Same verified numeric identity as Agent tmpfs sink; no silent fallback.
+        CLEANOPS_WEB_UID: ${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required}
+        CLEANOPS_WEB_GID: ${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}
     restart: unless-stopped
     init: true
     read_only: true
