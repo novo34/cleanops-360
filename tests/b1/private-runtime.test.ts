@@ -46,6 +46,25 @@ test('private selection defaults closed and rejects incomplete or inconsistent c
   assert.throws(()=>selectAuthBackend({kind:'private',configuration:{...config(),...patch} as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
  }
 })
+test('public HTTP remains closed even if process environment attempts private activation',async()=>{
+ const oldOrigin=process.env.CLEANOPS_AUTH_ORIGIN
+ const oldInternal=process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS
+ const oldSelection=process.env.CLEANOPS_AUTH_BACKEND
+ try{
+  process.env.CLEANOPS_AUTH_ORIGIN='https://fixture.invalid'
+  process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS='[]'
+  process.env.CLEANOPS_AUTH_BACKEND='private'
+  const response=await (await import('../../lib/b1/runtime.ts')).handleAuth(
+   new Request('https://fixture.invalid/auth/me',{headers:{'Sec-Fetch-Site':'same-origin'}}),
+   'getCurrentIdentity')
+  assert.equal(response.status,503)
+  assert.equal(response.headers.get('Set-Cookie'),null)
+ }finally{
+  if(oldOrigin===undefined)delete process.env.CLEANOPS_AUTH_ORIGIN;else process.env.CLEANOPS_AUTH_ORIGIN=oldOrigin
+  if(oldInternal===undefined)delete process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS;else process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS=oldInternal
+  if(oldSelection===undefined)delete process.env.CLEANOPS_AUTH_BACKEND;else process.env.CLEANOPS_AUTH_BACKEND=oldSelection
+ }
+})
 test('same selected composition serves bootstrap and HTTP transactions with real factories and simulated transports',async()=>{
  let reads=0,commits=0,fd=0
  const mocks=[]
