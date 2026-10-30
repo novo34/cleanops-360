@@ -20,7 +20,7 @@ STAGING_LOCK_TO = '2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4
 # pinned byte-for-byte; no new false-positive exception is approved.
 B1_APPROVED_BACKEND_BLOB = '1170521306efff0ecd561396c8096c29818b31b5'
 B1_RETIRED_FINDING = 'FP-09'
-B1_RUNTIME_BLOB = '55f74e100a90da4175bda8b2e951057d43481706'
+B1_RUNTIME_BLOB = 'b08b01fe13de2376d56af7958489d9b1f9de9da0'
 
 
 def git_blob_digest(path):
