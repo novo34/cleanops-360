@@ -27,6 +27,15 @@ export function prepareStagingPrivateConfiguration(
       input.bao?.mount !== 'b1-keys' ||
       input.postgres?.contractualRole !== 'cleanops_identity_service' ||
       !httpsOrigin(input.origin) || !httpsOrigin(input.bao.origin) ||
+      typeof input.postgres.password !== 'function' ||
+      typeof input.normalizeEmail !== 'function' ||
+      typeof input.transport !== 'function' ||
+      typeof input.sessionLabels !== 'function' ||
+      !Buffer.isBuffer(input.postgres.ca) || !Buffer.isBuffer(input.bao.ca) ||
+      !Buffer.isBuffer(input.bao.cert) || !Buffer.isBuffer(input.bao.key) ||
+      !input.sink || !input.corpus || !input.passwordPolicy ||
+      typeof input.dummyPasswordHash !== 'string' ||
+      !Number.isSafeInteger(input.lifetimeMs) || !Number.isSafeInteger(input.maxEligibleTotpMethods) ||
       !Array.isArray(input.internalOrigins) ||
       !input.internalOrigins.every(origin => typeof origin === 'string')) throw invalid()
   const references = validateInstallationKeys(catalog)
