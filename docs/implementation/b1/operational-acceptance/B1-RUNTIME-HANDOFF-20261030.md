@@ -53,3 +53,11 @@ No volcar `staging.env`, `installation.json` completo, HCL privado, valores de t
 - Commit `e71fd8e8b904fe1bb653f34d98f3ee8f2b16d9e8`: añadido `scripts/check-b1-web-readiness.py`, chequeo **solo de metadatos** de Docker, salud PG/OpenBao, sink tmpfs y montajes Agent/web; no lee tokens, archivos privados ni SQL, no altera servicios.
 - El script **no se ha ejecutado sobre VPS** y su aprobación no activa B1. El check de directorio de secretos usa un objetivo previsto `/run/cleanops-b1-private`, aún sujeto a reconciliación con el Compose definitivo. La web actual no cuenta con montajes; un `BLOCKED` en esta etapa es esperado.
 - Próximo paso de implementación: especificación de instalación revisada con fuentes privadas concretas, adaptadores server-side no sintéticos y montaje seguro en imagen web; tras pruebas, aprobación separada de despliegue web y de primer actor.
+
+## Continuación del 30-10-2026 — chequeos en repositorio
+
+- `dbac3a9438a5de3e80735ea515352fe0d0ab6de3`: corrección del chequeo metadata-only; elimina la ruta privada `/run/cleanops-b1-private` asumida sin aprobación. El chequeo ahora verifica exclusivamente el montaje real `/run/cleanops-agent` y sus propiedades, sin fingir validar certificados o contraseñas web.
+- `2ca663b07b8d47941137d02042e29406617847d9`: cuatro pruebas offline en `tests/static/test_b1_web_readiness.py`: caso válido de metadatos, web sin sink, Agent sin permisos de escritura y opciones tmpfs inseguras.
+- **Pruebas añadidas, todavía NO EJECUTADAS:** `python3 -m unittest discover -s tests/static -p test_b1_web_readiness.py -v`. No marcar PASS hasta obtener la salida.
+- **Limitación deliberada:** incluso si el script pasa, no acredita credenciales web, catálogo KV real, configuración completa ni login/TOTP. El `FAIL` por ausencia del montaje web es esperado en la web operativa actual.
+- **Bloqueo para implementación final:** referencias aprobadas y fuentes privadas exactas web (PG login secret, CA PG, CA/cert/key mTLS web, corpus y dummy hash), además de procedencia confiable para `transport()` y `sessionLabels()`. Hasta resolverlo, `reviewedB1Installation()` conserva `return undefined`; no inventar datos ni activar silenciosamente.
