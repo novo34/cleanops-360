@@ -1,0 +1,68 @@
+import test, { mock } from 'node:test'
+import assert from 'node:assert/strict'
+import { rootCertificates } from 'node:tls'
+import { createHash } from 'node:crypto'
+import fs from 'node:fs/promises'
+import https from 'node:https'
+import { EventEmitter } from 'node:events'
+import pg from 'pg'
+import { selectAuthBackend, type PrivateRuntimeConfiguration } from '../../lib/b1/private-runtime.ts'
+import { closedBackend } from '../../lib/b1/service.ts'
+import { numeric, profile } from '../../lib/b1/config.ts'
+const tenantId='11111111-1111-4111-8111-111111111111'
+function config(): PrivateRuntimeConfiguration {
+ const ref=(purpose:PrivateRuntimeConfiguration['references']['audit']['purpose'])=>({tenantId,purpose,keyId:'synthetic-key',version:1})
+ const content=Buffer.from('0'.repeat(64)+'\n')
+ return {
+  origin:'https://fixture.invalid',internalOrigins:[],
+  postgres:{environment:'fixture',host:'db.invalid',port:5432,database:'fixture',loginRole:'identity_login',contractualRole:'cleanops_identity_service',ca:Buffer.from(rootCertificates[0]),password:async()=>{throw Error('no credential access')},maxConnections:1,connectionTimeoutMs:1000},
+  bao:{origin:'https://bao.invalid',mount:'keys',environment:'fixture',ca:Buffer.from('synthetic'),cert:Buffer.from('synthetic'),key:Buffer.from('synthetic'),timeoutMs:1000},
+  sink:{path:'/sink/token',uid:100,gid:100,directoryUid:100,directoryGid:100,mode:0o600,directoryMode:0o700,timeoutMs:1000},
+  references:{audit:ref('audit-hmac'),otp:ref('otp-hmac'),recovery:ref('recovery-hmac'),cursor:ref('cursor-hmac')},totpKeys:[{keyVersion:'synthetic-v1',reference:ref('totp-aead')}],lifetimeMs:1000,
+  dummyPasswordHash:`$argon2id$v=19$m=${numeric('argon_memory')},t=${numeric('argon_iterations')},p=${numeric('argon_parallelism')}$${Buffer.alloc(numeric('argon_salt'),1).toString('base64').replace(/=+$/,'')}$${Buffer.alloc(32,1).toString('base64').replace(/=+$/,'')}`,
+  maxEligibleTotpMethods:1,corpus:{version:'synthetic',sha256:createHash('sha256').update(content).digest('hex'),content},passwordPolicy:{minimumCodePoints:12,maximumCodePoints:128,maximumCorpusBytes:65},
+  normalizeEmail:s=>s.toLowerCase(),transport:()=>({network:Buffer.alloc(32,1),device:Buffer.alloc(32,2)}),sessionLabels:()=>({device:'Synthetic',browser:'Synthetic'}),
+ }
+}
+test('private selection defaults closed and rejects incomplete or inconsistent configuration before I/O',async()=>{
+ assert.equal(selectAuthBackend().backend,closedBackend)
+ for(const field of Object.keys(config())){
+  const incomplete={...config()} as unknown as Record<string,unknown>;delete incomplete[field]
+  assert.throws(()=>selectAuthBackend({kind:'private',configuration:incomplete as unknown as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
+ }
+ for(const patch of [{passwordPolicy:{...config().passwordPolicy,minimumCodePoints:8}},{passwordPolicy:{...config().passwordPolicy,maximumCodePoints:129}},{origin:'http://invalid'},{sink:undefined},{normalizeEmail:undefined},{dummyPasswordHash:'invalid'},{transport:()=>({network:Buffer.alloc(1),device:Buffer.alloc(32)})},{sessionLabels:()=>({})},{lifetimeMs:0},{totpKeys:[]},{postgres:{...config().postgres,environment:'other'}},{references:{...config().references,otp:{...config().references.otp,tenantId:'22222222-2222-4222-8222-222222222222'}}}]){
+  assert.throws(()=>selectAuthBackend({kind:'private',configuration:{...config(),...patch} as PrivateRuntimeConfiguration}),/AUTH_CONFIGURATION_REQUIRED/)
+ }
+})
+test('same selected composition serves bootstrap and HTTP transactions with real factories and simulated transports',async()=>{
+ let reads=0,commits=0,fd=0
+ const mocks=[]
+ mocks.push(mock.method(fs,'open',async(path:unknown)=>{
+  const file=String(path).endsWith('/token'); const raw=Buffer.from('synthetic')
+  return {fd:++fd,async stat(){return {uid:100,gid:100,mode:file?0o100600:0o40700,size:raw.length,nlink:1,isFile:()=>file}},async read(buffer:Buffer,offset:number,length:number,position:number){const count=Math.max(0,Math.min(length,raw.length-position));raw.copy(buffer,offset,position,position+count);return{bytesRead:count}},async close(){}} as never
+ }))
+ mocks.push(mock.method(fs,'statfs',async()=>({type:0x01021994}) as never))
+ mocks.push(mock.method(https,'request',(_url:unknown,_options:unknown,callback:(res:never)=>void)=>{
+  reads++;const req=Object.assign(new EventEmitter(),{destroy(){},end(){queueMicrotask(()=>{
+   const res=Object.assign(new EventEmitter(),{statusCode:200,destroy(){}});callback(res as never)
+   res.emit('data',Buffer.from(JSON.stringify({data:{metadata:{version:1,destroyed:false,deletion_time:''},data:{value:Buffer.alloc(32,1).toString('base64')}}})));res.emit('end');req.emit('close')
+  })}});return req as never
+ }))
+ mocks.push(mock.method(pg.Pool.prototype,'connect',async()=>({async query(sql:string){if(sql==='COMMIT')commits++;return {rows:[{value:sql.includes('security_policy')?profile.values:null}]}},release(){}}) as never))
+ const c=config()
+ const selected=selectAuthBackend({kind:'private',configuration:c})
+ const manifest={installationId:tenantId,operationId:tenantId,tenantId,userId:tenantId,principalId:tenantId,tenantName:'Synthetic',displayName:'Synthetic',email:'user@example.invalid',accountLabel:'Synthetic',approval:'SYNTHETIC_ONLY'}
+ const operatorPool={async connect(){throw Error('must not connect during composition')}}
+ assert.ok(selected.firstActor!(manifest,operatorPool,'synthetic-v1'))
+ assert.throws(()=>selected.firstActor!({...manifest,email:'USER@example.invalid'},operatorPool,'synthetic-v1'))
+ assert.throws(()=>selected.firstActor!(manifest,operatorPool,'unknown'))
+ assert.throws(()=>selected.firstActor!({...manifest,tenantId:'22222222-2222-4222-8222-222222222222'},operatorPool,'synthetic-v1'))
+
+ assert.equal(reads,0)
+ try{
+  const result=await selected.handler!.bootstrap();assert.ok(!(result instanceof Response));assert.equal(commits,1)
+  assert.equal(await selected.backend.transaction(async()=>true),true);assert.equal(commits,2);assert.equal(reads,10)
+  const response=await selected.handler!.handle(new Request('https://fixture.invalid/auth/me',{headers:{'Sec-Fetch-Site':'same-origin'}}),'getCurrentIdentity')
+  assert.equal(response.status,401);assert.equal(response.headers.get('Set-Cookie'),null)
+ }finally{await selected.close();for(const m of mocks)m.mock.restore()}
+})

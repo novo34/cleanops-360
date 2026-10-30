@@ -77,8 +77,51 @@ class Synthetic(unittest.TestCase):
                                     capture_output=True, text=True, check=True)
             config = json.loads(result.stdout)
             self.assertEqual(set(config["services"]), {"web", "postgres"})
+            agent_config = json.loads(subprocess.run(command[:-1] + ["--profile", "identity-agent", "config", "--format", "json"],
+                cwd=ROOT, env=env, capture_output=True, text=True, check=True).stdout)
+            self.assertEqual(set(agent_config['services']), {'web', 'postgres', 'openbao-agent'})
+            agent = agent_config['services']['openbao-agent']
+            self.assertEqual(agent['user'], '1000:1000')
+            self.assertEqual(agent['pull_policy'], 'never')
+            self.assertNotIn('build', agent)
+            self.assertEqual(set(agent['networks']), {'identity_bao'})
+            self.assertTrue(agent_config['networks']['identity_bao']['external'])
+            self.assertEqual(agent_config['networks']['identity_bao']['name'], 'cleanops-existing-bao-network-fixture')
+            self.assertEqual(next(v for v in agent['volumes'] if v['target']=='/run/cleanops-agent-tls')['type'], 'bind')
+            self.assertEqual(agent['cap_drop'], ['ALL'])
+            self.assertIs(agent['read_only'], True)
+            self.assertIn('rm -f /run/cleanops-agent/token; exec /usr/local/bin/bao agent ', agent['command'][0])
+            self.assertEqual(agent['labels']['traefik.enable'], 'false')
+            for service, readonly in [('web', True), ('openbao-agent', False)]:
+                sink = next(v for v in agent_config['services'][service]['volumes'] if v['target']=='/run/cleanops-agent')
+                self.assertEqual(sink['source'], 'identity_agent_sink')
+                self.assertEqual(sink.get('read_only', False), readonly)
+                self.assertTrue(sink['volume']['nocopy'])
+            sink_volume = agent_config['volumes']['identity_agent_sink']
+            self.assertEqual(sink_volume['driver_opts'], dict(type='tmpfs', device='tmpfs',
+                o='nodev,nosuid,noexec,size=1m,mode=0700,uid=1000,gid=1000'))
+            for v in agent['volumes']:
+                if v['type']=='bind':
+                    self.assertTrue(v['read_only'])
+                    self.assertFalse(v['bind'].get('create_host_path', False))
+                    self.assertNotIn('health', v['source'])
+            cert = module('agent_cert_fixture', 'tests/static/test_b1_agent_cert.py')
+            inputs = cert.AgentCert().inputs()
+            inputs['agent'].update(ca_file='/run/cleanops-agent-tls/ca.pem', client_cert_file='/run/cleanops-agent-tls/client.pem',
+                client_key_file='/run/cleanops-agent-tls/client-key.pem', sink_file='/run/cleanops-agent/token')
+            rendered = cert.renderer.prepare(inputs, agent_only=True)
+            reader = rendered['identity-verifier.sink-reader.json']
+            self.assertEqual((reader['uid'], reader['gid'], reader['directoryUid'], reader['directoryGid']), (1000,1000,1000,1000))
+            self.assertEqual((reader['mode'], reader['directoryMode']), (0o600,0o700))
+            self.assertEqual(reader['path'], '/run/cleanops-agent/token')
+            self.assertIn('auth/token/renew-self', rendered['identity-verifier.policy.json']['path'])
             for key in ["CLEANOPS_BAO_CONFIG_FILE", "CLEANOPS_BAO_TLS_DIR",
-                        "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4"]:
+                        "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4",
+                        "CLEANOPS_PG_TLS_CERT_FILE", "CLEANOPS_PG_TLS_KEY_FILE",
+                        "CLEANOPS_PG_TLS_CA_FILE", "CLEANOPS_PG_HBA_FILE", "CLEANOPS_PG_HBA_TARGET", "CLEANOPS_COMPOSE_PROJECT", "CLEANOPS_PRIVATE_NETWORK",
+                        "CLEANOPS_PG_VOLUME", "CLEANOPS_PG_IMAGE", "CLEANOPS_PG_DATABASE", "CLEANOPS_PG_BOOTSTRAP_USER",
+                        "CLEANOPS_AGENT_IMAGE", "CLEANOPS_AGENT_NETWORK", "CLEANOPS_IDENTITY_UID", "CLEANOPS_IDENTITY_GID", "CLEANOPS_AGENT_CONFIG_FILE",
+                        "CLEANOPS_AGENT_TLS_DIR"]:
                 missing = dict(env); missing.pop(key)
                 rejected = subprocess.run(command + ["-q"], cwd=ROOT, env=missing,
                                           capture_output=True, text=True)
@@ -431,6 +474,48 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertIn("host: socket", native.NATIVE_MIGRATION_CHECKS)
         self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
+    def test_postgres_tls_compose_changes_only_command_and_readonly_mounts(self):
+        import yaml
+        old = yaml.safe_load(subprocess.check_output(['git', 'show', 'HEAD:deploy/staging/compose.yaml'], cwd=ROOT, text=True))
+        new = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
+        # Agent composition is checked separately; preserve the PG/TLS regression.
+        self.assertEqual(new['include'].pop(), '../openbao/compose.agent.yaml')
+        self.assertEqual(new['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
+        self.assertEqual(new['services']['web']['networks'], ['private', 'identity_bao'])
+        new['services']['web']['networks'] = ['private']
+        prior, current = old['services'].pop('postgres'), new['services'].pop('postgres')
+        for path, variable in [(('name',),'CLEANOPS_COMPOSE_PROJECT'),(('networks','private','name'),'CLEANOPS_PRIVATE_NETWORK'),(('volumes','pgdata','name'),'CLEANOPS_PG_VOLUME')]:
+            left, right = old, new
+            for part in path[:-1]: left, right = left[part], right[part]
+            self.assertIn('${' + variable + ':?', right[path[-1]])
+            left[path[-1]] = right[path[-1]]
+        self.assertEqual(old, new)
+        for field, variable in [('image','CLEANOPS_PG_IMAGE')]:
+            self.assertIn('${' + variable + ':?', current[field])
+            prior[field] = current[field]
+        for field, variable in [('POSTGRES_DB','CLEANOPS_PG_DATABASE'),('POSTGRES_USER','CLEANOPS_PG_BOOTSTRAP_USER')]:
+            self.assertIn('${' + variable + ':?', current['environment'][field])
+            prior['environment'][field] = current['environment'][field]
+        health = current['healthcheck']['test']
+        self.assertEqual(health[0], 'CMD-SHELL')
+        self.assertIn('$${POSTGRES_USER}', health[1]); self.assertIn('$${POSTGRES_DB}', health[1])
+        prior['healthcheck']['test'] = health
+        self.assertEqual(current['volumes'][0], prior['volumes'][0])
+        mounts = current['volumes'][1:]
+        self.assertEqual(len(mounts), 4)
+        for mount in mounts:
+            self.assertEqual(mount['type'], 'bind')
+            self.assertIs(mount['read_only'], True)
+            self.assertIs(mount['bind']['create_host_path'], False)
+            self.assertIn(':?', mount['source'])
+        self.assertEqual(mounts[-1]['target'], '${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}')
+        self.assertEqual(current.pop('command'), ['postgres', '-c', 'ssl=on', '-c',
+            'ssl_cert_file=/run/cleanops-pg-tls/server.crt', '-c',
+            'ssl_key_file=/run/cleanops-pg-tls/server.key', '-c',
+            'hba_file=${CLEANOPS_PG_HBA_TARGET:?Observed absolute PostgreSQL hba_file path required}'])
+        current['volumes'] = current['volumes'][:1]
+        self.assertEqual(prior, current)
+
     def test_first_actor_ciphertext_bounds_and_pg_regex_quantifiers(self):
         import re
         sql = (ROOT / 'db/migrations/0002_first_actor.review.sql').read_text()
@@ -699,6 +784,14 @@ process.stdout.write(JSON.stringify(reports))
                        CLEANOPS_BAO_TLS_DIR=str(p / "tls"), CLEANOPS_BAO_PRIVATE_IPV4="10.249.88.2",
                        CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
                        CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
+            env.update(CLEANOPS_COMPOSE_PROJECT="cleanops-offline-fixture", CLEANOPS_PRIVATE_NETWORK="cleanops-offline-network",
+                       CLEANOPS_PG_VOLUME="cleanops-offline-volume", CLEANOPS_PG_IMAGE="postgres:16-bookworm",
+                       CLEANOPS_PG_DATABASE="cleanops_offline", CLEANOPS_PG_BOOTSTRAP_USER="offline_bootstrap",
+                       CLEANOPS_PG_TLS_CERT_FILE=str(p / "server.crt"), CLEANOPS_PG_TLS_KEY_FILE=str(p / "server.key"),
+                       CLEANOPS_PG_TLS_CA_FILE=str(p / "ca.crt"), CLEANOPS_PG_HBA_FILE=str(p / "pg_hba.conf"),
+                       CLEANOPS_PG_HBA_TARGET="/var/lib/postgresql/data/pg_hba.conf",
+                       CLEANOPS_AGENT_IMAGE="cleanops-existing-agent-fixture:offline", CLEANOPS_AGENT_NETWORK="cleanops-existing-bao-network-fixture", CLEANOPS_IDENTITY_UID="1000", CLEANOPS_IDENTITY_GID="1000",
+                       CLEANOPS_AGENT_CONFIG_FILE=str(p / "agent.hcl"), CLEANOPS_AGENT_TLS_DIR=str(p / "agent-tls"))
             result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
                                      "deploy/staging/compose.ingress.yaml",
                                      "--profile", "synthetic-custody", "config", "--format", "json"],
@@ -707,10 +800,11 @@ process.stdout.write(JSON.stringify(reports))
             for name, service in config["services"].items():
                 self.assertFalse(service.get("ports"), name)
                 self.assertFalse(service.get("privileged", False), name)
-            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "ingress"})
+            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "identity_bao", "ingress"})
             self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
             self.assertEqual(config["services"]["postgres"]["user"], "postgres")
-            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][-2:], ["-c", "SELECT 1"])
+            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][0], "CMD-SHELL")
+            self.assertIn('SELECT 1', config["services"]["postgres"]["healthcheck"]["test"][1])
             bao = config["services"]["openbao"]
             self.assertEqual(set(bao["networks"]), {"custody"})
             self.assertTrue(config["networks"]["custody"]["internal"])

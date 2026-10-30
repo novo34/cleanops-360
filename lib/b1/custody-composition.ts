@@ -2,7 +2,7 @@
  * This module is never imported by runtime.ts or public HTTP routes.
  * It grants no roles, registers no runtime switch and performs no SQL itself.
  */
-import { AuthError } from './service.ts'
+import { AuthError, type Backend, type Transaction } from './service.ts'
 import { createApprovedPrivateBackend, type ApprovedBackendDependencies } from './approved-backend.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
 import type { PrivateKeyReference, PrivateKeyLease } from './openbao-keys.ts'
@@ -69,4 +69,32 @@ export async function withB1Custody<T>(
   } catch {
     throw unavailable()
   }
+}
+
+
+/** Canonical HTTP backend adapter: acquire tenant keys for each operation, build
+ * the private V4 backend inside that lease, and finish its SQL transaction before
+ * keys are wiped. Runtime selection remains a separate, closed-by-default gate.
+ */
+export function createCustodiedBackend(input: B1CustodyInputs): Backend {
+  if (!input || typeof input !== 'object') throw unavailable()
+  async function scoped<T>(work: (backend: Backend) => Promise<T>): Promise<T> {
+    // Transport providers sanitize thrown errors. Carry only canonical business
+    // errors across their cleanup boundary, then surface them after custody ends.
+    const outcome = await withB1Custody(input, async backend => {
+      try { return { value: await work(backend) } }
+      catch (error) { return { error: error instanceof AuthError ? error : unavailable() } }
+    })
+    if ('error' in outcome) throw outcome.error
+    return outcome.value
+  }
+  return Object.freeze({
+    transaction<T>(work: (tx: Transaction) => Promise<T>, context?: { correlationId: string; operation: string }): Promise<T> {
+      if (typeof work !== 'function') return Promise.reject(unavailable())
+      return scoped(backend => backend.transaction(work, context))
+    },
+    bootstrap(bindingDigest: string, csrfDigest: string, expiresAt: number): Promise<void> {
+      return scoped(backend => backend.bootstrap(bindingDigest, csrfDigest, expiresAt))
+    },
+  })
 }

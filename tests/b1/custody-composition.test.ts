@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { withB1Custody, type B1CustodyInputs } from '../../lib/b1/custody-composition.ts'
+import { createCustodiedBackend, withB1Custody, type B1CustodyInputs } from '../../lib/b1/custody-composition.ts'
 import type { PrivateKeyReference } from '../../lib/b1/openbao-keys.ts'
 
 const tenantId = '11111111-1111-4111-8111-111111111111'
@@ -156,4 +156,18 @@ test('TOTP AEAD versions must be explicit, tenant scoped and nonduplicated',asyn
   await assert.rejects(()=>withB1Custody({...f.input,totpKeys:[{...aead,tenantId:'22222222-2222-4222-8222-222222222222'}]},async()=>{executed=true}),/AUTH_DEPENDENCY_UNAVAILABLE/)
   assert.equal(executed,false)
   assert.equal(f.stats().invocations,0)
+})
+
+
+test('custodied Backend composes HTTP transactions inside one key lease and wipes keys',async()=>{
+ const f=fixture();let invoked=0
+ const pool={async connect(){invoked++;throw Error('synthetic PG unavailable')}}
+ const backend=createCustodiedBackend({...f.input,pool})
+ await assert.rejects(()=>backend.transaction(async()=>({})),/AUTH_DEPENDENCY_UNAVAILABLE/)
+ assert.equal(f.stats().invocations,1)
+ assert.equal(invoked,1)
+ assert.equal(f.stats().zeroed,true)
+ await assert.rejects(()=>backend.bootstrap('0'.repeat(64),'0'.repeat(64),Date.now()+1000),/AUTH_DEPENDENCY_UNAVAILABLE/)
+ assert.equal(f.stats().invocations,2)
+ assert.equal(f.stats().zeroed,true)
 })
