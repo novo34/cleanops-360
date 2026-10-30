@@ -1,73 +1,92 @@
 #!/usr/bin/env python3
-"""B1 deployment preflight: metadata only. Never reads credentials or changes Docker.
+"""Non-mutating B1 web deployment readiness check on the staging Docker host.
 
-Run on the staging VPS (with Docker access) before authorizing a web deploy.
-A PASS is an infrastructure observation, NOT B1 activation authorization.
+No secret reads, SQL, network requests or container operations other than inspect.
+This checks only observable infrastructure; it cannot authorize B1 activation.
 """
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
-from pathlib import Path
 
 PREFIX = "cleanops360-f4fxmd"
-AGENT = f"{PREFIX}-openbao-agent-1"
-WEB = f"{PREFIX}-web-1"
-PG = f"{PREFIX}-postgres-1"
-BAO = f"{PREFIX}-openbao-1"
+NAMES = {
+    "postgres": f"{PREFIX}-postgres-1",
+    "bao": f"{PREFIX}-openbao-1",
+    "agent": f"{PREFIX}-openbao-agent-1",
+    "web": f"{PREFIX}-web-1",
+}
 SINK = f"{PREFIX}_identity_agent_sink"
-EXPECTED_ID = (999, 999)
 
-def docker(*args: str):
-    return json.loads(subprocess.check_output(
-        ["docker", *args], text=True, stderr=subprocess.DEVNULL
-    ))[0]
 
-def check(label: str, ok: bool, explanation: str = "") -> bool:
-    print(f"{'PASS' if ok else 'BLOCKED'} | {label}" + (f" | {explanation}" if explanation else ""))
-    return ok
+def inspect(*args: str) -> dict:
+    result = subprocess.check_output(["docker", *args], text=True, stderr=subprocess.DEVNULL)
+    objects = json.loads(result)
+    if not isinstance(objects, list) or len(objects) != 1:
+        raise ValueError("unexpected Docker inspect result")
+    return objects[0]
 
-def mounts(c: dict, target: str) -> list[dict]:
-    return [m for m in c.get("Mounts", []) if m.get("Destination") == target]
 
-def running(c: dict) -> bool:
-    return c.get("State", {}).get("Running") is True
+def report(label: str, valid: bool) -> bool:
+    print(f"{'PASS' if valid else 'BLOCKED'} | {label}")
+    return valid
+
+
+def at(container: dict, destination: str) -> list[dict]:
+    return [m for m in container.get("Mounts", []) if m.get("Destination") == destination]
+
+
+def healthy(container: dict) -> bool:
+    return container.get("State", {}).get("Health", {}).get("Status") == "healthy"
+
+
+def running(container: dict) -> bool:
+    return container.get("State", {}).get("Running") is True
+
+
+def evaluate(containers: dict[str, dict], volume: dict) -> bool:
+    pg, bao, agent, web = (containers[k] for k in ("postgres", "bao", "agent", "web"))
+    passed = True
+    for label, c in (("PostgreSQL", pg), ("OpenBao Server", bao), ("OpenBao Agent", agent), ("Web", web)):
+        passed &= report(f"{label} running", running(c))
+    passed &= report("PostgreSQL healthy", healthy(pg))
+    passed &= report("OpenBao healthy", healthy(bao))
+
+    opts = volume.get("Options") or {}
+    flags = set((opts.get("o") or "").split(","))
+    required = {"nodev", "nosuid", "noexec", "size=1m", "mode=0700", "uid=999", "gid=999"}
+    passed &= report("Shared sink tmpfs specification",
+        volume.get("Name") == SINK and volume.get("Driver") == "local"
+        and opts.get("type") == "tmpfs" and opts.get("device") == "tmpfs"
+        and required.issubset(flags))
+
+    writer = at(agent, "/run/cleanops-agent")
+    passed &= report("Agent has sink writer",
+        len(writer) == 1 and writer[0].get("Type") == "volume"
+        and writer[0].get("Name") == SINK and writer[0].get("RW") is True)
+
+    reader = at(web, "/run/cleanops-agent")
+    passed &= report("Web has read-only sink",
+        len(reader) == 1 and reader[0].get("Type") == "volume"
+        and reader[0].get("Name") == SINK and reader[0].get("RW") is False)
+
+    print("NOT VERIFIED | identity PostgreSQL secret; web mTLS; approved private-file paths; "
+          "five KV versions; server-side binding; actual login/TOTP")
+    print("NOT AUTHORIZED | deployment, SQL, credential changes, first-actor bootstrap")
+    return passed
+
 
 def main() -> int:
-    print("B1 STAGING READINESS — METADATA ONLY (no secrets, SQL or changes)")
+    print("B1 WEB READINESS — metadata only")
     try:
-        pg, bao, agent, web = [docker("inspect", name) for name in (PG, BAO, AGENT, WEB)]
-        vol = docker("volume", "inspect", SINK)
-    except (subprocess.CalledProcessError, OSError, IndexError, json.JSONDecodeError):
-        print("BLOCKED | Docker object unavailable; no changes attempted")
+        containers = {key: inspect("inspect", name) for key, name in NAMES.items()}
+        volume = inspect("volume", "inspect", SINK)
+    except (subprocess.CalledProcessError, OSError, IndexError, ValueError, KeyError):
+        print("BLOCKED | required Docker object unavailable")
         return 2
-    ok = True
-    for name, container in (("PostgreSQL", pg), ("OpenBao Server", bao), ("OpenBao Agent", agent), ("Web", web)):
-        ok &= check(f"{name} running", running(container))
-    ok &= check("PostgreSQL healthy", pg.get("State", {}).get("Health", {}).get("Status") == "healthy")
-    ok &= check("OpenBao healthy", bao.get("State", {}).get("Health", {}).get("Status") == "healthy")
+    return 0 if evaluate(containers, volume) else 1
 
-    opts = vol.get("Options") or {}
-    pieces = set((opts.get("o") or "").split(","))
-    expected = {"nodev", "nosuid", "noexec", "size=1m", "mode=0700", "uid=999", "gid=999"}
-    ok &= check("Shared sink tmpfs options", opts.get("type") == "tmpfs" and opts.get("device") == "tmpfs" and expected <= pieces)
-    agent_mount = mounts(agent, "/run/cleanops-agent")
-    ok &= check("Agent writer mounted to expected sink",
-        len(agent_mount) == 1 and agent_mount[0].get("Type") == "volume"
-        and agent_mount[0].get("Name") == SINK and agent_mount[0].get("RW") is True)
-    web_mount = mounts(web, "/run/cleanops-agent")
-    ok &= check("Web read-only sink mounted",
-        len(web_mount) == 1 and web_mount[0].get("Type") == "volume"
-        and web_mount[0].get("Name") == SINK and web_mount[0].get("RW") is False)
-    ok &= check("Web has private file mounts",
-        bool(mounts(web, "/run/cleanops-b1-private")),
-        "expected dedicated web private sources; exact target subject to approved Compose binding")
-    # Do not inspect tokens/certs, print env or run SQL.
-    print("NOT CHECKED | actual KV key versions, site binding, PG service secret, web mTLS identity, TOTP login")
-    print("NOT AUTHORIZED | Deploy, admin bootstrap, SQL, credential/certificate changes")
-    return 0 if ok else 1
 
 if __name__ == "__main__":
     sys.exit(main())
