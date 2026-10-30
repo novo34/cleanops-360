@@ -13,7 +13,7 @@ const unavailable = () => new Error('PRIVATE_MATERIAL_UNAVAILABLE')
 /** Reads a bounded credential at each connection attempt, never at module import. */
 export function createPrivatePgPassword(source: PrivateFileSource): PgPassword {
   return async () => {
-    const bytes = await readTrustedPrivateFile(source)
+    const bytes = await readTrustedPrivateFile(source).catch(() => { throw unavailable() })
     try {
       if (bytes.length < 1 || bytes.length > 4096) throw unavailable()
       const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
