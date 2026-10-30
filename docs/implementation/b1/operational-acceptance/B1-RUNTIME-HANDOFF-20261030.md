@@ -47,3 +47,9 @@
 ## Salvaguardas
 
 No volcar `staging.env`, `installation.json` completo, HCL privado, valores de token ni certificados/claves a respuestas, Git, logs o CI. Si falta un dato operativo, identificar el dato exacto, no sustituirlo por uno sintético. Las comprobaciones de infraestructura ya marcadas PASS no se repiten sin cambio de bytes/estado.
+
+## Avance de implementación posterior al registro
+
+- Commit `e71fd8e8b904fe1bb653f34d98f3ee8f2b16d9e8`: añadido `scripts/check-b1-web-readiness.py`, chequeo **solo de metadatos** de Docker, salud PG/OpenBao, sink tmpfs y montajes Agent/web; no lee tokens, archivos privados ni SQL, no altera servicios.
+- El script **no se ha ejecutado sobre VPS** y su aprobación no activa B1. El check de directorio de secretos usa un objetivo previsto `/run/cleanops-b1-private`, aún sujeto a reconciliación con el Compose definitivo. La web actual no cuenta con montajes; un `BLOCKED` en esta etapa es esperado.
+- Próximo paso de implementación: especificación de instalación revisada con fuentes privadas concretas, adaptadores server-side no sintéticos y montaje seguro en imagen web; tras pruebas, aprobación separada de despliegue web y de primer actor.
