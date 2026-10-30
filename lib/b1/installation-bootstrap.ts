@@ -26,7 +26,9 @@ export type InstallationBootstrapInputs = Readonly<{
 
 /** Loads approved private sources. Caller closes resources and zeroes buffers. */
 export async function assembleInstallationPrivateInputs(spec: InstallationBootstrapInputs) {
-  if (!spec || !spec.inputs || !spec.postgres || !spec.bao || !spec.catalog || !spec.sources) {
+  if (!spec || !spec.inputs || !spec.postgres || !spec.bao || !spec.catalog || !spec.sources ||
+      spec.postgres.environment !== 'staging' || spec.bao.environment !== 'staging' ||
+      spec.bao.mount !== 'b1-keys') {
     throw new Error('INSTALLATION_CONFIG_INVALID')
   }
   const tls = await loadPrivateTls(spec.sources)
