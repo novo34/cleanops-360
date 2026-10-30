@@ -54,11 +54,14 @@ export async function closeTrustedRuntime(): Promise<void> {
   if (runtimeClosing) throw new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
   runtimeClosing = true
   const previous = activeRuntime
-  activeRuntime = undefined
   try {
+    // Keep ownership until outstanding requests release it, but deny new ones.
     if (activeRequests !== 0) await new Promise<void>(resolve => { drain = resolve })
     if (previous) await previous.close()
-  } finally { drain = undefined }
+  } finally {
+    activeRuntime = undefined
+    drain = undefined
+  }
 }
 
 /** HTTP routes remain closed until trusted startup explicitly installs a runtime. */
