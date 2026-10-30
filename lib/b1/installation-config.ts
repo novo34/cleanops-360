@@ -12,7 +12,7 @@ const baoKeys = 'ca,cert,environment,key,mount,origin,timeoutMs'
 const exact = (value: unknown, keys: string): boolean => !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).sort().join(',') === keys
 const httpsOrigin = (value: unknown): boolean => {
   if (typeof value !== 'string') return false
-  try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/' && url.origin + '/' === value } catch { return false }
+  try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash && url.pathname === '/' && (value === url.origin || value === url.origin + '/') } catch { return false }
 }
 const invalid = () => new Error('INSTALLATION_CONFIG_INVALID')
 
