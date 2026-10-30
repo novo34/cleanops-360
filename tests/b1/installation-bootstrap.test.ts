@@ -11,7 +11,8 @@ test('installation bootstrap fails closed when private files are unavailable', a
   const file = { path: '/no-such-cleanops-private-file', uid: 999, gid: 999, mode: 0o400 as const, maxBytes: 4096 }
   const sources = { postgresPassword: file, postgresCa: file, baoCa: file, baoCert: file, baoKey: file }
   await assert.rejects(assembleInstallationPrivateInputs({
-    inputs: {} as never, postgres: {} as never, bao: {} as never,
+    inputs: {} as never, postgres: { environment: 'staging' } as never,
+    bao: { environment: 'staging', mount: 'b1-keys' } as never,
     catalog: {} as never, sources,
   }), /PRIVATE_MATERIAL_UNAVAILABLE/)
 })
