@@ -481,6 +481,11 @@ registerHooks({ resolve(specifier, context, next) {
         # Preserve the published PG/TLS fingerprint after the independently checked Agent additions.
         self.assertEqual(current['include'].pop(), '../openbao/compose.agent.yaml')
         self.assertEqual(current['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
+        # New web build identity must be exactly bound to the Agent sink owner.
+        self.assertEqual(current['services']['web']['build'].pop('args'), {
+            'CLEANOPS_WEB_UID': '${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required}',
+            'CLEANOPS_WEB_GID': '${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}',
+        })
         self.assertEqual(current['services']['web']['networks'], ['private', 'identity_bao'])
         current['services']['web']['networks'] = ['private']
         # Fingerprint of the parsed Compose at staging 198b4e41, independent of Git checkout depth.
