@@ -102,11 +102,16 @@ class ReviewGuardTests(unittest.TestCase):
     def test_lock_transition_is_exact_and_preserves_historical_findings(self):
         original = json.loads((ROOT / '.semgrep/reviewed-findings.json').read_text())
         current = guard.load_manifest()
-        self.assertEqual(current['findings'], original['findings'])
+        self.assertEqual(len(original['findings']), 17)
+        self.assertEqual(current['findings'], [entry for entry in original['findings'] if entry['id'] != 'FP-09'])
+        self.assertEqual(current['retired_finding_reconciliation']['retired'], 'FP-09')
         self.assertEqual(current['reviewed_commit'], original['reviewed_commit'])
         self.assertEqual(current['context_sha256']['package-lock.json'], guard.STAGING_LOCK_TO)
         current['context_sha256']['package-lock.json'] = guard.STAGING_LOCK_FROM
         current.pop('context_reconciliation')
+        current.pop('retired_finding_reconciliation')
+        current['context_sha256']['lib/b1/approved-backend.ts'] = original['context_sha256']['lib/b1/approved-backend.ts']
+        current['findings'] = original['findings']
         self.assertEqual(current, original)
 
     def test_lock_transition_rejects_unapproved_lock_and_manifest(self):
@@ -123,8 +128,10 @@ class ReviewGuardTests(unittest.TestCase):
 
     def test_real_registry_has_exactly_the_seventeen_reviewed_exceptions(self):
         registry=guard.load_manifest()
-        self.assertEqual(len(registry['findings']),17)
-        self.assertEqual(len({guard.identity(row) for row in registry['findings']}),17)
+        self.assertEqual(len(registry['findings']),16)
+        self.assertEqual(len({guard.identity(row) for row in registry['findings']}),16)
+        self.assertTrue(all(row['id'] != 'FP-09' for row in registry['findings']))
+        self.assertEqual(registry['retired_finding_reconciliation']['replacement_git_blob'], guard.B1_APPROVED_BACKEND_BLOB)
         self.assertTrue(all(row['classification']=='confirmed_false_positive' for row in registry['findings']))
         for name,expected in registry['context_sha256'].items():
             self.assertEqual(guard.digest(ROOT/name),expected,name)
