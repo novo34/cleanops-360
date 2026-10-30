@@ -15,6 +15,7 @@ test('private PG password is read on demand and rejects newline material', async
     const source = { path, uid: metadata.uid, gid: metadata.gid, mode: 0o600 as const, maxBytes: 128 }
     const password = createPrivatePgPassword(source)
     assert.equal(await password(), 'synthetic-value')
+    await assert.rejects(createPrivatePgPassword({ ...source, path: join(dir, 'absent') })(), /PRIVATE_MATERIAL_UNAVAILABLE/)
     await writeFile(path, 'synthetic-value\n')
     await assert.rejects(password(), /PRIVATE_MATERIAL_UNAVAILABLE/)
     await writeFile(path, 'second-value')
