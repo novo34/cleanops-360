@@ -34,6 +34,7 @@ test('staging assembler binds exact catalogue without accessing services or acti
   assert.equal(prepared.references.audit.tenantId, tenantId)
   assert.equal(prepared.totpKeys[0].keyVersion, 'staging-v1')
   assert.ok(Object.isFrozen(prepared))
+  assert.equal(prepareStagingPrivateConfiguration({ ...input, origin: 'https://cleanops.nuvurent.com' }, catalog).origin, 'https://cleanops.nuvurent.com')
 })
 
 test('staging assembler rejects wrong environment, mount, role and incomplete catalogue', () => {
