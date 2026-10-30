@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
+      - name: Install Node dependencies before Python tests that invoke TypeScript
+        run: npm ci --ignore-scripts --audit=false --fund=false
       - run: python3 -m unittest discover -s tests/static -p test_staging_synthetic.py -v
       - run: node --test --test-isolation=none scripts/test-staging-archive.mjs
       # This auth transport correction has no SQL/PG/OpenBao execution authority.
