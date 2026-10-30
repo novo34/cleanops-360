@@ -16,10 +16,17 @@ const catalog: InstallationKeyCatalog = {
   ],
 }
 const input = {
-  origin: 'https://staging.example.invalid',
+  origin: 'https://staging.example.invalid/',
   internalOrigins: [] as string[],
-  postgres: { environment: 'staging', contractualRole: 'cleanops_identity_service' },
-  bao: { environment: 'staging', mount: 'b1-keys' },
+  postgres: { environment: 'staging', contractualRole: 'cleanops_identity_service', host: 'db.invalid', port: 5432, database: 'identity', loginRole: 'identity_runtime', ca: Buffer.from('test'), password: async () => 'synthetic', maxConnections: 1, connectionTimeoutMs: 1000 },
+  bao: { environment: 'staging', mount: 'b1-keys', origin: 'https://bao.invalid/', ca: Buffer.from('test'), cert: Buffer.from('test'), key: Buffer.from('test'), timeoutMs: 1000 },
+  sink: { path: '/run/cleanops-agent/token', uid: 999, gid: 999, directoryUid: 999, directoryGid: 999, mode: 0o600, directoryMode: 0o700, timeoutMs: 1000 },
+  corpus: { version: 'synthetic', sha256: '0'.repeat(64), content: Buffer.from('synthetic') },
+  dummyPasswordHash: 'synthetic', lifetimeMs: 1000, maxEligibleTotpMethods: 1,
+  passwordPolicy: { minimumCodePoints: 12, maximumCodePoints: 128, maximumCorpusBytes: 65 },
+  normalizeEmail: (email: string) => email.toLowerCase(),
+  transport: () => ({ network: Buffer.alloc(32), device: Buffer.alloc(32) }),
+  sessionLabels: () => ({ device: 'Synthetic', browser: 'Synthetic' }),
 } as unknown as Omit<PrivateRuntimeConfiguration, 'references' | 'totpKeys'>
 
 test('staging assembler binds exact catalogue without accessing services or activating HTTP', () => {
@@ -39,5 +46,9 @@ test('staging assembler rejects wrong environment, mount, role and incomplete ca
   rejected({ ...input, bao: { ...input.bao, mount: 'other' } })
   rejected({ ...input, postgres: { ...input.postgres, contractualRole: 'postgres' } })
   rejected({ ...input, origin: 'http://staging.example.invalid' })
+  rejected({ ...input, origin: 'https://staging.example.invalid@evil.invalid/' })
+  rejected({ ...input, bao: { ...input.bao, origin: 'https://evil.invalid/path' } })
+  rejected({ ...input, transport: undefined })
+  rejected({ ...input, postgres: { environment: 'staging', contractualRole: 'cleanops_identity_service' } })
   rejected(input, { ...catalog, keys: catalog.keys.slice(0, 4) })
 })
