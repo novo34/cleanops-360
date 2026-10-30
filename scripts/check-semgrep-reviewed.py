@@ -16,6 +16,37 @@ ROOT = Path(__file__).resolve().parents[1]
 # The historical manifest and all non-lock contexts remain immutable.
 STAGING_LOCK_FROM = '938130ec03da009b7f492ce3e7edf42c488bb59925bf8e14de376110e8b85f2e'
 STAGING_LOCK_TO = '2a85d62c159729c24878c4e97fb5e7d36f358abc6019225cd3c66c32863f4765'
+# Narrow B1 migration: FP-09's dynamic import disappeared. The new file is
+# pinned byte-for-byte; no new false-positive exception is approved.
+B1_APPROVED_BACKEND_BLOB = '1170521306efff0ecd561396c8096c29818b31b5'
+B1_RETIRED_FINDING = 'FP-09'
+
+
+def git_blob_digest(path):
+    data = path.read_bytes()
+    return hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\\0' + data).hexdigest()
+
+
+def reconcile_retired_b1_finding(manifest, root):
+    path = checked_path(root, 'lib/b1/approved-backend.ts')
+    if git_blob_digest(path) != B1_APPROVED_BACKEND_BLOB:
+        raise ValueError('B1 reviewed source differs from exact retired-FP09 migration')
+    retired = [row for row in manifest['findings'] if row['id'] == B1_RETIRED_FINDING]
+    if len(retired) != 1 or retired[0]['path'] != 'lib/b1/approved-backend.ts':
+        raise ValueError('B1 retired finding inventory inconsistent')
+    if 'lib/b1/approved-backend.ts' not in manifest['context_sha256']:
+        raise ValueError('B1 historical source integrity guard missing')
+    manifest['findings'] = [row for row in manifest['findings'] if row['id'] != B1_RETIRED_FINDING]
+    manifest['context_sha256'].pop('lib/b1/approved-backend.ts')
+    manifest['retired_finding_reconciliation'] = {
+        'historical_manifest_sha256': STAGING_HISTORICAL_MANIFESTS['.semgrep/reviewed-findings.json'],
+        'retired': B1_RETIRED_FINDING,
+        'reason': 'Dynamic import removed; no suppression in replacement code',
+        'replacement_git_blob': B1_APPROVED_BACKEND_BLOB,
+    }
+    return manifest
+
+
 STAGING_HISTORICAL_MANIFESTS = {
     '.semgrep/reviewed-findings.json': '2605f29d3d2bf8d4bd36d7df5d9f7d501a69bb96410404a3ed01c3dc4eb31448',
 }
@@ -47,7 +78,7 @@ def load_manifest(root=ROOT):
     manifest = json.loads(path.read_text())
     actual_lock = digest(checked_path(root, 'package-lock.json'))
     if actual_lock == manifest['context_sha256']['package-lock.json']:
-        return manifest
+        return reconcile_retired_b1_finding(manifest, root) if root == ROOT else manifest
     if (manifest['context_sha256']['package-lock.json'] != STAGING_LOCK_FROM
             or actual_lock != STAGING_LOCK_TO):
         raise ValueError('Review expired: unauthorized lock/manifest transition')
@@ -61,7 +92,7 @@ def load_manifest(root=ROOT):
         'historical_lock_sha256': STAGING_LOCK_FROM,
         'validated_lock_sha256': STAGING_LOCK_TO,
     }
-    return manifest
+    return reconcile_retired_b1_finding(manifest, root) if root == ROOT else manifest
 
 
 def evaluate(report, manifest, root=ROOT):
@@ -131,6 +162,8 @@ def main():
         result = evaluate(json.loads(scan.stdout), manifest)
         if 'context_reconciliation' in manifest:
             result['context_reconciliation'] = manifest['context_reconciliation']
+        if 'retired_finding_reconciliation' in manifest:
+            result['retired_finding_reconciliation'] = manifest['retired_finding_reconciliation']
         if (scan.returncode == 1) != (result['raw_findings'] > 0):
             raise ValueError('Unexpected scanner findings/exit status')
     except (ValueError, KeyError, TypeError, OSError) as error:
