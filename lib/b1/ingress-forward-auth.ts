@@ -2,10 +2,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { TLSSocket } from 'node:tls'
 import { isIP } from 'node:net'
-import { assertionHeader, type createCandidateIssuer } from './ingress-assertion.ts'
+import { assertionHeader } from './ingress-assertion.ts'
 
 export function createForwardAuthHandler(options: Readonly<{
-  issuer: ReturnType<typeof createCandidateIssuer>; audience: string
+  issuer: Readonly<{ issueForAuthenticatedIngress(request: Request, canonicalNetwork: string): Promise<string> }>; audience: string
   proxyCertificateSha256: string; maximumBodyBytes: number; timeoutMs: number
 }>) {
   const c = Object.freeze({ ...options })
