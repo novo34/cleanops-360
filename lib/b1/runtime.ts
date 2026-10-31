@@ -75,6 +75,9 @@ export async function closeTrustedRuntime(): Promise<void> {
     state.activeRuntime = undefined
     state.activeRequestScope = undefined
     state.drain = undefined
+    // A failed startup must be able to cleanly drain and release its pool.
+    // Reopen the lifecycle slot only after all active requests have finished.
+    state.runtimeClosing = false
   }
 }
 
