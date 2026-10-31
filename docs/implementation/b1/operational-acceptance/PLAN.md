@@ -1,5 +1,7 @@
 # B1 PR006 / PR007 — executable operating acceptance plan
 
+> **Nota de estado 31-10-2026:** «PREPARED, NOT EXECUTED» describe la aceptación operativa PR006/PR007 completa, no significa que SQL14, OpenBao o Agent no existan. El historial documenta instalaciones y preparaciones reales en el VPS, sin nueva inspección en esta actualización. Conservan estado OPEN la aceptación B1/AUTH-GATE-05, el listener y la ruta real de ingreso, atomicidad replay/durabilidad de credenciales, compatibilidad de email, uso autorizado de mTLS y pruebas manuales operativas. Custodia GitHub confirmada en `prep/b1-custody-20261031` a `6eb480c3327f2c64d726e533bf2c673e3d05915b`. No repetir instalaciones ni inferir aprobación de producción. Ver [traspaso vigente](B1-RUNTIME-HANDOFF-20261030.md).
+
 State PREPARED, NOT EXECUTED. No real infrastructure, custody, production, deployment,
 SMTP, merge or runtime activation is authorized by this plan. B1/AUTH-GATE-05 OPEN;
 closedBackend retained. Architecture D2/OpenBao Switzerland, D3/SHA256/32-byte CSPRNG/
