@@ -1,6 +1,8 @@
 /** Private-module factory, deliberately absent from application startup. */
 import { createApprovedEmailNormalizer, type EmailCompatibilityReport } from './email-normalization.ts'
-import { createCandidateVerifier } from './ingress-assertion.ts'
+import { createCandidateVerifier, createDurableCandidateVerifier } from './ingress-assertion.ts'
+import { createPgIngressRepositories } from './pg-ingress-repositories.ts'
+import type { IdentityPool } from './pg-identity-driver.ts'
 import type { InstallationIntegration } from './installation-context.ts'
 
 export function createCandidateIntegration(options: Readonly<{
@@ -25,4 +27,21 @@ export function renderPrivateIntegration(factoryUrl: string, options: Parameters
     publicKey: options.verifier.publicKey.export({ type: 'spki', format: 'pem' }) }
   const configuration = JSON.stringify({ report: options.report, approval: options.approval, verifier })
   return `import { createPublicKey } from 'node:crypto';\nimport { createCandidateIntegration } from ${JSON.stringify(factoryUrl)};\nconst configuration = ${configuration};\nconfiguration.verifier.publicKey = createPublicKey(configuration.verifier.publicKey);\nconfiguration.verifier.clock = Date.now;\nconst integration = createCandidateIntegration(configuration);\nexport const normalizeEmail = integration.normalizeEmail;\nexport const resolveRequestContext = integration.resolveRequestContext;\n`
+}
+
+/** Explicit composition for isolated review; borrows the caller's canonical pool.
+ * Never constructs a pool, grants operator writes or selects runtime startup.
+ */
+export function createPgDurableCandidateIntegration(options: Readonly<{
+  report: EmailCompatibilityReport
+  approval: Parameters<typeof createApprovedEmailNormalizer>[1]
+  verifier: Omit<Parameters<typeof createDurableCandidateVerifier>[0], 'replay' | 'credentials'>
+  identityPool: IdentityPool
+}>): InstallationIntegration {
+  const normalizeEmail = createApprovedEmailNormalizer(options.report, options.approval)
+  const repositories = createPgIngressRepositories(options.identityPool)
+  const verifier = createDurableCandidateVerifier({
+    ...options.verifier, replay: repositories.replay, credentials: repositories.credentials,
+  })
+  return Object.freeze({ normalizeEmail, resolveRequestContext: verifier.resolveRequestContext })
 }
