@@ -30,11 +30,13 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       const a = createPgIngressRepositories(p), b = createPgIngressRepositories(q)
       const scope = { issuer: 'fixture', audience: 'https://fixture.invalid' }
       const fresh = () => randomBytes(32).toString('base64url')
-      await t.test('proposed functions deny runtime until an explicit reviewed grant', async () => {
-        await assert.rejects(a.replay.claim({ ...scope, nonce: fresh(), expiresAt: Date.now() + 20000 }))
+      await t.test('proposal grants only claim/read; direct tables and operator writes remain inaccessible', async () => {
+        const claimed = { ...scope, nonce: fresh(), expiresAt: Date.now() + 20000 }
+        assert.equal(await a.replay.claim(claimed), 'claimed')
+        assert.equal(await b.replay.claim(claimed), 'duplicate')
+        await assert.rejects(p.query('SELECT * FROM identity_private.ingress_claims'))
+        await assert.rejects(p.query('SELECT auth_api.ingress_revoke($1,$2,$3,1)', [scope.issuer, scope.audience, fresh()]))
       })
-      // Test-only permission, deliberately absent from the proposed migration.
-      await owner.query('GRANT EXECUTE ON FUNCTION auth_api.ingress_claim(text,text,text,bigint),auth_api.ingress_credential_read(text,text,text) TO cleanops_identity_service')
       await t.test('two pools and 32 concurrent claims have exactly one winner; restart preserves claim', async () => {
         const input = { ...scope, nonce: fresh(), expiresAt: Date.now() + 20000 }
         const claims = await Promise.all(Array.from({ length: 32 }, (_, i) => (i % 2 ? a : b).replay.claim(input)))
