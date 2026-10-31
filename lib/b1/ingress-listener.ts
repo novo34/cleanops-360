@@ -63,7 +63,16 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
       try {
         if (closing || await input.ready() !== true || closing) { deny(response); return }
         await input.handle(request, response)
-      } catch { deny(response) }
+        // An adapter that returns without completing its response must not
+        // leave an authenticated connection hanging indefinitely.
+        if (!response.writableEnded && !response.destroyed) {
+          if (response.headersSent) response.destroy()
+          else deny(response)
+        }
+      } catch {
+        if (response.headersSent && !response.writableEnded) response.destroy()
+        else deny(response)
+      }
     })()
     active.add(work)
     void work.finally(() => active.delete(work))
