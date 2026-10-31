@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import { generateKeyPairSync, randomBytes, X509Certificate, sign } from 'node:crypto'
 import { createServer, request as httpsRequest } from 'node:https'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { once } from 'node:events'
+import { fileURLToPath } from 'node:url'
 import { createCandidateIssuer, createCandidateVerifier, assertionHeader, credentialCookie } from '../../lib/b1/ingress-assertion.ts'
 import { createForwardAuthHandler } from '../../lib/b1/ingress-forward-auth.ts'
 import { createCandidateIntegration, renderPrivateIntegration } from '../../lib/b1/integration-candidate.ts'
@@ -210,18 +211,39 @@ test('rendered private module exposes exactly the two exports and performs real 
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
-test('offline compatibility command reads private snapshot and emits no identities; rejects public mode', () => {
+test('offline compatibility command is read-only, private and independent of cwd', () => {
   const dir = mkdtempSync(join(tmpdir(), 'b1-email-test-'))
+  const checkoutDir = mkdtempSync(fileURLToPath(new URL('../../.b1-email-test-', import.meta.url)))
   const path = join(dir, 'identities.json')
+  const source = JSON.stringify([{ id: 'private-id', emailNormalized: 'Secret@example.com' }])
+  const script = fileURLToPath(new URL('../../scripts/check-b1-email-compatibility.mjs', import.meta.url))
+  const call = (snapshot = path, mode = '0600') => execFileSync(process.execPath, ['--experimental-strip-types', script, snapshot,
+    String(process.getuid!()), String(process.getgid!()), mode], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
   try {
-    writeFileSync(path, JSON.stringify([{ id: 'private-id', emailNormalized: 'Secret@example.com' }]), { mode: 0o600 })
-    const output = execFileSync(process.execPath, ['--experimental-strip-types', 'scripts/check-b1-email-compatibility.mjs', path,
-      String(process.getuid!()), String(process.getgid!()), '0600'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    writeFileSync(path, source, { mode: 0o600 })
+    const output = call()
     assert.equal(JSON.parse(output).status, 'COMPATIBLE')
     assert.ok(!output.includes('Secret')); assert.ok(!output.includes('private-id'))
-    assert.throws(() => execFileSync(process.execPath, ['--experimental-strip-types', 'scripts/check-b1-email-compatibility.mjs', path,
-      String(process.getuid!()), String(process.getgid!()), '0644'], { stdio: 'ignore' }))
-  } finally { rmSync(dir, { recursive: true, force: true }) }
+    assert.equal(readFileSync(path, 'utf8'), source)
+    assert.throws(() => call(path, '0644'))
+    const inside = join(checkoutDir, 'snapshot.json')
+    writeFileSync(inside, source, { mode: 0o600 })
+    assert.throws(() => call(inside)) // Must reject even when launched outside checkout.
+    const linked = join(dir, 'linked.json'); symlinkSync(path, linked)
+    assert.throws(() => call(linked))
+    writeFileSync(path, Buffer.from([0x5b, 0xff, 0x5d]))
+    assert.throws(() => call())
+    writeFileSync(path, 'x'.repeat(65537))
+    assert.throws(() => call())
+    writeFileSync(path, JSON.stringify([{ id: 'private-id', emailNormalized: 'Secret@EXAMPLE.COM' }]))
+    try { call(); assert.fail('incompatible snapshot accepted') }
+    catch (error) {
+      const result = error as { status?: number; stdout?: string; stderr?: string }
+      assert.equal(result.status, 1)
+      assert.equal(JSON.parse(result.stdout!).status, 'INCOMPATIBLE')
+      assert.ok(!result.stdout!.includes('Secret')); assert.ok(!result.stdout!.includes('private-id'))
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(checkoutDir, { recursive: true, force: true }) }
 })
 
 
