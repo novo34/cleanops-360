@@ -37,10 +37,10 @@ test('reviewed private package loads real files and composes canonical runtime w
     const corpusText = digest('synthetic-disallowed-password') + '\n'
     const corpusSource = await source('corpus', corpusText)
     const dummy = await source('dummy', `$argon2id$v=19$m=${numeric('argon_memory')},t=${numeric('argon_iterations')},p=${numeric('argon_parallelism')}$${Buffer.alloc(numeric('argon_salt'), 1).toString('base64').replace(/=+$/, '')}$${Buffer.alloc(32, 1).toString('base64').replace(/=+$/, '')}`)
-    const code = 'export const normalizeEmail = x => x.toLowerCase(); export async function resolveRequestContext() { throw Error("synthetic resolver unavailable"); }'
+    const code = 'export const normalizeEmail = x => x.toLowerCase(); export async function resolveRequestContext() { throw Error("synthetic resolver unavailable"); } export function bindIngress(deps) { if (!deps || !deps.replay || !deps.credentials) throw Error("invalid synthetic binder"); }'
     const integration = { ...await source('integration.mjs', code), uid: 0, gid: 999 }
     const manifest = {
-      version: 1, origin: 'https://fixture.invalid', internalOrigins: [],
+      version: 2, origin: 'https://fixture.invalid', internalOrigins: [],
       postgres: { environment: 'staging', host: 'db.invalid', port: 5432, database: 'fixture', loginRole: 'cleanops_staging_identity_login', contractualRole: 'cleanops_identity_service', maxConnections: 1, connectionTimeoutMs: 1000 },
       bao: { environment: 'staging', mount: 'b1-keys', origin: 'https://bao.invalid', timeoutMs: 1000 },
       catalog: { tenantId: '11111111-1111-4111-8111-111111111111', keys: ['audit-hmac','cursor-hmac','otp-hmac','recovery-hmac','totp-aead'].map(purpose => ({ purpose, keyId: 'synthetic', version: 1, ...(purpose === 'totp-aead' ? { keyVersion: 'synthetic-v1' } : {}) })) },
@@ -56,14 +56,15 @@ test('reviewed private package loads real files and composes canonical runtime w
     assert.equal(spec.inputs.normalizeEmail('USER@example.invalid'), 'user@example.invalid')
     assert.throws(spec.inputs.transport, /AUTH_DEPENDENCY_UNAVAILABLE/)
     const prepared = await assembleInstallationPrivateInputs(spec)
-    const selected = selectAuthBackend({ kind: 'private', configuration: prepared.configuration })
+    assert.equal(typeof spec.bindIngress, 'function')
+    const selected = selectAuthBackend({ kind: 'private', configuration: prepared.configuration }, spec.bindIngress)
     await selected.close()
     prepared.dispose()
     assert.ok(prepared.configuration.bao.key.every(x => x === 0))
     // The pinned TLS certificate is checked again at assembly time.
     await assert.rejects(assembleInstallationPrivateInputs({ ...spec, baoCertificateSha256: '0'.repeat(64) }), /INSTALLATION_CERTIFICATE_NOT_APPROVED/)
     for (const patch of [
-      { version: 2 }, { extra: true }, { lifetimeMs: 30001 }, { maxEligibleTotpMethods: 0 },
+      { version: 1 }, { version: 3 }, { extra: true }, { lifetimeMs: 30001 }, { maxEligibleTotpMethods: 0 },
       { postgres: { ...manifest.postgres, loginRole: 'cleanops_bootstrap' } },
       { baoClientIdentity: { ...manifest.baoClientIdentity, approval: '' } },
       { integration: { ...manifest.integration, sha256: '0'.repeat(64) } },
