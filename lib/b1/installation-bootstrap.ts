@@ -6,6 +6,7 @@ import { createPrivatePgPassword, loadPrivateTls } from './private-material.ts'
 import type { PrivateFileSource } from './private-file.ts'
 import { createHash } from 'node:crypto'
 import type { InstallationRequestScope } from './installation-context.ts'
+import type { B1IngressPoolBinder } from './private-runtime.ts'
 
 type Pg = PrivateRuntimeConfiguration['postgres']
 type Bao = PrivateRuntimeConfiguration['bao']
@@ -26,6 +27,8 @@ export type InstallationBootstrapInputs = Readonly<{
   sources: InstallationPrivateSources
   /** Optional for existing private callers; the site loader always supplies both. */
   requestScope?: InstallationRequestScope
+  /** Explicit private composition only; the site manifest does not supply this. */
+  bindIngress?: B1IngressPoolBinder
   baoCertificateSha256?: string
 }>
 
