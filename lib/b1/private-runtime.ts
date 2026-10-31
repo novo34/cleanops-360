@@ -8,6 +8,8 @@ import { validateDummyPasswordHash } from './approved-factors.ts'
 import { numeric } from './config.ts'
 import { createFirstActorCeremony, type FirstActorManifest } from './first-actor.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
+import { createPgIngressRepositories } from './pg-ingress-repositories.ts'
+import type { DurableIngressCredentials, SharedIngressReplayRepository } from './installation-config.ts'
 import { AuthError, closedBackend, createAuthHandler, type Backend } from './service.ts'
 
 export type PrivateRuntimeConfiguration = Readonly<{
@@ -26,17 +28,26 @@ export type PrivateRuntimeConfiguration = Readonly<{
   transport: () => Readonly<{ network: Buffer; device: Buffer }>
   sessionLabels: () => Readonly<{ device: string; browser: string }>
 }>
+/** Trusted composition callback only. It borrows the already-created V4 pool;
+ * never receives a request, opens a second pool or authorizes operator writes.
+ * A callback failure aborts the selected runtime before it can be returned.
+ */
+export type B1IngressPoolBinder = (dependencies: Readonly<{
+  replay: SharedIngressReplayRepository
+  credentials: DurableIngressCredentials
+}>) => void
 const unavailable = () => new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
 
 /** Explicit selection by trusted startup code. Existing runtime remains closed.
  * A selected composition is shared by HTTP and bootstrap; it cannot provision users.
  */
-export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'private'; configuration: PrivateRuntimeConfiguration } = { kind: 'closed' }): {
+export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'private'; configuration: PrivateRuntimeConfiguration } = { kind: 'closed' }, bindIngress?: B1IngressPoolBinder): {
   backend: Backend; handler?: ReturnType<typeof createAuthHandler>;
   firstActor?: (manifest: FirstActorManifest, operatorPool: IdentityPool, keyVersion: string) => ReturnType<typeof createFirstActorCeremony>;
   close(): Promise<void>
 } {
-  if (selection?.kind === 'closed' && Object.keys(selection).length === 1) return { backend: closedBackend, async close() {} }
+  if (selection?.kind === 'closed' && Object.keys(selection).length === 1 && bindIngress === undefined) return { backend: closedBackend, async close() {} }
+  if (bindIngress !== undefined && typeof bindIngress !== 'function') throw unavailable()
   if (selection?.kind !== 'private' || Object.keys(selection).sort().join(',') !== 'configuration,kind') throw unavailable()
   const c = selection.configuration
   try {
@@ -67,6 +78,8 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
     const token = createAgentSinkToken(c.sink)
     const custody = createOpenBaoKeys({ ...c.bao, allowed, token })
     const pool = createPgIdentityPool(c.postgres)
+    // Bind only repositories borrowing the canonical pool; no repository owns it.
+    if (bindIngress) bindIngress(createPgIngressRepositories(pool))
     const backend = createCustodiedBackend({pool,custody,references:refs,totpKeys:versions.map(x=>x.reference),lifetimeMs:c.lifetimeMs,
       dependencies: borrow => ({
         passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
