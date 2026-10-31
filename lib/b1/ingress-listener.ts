@@ -5,6 +5,7 @@ import { createServer, type ServerOptions } from 'node:https'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { isIP } from 'node:net'
+import { TLSSocket } from 'node:tls'
 
 const deny = (response: ServerResponse) => {
   if (!response.headersSent && !response.destroyed) {
@@ -42,13 +43,12 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
       input.drainTimeoutMs > 30000) throw new Error('B1_INGRESS_LISTENER_CONFIG_INVALID')
 
   let closing = false
-  let pending = 0
   const allowed = new Set(input.allowedPaths)
   const server = createServer({
     ...input.tls, requestCert: true, rejectUnauthorized: true,
     minVersion: 'TLSv1.2', honorCipherOrder: true,
   }, (request, response) => {
-    if (closing || !request.socket.authorized) { deny(response); return }
+    if (closing || !(request.socket instanceof TLSSocket) || !request.socket.authorized) { deny(response); return }
     let path: string
     try {
       const url = new URL(request.url ?? '', 'https://ingress.invalid')
@@ -58,13 +58,11 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
         deny(response); return
       }
     } catch { deny(response); return }
-    pending++
     void (async () => {
       try {
         if (closing || await input.ready() !== true || closing) { deny(response); return }
         await input.handle(request, response)
       } catch { deny(response) }
-      finally { pending-- }
     })()
   })
   server.headersTimeout = 5000
