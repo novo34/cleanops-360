@@ -71,13 +71,14 @@ export async function closeTrustedRuntime(): Promise<void> {
     // Keep ownership until outstanding requests release it, but deny new ones.
     if (state.activeRequests !== 0) await new Promise<void>(resolve => { state.drain = resolve })
     if (previous) await previous.close()
+    // Permit another trusted startup only after the previous pool was closed.
+    // If closing fails, keep the process fail-closed rather than reuse
+    // potentially live credentials or overlapping database resources.
+    state.runtimeClosing = false
   } finally {
     state.activeRuntime = undefined
     state.activeRequestScope = undefined
     state.drain = undefined
-    // A failed startup must be able to cleanly drain and release its pool.
-    // Reopen the lifecycle slot only after all active requests have finished.
-    state.runtimeClosing = false
   }
 }
 
