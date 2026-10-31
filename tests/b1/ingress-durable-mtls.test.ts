@@ -62,8 +62,16 @@ test('B1 durable ForwardAuth: HTTPS/mTLS pinned proxy, active credential and rev
       { device: 'Local fixture', browser: 'Test browser' }, 30000,
       { reference: 'test', authorizationReference: 'fixture-only-authorized' })
     const pinned = new X509Certificate(proxyCert).fingerprint256
+    let sanitizedIngressHeaders = false
     const handler = createForwardAuthHandler({
-      issuer, audience: 'https://fixture.invalid', proxyCertificateSha256: pinned,
+      issuer: {
+        async issueForAuthenticatedIngress(request, canonicalNetwork) {
+          sanitizedIngressHeaders = ['forwarded', 'x-real-ip', 'x-forwarded-for',
+            'x-forwarded-method', 'x-forwarded-host', 'x-forwarded-uri',
+            'x-forwarded-proto', assertionHeader].every(name => !request.headers.has(name))
+          return issuer.issueForAuthenticatedIngress(request, canonicalNetwork)
+        },
+      }, audience: 'https://fixture.invalid', proxyCertificateSha256: pinned,
       maximumBodyBytes: 1024, timeoutMs: 500,
     })
     listener = await startB1IngressListener({
@@ -97,6 +105,7 @@ test('B1 durable ForwardAuth: HTTPS/mTLS pinned proxy, active credential and rev
     const accepted = await call('proxy')
     assert.equal(accepted.status, 204)
     assert.ok(accepted.assertion)
+    assert.equal(sanitizedIngressHeaders, true, 'issuer must not receive forwarded or assertion headers')
     for (const record of records.values()) records.set(record.id, { ...record, state: 'revoked', revision: '2' })
     assert.equal((await call('proxy')).status, 403)
     assert.equal((await call('proxy', 'not-enrolled')).status, 403)
