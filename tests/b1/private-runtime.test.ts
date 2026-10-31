@@ -55,6 +55,36 @@ test('request context is not invoked outside a request during runtime selection'
  assert.equal(calls,0)
  await selected.close()
 })
+test('trusted ingress binding shares canonical pool lifecycle without an extra pool', async () => {
+ let binderCalls = 0, connections = 0, releases = 0
+ const calls: string[] = []
+ const patched = mock.method(pg.Pool.prototype, 'connect', async () => {
+  connections++
+  return { async query(sql: string) {
+   calls.push(sql)
+   if (sql.startsWith('SELECT auth_api.ingress_claim')) return { rowCount: 1, rows: [{ value: 'claimed' }] }
+   return { rowCount: 0, rows: [] }
+  }, release() { releases++ } } as never
+ })
+ try {
+  const selection = composeTrustedRuntime({ kind: 'private', configuration: config() }, dependencies => {
+   binderCalls++
+   assert.equal(typeof dependencies.replay.claim, 'function')
+   assert.equal(typeof dependencies.credentials.read, 'function')
+   assert.equal(typeof dependencies.credentials.enroll, 'function')
+   // No IO during startup wiring.
+   assert.equal(connections, 0)
+   const claim = dependencies.replay.claim
+   void claim
+  })
+  assert.equal(binderCalls, 1)
+  await selection.close()
+  assert.equal(connections, 0)
+  assert.equal(releases, 0)
+  assert.deepEqual(calls, [])
+ } finally { patched.mock.restore() }
+})
+
 test('public HTTP remains closed even if process environment attempts private activation',async()=>{
  const oldOrigin=process.env.CLEANOPS_AUTH_ORIGIN
  const oldInternal=process.env.CLEANOPS_AUTH_INTERNAL_ORIGINS
