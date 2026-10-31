@@ -3,6 +3,10 @@
 State: **PREPARED FOR CONTROLLED ACCEPTANCE; AUTH-GATE-05 OPEN**.
 This is an execution handoff, NOT a deployment authorization or an acceptance certificate.
 
+**Evidence register (read before asking for any repeated VPS test):** [B1-VPS-EVIDENCE-REGISTER-20261031.md](./B1-VPS-EVIDENCE-REGISTER-20261031.md). Do not repeat recorded PASS checks unless the relevant input bytes or running topology changed.
+
+**New code after recorded tests:** commit `8e08d1b891c4b78f3d92ec75f535be4706e7d8a3` connects the existing ingress listener to the trusted startup/shutdown lifecycle through an optional explicitly trusted parameter. This code change is **NOT yet tested**; `instrumentation.ts` still does not pass a reviewed listener specification, so actual staging ingress remains closed. Test only this new delta before acceptance.
+
 ## Proven against preparation branch
 
 Repository: `novo34/cleanops-360`, branch `prep/b1-persistence-recovered-20261031`.
