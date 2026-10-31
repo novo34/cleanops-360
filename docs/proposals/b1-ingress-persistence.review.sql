@@ -1,6 +1,6 @@
 -- PROPOSAL ONLY. Not installed, not part of SQL14 or trusted-migrations.
 -- Requires independent review of schema/ACL, operator authorization and retention.
--- No automatic grants, operator role, extension, pool or cleanup procedure.
+-- Proposed narrowly scoped claim/read grant only; no operator role, pool or cleanup.
 -- Existing SQL14 schemas and cleanops_ddl_owner are prerequisites.
 BEGIN;
 SET LOCAL ROLE cleanops_ddl_owner;
@@ -84,6 +84,8 @@ REVOKE ALL ON FUNCTION auth_api.ingress_claim(text,text,text,bigint),
  auth_api.ingress_enroll(text,text,text,bigint,bigint,text),
  auth_api.ingress_revoke(text,text,text,bigint),
  auth_api.ingress_recover(text,text,text,bigint,text,bigint,bigint,text) FROM PUBLIC;
--- PENDING SECURITY DIFF: EXECUTE claim/read for cleanops_identity_service ONLY.
--- Do not apply a GRANT before independent approval of these new entry points.
+-- PROPOSED ONLY: two read/claim entry points, never enrollment or recovery.
+-- This file must not be installed until an independent ACL/security review approves it.
+GRANT EXECUTE ON FUNCTION auth_api.ingress_claim(text,text,text,bigint),
+ auth_api.ingress_credential_read(text,text,text) TO cleanops_identity_service;
 COMMIT;
