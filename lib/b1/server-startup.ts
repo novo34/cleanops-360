@@ -23,9 +23,10 @@ export async function startTrustedB1Server(
   let prepared: Awaited<ReturnType<typeof assembleInstallationPrivateInputs>> | undefined
   let runtimeInstalled = false
   try {
+    // A private B1 server must always use the shared durable ingress binding.
+    // Reject before reading custody files or opening connections.
+    if (spec && typeof spec.bindIngress !== 'function') throw new Error('B1_INGRESS_BINDING_REQUIRED')
     prepared = await assembleInstallationPrivateInputs(spec)
-    // Durable ingress requires a canonical PG pool binding; never fall back.
-    if (ingressSpec && typeof spec.bindIngress !== 'function') throw new Error('B1_INGRESS_BINDING_REQUIRED')
     installTrustedRuntime(prepared.configuration, spec.requestScope, spec.bindIngress)
     runtimeInstalled = true
     if (ingressSpec) {
