@@ -8,6 +8,7 @@ import { prepareSessionLabels } from './ceremony-preparation.ts'
 import { numeric } from './config.ts'
 import { AuthError } from './service.ts'
 import type { InstallationRequestContext } from './installation-context.ts'
+import type { DurableIngressCredentials, SharedIngressReplayRepository } from './installation-config.ts'
 
 export const assertionHeader = 'x-cleanops-b1-assertion'
 export const credentialCookie = '__Host-cleanops_b1_ingress_device'
@@ -68,7 +69,7 @@ function device(token: string, key: KeyObject, c: IngressProtocolOptions) {
   if (!exact(d, 'aud,browser,device,exp,iat,id,iss') || !bytes32(d.id)) throw denied()
   lifetime(d, c, c.maximumDeviceLifetimeMs)
   const labels = prepareSessionLabels({ device: d.device, browser: d.browser })
-  return { id: d.id, expiresAt: d.exp as number, labels }
+  return { id: d.id as string, issuedAt: d.iat as number, expiresAt: d.exp as number, labels }
 }
 /** Bounded streaming digest. Original Request remains available to the B1 handler. */
 export async function requestBinding(request: Request, c: IngressProtocolOptions): Promise<string> {
@@ -126,6 +127,61 @@ export function createCandidateIssuer(options: IngressProtocolOptions & Readonly
         deviceLabel: d.labels.device, browserLabel: d.labels.browser }, c.privateKey)
     },
     dispose() { active = false; pseudonym.fill(0) },
+  })
+}
+
+/** Persistent candidate only: requires authoritative credential reads and shared atomic
+ * replay. Does not replace the legacy candidate or enable runtime installation.
+ */
+export function createDurableCandidateVerifier(options: IngressProtocolOptions & Readonly<{
+  publicKey: KeyObject
+  replay: SharedIngressReplayRepository
+  credentials: Pick<DurableIngressCredentials, 'read'>
+  topology: 'shared-atomic-all-consumers'
+}>) {
+  validate(options)
+  ed25519(options.publicKey, 'public')
+  if (options.topology !== 'shared-atomic-all-consumers' ||
+      typeof options.replay?.claim !== 'function' ||
+      typeof options.credentials?.read !== 'function') throw denied()
+  const c = Object.freeze({ ...options })
+  const epoch = now(c)
+  let lastTime = epoch
+  return Object.freeze({
+    async resolveRequestContext(request: Request): Promise<InstallationRequestContext> {
+      try {
+        const token = request.headers.get(assertionHeader)
+        if (!token) throw denied()
+        const a = decode(token, 'b1-context-v1', c.publicKey)
+        if (!exact(a, 'aud,binding,browserLabel,credential,device,deviceLabel,exp,iat,iss,network,nonce') ||
+            !bytes32(a.nonce) || !bytes32(a.network) || !bytes32(a.device)) throw denied()
+        lifetime(a, c, c.contextLifetimeMs)
+        if ((a.iat as number) <= epoch) throw denied()
+        const credential = readDeviceCredential(request)
+        const d = device(credential, c.publicKey, c)
+        if (a.credential !== hash(credential) || a.deviceLabel !== d.labels.device ||
+            a.browserLabel !== d.labels.browser || a.binding !== await requestBinding(request, c)) throw denied()
+        lifetime(a, c, c.contextLifetimeMs)
+        const at = now(c)
+        if (d.expiresAt <= at || (a.exp as number) > d.expiresAt || at < lastTime) throw denied()
+        lastTime = at
+        const checkCredential = async () => {
+          const record = await c.credentials.read({ issuer: c.issuer, audience: c.audience, id: d.id })
+          if (!record || record.state !== 'active' || record.issuer !== c.issuer ||
+              record.audience !== c.audience || record.id !== d.id ||
+              record.issuedAt !== d.issuedAt || record.expiresAt !== d.expiresAt ||
+              record.expiresAt <= now(c)) throw denied()
+        }
+        await checkCredential()
+        if (await c.replay.claim({ issuer: c.issuer, audience: c.audience,
+          nonce: a.nonce as string, expiresAt: a.exp as number }) !== 'claimed') throw denied()
+        lifetime(a, c, c.contextLifetimeMs)
+        await checkCredential()
+        return { network: Buffer.from(a.network as string, 'base64url'),
+          device: Buffer.from(a.device as string, 'base64url'),
+          labels: prepareSessionLabels({ device: a.deviceLabel, browser: a.browserLabel }) }
+      } catch { throw denied() }
+    },
   })
 }
 
