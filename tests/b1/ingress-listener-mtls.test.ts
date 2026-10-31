@@ -46,12 +46,17 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
     ])
     let ready = false
     let calls = 0
+    let hold = false
+    let releaseHandler = () => {}
+    let signalStarted = () => {}
+    const handlerGate = new Promise<void>(resolve => { releaseHandler = resolve })
+    const handlerStarted = new Promise<void>(resolve => { signalStarted = resolve })
     listener = await startB1IngressListener({
       binding: '127.0.0.1', port: 0x2601,
       tls: { ca, key: serverKey, cert: serverCert },
       allowedPaths: ['/auth/login'],
       ready: async () => ready,
-      handle: async (_, response) => { calls++; response.writeHead(204); response.end() },
+      handle: async (_, response) => { calls++; if (hold) { signalStarted(); await handlerGate } response.writeHead(204); response.end() },
       drainTimeoutMs: 1500,
     })
     const port = listener.address.port
@@ -73,7 +78,16 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
     assert.equal(calls, 0)
     assert.equal(await send('/auth/login', true), 204)
     assert.equal(calls, 1)
-    await listener.close()
+    hold = true
+    const inFlight = send('/auth/login', true)
+    await handlerStarted
+    let finished = false
+    const draining = listener.close().then(() => { finished = true })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(finished, false, 'close must not complete while a handler is running')
+    releaseHandler()
+    assert.equal(await inFlight, 204)
+    await draining
     await listener.close()
     await assert.rejects(send('/auth/login', true))
   } finally {
