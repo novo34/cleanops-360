@@ -9,6 +9,70 @@
 
 ## Custodia recuperada y continuidad — 31-10-2026
 
+### Continuación funcional desde 7674a17 — persistencia PG16, integración pendiente
+
+Base exacta `7674a17d520a97f6e8d0faab718c93ee01fcd970`, recuperada por fetch
+y fast-forward, checkout limpio antes del cambio. Implementación independiente:
+`lib/b1/pg-ingress-repositories.ts` consume el pool prestado y
+`createPgIdentityUnitOfWork` existentes; ninguna creación/cierre de otro pool en
+producción. Claim y lectura usan únicamente funciones SQL estáticas parametrizadas,
+sin tabla directa, retry de COMMIT ni fallback Map. Solo se devuelve éxito tras
+COMMIT confirmado y release correcto. Lectura valida scope, tiempos y forma de
+la respuesta. Enrolamiento/revocación/recuperación desde aplicación permanecen
+bloqueados: una authorizationReference no acredita al operador.
+
+QG-0: revisados pg-identity-driver, private-runtime, ingress-assertion,
+ingress-forward-auth, integration-candidate, installation-config, unit of work y
+tests PG existentes. SQL14: preauth exige password_verified_at; trusted_devices
+exige principal/sesión/version de credencial; idempotency_records exige usuario y
+ceremony_idempotency tiene semántica de ceremonia/respuesta. No se reutilizan
+como nonce de ingreso o perfil prelogin. No cambian contratos aprobados SQL14,
+pool, backend, sesiones, loader, runtime pin ni handler ForwardAuth.
+
+Propuesta única de persistencia: `docs/proposals/b1-ingress-persistence.review.sql`.
+Tablas separadas para claims scope/nonce y perfiles prelogin scope/ID; PK única
+resuelve concurrencia global, no se borran/extienden claims existentes. Vigencia
+se contrasta también con reloj PG. Perfiles: emisión owner-only, lectura,
+revocación terminal con revisión y recuperación revocar/crear atómica. Sin grants
+a identidad runtime u operador, sin rol nuevo, sin instalación en migrador.
+Retención es conservadora/indefinida: no hay limpieza automática ni límite de
+capacidad aprobado. Si PG rechaza por capacidad/disponibilidad, se deniega.
+No presentar esto como política de conservación aprobada.
+
+Frontera de seguridad: runtime permite funciones V4 aprobadas; estas funciones
+nuevas y sus permisos todavía no lo son. El integration.mjs se carga antes del
+pool canónico; el renderer serializa configuración y no puede transferir
+repositorios con funciones. No crear otro pool ni inventar canal de operador.
+Diff concreto pendiente, NO aplicado:
+`B1-INGRESS-PERSISTENCE-PENDING.patch`. Sustituye Map por claim obligatorio y
+consulta estado en emisor/verificador; emisión espera enrolamiento durable.
+Bloquea renderizado del wrapper hasta aprobar binding al pool único. El patch
+mantiene formato firmado, exige read activa con scope/iat/exp coincidentes y
+revalida tras operaciones asíncronas. `git apply --check` PASS; no acredita
+integración ni pruebas de ese patch. Falta revisión/aprobación del binding,
+ACL/funciones nuevas y canal de operador antes de aplicarlo. El consumidor
+productivo sigue con su candidato anterior, NO anunciar replay distribuido activo.
+
+Pruebas nuevas reales: PostgreSQL 16.15 en contenedor local desechable, datos
+tmpfs y puerto loopback; sin bases/credenciales operativas ni VPS. SQL propuesto
+compilado/ejercitado únicamente en esa fixture, no instalado en CleanOps/SQL14.
+Permisos claim/read concedidos SOLO a rol sintético de fixture para las pruebas,
+ausentes de la propuesta. Nueve casos internos + harness PASS, cero FAIL/SKIP:
+32 claims simultáneos en dos pools/un ganador; duplicados/reinstanciación;
+no extensión de retención/expiración inválida; COMMIT real seguido de pérdida
+de acknowledgement inyectada (rechazo y duplicado posterior); permisos y escrituras
+runtime bloqueadas; revocación concurrente terminal; recuperación fallida con
+rollback; pool no disponible; timeout PG real por contención y recuperación sin
+claim fantasma. No confundir una reinstanciación de repositorio con reinicio real
+del servidor PG, ni el fallo inyectado de acknowledgement con una caída de red.
+TypeScript y ESLint de ambos archivos TS PASS. No se repiten suites históricas.
+
+Siguiente acción autorizable: revisión independiente de propuesta SQL/ACL y del
+diff pendiente; identificar el canal de operador existente y aprobar cómo el
+loader recibe repositorios del pool canónico. Entonces conectar y probar el
+verificador/emisor con PG y el handler mTLS. AUTH-GATE-05 sigue OPEN. No hay push,
+PR, instalación operativa, despliegue ni activación en este encargo.
+
 ### Fuente y alcance
 
 Rama exclusiva de custodia: `prep/b1-custody-20261031`. Base recuperada íntegra

@@ -1,0 +1,112 @@
+--- a/lib/b1/ingress-assertion.ts
++++ b/lib/b1/ingress-assertion.ts
+@@ -8,6 +8,7 @@
+ import { numeric } from './config.ts'
+ import { AuthError } from './service.ts'
+ import type { InstallationRequestContext } from './installation-context.ts'
++import type { DurableIngressCredentials, SharedIngressReplayRepository } from './installation-config.ts'
+
+ export const assertionHeader = 'x-cleanops-b1-assertion'
+ export const credentialCookie = '__Host-cleanops_b1_ingress_device'
+@@ -68,7 +69,12 @@
+   if (!exact(d, 'aud,browser,device,exp,iat,id,iss') || !bytes32(d.id)) throw denied()
+   lifetime(d, c, c.maximumDeviceLifetimeMs)
+   const labels = prepareSessionLabels({ device: d.device, browser: d.browser })
+-  return { id: d.id, expiresAt: d.exp as number, labels }
++  return { id: d.id, issuedAt: d.iat as number, expiresAt: d.exp as number, labels }
++}
++async function requireActive(repository: Pick<DurableIngressCredentials, 'read'>, d: ReturnType<typeof device>, c: IngressProtocolOptions) {
++  const r = await repository.read({ issuer: c.issuer, audience: c.audience, id: d.id })
++  if (!r || r.state !== 'active' || r.issuer !== c.issuer || r.audience !== c.audience || r.id !== d.id ||
++      r.issuedAt !== d.issuedAt || r.expiresAt !== d.expiresAt || r.expiresAt <= now(c)) throw denied()
+ }
+ /** Bounded streaming digest. Original Request remains available to the B1 handler. */
+ export async function requestBinding(request: Request, c: IngressProtocolOptions): Promise<string> {
+@@ -99,19 +105,27 @@
+   }
+ }
+
+-export function createCandidateIssuer(options: IngressProtocolOptions & Readonly<{ privateKey: KeyObject; pseudonymKey: Buffer }>) {
++export function createCandidateIssuer(options: IngressProtocolOptions & Readonly<{ privateKey: KeyObject; pseudonymKey: Buffer; credentials: DurableIngressCredentials }>) {
+   validate(options); ed25519(options.privateKey, 'private')
++  if (!options.credentials || typeof options.credentials.read !== 'function' || typeof options.credentials.enroll !== 'function') throw denied()
+   if (!Buffer.isBuffer(options.pseudonymKey) || options.pseudonymKey.length !== 32) throw denied()
+   const c = Object.freeze({ ...options }), publicKey = createPublicKey(c.privateKey), pseudonym = Buffer.from(c.pseudonymKey)
+   let active = true
+   return Object.freeze({
+     /** Trusted enrolment code ONLY; deliberately no public HTTP mint endpoint. */
+-    issueDeviceCredential(labels: Readonly<{ device: string; browser: string }>, lifetimeMs: number) {
++    async issueDeviceCredential(labels: Readonly<{ device: string; browser: string }>, lifetimeMs: number, enrollment: Readonly<{ reference: string; authorizationReference: string }>) {
+       if (!active) throw denied()
+       const safe = prepareSessionLabels(labels), at = now(c)
+       if (!integer(lifetimeMs) || lifetimeMs > c.maximumDeviceLifetimeMs || !Number.isSafeInteger(at + lifetimeMs)) throw denied()
+-      return encode('b1-device-v1', { iss: c.issuer, aud: c.audience, iat: at, exp: at + lifetimeMs,
+-        id: randomBytes(32).toString('base64url'), device: safe.device, browser: safe.browser }, c.privateKey)
++      if (!enrollment || !text(enrollment.reference) || !text(enrollment.authorizationReference)) throw denied()
++      const id = randomBytes(32).toString('base64url'), exp = at + lifetimeMs
++      // No credential leaves this method until authorized durable enrollment commits.
++      await c.credentials.enroll({ record: { issuer: c.issuer, audience: c.audience, id,
++        issuedAt: at, expiresAt: exp, revision: '1', state: 'active', enrollmentReference: enrollment.reference },
++        authorizationReference: enrollment.authorizationReference })
++      if (!active || exp <= now(c)) throw denied()
++      return encode('b1-device-v1', { iss: c.issuer, aud: c.audience, iat: at, exp,
++        id, device: safe.device, browser: safe.browser }, c.privateKey)
+     },
+     /** Invoke ONLY after authenticating the proxy and its source-IP policy. */
+     async issueForAuthenticatedIngress(request: Request, canonicalNetwork: string) {
+@@ -119,6 +133,8 @@
+       const credential = readDeviceCredential(request), d = device(credential, publicKey, c)
+       const binding = await requestBinding(request, c), at = now(c)
+       if (!active || d.expiresAt <= at) throw denied()
++      await requireActive(c.credentials, d, c)
++      if (!active || d.expiresAt <= now(c)) throw denied()
+       const dimensions = (purpose: string, input: string) => createHmac('sha256', pseudonym).update(canonical(['b1-ingress-dimension-v1', c.issuer, c.audience, purpose, input])).digest('base64url')
+       return encode('b1-context-v1', { iss: c.issuer, aud: c.audience, iat: at, exp: Math.min(at + c.contextLifetimeMs, d.expiresAt),
+         nonce: randomBytes(32).toString('base64url'), binding, credential: hash(credential),
+@@ -129,16 +145,13 @@
+   })
+ }
+
+-/** One finite cache for one verifier process/consumer. No eviction of live nonces.
+- * Restarts reject assertions older than the cache epoch. Multi-process use is blocked
+- * operationally until an atomic shared store is approved; this is not distributed replay protection.
+- */
++/** Shared claim repository is mandatory; no per-process cache fallback. */
+ export function createCandidateVerifier(options: IngressProtocolOptions & Readonly<{
+-  publicKey: KeyObject; replayCapacity: number; topology: 'single-process-single-consumer'
++  publicKey: KeyObject; replay: SharedIngressReplayRepository; credentials: Pick<DurableIngressCredentials, 'read'>; topology: 'shared-atomic-all-consumers'
+ }>) {
+   validate(options); ed25519(options.publicKey, 'public')
+-  if (options.topology !== 'single-process-single-consumer' || !integer(options.replayCapacity) || options.replayCapacity > 100000) throw denied()
+-  const c = Object.freeze({ ...options }), epoch = now(c), used = new Map<string, number>()
++  if (options.topology !== 'shared-atomic-all-consumers' || typeof options.replay?.claim !== 'function' || typeof options.credentials?.read !== 'function') throw denied()
++  const c = Object.freeze({ ...options }), epoch = now(c)
+   let lastTime = epoch
+   return Object.freeze({
+     async resolveRequestContext(request: Request): Promise<InstallationRequestContext> {
+@@ -160,9 +173,10 @@
+         if (d.expiresAt <= at || (a.exp as number) > d.expiresAt) throw denied()
+         if (at < lastTime) throw denied()
+         lastTime = at
+-        for (const [nonce, expires] of used) if (expires <= at) used.delete(nonce)
+-        if (used.has(a.nonce) || used.size >= c.replayCapacity) throw denied()
+-        used.set(a.nonce, a.exp as number)
++        await requireActive(c.credentials, d, c)
++        if (await c.replay.claim({ issuer: c.issuer, audience: c.audience, nonce: a.nonce, expiresAt: a.exp as number }) !== 'claimed') throw denied()
++        lifetime(a, c, c.contextLifetimeMs)
++        await requireActive(c.credentials, d, c)
+         return { network: Buffer.from(a.network, 'base64url'), device: Buffer.from(a.device, 'base64url'),
+           labels: prepareSessionLabels({ device: a.deviceLabel, browser: a.browserLabel }) }
+       } catch { throw denied() }
+--- a/lib/b1/integration-candidate.ts
++++ b/lib/b1/integration-candidate.ts
+@@ -17,6 +17,9 @@
+  * The static helper belongs to the reviewed immutable application image.
+  */
+ export function renderPrivateIntegration(factoryUrl: string, options: Parameters<typeof createCandidateIntegration>[0]): string {
++  // Repositories cannot be serialized into the existing private wrapper.
++  // Binding to the ONE canonical pool requires reviewed runtime/loader changes.
++  if ('replay' in options.verifier || 'credentials' in options.verifier) throw new Error('PRIVATE_MODULE_POOL_BINDING_REVIEW_REQUIRED')
+   const parsed = new URL(factoryUrl)
+   if (parsed.protocol !== 'file:' || parsed.host || parsed.search || parsed.hash ||
+       options.verifier.clock !== Date.now) throw new Error('PRIVATE_MODULE_CONFIG_INVALID')
