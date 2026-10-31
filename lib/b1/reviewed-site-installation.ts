@@ -9,7 +9,6 @@ import { createPasswordAdmission } from './password-admission.ts'
 import { validateDummyPasswordHash } from './approved-factors.ts'
 import { validateTotpMethodLimit } from './ceremony-preparation.ts'
 import type { B1IngressPoolBinder } from './private-runtime.ts'
-import type { B1IngressListenerInputs } from './ingress-listener.ts'
 
 /** Fixed installation authority; neither HTTP nor ENV can select this file. */
 const manifestSource: PrivateFileSource = Object.freeze({
@@ -27,7 +26,6 @@ export type ReviewedInstallationManifest = Readonly<{
   dummyPasswordHash: PrivateFileSource
   maximumCorpusBytes: number; maxEligibleTotpMethods: number; lifetimeMs: number
   integration: Readonly<{ source: PrivateFileSource; sha256: string; approval: string }>
-  ingress: Readonly<{ source: PrivateFileSource; sha256: string; approval: string }>
   baoClientIdentity: Readonly<{ scope: 'nextjs-identity-verifier'; certificateSha256: string; approval: string }>
 }>
 const invalid = () => new Error('INSTALLATION_CONFIG_INVALID')
@@ -57,40 +55,17 @@ async function loadIntegration(spec: ReviewedInstallationManifest['integration']
   } finally { bytes.fill(0) }
 }
 
-/** Import only owner-approved bytes; the private ingress module is never selected
- * by an HTTP request or environment variable. No listener opens during import.
- * The returned handler is still protected by the listener's mTLS validation.
- */
-async function loadIngress(spec: ReviewedInstallationManifest['ingress']): Promise<B1IngressListenerInputs> {
-  if (!approved(spec?.approval) || !/^[a-f0-9]{64}$/.test(spec.sha256) ||
-      spec.source?.uid !== 0 || spec.source?.gid !== 999 || spec.source?.mode !== 0o440 ||
-      spec.source?.path !== '/run/cleanops-b1-private/ingress-owner.mjs') throw invalid()
-  const bytes = await readTrustedPrivateFile(spec.source)
-  try {
-    if (sha256(bytes) !== spec.sha256) throw invalid()
-    const module = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */
-      'data:text/javascript;base64,' + bytes.toString('base64'))
-    if (Object.keys(module).sort().join(',') !== 'ingress') throw invalid()
-    const ingress = module.ingress as B1IngressListenerInputs
-    if (!ingress || typeof ingress !== 'object' || typeof ingress.ready !== 'function' ||
-        typeof ingress.handle !== 'function' || !ingress.tls ||
-        !Array.isArray(ingress.allowedPaths)) throw invalid()
-    return ingress
-  } finally { bytes.fill(0) }
-}
-
 /** Reuses the canonical bootstrap, corpus, policy and custody contracts. No sockets. */
-export async function loadReviewedB1Installation(source: PrivateFileSource): Promise<InstallationBootstrapInputs & { ingress: B1IngressListenerInputs }> {
+export async function loadReviewedB1Installation(source: PrivateFileSource): Promise<InstallationBootstrapInputs> {
   const raw = await readTrustedPrivateFile(source)
   let content: Buffer | undefined, dummy: Buffer | undefined
   try {
     const m = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) as ReviewedInstallationManifest
-    if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,ingress,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
+    if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
         m.version !== 2 || m.postgres?.environment !== 'staging' ||
         m.postgres?.loginRole !== 'cleanops_staging_identity_login' || m.postgres.contractualRole !== 'cleanops_identity_service' ||
         m.bao?.environment !== 'staging' || m.bao.mount !== 'b1-keys' ||
         !exact(m.integration, 'approval,sha256,source') || !approved(m.integration.approval) ||
-        !exact(m.ingress, 'approval,sha256,source') || !approved(m.ingress.approval) ||
         !exact(m.baoClientIdentity, 'approval,certificateSha256,scope') ||
         m.baoClientIdentity.scope !== 'nextjs-identity-verifier' || !approved(m.baoClientIdentity.approval) ||
         !/^[a-f0-9]{64}$/.test(m.baoClientIdentity.certificateSha256) ||
@@ -109,14 +84,12 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
     const dummyPasswordHash = new TextDecoder('utf-8', { fatal: true }).decode(dummy)
     validateDummyPasswordHash(dummyPasswordHash)
     const loaded = await loadIntegration(m.integration)
-    const ingress = await loadIngress(m.ingress)
     const context = createInstallationContext(loaded.integration)
     return Object.freeze({
       postgres: m.postgres, bao: m.bao, catalog: m.catalog, sources: m.sources,
       baoCertificateSha256: m.baoClientIdentity.certificateSha256,
       requestScope: context.requestScope,
       bindIngress: loaded.bindIngress,
-      ingress,
       inputs: { origin: m.origin, internalOrigins: m.internalOrigins, sink: m.sink, corpus, passwordPolicy,
         dummyPasswordHash, lifetimeMs: m.lifetimeMs, maxEligibleTotpMethods: m.maxEligibleTotpMethods,
         normalizeEmail: context.normalizeEmail, transport: context.transport, sessionLabels: context.sessionLabels },
@@ -126,7 +99,7 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
 }
 
 /** Absence, wrong metadata or incomplete installation keeps B1 admission closed. */
-export async function reviewedB1Installation(): Promise<(InstallationBootstrapInputs & { ingress: B1IngressListenerInputs }) | undefined> {
+export async function reviewedB1Installation(): Promise<InstallationBootstrapInputs | undefined> {
   try { return await loadReviewedB1Installation(manifestSource) }
   catch { return undefined }
 }
