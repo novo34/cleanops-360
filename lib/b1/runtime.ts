@@ -1,4 +1,4 @@
-import { selectAuthBackend, type PrivateRuntimeConfiguration } from './private-runtime.ts'
+import { selectAuthBackend, type PrivateRuntimeConfiguration, type B1IngressPoolBinder } from './private-runtime.ts'
 import { closedBackend, createAuthHandler, AuthError, type Backend } from './service.ts'
 import type { InstallationRequestScope } from './installation-context.ts'
 
@@ -18,8 +18,8 @@ export type RuntimeComposition = Readonly<{
  * this API is never fed request data or an environment switch. Hold a private
  * composition for the server lifetime and call close() during shutdown.
  */
-export function composeTrustedRuntime(selection: RuntimeSelection = { kind: 'closed' }): RuntimeComposition {
-  const selected = selectAuthBackend(selection)
+export function composeTrustedRuntime(selection: RuntimeSelection = { kind: 'closed' }, bindIngress?: B1IngressPoolBinder): RuntimeComposition {
+  const selected = selectAuthBackend(selection, bindIngress)
   if (selection.kind === 'private') {
     if (!selected.handler) throw new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
     return { ...selected, handler: selected.handler }
@@ -53,10 +53,11 @@ type RuntimeState = {
 const owner = globalThis as typeof globalThis & { [runtimeKey]?: RuntimeState }
 const state = owner[runtimeKey] ??= { runtimeClosing: false, activeRequests: 0 }
 
-export function installTrustedRuntime(configuration: PrivateRuntimeConfiguration, requestScope?: InstallationRequestScope): void {
+export function installTrustedRuntime(configuration: PrivateRuntimeConfiguration, requestScope?: InstallationRequestScope, bindIngress?: B1IngressPoolBinder): void {
   if (state.activeRuntime || state.runtimeClosing || state.activeRequests !== 0) throw new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
   if (requestScope !== undefined && typeof requestScope !== 'function') throw new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
-  const candidate = composeTrustedRuntime({ kind: 'private', configuration })
+  if (bindIngress !== undefined && typeof bindIngress !== 'function') throw new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
+  const candidate = composeTrustedRuntime({ kind: 'private', configuration }, bindIngress)
   state.activeRuntime = candidate
   state.activeRequestScope = requestScope
 }
