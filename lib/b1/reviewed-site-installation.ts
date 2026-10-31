@@ -8,13 +8,14 @@ import { validateInstallationKeys } from './installation-catalog.ts'
 import { createPasswordAdmission } from './password-admission.ts'
 import { validateDummyPasswordHash } from './approved-factors.ts'
 import { validateTotpMethodLimit } from './ceremony-preparation.ts'
+import type { B1IngressPoolBinder } from './private-runtime.ts'
 
 /** Fixed installation authority; neither HTTP nor ENV can select this file. */
 const manifestSource: PrivateFileSource = Object.freeze({
   path: '/run/cleanops-b1-private/installation.json', uid: 0, gid: 999, mode: 0o440, maxBytes: 65536,
 })
 export type ReviewedInstallationManifest = Readonly<{
-  version: 1
+  version: 1 | 2
   origin: string; internalOrigins: readonly string[]
   postgres: InstallationBootstrapInputs['postgres']
   bao: InstallationBootstrapInputs['bao']
@@ -35,7 +36,10 @@ const exact = (value: unknown, keys: string) => !!value && typeof value === 'obj
 /** Import the exact reviewed bytes, avoiding a second path lookup or symlink race.
  * The module may use built-ins / approved absolute imports, never relative imports.
  */
-async function loadIntegration(spec: ReviewedInstallationManifest['integration']): Promise<InstallationIntegration> {
+async function loadIntegration(spec: ReviewedInstallationManifest['integration'], durable: boolean): Promise<Readonly<{
+  integration: InstallationIntegration
+  bindIngress?: B1IngressPoolBinder
+}>> {
   const bytes = await readTrustedPrivateFile(spec.source)
   try {
     if (!/^[a-f0-9]{64}$/.test(spec.sha256) || sha256(bytes) !== spec.sha256) throw invalid()
@@ -43,7 +47,12 @@ async function loadIntegration(spec: ReviewedInstallationManifest['integration']
     // Trust boundary: owner-controlled private file, strict metadata and SHA-256 checked above; no HTTP/ENV source.
     const module = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ url)
     if (typeof module.normalizeEmail !== 'function' || typeof module.resolveRequestContext !== 'function') throw invalid()
-    return { normalizeEmail: module.normalizeEmail, resolveRequestContext: module.resolveRequestContext }
+    if (!durable) return { integration: { normalizeEmail: module.normalizeEmail, resolveRequestContext: module.resolveRequestContext } }
+    if (typeof module.bindIngress !== 'function' || Object.keys(module).sort().join(',') !==
+        'bindIngress,normalizeEmail,resolveRequestContext') throw invalid()
+    // The reviewed module must reject requests until this binding succeeds.
+    return { integration: { normalizeEmail: module.normalizeEmail, resolveRequestContext: module.resolveRequestContext },
+      bindIngress: dependencies => module.bindIngress(dependencies) }
   } finally { bytes.fill(0) }
 }
 
@@ -54,7 +63,7 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
   try {
     const m = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) as ReviewedInstallationManifest
     if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
-        m.version !== 1 || m.postgres?.environment !== 'staging' ||
+        (m.version !== 1 && m.version !== 2) || m.postgres?.environment !== 'staging' ||
         m.postgres?.loginRole !== 'cleanops_staging_identity_login' || m.postgres.contractualRole !== 'cleanops_identity_service' ||
         m.bao?.environment !== 'staging' || m.bao.mount !== 'b1-keys' ||
         !exact(m.integration, 'approval,sha256,source') || !approved(m.integration.approval) ||
@@ -75,11 +84,13 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
     dummy = await readTrustedPrivateFile(m.dummyPasswordHash)
     const dummyPasswordHash = new TextDecoder('utf-8', { fatal: true }).decode(dummy)
     validateDummyPasswordHash(dummyPasswordHash)
-    const context = createInstallationContext(await loadIntegration(m.integration))
+    const loaded = await loadIntegration(m.integration, m.version === 2)
+    const context = createInstallationContext(loaded.integration)
     return Object.freeze({
       postgres: m.postgres, bao: m.bao, catalog: m.catalog, sources: m.sources,
       baoCertificateSha256: m.baoClientIdentity.certificateSha256,
       requestScope: context.requestScope,
+      ...(loaded.bindIngress ? { bindIngress: loaded.bindIngress } : {}),
       inputs: { origin: m.origin, internalOrigins: m.internalOrigins, sink: m.sink, corpus, passwordPolicy,
         dummyPasswordHash, lifetimeMs: m.lifetimeMs, maxEligibleTotpMethods: m.maxEligibleTotpMethods,
         normalizeEmail: context.normalizeEmail, transport: context.transport, sessionLabels: context.sessionLabels },
