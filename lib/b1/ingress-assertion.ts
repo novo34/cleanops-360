@@ -130,6 +130,71 @@ export function createCandidateIssuer(options: IngressProtocolOptions & Readonly
   })
 }
 
+/** Durable issuer candidate. A credential is never returned before an independently
+ * authorized durable enrollment commits; runtime PG repository writes remain blocked.
+ * Existing legacy fixture issuer is unchanged and cannot authorize production.
+ */
+export function createDurableCandidateIssuer(options: IngressProtocolOptions & Readonly<{
+  privateKey: KeyObject
+  pseudonymKey: Buffer
+  credentials: DurableIngressCredentials
+}>) {
+  validate(options)
+  ed25519(options.privateKey, 'private')
+  if (!Buffer.isBuffer(options.pseudonymKey) || options.pseudonymKey.length !== 32 ||
+      typeof options.credentials?.enroll !== 'function' ||
+      typeof options.credentials?.read !== 'function') throw denied()
+  const c = Object.freeze({ ...options })
+  const publicKey = createPublicKey(c.privateKey)
+  const pseudonym = Buffer.from(c.pseudonymKey)
+  let active = true
+  const confirmActive = async (d: ReturnType<typeof device>) => {
+    const record = await c.credentials.read({ issuer: c.issuer, audience: c.audience, id: d.id })
+    if (!record || record.state !== 'active' || record.id !== d.id ||
+        record.issuer !== c.issuer || record.audience !== c.audience ||
+        record.issuedAt !== d.issuedAt || record.expiresAt !== d.expiresAt ||
+        record.expiresAt <= now(c)) throw denied()
+  }
+  return Object.freeze({
+    async issueDeviceCredential(labels: Readonly<{ device: string; browser: string }>,
+      lifetimeMs: number, enrollment: Readonly<{ reference: string; authorizationReference: string }>) {
+      if (!active) throw denied()
+      const safe = prepareSessionLabels(labels), at = now(c)
+      if (!integer(lifetimeMs) || lifetimeMs > c.maximumDeviceLifetimeMs ||
+          !Number.isSafeInteger(at + lifetimeMs) ||
+          !enrollment || !text(enrollment.reference) ||
+          !text(enrollment.authorizationReference)) throw denied()
+      const id = randomBytes(32).toString('base64url')
+      const exp = at + lifetimeMs
+      await c.credentials.enroll({ record: { issuer: c.issuer, audience: c.audience, id,
+        issuedAt: at, expiresAt: exp, revision: '1', state: 'active',
+        enrollmentReference: enrollment.reference },
+        authorizationReference: enrollment.authorizationReference })
+      if (!active || exp <= now(c)) throw denied()
+      return encode('b1-device-v1', { iss: c.issuer, aud: c.audience, iat: at,
+        exp, id, device: safe.device, browser: safe.browser }, c.privateKey)
+    },
+    async issueForAuthenticatedIngress(request: Request, canonicalNetwork: string) {
+      if (!active || !isIP(canonicalNetwork)) throw denied()
+      const credential = readDeviceCredential(request)
+      const d = device(credential, publicKey, c)
+      const binding = await requestBinding(request, c)
+      await confirmActive(d)
+      if (!active) throw denied()
+      const at = now(c)
+      const dimensions = (purpose: string, input: string) => createHmac('sha256', pseudonym)
+        .update(canonical(['b1-ingress-dimension-v1', c.issuer, c.audience, purpose, input]))
+        .digest('base64url')
+      return encode('b1-context-v1', { iss: c.issuer, aud: c.audience, iat: at,
+        exp: Math.min(at + c.contextLifetimeMs, d.expiresAt),
+        nonce: randomBytes(32).toString('base64url'), binding, credential: hash(credential),
+        network: dimensions('network', canonicalNetwork), device: dimensions('device', d.id),
+        deviceLabel: d.labels.device, browserLabel: d.labels.browser }, c.privateKey)
+    },
+    dispose() { active = false; pseudonym.fill(0) },
+  })
+}
+
 /** Persistent candidate only: requires authoritative credential reads and shared atomic
  * replay. Does not replace the legacy candidate or enable runtime installation.
  */
