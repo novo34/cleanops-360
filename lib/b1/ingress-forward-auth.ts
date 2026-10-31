@@ -64,7 +64,7 @@ export function createForwardAuthHandler(options: Readonly<{
       // A ForwardAuth 2xx response permits the proxy to forward the request.
       // Never authorize forwarding if the issuer returned no usable assertion.
       if (typeof assertion !== 'string' || assertion.length > 8192 ||
-          !/^b1-context-v1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$/.test(assertion)) throw new Error('INGRESS_DENIED')
+          !/^b1-context-v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}$/.test(assertion)) throw new Error('INGRESS_DENIED')
       response.writeHead(204, { [assertionHeader]: assertion, 'cache-control': 'no-store' }); response.end()
     } catch {
       if (!response.headersSent && !response.destroyed) { response.writeHead(403, { 'cache-control': 'no-store' }); response.end() }
