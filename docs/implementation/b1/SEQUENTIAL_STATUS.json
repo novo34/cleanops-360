@@ -433,5 +433,25 @@
       "productionAcceptance": false
     }
   },
-  "latestSQL14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json"
+  "latestSQL14Evidence": "docs/implementation/b1/consolidated-test-14/ACCEPTANCE_EVIDENCE.json",
+  "currentAsOf": "2026-10-31",
+  "currentCustody": {
+    "branch": "prep/b1-custody-20261031",
+    "sha": "6eb480c3327f2c64d726e533bf2c673e3d05915b",
+    "remoteVerified": true,
+    "publication": "PUSH_CONFIRMED_NO_ASSOCIATED_WORKFLOW_REPORTED",
+    "source": "docs/implementation/b1/operational-acceptance/B1-RUNTIME-HANDOFF-20261030.md"
+  },
+  "currentOperationalState": {
+    "b1": "OPEN",
+    "authGate05": "OPEN",
+    "runtime": "FAIL_CLOSED_NOT_ACTIVATED",
+    "sql14": "HISTORICALLY_INSTALLED_DO_NOT_REPEAT",
+    "openbaoAgent": "HISTORICALLY_PREPARED_DO_NOT_RECREATE",
+    "currentVpsVerification": "NOT_PERFORMED_IN_THIS_UPDATE",
+    "demo": "UI_IMPLEMENTED_USING_SYNTHETIC_DATA_NOT_REAL_CRM",
+    "stagingRealLogin": "NOT_ACCEPTED",
+    "next": "Integrate existing ingress listener and shared durable replay/device backing, verify live Traefik topology and email compatibility; separate activation approval"
+  },
+  "metricInterpretation": "42/44 denotes individually accepted isolated requirement evidence; NOT 42/44 accepted live operational login. Historic 0/44 whole-end-to-end metric uses a different gate and must not override individual evidence."
 }
