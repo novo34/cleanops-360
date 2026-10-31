@@ -1,5 +1,5 @@
-/** Internal mTLS ingress listener. Explicit startup only; never selected from HTTP or ENV.
- * Not wired to instrumentation or Traefik until AUTH-GATE-05 acceptance.
+/** Internal mTLS ingress listener. Explicitly owned by the trusted server lifecycle.
+ * Not exposed by instrumentation or Traefik until AUTH-GATE-05 acceptance.
  */
 import { createServer, type ServerOptions } from 'node:https'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -103,7 +103,7 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
           reject(new Error('B1_INGRESS_DRAIN_TIMEOUT'))
         }, input.drainTimeoutMs)
         const awaitDrain = async () => {
-          while (active.size > 0) await Promise.allSettled([...active])
+          while (!timedOut && active.size > 0) await Promise.allSettled([...active])
           if (!timedOut && socketClosed) { clearTimeout(timeout); resolve() }
         }
         server.close(error => {
