@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { generateKeyPairSync, randomBytes } from 'node:crypto'
 import { createDurableCandidateIssuer, createDurableCandidateVerifier, credentialCookie, assertionHeader } from '../../lib/b1/ingress-assertion.ts'
 import type { DurableIngressCredentials, IngressCredentialRecord } from '../../lib/b1/installation-config.ts'
+import { createForwardAuthHandler } from '../../lib/b1/ingress-forward-auth.ts'
 
 test('durable B1 issuer blocks unapproved enrollment; committed credentials work and revocation denies issuance', async () => {
   let time = 100000
@@ -60,4 +61,27 @@ test('durable B1 issuer cannot issue a bearer credential when persistence reject
     pseudonymKey: randomBytes(32), credentials: blocked })
   await assert.rejects(issuer.issueDeviceCredential({ device: 'Device', browser: 'Browser' },
     30000, { reference: 'not-authority', authorizationReference: 'not-authority' }))
+})
+
+test('ForwardAuth accepts durable issuer without any enrollment endpoint or runtime activation', () => {
+  const keys = generateKeyPairSync('ed25519')
+  const credentials: DurableIngressCredentials = {
+    async read() { return null },
+    async enroll() { throw Error('AUTH_CONFIGURATION_REQUIRED') },
+    async revoke() { throw Error('AUTH_CONFIGURATION_REQUIRED') },
+    async recover() { throw Error('AUTH_CONFIGURATION_REQUIRED') },
+  }
+  const issuer = createDurableCandidateIssuer({
+    issuer: 'test', audience: 'https://fixture.invalid', maximumDeviceLifetimeMs: 60000,
+    contextLifetimeMs: 1000, maximumBodyBytes: 1024, bodyTimeoutMs: 100,
+    clock: () => 100000, privateKey: keys.privateKey,
+    pseudonymKey: randomBytes(32), credentials,
+  })
+  const handler = createForwardAuthHandler({
+    issuer, audience: 'https://fixture.invalid',
+    proxyCertificateSha256: Array(32).fill('AB').join(':'),
+    maximumBodyBytes: 1024, timeoutMs: 100,
+  })
+  assert.equal(typeof handler, 'function')
+  assert.equal(typeof issuer.issueForAuthenticatedIngress, 'function')
 })
