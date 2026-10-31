@@ -2,6 +2,58 @@
 
 Estado: **BLOCKED**. Base preservada: `a71c43164c07c240400425abbc3898155a83822e` (7 archivos, 650 líneas). Este documento consolida la propuesta y el procedimiento; no hay otro runbook ni autorización implícita. No acredita login/TOTP, infraestructura observada ni compatibilidad de identidades reales.
 
+## Preparación de contrato desde 89c3c4a — sin activación
+
+QG-0: inventario dirigido de `installation-config.ts`, `installation-bootstrap.ts`,
+`installation-context.ts`, `server-startup.ts`, `runtime.ts`, `instrumentation.ts`,
+`ingress-forward-auth.ts`, `ingress-assertion.ts`, `integration-candidate.ts`,
+`compose.ingress.yaml`, tests de configuración/ingreso y esquema SQL14.
+Se extiende el contrato de preparación existente; no se reemplaza el handler,
+backend, sesiones, bootstrap ni propietario del lifecycle. Las reservas de
+ceremonias requieren su contexto B1 y `app.trusted_devices` requiere una sesión:
+no son un repositorio acreditado para nonces de ingreso ni credenciales prelogin.
+No se añaden tablas, migraciones, archivos de estado ni servicios paralelos.
+
+Diff mínimo: `installation-config.ts` declara binding IP explícito sin wildcard,
+puerto, paths exactos, scope HTTPS, confianza mTLS/cabeceras reconstruidas/aserción
+firmada, dependencias y readiness/cierre. `prepareB1IngressListenerPlan` valida y
+copia configuración sin IO; SIEMPRE devuelve `activation: blocked` y pendientes.
+No se añade el plan al objeto aceptado por el loader/bootstrap vigente: hacerlo
+cambiaría la frontera privada revisada. Solo lo consume la preparación aislada y
+su prueba dirigida nueva, necesaria para validar rechazos y ausencia de efectos.
+El test de configuración existente cubre compatibilidad; no se repiten suites
+de protocolo, SQL ni runtime intactos. Riesgos: una interfaz no demuestra
+atomicidad, autorización, persistencia ni aislamiento; las referencias de
+evidencia tampoco son atestaciones. No se abre ningún socket ni se selecciona
+un backend. AUTH-GATE-05 permanece abierto.
+
+El repositorio replay exige claim linealizable en todos los consumidores y
+reinicios, retención hasta exp y rechazo ante incertidumbre/capacidad/fallo, sin
+fallback local. El repositorio de credenciales exige lectura autoritativa en
+emisión y aceptación, enrolamiento con autorización independiente, revocación
+terminal por revisión y recuperación atómica revocar/crear con ID nuevo.
+Son contratos de adaptadores por implementar y comprobar, NO garantías del
+verificador candidato actual. No se conectan ni se modifica su Map/protocolo.
+Readiness y cierre son callbacks del propietario existente; no otro coordinador.
+La implementación futura debe verificar tiempo máximo de drenado y cierre
+idempotente, además del orden descrito por el contrato.
+
+Decisiones humanas previas a esa conexión: repositorio existente autorizado y
+su scope/retención, semántica y canal de autorización/recuperación de perfiles,
+parámetros de rollout y binding/red/rutas, evidencia de saneamiento Traefik y
+propósito TLS. Presentar antes de aplicar cualquier diff del verificador,
+protocolo firmado, loader/pins o persistencia/ACL revisados. Este contrato no
+aprueba esas decisiones, material criptográfico ni recibos de correo futuros.
+
+QG-3 local de esta preparación: cinco casos dirigidos PASS (tres nuevos y dos
+de configuración existente); tras ampliar el rechazo de bindings wildcard IPv6,
+los tres casos afectados PASS. TypeScript `--noEmit --incremental false`, ESLint
+de los dos archivos TS y diff whitespace PASS. No se ejecutan suites completas,
+SQL ni pruebas operativas. Las dependencias se restauraron desde lockfile con
+scripts de instalación deshabilitados; los primeros intentos fallaron por caché
+ausente/red restringida y ruta de caché no escribible, resueltos con acceso de
+red permitido y caché temporal. No son fallos de B1. No se cambia el lockfile.
+
 ## Auditoría de los siete archivos
 
 | Archivo | Necesidad, reutilización y conclusión |
