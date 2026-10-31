@@ -37,8 +37,15 @@ export function createForwardAuthHandler(options: Readonly<{
         if (!values || values.length !== 1) throw new Error('INGRESS_DENIED')
         headers.set(name, values[0])
       }
+      // Forwarded metadata is consumed only after mTLS peer verification and
+      // single-hop validation above. It must never be passed to the issuer as
+      // untrusted request headers (including alternate X-Forwarded-* names).
+      // The canonical peer network is passed explicitly as the second argument.
+      for (const name of [...headers.keys()]) {
+        if (name.startsWith('x-forwarded-') || name === 'forwarded' ||
+            name === assertionHeader || name === 'x-real-ip') headers.delete(name)
+      }
       headers.set('host', host)
-      headers.delete(assertionHeader)
       const chunks: Buffer[] = []
       let size = 0
       const read = async () => {
