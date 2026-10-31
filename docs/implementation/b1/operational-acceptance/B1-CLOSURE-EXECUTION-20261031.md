@@ -38,3 +38,24 @@ Do not change `main`, `staging`, Dokploy, VPS, Traefik, OpenBao, productive Post
 - Trusted pool binder is optional in the current bootstrap API; staging must require v2 with successful binding, not silently accept v1, before relying on durable ingress.
 - The listener is an explicit separate component and does not yet participate in trusted startup/shutdown. Do not label it deployed.
 - PostgreSQL proposal is not installed or independently authorized. Owner-only credential writes remain a design/operation gate.
+
+
+## Targeted deployment delta — derived from actual VPS inventory (2026-10-31)
+
+Observed: running web `cleanops360-f4fxmd-web-1` uses image digest `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290`, connects to `cleanops360-f4fxmd_default`, `cleanops360_staging_private`, `dokploy-network`, and has **zero Docker mounts**. Agent is running and owns volume `cleanops360-f4fxmd_identity_agent_sink`. PostgreSQL and OpenBao healthy. Host `/run/cleanops-b1-private` absent when checked. Operational Dokploy Compose contains live HTTPS routers/redirect absent from GitHub's staging Compose. Preserve the operative Compose before preparing a diff.
+
+**Existing candidate to reuse:** `deploy/staging/compose.b1-web.yaml`, not an alternative full Compose. Do not apply it verbatim: its `image`/network additions must be reconciled with current operative web settings. No second Agent, PG, Bao or network.
+
+| Element | Exact intended delta | Prerequisite / stop |
+|---|---|---|
+| Web image | Build/pin reviewed B1 image as an immutable digest, retaining existing web ports, labels, restart, identity and healthcheck | Actual current Compose source/hash and image/runtime UID:GID confirmed; never replace image merely to add mounts |
+| Agent sink | Read-only mount of **existing** `cleanops360-f4fxmd_identity_agent_sink` at `/run/cleanops-agent` in web | Confirm token read permitted for actual non-root web UID/GID, without revealing token |
+| Private B1 package | Read-only mount of reviewed, root-owned private files at `/run/cleanops-b1-private`; use existing owner file contract and manifest v2 | Real package does not yet exist at checked path; must obtain approved bytes, SHA, metadata and certificate identity before creation |
+| Networking | Keep three observed web networks and Traefik service/router bindings; add only a proven missing private peer route | No public mTLS listener or unverified Agent network include |
+| Identity SQL | Apply **only** an independently approved ingress SQL candidate, not SQL14 and not operator enrollment via runtime pool | Metadata check whether candidate functions are already installed; independent operator authorization required |
+| Ingress/TLS | Wire listener, bounded shutdown and audited Traefik ForwardAuth only on B1 routes | Code listener presently unwired; actual proxy pin/CA and forwarded-header proof must be reviewed |
+| Verification | One staged release and functional gate; verify login, TOTP, sessions, replay, revocation, failure behavior and rollback | Named Security reviewer and owner authorization of exact diff/SQL and downtime scope |
+
+**Exact no-op rollback state**: record previous operative Compose bytes/hash, current web image digest above, web networks, Traefik labels, web mount list (empty), preexisting PG/OpenBao/Agent IDs and volume names. For web-only failure, return to prior web image/mounts/routers after verified preconditions; do not roll back or recreate persistent PG/Bao volumes. SQL rollback, if separately approved and applied, requires its own reviewed forward recovery rather than blind DROP.
+
+No operation in this section is authorized merely by documenting it. Do not expose approval tokens or private material.
