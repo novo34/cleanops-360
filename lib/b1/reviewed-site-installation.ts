@@ -36,9 +36,9 @@ const exact = (value: unknown, keys: string) => !!value && typeof value === 'obj
 /** Import the exact reviewed bytes, avoiding a second path lookup or symlink race.
  * The module may use built-ins / approved absolute imports, never relative imports.
  */
-async function loadIntegration(spec: ReviewedInstallationManifest['integration'], durable: boolean): Promise<Readonly<{
+async function loadIntegration(spec: ReviewedInstallationManifest['integration']): Promise<Readonly<{
   integration: InstallationIntegration
-  bindIngress?: B1IngressPoolBinder
+  bindIngress: B1IngressPoolBinder
 }>> {
   const bytes = await readTrustedPrivateFile(spec.source)
   try {
@@ -47,7 +47,6 @@ async function loadIntegration(spec: ReviewedInstallationManifest['integration']
     // Trust boundary: owner-controlled private file, strict metadata and SHA-256 checked above; no HTTP/ENV source.
     const module = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ url)
     if (typeof module.normalizeEmail !== 'function' || typeof module.resolveRequestContext !== 'function') throw invalid()
-    if (!durable) return { integration: { normalizeEmail: module.normalizeEmail, resolveRequestContext: module.resolveRequestContext } }
     if (typeof module.bindIngress !== 'function' || Object.keys(module).sort().join(',') !==
         'bindIngress,normalizeEmail,resolveRequestContext') throw invalid()
     // The reviewed module must reject requests until this binding succeeds.
@@ -84,14 +83,13 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
     dummy = await readTrustedPrivateFile(m.dummyPasswordHash)
     const dummyPasswordHash = new TextDecoder('utf-8', { fatal: true }).decode(dummy)
     validateDummyPasswordHash(dummyPasswordHash)
-    const loaded = await loadIntegration(m.integration, true)
-    if (!loaded.bindIngress) throw invalid()
+    const loaded = await loadIntegration(m.integration)
     const context = createInstallationContext(loaded.integration)
     return Object.freeze({
       postgres: m.postgres, bao: m.bao, catalog: m.catalog, sources: m.sources,
       baoCertificateSha256: m.baoClientIdentity.certificateSha256,
       requestScope: context.requestScope,
-      ...(loaded.bindIngress ? { bindIngress: loaded.bindIngress } : {}),
+      bindIngress: loaded.bindIngress,
       inputs: { origin: m.origin, internalOrigins: m.internalOrigins, sink: m.sink, corpus, passwordPolicy,
         dummyPasswordHash, lifetimeMs: m.lifetimeMs, maxEligibleTotpMethods: m.maxEligibleTotpMethods,
         normalizeEmail: context.normalizeEmail, transport: context.transport, sessionLabels: context.sessionLabels },
