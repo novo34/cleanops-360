@@ -4,3 +4,10 @@
 /docs/implementation/b1/** text eol=lf
 /docs/proposals/** text eol=lf
 /lib/b1/openapi.json text eol=lf
+# Custody exceptions: preserve the five recovered working-tree CSVs byte for byte.
+# These exact files have inherited CRLF/LF differences; do not normalize on add/clone.
+/docs/canonical/auth-review/v4/baseline-v3/block-1-grants-requiring-approval.csv -text
+/docs/canonical/auth-review/v4/baseline-v3/block-1-role-projection.csv -text
+/docs/canonical/auth-review/v4/block-1-grants-functional-approved.csv -text
+/docs/canonical/auth-review/v4/block-1-role-projection.csv -text
+/docs/canonical/auth-review/v4/security-values.csv -text

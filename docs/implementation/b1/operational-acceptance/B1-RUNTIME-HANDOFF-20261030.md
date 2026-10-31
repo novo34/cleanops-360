@@ -1,8 +1,134 @@
 # B1 — Registro operativo de continuidad (30-10-2026)
 
 > Estado: **COMPOSICIÓN WEB IMPLEMENTADA — CONFIGURACIÓN PRIVADA Y ACTIVACIÓN PENDIENTES; NO CERRAR B1**.
-> Estado vigente y procedimiento manual: apartado «Cierre de implementación en repositorio» al final. Los registros anteriores se conservan como historia.
+> Estado vigente: «Custodia recuperada y continuidad — 31-10-2026», inmediatamente debajo. Los registros anteriores se conservan como historia atribuida, no como inspección actual del VPS.
 > Registro de resultados comunicados desde el VPS en la sesión del 30-10-2026. No equivale a un nuevo ensayo ni autoriza cambios de infraestructura.
+
+## Custodia recuperada y continuidad — 31-10-2026
+
+### Fuente y alcance
+
+Rama exclusiva de custodia: `prep/b1-custody-20261031`. Base recuperada íntegra
+`89c3c4aa66881d03358e2d4bb8c428525ef6dfa3`, descendiente de
+`a71c43164c07c240400425abbc3898155a83822e`; ambos commits se conservan sin
+reescribir. Contrato añadido y pruebas: `24bf1b10c8e1039bd5fc1c4a8697d794539598d8`.
+El SHA final es el tip de esta rama, no un hash autorreferencial.
+El checkout anterior en `4f19c36` no se utilizó como sustituto del trabajo perdido.
+Archivo transferido por el propietario, extraído en carpeta independiente;
+HEAD, objetos, reflog y `git fsck --full` verificados realmente en esta sesión.
+
+Cinco CSV recuperados se conservan con sus bytes originales, incluidos CRLF/LF:
+`baseline-v3/block-1-grants-requiring-approval.csv`,
+`baseline-v3/block-1-role-projection.csv`, `block-1-grants-functional-approved.csv`,
+`block-1-role-projection.csv` y `security-values.csv`, bajo
+`docs/canonical/auth-review/v4/`. Comparación con el tar transferido: idénticos.
+Las excepciones exactas `-text` en `.gitattributes` impiden normalizarlos al
+añadir/recuperar; no se modifican sus bytes ni contenido funcional aprobado.
+Comprobación adicional de custodia: tar = working tree = index = blobs raw de
+`89c3c4a` en los cinco casos. Las diferencias de status provenían del filtro
+text/eol, no de bytes distintos del HEAD; por eso no se crean commits artificiales
+de CSV. Los blobs originales ya están en los ancestros conservados.
+
+### Estado técnico y evidencia
+
+- Composición privada, loader, contexto ALS, runtime compartido y lifecycle
+  existentes: conservar. Candidato de ingreso firmado Ed25519, binding de
+  petición, handler mTLS con pin, normalizador/informe de correo y factory:
+  `a71c431`; endurecimiento CLI y consolidación de inspección: `89c3c4a`.
+- Extensión de preparación en `lib/b1/installation-config.ts`: binding/puerto,
+  rutas exactas, confianza declarada, repositorios replay compartido/credenciales
+  duraderas y callbacks de readiness/cierre. Siempre `activation: blocked`.
+  Ningún socket ni conexión al arranque; verificador/protocolo/loader intactos.
+- Evidencia ejecutada en esta sesión sobre esos bytes de TS: cinco pruebas
+  dirigidas PASS (tres de `ingress-listener-plan.test.ts`, dos de
+  `installation-config.test.ts`); los tres afectados por rechazo IPv6 ampliado
+  revalidados PASS; `tsc --noEmit --incremental false`, ESLint de los dos TS y
+  whitespace del delta PASS. No repetirlos por este cambio documental/EOL.
+- Evidencia anterior heredada: 21 pruebas de candidato/contexto y controles
+  descritos en [el candidato](B1-INGRESS-CANDIDATE-20261031.md), no reejecutados
+  aquí. Quality remoto en `dc3495f097666545cd64dc25df9207789e1d3ee1`,
+  [run 41180663062](https://github.com/novo34/cleanops-360/actions/runs/41180663062),
+  registrado como PASS por el historial; no implica Quality PASS del nuevo tip.
+- Aprobación histórica B1-PI-01: dictamen independiente comunicado por el
+  propietario y aplicado en `dc3495f`, limitado a bytes/import/pin exactos.
+  No aprueba futuros módulos privados, TLS compartido ni activación.
+
+### GitHub e infraestructura: atribución obligatoria
+
+[PR #31](https://github.com/novo34/cleanops-360/pull/31) observado mediante
+conector de lectura en esta sesión: abierto/draft, HEAD
+`93eabfb34b5bd1130503c5802e2ce9c3e0065fe9`, base `staging`
+`d3ea84b38fd1574db1610f03b59c8c4a5050ac72`; `main`
+`4f19c36f8eda2c846c6e3c7164814f26841b3bce`. No actualizar esas referencias
+ni el HEAD del PR para custodiar. Esta rama conserva los dos commits adicionales
+y la preparación posterior. Una observación GitHub no acredita el VPS.
+
+PostgreSQL SQL14/TLS/HBA, LOGIN dedicado, servidor OpenBao, cinco claves y Agent
+con sink tmpfs existentes: hechos históricos comunicados por el propietario,
+detallados en «Comprobado en VPS» debajo; NO se inspeccionaron de nuevo aquí.
+Agent fuera de Compose y web sin B1 activo corresponden a esa fotografía.
+Conservar ajustes locales del Compose operativo, montajes, redes y material;
+no reinstalar ni reprovisionar para continuar. Traefik/Dokploy efectivos,
+topología, saneamiento de cabeceras y autorización TLS NO están acreditados
+actualmente por esta sesión. El router versionado es una propuesta, no evidencia
+de su configuración efectiva. No se ha ejecutado SQL, VPS ni Dokploy aquí.
+
+### Dependencias, permisos y siguiente acción
+
+AUTH-GATE-05 OPEN; fail-closed permanece. Pendientes reales: adapter replay
+linealizable entre consumidores/reinicios; estado duradero de credenciales,
+enrolamiento autorizado, revocación y recuperación; implementación del listener
+y start/error/readiness/drain; evidencia de versión/config/red Traefik y propósito
+TLS; snapshot completo compatible de correos y coordinación del provisionador;
+paquete privado, corpus/dummy PHC y bytes/imports aprobados.
+Las reservas de ceremonias y trusted_devices SQL14 no acreditan persistencia
+para credenciales prelogin: no reutilizarlas como si fueran equivalentes.
+No crear otro backend/gestor de sesiones ni almacenamiento por suposición.
+
+Próxima acción técnica concreta: presentar para aprobación el adaptador de
+persistencia existente autorizado para claim atómico y estado de dispositivos,
+con scope, retención, canal de operador y comportamiento ante incertidumbre.
+Después proponer el diff de conexión al verificador/loader y listener; detener
+esa parte antes de modificar la frontera de seguridad aprobada. No activar.
+Roles, TTL/retención, recuperación, topología/rollout, bind/red/rutas y propósito
+TLS necesitan decisión humana sustentada; interfaces y referencias no la suplen.
+
+Activación/reversión: reutilizar el procedimiento selectivo web de este registro
+y [el gate staging](../../../../deploy/staging/openbao/B1-STAGING-INTEGRATION-GATE.md),
+reconciliando primero el Compose operativo. Solo tras autorización separada:
+imagen/montajes web revisados, readiness real y pruebas funcionales autorizadas.
+Reversión restaura exclusivamente imagen/overlay web aprobado y retira emisión;
+preserva PostgreSQL, OpenBao, Agent, sink y material existentes. No ejecutar
+`compose up` general, borrar volúmenes, crear otro Agent ni rotar claves.
+FIRST-ACTOR y aceptación formal requieren permisos separados.
+
+### Seguridad de publicación y recuperación
+
+Revisión de todos los workflows versionados: push de validación B1 restringido
+a `prep/installation-catalog-20261030`; Quality a main; preflight/integración/
+proxy a staging; synthetic a un tag exacto. Los demás son PR/manual, sin triggers
+create/workflow_run encontrados. Un push solo de esta rama nueva, sin tags ni
+PR, no coincide con esos triggers. No editar workflows ni usar skip como bypass.
+Los webhooks externos/Dokploy no están representados íntegramente en Git: falta
+confirmación del propietario de que esta rama está excluida de acciones externas.
+Publicación detenida hasta esa evidencia; no afirmar custodia remota ni ausencia
+de despliegue a partir de un push que todavía no se ha hecho.
+
+Verificación local de custodia: fsck completo PASS; revisión dirigida de los
+11 archivos distintos frente al HEAD observado del PR, más el nuevo registro
+de continuidad y atributos. Escaneo limitado de patrones de claves privadas,
+certificados PEM, tokens GitHub y access keys AWS: cero coincidencias.
+No se incorporan archivos privados ni .env, node_modules, .next, tar o bundles.
+Gitleaks no está disponible en este entorno y no se instala por restricción del
+encargo; el escaneo limitado no sustituye un análisis completo ni acredita por
+sí solo ausencia absoluta de secretos en todo el historial heredado.
+
+Tras publicar de forma segura: verificar tip remoto, árboles/blobs y ambos
+ancestros; recuperar con un clone de esta rama desde GitHub y `git fsck --full`.
+No depender del tar local ni de node_modules/.next; dependencias desde lockfile.
+Usar este registro como entrada, [PLAN](PLAN.md), [candidato de ingreso](B1-INGRESS-CANDIDATE-20261031.md)
+y evidencias originales enlazadas; no repetir procedimientos históricos ni
+interpretar documentación heredada como aprobación actual.
 
 ## Fuentes de verdad y reglas de continuidad
 
