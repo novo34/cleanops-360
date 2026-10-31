@@ -1,3 +1,5 @@
+> **ACTUALIZACIÓN 31-10-2026 — situación demostrable:** la ruta `/demo` y sus cinco vistas (Dashboard, Empresas, Clientes, Empleados, Planning) están implementadas con datos ficticios aislados en este repositorio. `app/demo/[[...section]]/page.tsx` y `components/demo/workspace.tsx` son el código existente que debe reutilizarse, no reconstruirse. La publicación de custodia B1 `6eb480c3327f2c64d726e533bf2c673e3d05915b` NO es un despliegue a staging. Login real, MFA, persistencia de CRM y disponibilidad efectiva en el dominio de staging **no están acreditados** con esa publicación. Antes de una presentación, inspeccionar solo el estado real del despliegue; no activar B1 ni simular seguridad productiva. La instrucción de priorizar el cierre real de B1 se mantiene; no se autorizan nuevas pantallas demo por esta nota.
+
 > **SUPERSEDED — instrucción prioritaria de ejecución secuencial.** La demo se conserva
 > exclusivamente como `UI IMPLEMENTED` reutilizable. Se suspenden las entregas D1/D2
 > de producto descritas abajo hasta cerrar el módulo real actual. No se borra esta
