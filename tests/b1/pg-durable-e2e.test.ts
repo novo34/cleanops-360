@@ -74,7 +74,9 @@ test('PG16 durable B1: enrolled credential, shared replay, revocation and unavai
       await assert.rejects(a.resolveRequestContext(await makeRequest()), /AUTH_DEPENDENCY_UNAVAILABLE/)
     } finally {
       await Promise.allSettled(pools.map(pool => pool.end()))
-      try { if (created) await admin.query(`DROP DATABASE ${database} WITH (FORCE)`) }
-      finally { await admin.end() }
+      try {
+        if (created) await admin.query(`DROP DATABASE ${database} WITH (FORCE)`)
+        await admin.query('DROP ROLE IF EXISTS ingress_test_login, cleanops_identity_service, cleanops_ddl_owner')
+      } finally { await admin.end() }
     }
   })
