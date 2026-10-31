@@ -1,5 +1,8 @@
 # B1 — Registro operativo de continuidad (30-10-2026)
 
+> **ACTUALIZACIÓN POSTERIOR DE CUSTODIA — 31-10-2026:** el bloqueo de publicación indicado en el registro del 31-10 quedó SUPERADO. El propietario confirmó que Dokploy despliega automáticamente solo desde `staging`. Codex informó push normal a `prep/b1-custody-20261031`, sin workflow asociado. La referencia remota y SHA `6eb480c3327f2c64d726e533bf2c673e3d05915b` se verificaron directamente mediante GitHub. Esta actualización SOLO acredita custodia GitHub, no operación VPS ni aceptación B1. Conservar el resto como cronología histórica; los «no push» inferiores son fotografías anteriores, no órdenes vigentes.
+
+
 > Estado: **COMPOSICIÓN WEB IMPLEMENTADA — CONFIGURACIÓN PRIVADA Y ACTIVACIÓN PENDIENTES; NO CERRAR B1**.
 > Estado vigente: «Custodia recuperada y continuidad — 31-10-2026», inmediatamente debajo. Los registros anteriores se conservan como historia atribuida, no como inspección actual del VPS.
 > Registro de resultados comunicados desde el VPS en la sesión del 30-10-2026. No equivale a un nuevo ensayo ni autoriza cambios de infraestructura.
