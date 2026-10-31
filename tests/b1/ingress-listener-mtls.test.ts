@@ -24,7 +24,7 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
   if (!executable) { t.skip('OpenSSL executable not available; no fixture credentials bundled'); return }
   const directory = await mkdtemp(join(tmpdir(), 'cleanops-b1-ingress-'))
   const run = (...args: string[]) => execFileSync(executable, args, {
-    cwd: directory, stdio: 'ignore', timeout: 15000,
+    cwd: directory, stdio: ['ignore', 'ignore', 'pipe'], timeout: 15000,
   })
   let listener: Awaited<ReturnType<typeof startB1IngressListener>> | undefined
   try {
@@ -35,8 +35,8 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
         '-keyout', role + '.key', '-out', role + '.csr')
       await writeFile(join(directory, role + '.ext'),
         role === 'server'
-          ? 'subjectAltName=DNS:localhost,IP:127.0.0.1\\nextendedKeyUsage=serverAuth\\n'
-          : 'extendedKeyUsage=clientAuth\\n')
+          ? 'subjectAltName=DNS:localhost,IP:127.0.0.1\nextendedKeyUsage=serverAuth\n'
+          : 'extendedKeyUsage=clientAuth\n')
       run('x509', '-req', '-in', role + '.csr', '-CA', 'ca.crt', '-CAkey', 'ca.key',
         '-CAcreateserial', '-days', '1', '-out', role + '.crt', '-extfile', role + '.ext')
     }
