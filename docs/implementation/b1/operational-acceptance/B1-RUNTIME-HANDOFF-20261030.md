@@ -671,3 +671,167 @@ desviacion exacta; no hay exclusiones nuevas ni nosemgrep. No se identifica una
 autorizacion formal adicional exigida para el cambio que el propietario ordeno.
 Las aprobaciones de merge, activacion y cada modulo de sitio siguen separadas.
 No se afirma Quality remoto PASS hasta observar el run correspondiente.
+
+
+## integration.mjs — limite de confianza y propuesta pendiente, 31-10-2026
+
+Este apartado es el estado vigente de la integracion de sitio y sustituye las
+listas privadas pendientes anteriores. Base local y remota revalidadas ANTES de
+escribir: prep/installation-catalog-20261030=dc3495f097666545cd64dc25df9207789e1d3ee1;
+staging=d3ea84b38fd1574db1610f03b59c8c4a5050ac72. Arbol inicialmente limpio.
+
+### Estado operativo comunicado por el propietario — NO REPETIR
+
+SQL14, OpenBao, Agent, cinco claves, catalogo TOTP con keyVersion=totp-v1,
+identidad mTLS y archivos privados, dummy Argon2id y manifiesto externo al repo
+estan preparados. Corpus instalado: xato-minlen12-20261031, 1008 entradas,
+SHA-256 24e7aa5e3c9df388ee36d5c729cffd010158da55c43463547cac140b6f8c1c84;
+password_min=12 y password_max=128 aprobados. Ningun servicio reiniciado.
+Son hechos comunicados por el propietario, no nuevas verificaciones de Codex.
+No se lee/copia el manifiesto del VPS ni se opera sobre esos recursos.
+No se vuelven a presentar corpus, PHC, catalogo o PKI preparados como bloqueos.
+
+### Hallazgos de contratos y procedencia (revision dirigida)
+
+| Fuente revisada | Hecho verificable y limite |
+|---|---|
+| installation-context.ts | Valida dos Buffers de 32 bytes, etiquetas y aislamiento ALS; NO autentica al productor. Pasa request.clone() al resolver. Un WeakMap ligado exclusivamente al objeto Request original no se transfiere al clon |
+| reviewed-site-installation.ts | Comprueba archivo privado y hash del codigo; eso autentica la instalacion del modulo, NO los datos HTTP que luego consuma. La excepcion Semgrep solo acepta este mecanismo |
+| private-runtime.ts / installation-bootstrap.ts / server-startup.ts | Composicion confiable y sources privadas existentes. El contexto se resuelve antes de handleAuth/custodia/SQL. El MISMO normalizeEmail se pasa al backend y a la factory de primer actor |
+| app/auth/login/route.ts y demas rutas B1 / runtime.ts | Reciben Request y delegan a handleAuth, con runtime Node. No reciben identidad TLS del peer ni un contexto de ingreso verificado |
+| NextRequest instalado 16.4.3 | La API ip/geo se retiro en Next 15; Request/NextRequest y sus cabeceras no prueban peer/socket, cert de cliente ni identidad de dispositivo |
+| proxy.ts | Genera nonce CSP y propaga headers. No verifica peer ni firma metadatos. El nonce CSP no acredita IP/dispositivo y no sirve como dimension estable de rate-limit |
+| compose.ingress.yaml / compose.yaml / PROXY_ORIGIN_FIX.md | Router HTTPS, redes Dokploy y puerto web interno; no consta emisor/validador de contexto, ForwardAuth autenticado ni politica acreditada de saneamiento/identidad de proxy. No se inspecciona el Compose vivo |
+| service.ts | Allowlist de origen/Host y CSRF protegen routing/solicitudes; no autentican X-Forwarded-For, User-Agent o claims de dispositivo. El propio contrato distingue ambas cosas |
+| approved-backend.ts | network/device alimentan los buckets IP/DEVICE y eventos de seguridad. Valores aleatorios por peticion, hashes de UA o un bucket constante alterarian la politica; no se usan |
+| trusted-device B1 | El token se valida mediante broker en un flujo autorizado; una cookie remitida por si sola no acredita ingreso. No resuelve IP ni cubre de forma independiente el primer login sin sesion |
+
+Las redes privadas y TLS hasta Traefik no demuestran por si solos la procedencia
+de cada header que llega a Next. El mTLS ya preparado para Next/OpenBao es otra
+relacion de confianza: no se reutiliza como permiso de firma de ingreso ni como
+prueba de identidad del navegador. No se afirma que el VPS carezca de controles
+externos; se afirma que no hay evidencia/repositorio de este mecanismo.
+
+### Correo: no hay una politica productiva identificada
+
+first-actor.ts exige normalizeEmail(manifest.email)===manifest.email, pero recibe
+la funcion como dependencia. 0002_first_actor.review.sql inserta m->>'email' tal
+cual en email_normalized. SQL14/auth_api comparan email_normalized=normalized_email;
+no hay transformacion canonica trim/lower/Unicode implementada en ese camino.
+Los trim().toLowerCase() encontrados en pg05-http-real, pg05-browser-backend y
+openbao-b1-integration son fixtures sinteticos, no autoridad sobre las identidades
+instaladas. Un ejemplo almacenado en minusculas tampoco prueba una regla general.
+
+El propietario confirmo durante este encargo que no tiene una funcion/version
+del provisionador identificada/aprobada ni constancia de un emisor autenticado.
+No autoriza elegir unilateralmente otra normalizacion. Ambas dependencias son
+reales y no se resuelven con un default de desarrollo.
+
+### Propuesta concreta minima — PARA APROBACION, no configuracion aplicada
+
+Se conserva el camino actual: Traefik/Dokploy -> Next Node -> integration.mjs ->
+createInstallationContext/ALS -> backend B1. No se crea otro backend, store de
+sesiones, cliente Bao o provisionador.
+
+1. **Una sola politica de correo.** Identificar la funcion/version realmente usada
+   en provisionamiento o, si no existe, definir una politica y comprobar antes su
+   compatibilidad y posibles colisiones con identidades existentes. El propietario
+   aporta una evidencia NO secreta (codigo/version y vectores de entrada/salida
+   anonimizados); cualquier comprobacion de datos privados se realiza fuera de
+   Codex con autorizacion propia, no ejecutando SQL aqui. Aprobarla explicitamente.
+   normalizeEmail(email) exportara esa funcion exacta. El wiring actual ya la
+   reutiliza para login y nuevos primeros actores; no requiere otro normalizador.
+
+2. **Productor autenticado en el ingreso existente.** Propuesta recomendada:
+   una asercion de contexto por peticion emitida por un componente confiable del
+   proxy existente y verificada criptograficamente en integration.mjs. Puede
+   viajar por header, pero el HEADER NUNCA es la autoridad: lo es el verificador
+   y la identidad aprobada del emisor. No consta que Traefik tenga hoy esa
+   capacidad configurada; antes de implementarla deben acreditarse su version y
+   el middleware/extension disponible y aprobado. No se asume ni instala un plugin.
+   El proxy debe eliminar/reemplazar claims que mande el cliente y no reflejar
+   aserciones privadas en respuestas. El saneamiento sin autenticacion no basta.
+
+   El contrato aprobado debe fijar emisor/audiencia/instalacion, identidad y raiz
+   de verificacion, algoritmo/formato estandar, binding a metodo/target y datos
+   relevantes de la peticion, integridad del cuerpo si corresponde, vigencia,
+   proteccion de replay, limites de tamano/tiempo y rotacion/revocacion. No se
+   eligen TTLs ni claves en este expediente. Una firma solo acredita al emisor;
+   NO convierte claims que este copie de UA/cookies en hechos verificados.
+
+   network/device deben ser pseudonimos keyed estables segun politica de los
+   buckets, emitidos tras verificar sus fuentes, NO simples hashes de IP/UA ni
+   valores nuevos por peticion. La clave/proposito de pseudonimizacion e identidad
+   del emisor requieren aprobacion; no se reutilizan por conveniencia audit-hmac,
+   cursor-hmac, otp-hmac, recovery-hmac, totp-aead o certificados de Bao. No se
+   genera, nombra como existente ni aprovisiona ningun secreto/identidad nuevo.
+
+3. **Definir dispositivo y etiquetas sin fabricar identidad.** La fuente debe
+   funcionar tambien para el primer POST /auth/login, sin sesion. Si se elige un
+   identificador de perfil anonimo emitido por servidor y transportado en cookie,
+   solo se usa despues de validar su autenticidad, vigencia y vinculacion; es una
+   propuesta pendiente, no la cookie trusted-device existente ni un dispositivo
+   fisico atestado. Deben aprobarse alta, renovacion/borrado, privacidad y efecto
+   de reemision sobre rate-limit. device/browser deben describir hechos que el
+   productor pueda acreditar; firmar User-Agent no acredita navegador/hardware.
+   Si se requieren nombres reales verificados, hace falta su fuente de registro
+   o atestacion. No se introducen etiquetas constantes de fixture ni fallback
+   "unknown"; un significado informativo de "no atestado" tambien exige aprobar
+   esa semantica, no se adopta por defecto.
+
+4. **Modulo privado reutilizando los contratos.** Exportaciones exactas:
+   normalizeEmail(email) y async resolveRequestContext(request). Este ultimo
+   verificara primero la asercion/identidad, binding, vigencia y replay con un
+   presupuesto acotado; despues devolvera network/device como Buffers de 32
+   bytes y etiquetas canonicamente validadas, copiadas desde esos datos verificados.
+   Debe manejar el clon sin consumir el body del handler ni confiar solo en
+   Content-Length; reutilizar limites canonicos y rechazar antes de efectos.
+   Ausencia/error => rechazo, nunca contexto por defecto. ALS existente conserva
+   aislamiento y limpieza. El material publico/config del verificador se incorpora
+   al paquete privado RO y se fija en la revision del modulo; no hay nuevos campos
+   de manifiesto o API adoptados sin aprobar su necesidad.
+
+5. **Revision y entrega, sin instalacion.** Con los puntos 1–3 acreditados, preparar
+   el modulo real, sus pruebas de autenticacion/replay y SHA-256 de bytes exactos.
+   No registrarlo como aprobado ni copiarlo al VPS en este encargo. Hasta entonces
+   NO se genera integration.mjs, ni un hash de un modulo ficticio. Esto aplica
+   el caso 10 solicitado por el propietario y mantiene fail-closed.
+
+Archivos de una implementacion FUTURA, solo tras esas decisiones:
+
+- integration.mjs del paquete privado: nueva implementacion real de las dos
+  exportaciones; verificador y normalizacion aprobados, sin secretos en Git.
+- Configuracion del router/middleware existente (representacion revisable en
+  deploy/staging/compose.ingress.yaml si procede): emision/saneamiento y control
+  del hop confiable. No se modifica ahora ni se aplica en Dokploy/VPS.
+- Tests de integration.mjs para el mecanismo elegido; se reutilizan los tests
+  del consumidor y del proxy. Un mecanismo basado en firma usa el Request clonado
+  ya disponible y no necesita redisenar los contratos TS existentes.
+
+### Cambios y pruebas de este encargo
+
+QG-0: se reutilizan installation-context y sus tests, primer actor, SQL14,
+service/proxy y registros existentes; el diff se limita al test de contexto y
+este apartado del handoff. No hay codigo productivo ni modulos de ejemplo nuevos.
+Los fixtures modelan un canal SOLO del servidor con AsyncLocalStorage; no son un
+emisor, no inventan una atestacion ni prueban autenticacion de infraestructura.
+Sus buffers/etiquetas sinteticos existen solo en tests y nunca se exportan a
+produccion. Las pruebas demuestran el contrato consumidor condicionado a un
+resolver que autentique su entrada, no certifican un resolver aun inexistente.
+
+Resultado real: **9/9 tests de installation-context PASS**, cero FAIL/SKIP;
+TypeScript y ESLint del test PASS. Incluyen concurrencia con dos peticiones y
+una tercera sin contexto, cabeceras/cookies/body suplantados, tipos/longitudes
+invalidos, limites de etiquetas, copia frente a mutacion, limpieza tras errores,
+tareas tardias y delegacion sin imponer politica de correo. El primer typecheck
+senalo una inferencia union del objeto Headers de fixture; se corrigio con el
+Record<string,string> correspondiente, sin relajar codigo productivo.
+No se repite build ni suite B1 completa: no cambia codigo/contrato productivo.
+No se ejecutan operaciones ya completadas ni pruebas sobre VPS.
+
+Estado: **BLOCKED para preparar/aprobar un modulo productivo**, por falta de
+politica de normalizacion acreditada y de productor/contrato autenticado de
+contexto (incluidas semanticas de dispositivo/etiquetas). No hay un SHA de modulo
+instalable que presentar aun. El siguiente paso minimo es aprobar esos dos
+contratos con evidencia; despues puede implementarse el modulo y calcular su
+hash sin tocar PostgreSQL/OpenBao/Agent ni activar B1.
