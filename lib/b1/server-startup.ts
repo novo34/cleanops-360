@@ -18,7 +18,7 @@ export async function startTrustedB1Server(spec: InstallationBootstrapInputs): P
   let prepared: Awaited<ReturnType<typeof assembleInstallationPrivateInputs>> | undefined
   try {
     prepared = await assembleInstallationPrivateInputs(spec)
-    installTrustedRuntime(prepared.configuration, spec.requestScope)
+    installTrustedRuntime(prepared.configuration, spec.requestScope, spec.bindIngress)
     disposal = prepared.dispose
     started = true
     prepared = undefined
