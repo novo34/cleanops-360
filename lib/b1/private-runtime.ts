@@ -83,11 +83,7 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
     // the one canonical pool; never leave an orphaned connection owner behind.
     try {
       if (bindIngress) bindIngress(createPgIngressRepositories(pool))
-    } catch {
-      void pool.end().catch(() => { /* installation remains unavailable */ })
-      throw unavailable()
-    }
-    const backend = createCustodiedBackend({pool,custody,references:refs,totpKeys:versions.map(x=>x.reference),lifetimeMs:c.lifetimeMs,
+      const backend = createCustodiedBackend({pool,custody,references:refs,totpKeys:versions.map(x=>x.reference),lifetimeMs:c.lifetimeMs,
       dependencies: borrow => ({
         passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
         transport:readTransport, sessionLabels,
@@ -103,7 +99,7 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
         },
       }),
     })
-    return {backend,handler:createAuthHandler(backend,c.origin,undefined,c.internalOrigins),
+      return {backend,handler:createAuthHandler(backend,c.origin,undefined,c.internalOrigins),
       firstActor(manifest, operatorPool, keyVersion) {
         const found = versions.find(x => x.keyVersion === keyVersion)
         if (!manifest || manifest.tenantId !== refs.recovery.tenantId || !found || !operatorPool ||
@@ -114,6 +110,12 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
           totpKeyVersion:found.keyVersion, recoveryKey:refs.recovery, lifetimeMs:c.lifetimeMs,
           passwordAdmission, normalizeEmail })
       },close:()=>pool.end()}
+    } catch {
+      // Includes binder, backend composition and handler failures. The pool
+      // never escapes as a usable runtime unless all three stages succeed.
+      void pool.end().catch(() => { /* preserve installation failure */ })
+      throw unavailable()
+    }
 
   } catch { throw unavailable() }
 }
