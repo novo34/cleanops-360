@@ -4,7 +4,7 @@ import { startTrustedB1Server, stopTrustedB1Server } from '../../lib/b1/server-s
 import type { InstallationBootstrapInputs } from '../../lib/b1/installation-bootstrap.ts'
 
 test('B1 trusted server startup rejects absent installation custody without activating HTTP', async () => {
-  await assert.rejects(startTrustedB1Server({} as InstallationBootstrapInputs), /INSTALLATION_CONFIG_INVALID/)
+  await assert.rejects(startTrustedB1Server({ bindIngress() {} } as unknown as InstallationBootstrapInputs), /INSTALLATION_CONFIG_INVALID/)
   await assert.rejects(stopTrustedB1Server(), /B1_SERVER_NOT_STARTED/)
 })
 
