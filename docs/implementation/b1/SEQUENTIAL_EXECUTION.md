@@ -1,5 +1,7 @@
 # Instrucción vigente: módulos reales, secuenciales, sin cierre por UI
 
+> **ESTADO ACTUAL (31-10-2026):** Este documento conserva el plan secuencial original y sus etapas históricas. El bloqueo inicial de autorización/instalación SQL14 que aparece más abajo YA NO ES VIGENTE: se aprobó e instaló conforme a los registros posteriores. La custodia B1 está publicada y verificada en GitHub (rama `prep/b1-custody-20261031`, SHA `6eb480c3327f2c64d726e533bf2c673e3d05915b`). B1 sigue abierto por integración operativa Traefik–ForwardAuth–Next.js, listener, antirreplay compartido, credenciales prelogin duraderas, compatibilidad de emails y aceptación de TLS/topología. No reinstalar SQL14 ni repetir pruebas históricas; conservar fail-closed y `AUTH-GATE-05`. `/demo` ya está implementado con datos ficticios; no declara módulos reales completos. Las cifras históricas 0/44 (cierre íntegro) y 42/44 (evidencia aislada aceptada individualmente) NO son el mismo indicador. Documento vigente de traspaso: [B1-RUNTIME-HANDOFF-20261030](operational-acceptance/B1-RUNTIME-HANDOFF-20261030.md).
+
 Referencia: HEAD `8026e989a2a76d9dec107700f710c415c1c6b994`.
 Esta instrucción del propietario sustituye el desarrollo paralelo de módulos demo.
 No se modifica el roadmap canónico ni se aceptan fases por documentación.
