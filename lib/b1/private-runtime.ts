@@ -78,42 +78,58 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
     const token = createAgentSinkToken(c.sink)
     const custody = createOpenBaoKeys({ ...c.bao, allowed, token })
     const pool = createPgIdentityPool(c.postgres)
-    // Bind only repositories borrowing the canonical pool; no repository owns it.
-    // The binder runs before any runtime is published. If it rejects, dispose
-    // the one canonical pool; never leave an orphaned connection owner behind.
+    // One pool is owned by the runtime. Ingress repositories only borrow it.
+    // Neither an unsuccessful binder nor a failed composition may publish it.
     try {
       if (bindIngress) bindIngress(createPgIngressRepositories(pool))
-      const backend = createCustodiedBackend({pool,custody,references:refs,totpKeys:versions.map(x=>x.reference),lifetimeMs:c.lifetimeMs,
-      dependencies: borrow => ({
-        passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
-        transport:readTransport, sessionLabels,
-        cursorKey:borrow(refs.cursor,k=>k),
-        factors:{dummyPasswordHash,auditKey:borrow(refs.audit,k=>k),otpKey:borrow(refs.otp,k=>k),recoveryKey:borrow(refs.recovery,k=>k),
-          async decryptTotp(ciphertext,keyVersion,record){
-            const found=versions.find(x=>x.keyVersion===keyVersion && x.reference.tenantId===record.binding.tenantId)
-            if(!found)throw unavailable()
-            return borrow(found.reference,key=>openEnrollmentSecret(ciphertext,key,keyVersion,{
-              tenantId:record.binding.tenantId,userId:record.binding.userId,methodId:record.binding.methodId,initialMethodVersion:'1',algorithm:record.algorithm,
-            }))
+      const backend = createCustodiedBackend({
+        pool, custody, references: refs,
+        totpKeys: versions.map(x => x.reference),
+        lifetimeMs: c.lifetimeMs,
+        dependencies: borrow => ({
+          passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
+          transport: readTransport, sessionLabels,
+          cursorKey: borrow(refs.cursor, key => key),
+          factors: {
+            dummyPasswordHash,
+            auditKey: borrow(refs.audit, key => key),
+            otpKey: borrow(refs.otp, key => key),
+            recoveryKey: borrow(refs.recovery, key => key),
+            async decryptTotp(ciphertext, keyVersion, record) {
+              const found = versions.find(x =>
+                x.keyVersion === keyVersion && x.reference.tenantId === record.binding.tenantId)
+              if (!found) throw unavailable()
+              return borrow(found.reference, key => openEnrollmentSecret(ciphertext, key, keyVersion, {
+                tenantId: record.binding.tenantId,
+                userId: record.binding.userId,
+                methodId: record.binding.methodId,
+                initialMethodVersion: '1',
+                algorithm: record.algorithm,
+              }))
+            },
           },
+        }),
+      })
+      const handler = createAuthHandler(backend, c.origin, undefined, c.internalOrigins)
+      return {
+        backend, handler,
+        firstActor(manifest, operatorPool, keyVersion) {
+          const found = versions.find(x => x.keyVersion === keyVersion)
+          if (!manifest || manifest.tenantId !== refs.recovery.tenantId || !found || !operatorPool ||
+              operatorPool === pool || typeof operatorPool.connect !== 'function') throw unavailable()
+          // Operator ceremony uses a separate authorized executor, never the runtime pool.
+          return createFirstActorCeremony(operatorPool, manifest, {
+            custody, totpKey: found.reference, totpKeyVersion: found.keyVersion,
+            recoveryKey: refs.recovery, lifetimeMs: c.lifetimeMs,
+            passwordAdmission, normalizeEmail,
+          })
         },
-      }),
-    })
-      return {backend,handler:createAuthHandler(backend,c.origin,undefined,c.internalOrigins),
-      firstActor(manifest, operatorPool, keyVersion) {
-        const found = versions.find(x => x.keyVersion === keyVersion)
-        if (!manifest || manifest.tenantId !== refs.recovery.tenantId || !found || !operatorPool ||
-            operatorPool === pool || typeof operatorPool.connect !== 'function') throw unavailable()
-        // The operator supplies a separately authorized executor pool. Runtime's
-        // identity pool never acquires initialization authority.
-        return createFirstActorCeremony(operatorPool, manifest, { custody, totpKey:found.reference,
-          totpKeyVersion:found.keyVersion, recoveryKey:refs.recovery, lifetimeMs:c.lifetimeMs,
-          passwordAdmission, normalizeEmail })
-      },close:()=>pool.end()}
+        close: () => pool.end(),
+      }
     } catch {
-      // Includes binder, backend composition and handler failures. The pool
-      // never escapes as a usable runtime unless all three stages succeed.
-      void pool.end().catch(() => { /* preserve installation failure */ })
+      // Cleanup is best-effort because the selection API is synchronous.
+      // The backend remains unavailable even if pool shutdown itself fails.
+      void pool.end().catch(() => {})
       throw unavailable()
     }
 
