@@ -90,6 +90,40 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
     await draining
     await listener.close()
     await assert.rejects(send('/auth/login', true))
+
+    // A handler that never completes must not turn drain timeout into success.
+    let releaseBlocked = () => {}
+    let enteredBlocked = () => {}
+    const block = new Promise<void>(resolve => { releaseBlocked = resolve })
+    const entered = new Promise<void>(resolve => { enteredBlocked = resolve })
+    const blockedListener = await startB1IngressListener({
+      binding: '127.0.0.1', port: 0x2602,
+      tls: { ca, key: serverKey, cert: serverCert },
+      allowedPaths: ['/auth/login'], ready: async () => true,
+      handle: async () => { enteredBlocked(); await block },
+      drainTimeoutMs: 100,
+    })
+    try {
+      const blockedRequest = new Promise<void>((resolve, reject) => {
+        const req = request({ hostname: '127.0.0.1', servername: 'localhost',
+          port: blockedListener.address.port, path: '/auth/login', method: 'GET',
+          ca, key: clientKey, cert: clientCert, agent: false, timeout: 2000 },
+        res => { res.resume(); res.on('end', resolve) })
+        req.on('error', reject)
+        req.on('timeout', () => req.destroy(new Error('HTTPS_TIMEOUT')))
+        req.end()
+      })
+      // An aborted socket is expected when bounded drain fails.
+      void blockedRequest.catch(() => {})
+      await entered
+      await assert.rejects(blockedListener.close(), /B1_INGRESS_DRAIN_TIMEOUT/)
+      await assert.rejects(blockedListener.close(), /B1_INGRESS_DRAIN_TIMEOUT/)
+      releaseBlocked()
+      await assert.rejects(blockedRequest)
+    } finally {
+      releaseBlocked()
+      await blockedListener.close().catch(() => {})
+    }
   } finally {
     await listener?.close()
     await rm(directory, { recursive: true, force: true })
