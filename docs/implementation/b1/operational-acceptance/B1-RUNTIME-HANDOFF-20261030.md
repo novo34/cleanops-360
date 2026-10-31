@@ -110,7 +110,9 @@ proxy a staging; synthetic a un tag exacto. Los demás son PR/manual, sin trigge
 create/workflow_run encontrados. Un push solo de esta rama nueva, sin tags ni
 PR, no coincide con esos triggers. No editar workflows ni usar skip como bypass.
 Los webhooks externos/Dokploy no están representados íntegramente en Git: falta
-confirmación del propietario de que esta rama está excluida de acciones externas.
+evidencia de que esta rama está excluida de acciones externas. El propietario
+autoriza completar commits y bundle pese a esta incertidumbre, pero prohíbe push
+hasta comprobar la exclusión; no ha confirmado que la exclusión ya exista.
 Publicación detenida hasta esa evidencia; no afirmar custodia remota ni ausencia
 de despliegue a partir de un push que todavía no se ha hecho.
 
@@ -122,6 +124,12 @@ No se incorporan archivos privados ni .env, node_modules, .next, tar o bundles.
 Gitleaks no está disponible en este entorno y no se instala por restricción del
 encargo; el escaneo limitado no sustituye un análisis completo ni acredita por
 sí solo ausencia absoluta de secretos en todo el historial heredado.
+Revisión ampliada posterior: los 1.985 blobs alcanzables se comprobaron con los
+mismos patrones. Dos coincidencias del marcador CERTIFICATE en validadores
+(`pg-identity-driver.ts` y `prepare-b1-openbao.py`) son literales de código,
+inspeccionados sin payload PEM ni material privado. Cero coincidencias de tokens
+en esos patrones. No se eliminan validadores ni se reescribe historia por esos
+literales. La revisión no convierte las afirmaciones históricas en hechos vivos.
 
 Tras publicar de forma segura: verificar tip remoto, árboles/blobs y ambos
 ancestros; recuperar con un clone de esta rama desde GitHub y `git fsck --full`.
@@ -129,6 +137,48 @@ No depender del tar local ni de node_modules/.next; dependencias desde lockfile.
 Usar este registro como entrada, [PLAN](PLAN.md), [candidato de ingreso](B1-INGRESS-CANDIDATE-20261031.md)
 y evidencias originales enlazadas; no repetir procedimientos históricos ni
 interpretar documentación heredada como aprobación actual.
+
+### Respaldo independiente y procedimiento exacto de continuación
+
+Bundle previsto fuera del checkout:
+`/workspace/b1-custody-backup-20261031/cleanops-360-b1-custody.bundle`.
+Contiene la referencia `refs/heads/prep/b1-custody-20261031` y TODOS sus
+ancestros, sin bases excluidas ni prerrequisitos remotos. Incluye los dos
+commits recuperados y los commits de custodia; no incluye material privado,
+dependencias instaladas, reflog, configuración local Git ni archivos ignorados.
+Es respaldo del trabajo técnico versionado, no del filesystem operativo del VPS.
+El hash del bundle y el SHA final se entregan en `SHA256SUMS` y
+`VERIFICATION.txt` junto al bundle, fuera del repositorio; no son otra fuente
+documental B1. El registro canónico continúa siendo este archivo.
+
+Recuperar en un destino NUEVO, sin modificar checkouts existentes:
+
+```bash
+sha256sum -c SHA256SUMS
+git clone --branch prep/b1-custody-20261031 cleanops-360-b1-custody.bundle cleanops-360-restored
+git -C cleanops-360-restored fsck --full
+git -C cleanops-360-restored rev-parse HEAD
+git -C cleanops-360-restored status --porcelain
+git -C cleanops-360-restored merge-base --is-ancestor 89c3c4aa66881d03358e2d4bb8c428525ef6dfa3 HEAD
+git -C cleanops-360-restored merge-base --is-ancestor a71c43164c07c240400425abbc3898155a83822e HEAD
+```
+
+Comparar HEAD con `VERIFICATION.txt`; status debe estar vacío. Consultar este
+registro y el candidato, no repetir instalación, SQL ni pruebas históricas.
+Sin instalar dependencias para esta recuperación. Las pruebas funcionales
+anteriores corresponden al código conservado en `24bf1b1`, no a una ejecución
+nueva del bundle. Tras comprobar en Dokploy que NINGUNA integración de
+`novo34/cleanops-360` despliega por eventos de esta rama (incluidos webhooks con
+filtros globales), aportar el resultado al chat y autorizar el push. No cambiar
+configuración externa para lograrlo. Si no puede acreditarse, conservar bundle
+y rama local sin publicar.
+
+Solo después de esa comprobación y autorización: verificar que la referencia
+remota nueva no existe o es ancestro del tip local, y publicar con refspec único
+`git push origin HEAD:refs/heads/prep/b1-custody-20261031`, sin force, tags ni
+otras ramas. Comprobar SHA remoto, ausencia de runs operativos, referencias
+main/staging/PR31 intactas y clone de recuperación desde GitHub. Hasta entonces
+no existe custodia remota de estos commits; no afirmar despliegue descartado.
 
 ## Fuentes de verdad y reglas de continuidad
 
