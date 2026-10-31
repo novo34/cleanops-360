@@ -14,9 +14,9 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
     assert.ok(Number.isInteger(port) && port > 0 && port <= 65535)
     const config = { host: '127.0.0.1', port, user: 'postgres', connectionTimeoutMillis: 2000 }
     const bootstrap = new Pool({ ...config, database: 'postgres' })
-    await bootstrap.query('CREATE DATABASE b1_ingress_test')
-    await bootstrap.end()
-    const owner = new Pool({ ...config, database: 'b1_ingress_test' })
+    const database = 'b1_ingress_' + randomBytes(8).toString('hex')
+    await bootstrap.query(`CREATE DATABASE ${database}`)
+    const owner = new Pool({ ...config, database })
     const pools: Pool[] = [owner]
     try {
       const version = await owner.query('SHOW server_version_num')
@@ -24,8 +24,8 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service')
       // Compilation/execution in a disposable fixture, never a migration installation.
       await owner.query(await readFile(new URL('../../docs/proposals/b1-ingress-persistence.review.sql', import.meta.url), 'utf8'))
-      const p = new Pool({ ...config, user: 'ingress_test_login', database: 'b1_ingress_test', max: 8 })
-      const q = new Pool({ ...config, user: 'ingress_test_login', database: 'b1_ingress_test', max: 8 })
+      const p = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
+      const q = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
       pools.push(p, q)
       const a = createPgIngressRepositories(p), b = createPgIngressRepositories(q)
       const scope = { issuer: 'fixture', audience: 'https://fixture.invalid' }
@@ -91,7 +91,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         assert.equal((await a.credentials.read({ ...scope, id: previous }))?.state, 'active')
       })
       await t.test('connection failure never claims success or falls back locally', async () => {
-        const stopped = new Pool({ ...config, user: 'ingress_test_login', database: 'b1_ingress_test' })
+        const stopped = new Pool({ ...config, user: 'ingress_test_login', database })
         await stopped.end()
         const repositories = createPgIngressRepositories(stopped)
         await assert.rejects(repositories.replay.claim({ ...scope, nonce: fresh(), expiresAt: Date.now() + 10000 }))
@@ -99,7 +99,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       })
       await t.test('PostgreSQL lock timeout fails closed and rolls back the losing transaction', async () => {
         const locking = await owner.connect()
-        const impatient = new Pool({ ...config, user: 'ingress_test_login', database: 'b1_ingress_test', options: '-c statement_timeout=50' })
+        const impatient = new Pool({ ...config, user: 'ingress_test_login', database, options: '-c statement_timeout=50' })
         const nonce = fresh(), expiry = Date.now() + 20000
         try {
           await locking.query('BEGIN')
@@ -114,5 +114,9 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
           await impatient.end()
         }
       })
-    } finally { await Promise.all(pools.map(p => p.end())) }
+    } finally {
+      await Promise.all(pools.map(p => p.end()))
+      try { await bootstrap.query(`DROP DATABASE ${database}`) }
+      finally { await bootstrap.end() }
+    }
   })
