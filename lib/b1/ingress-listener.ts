@@ -43,6 +43,7 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
       input.drainTimeoutMs > 30000) throw new Error('B1_INGRESS_LISTENER_CONFIG_INVALID')
 
   let closing = false
+  const active = new Set<Promise<void>>()
   const allowed = new Set(input.allowedPaths)
   const server = createServer({
     ...input.tls, requestCert: true, rejectUnauthorized: true,
@@ -58,12 +59,14 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
         deny(response); return
       }
     } catch { deny(response); return }
-    void (async () => {
+    const work = (async () => {
       try {
         if (closing || await input.ready() !== true || closing) { deny(response); return }
         await input.handle(request, response)
       } catch { deny(response) }
     })()
+    active.add(work)
+    void work.finally(() => active.delete(work))
   })
   server.headersTimeout = 5000
   server.requestTimeout = 5000
@@ -91,11 +94,27 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
     close: () => {
       if (closingPromise) return closingPromise
       closing = true
-      closingPromise = new Promise<void>(resolve => {
-        let finished = false
-        const finish = () => { if (finished) return; finished = true; clearTimeout(timeout); resolve() }
-        const timeout = setTimeout(() => { server.closeAllConnections(); finish() }, input.drainTimeoutMs)
-        server.close(() => finish())
+      closingPromise = new Promise<void>((resolve, reject) => {
+        let socketClosed = false
+        let timedOut = false
+        const timeout = setTimeout(() => {
+          timedOut = true
+          server.closeAllConnections()
+          reject(new Error('B1_INGRESS_DRAIN_TIMEOUT'))
+        }, input.drainTimeoutMs)
+        const awaitDrain = async () => {
+          while (active.size > 0) await Promise.allSettled([...active])
+          if (!timedOut && socketClosed) { clearTimeout(timeout); resolve() }
+        }
+        server.close(error => {
+          if (error) {
+            clearTimeout(timeout)
+            reject(new Error('B1_INGRESS_CLOSE_FAILED'))
+            return
+          }
+          socketClosed = true
+          void awaitDrain()
+        })
         server.closeIdleConnections()
       })
       return closingPromise
