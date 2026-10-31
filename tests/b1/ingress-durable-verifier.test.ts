@@ -32,6 +32,7 @@ test('durable B1 verifier requires active persisted credential and one shared cl
   const makeVerifier = () => createDurableCandidateVerifier({ ...common,
     publicKey: keys.publicKey, replay, credentials, topology: 'shared-atomic-all-consumers' })
   const verifier = makeVerifier()
+  const secondVerifier = makeVerifier()
   clock++
   const request = new Request(common.audience + '/api/auth/login', {
     method: 'POST', headers: { cookie: credentialCookie + '=' + credential }, body: '{}',
@@ -41,7 +42,7 @@ test('durable B1 verifier requires active persisted credential and one shared cl
   await assert.rejects(verifier.resolveRequestContext(request.clone()))
   current = record
   assert.equal((await verifier.resolveRequestContext(request.clone())).device.length, 32)
-  await assert.rejects(makeVerifier().resolveRequestContext(request.clone()))
+  await assert.rejects(secondVerifier.resolveRequestContext(request.clone()))
   current = { ...record, state: 'revoked' }
   const next = request.clone()
   next.headers.set(assertionHeader, await issuer.issueForAuthenticatedIngress(
