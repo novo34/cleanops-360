@@ -19,6 +19,10 @@ export function createCandidateIntegration(options: Readonly<{
  * The static helper belongs to the reviewed immutable application image.
  */
 export function renderPrivateIntegration(factoryUrl: string, options: Parameters<typeof createCandidateIntegration>[0]): string {
+  // Persistent repositories contain functions and cannot survive JSON serialization.
+  // Never generate private bytes that silently drop replay or credential checks.
+  if ('replay' in options.verifier || 'credentials' in options.verifier ||
+      'identityPool' in options) throw new Error('PRIVATE_MODULE_POOL_BINDING_REVIEW_REQUIRED')
   const parsed = new URL(factoryUrl)
   if (parsed.protocol !== 'file:' || parsed.host || parsed.search || parsed.hash ||
       options.verifier.clock !== Date.now) throw new Error('PRIVATE_MODULE_CONFIG_INVALID')
