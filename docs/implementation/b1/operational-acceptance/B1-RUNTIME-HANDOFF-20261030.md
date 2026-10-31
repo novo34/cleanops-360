@@ -645,3 +645,29 @@ Evidencia local fuera de Git (SHA-256 de bytes reales):
 - `/tmp/b1-quality-build.log`: `1176eacd888e567d7ff46e0a75acc83c9c5f4e73b0df2643cf6b918a40108bfe`.
 - `/tmp/b1-quality-semgrep-raw.json`: `0023c64292c10bf5891002f45db923ca133b2ea65ead7639db7edb2134942f05`.
 - `/tmp/b1-quality-candidate-result.json`: `d34bf38a3ba51b23c6b98cd75000719447dbcdf5a8a679f73074ce2379813432`.
+
+
+## Dictamen Claude aplicado — 31-10-2026, Quality PR 31
+
+El propietario comunico revision independiente y autorizo implementar el pin
+f0e91a5ec8a799692947000bff10a7743322015b y el mecanismo de import exacto. Ambos
+hashes de archivo/fragmento coincidieron antes de escribir. El parche llamado
+B1-RUNTIME-PIN-PENDING.patch ya se APLICO; se conserva su nombre como evidencia
+historica, no debe volver a aplicarse al checker actualizado.
+
+Se extiende el checker canonico con reconciliacion estricta B1-PI-01 y categoria
+accepted_privileged_dynamic_import, separada de los 16 FP historicos. El ledger,
+reglas, archivos privados, runtime y fail-closed permanecen intactos. Son 26
+regresiones PASS, guard completo PASS y fixtures de las ocho reglas PASS. El
+alcance, autorizacion comunicada, hashes y las comprobaciones de los 22 avisos
+Edge estan en docs/reviews/SEMGREP_STAGING_17.md, apartado B1-PI-01. Ningun
+contenido futuro de integration.mjs se considera aprobado por esta excepcion.
+
+QG-0/QG-3 de este incremento: reutilizados guard, pin, reconciliaciones y harness
+existentes; se modifican unicamente checker, sus tests y estos dos registros.
+Sin archivos nuevos, dependencias de aplicacion ni cambios operativos. La salida
+conserva todos los resultados crudos, clasificacion separada y falla ante cualquier
+desviacion exacta; no hay exclusiones nuevas ni nosemgrep. No se identifica una
+autorizacion formal adicional exigida para el cambio que el propietario ordeno.
+Las aprobaciones de merge, activacion y cada modulo de sitio siguen separadas.
+No se afirma Quality remoto PASS hasta observar el run correspondiente.
