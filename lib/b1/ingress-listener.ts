@@ -97,19 +97,26 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
       closingPromise = new Promise<void>((resolve, reject) => {
         let socketClosed = false
         let timedOut = false
+        let settled = false
+        const finish = (error?: Error) => {
+          if (settled) return
+          settled = true
+          clearTimeout(timeout)
+          if (error) reject(error)
+          else resolve()
+        }
         const timeout = setTimeout(() => {
           timedOut = true
           server.closeAllConnections()
-          reject(new Error('B1_INGRESS_DRAIN_TIMEOUT'))
+          finish(new Error('B1_INGRESS_DRAIN_TIMEOUT'))
         }, input.drainTimeoutMs)
         const awaitDrain = async () => {
           while (!timedOut && active.size > 0) await Promise.allSettled([...active])
-          if (!timedOut && socketClosed) { clearTimeout(timeout); resolve() }
+          if (!timedOut && socketClosed) finish()
         }
         server.close(error => {
           if (error) {
-            clearTimeout(timeout)
-            reject(new Error('B1_INGRESS_CLOSE_FAILED'))
+            finish(new Error('B1_INGRESS_CLOSE_FAILED'))
             return
           }
           socketClosed = true
