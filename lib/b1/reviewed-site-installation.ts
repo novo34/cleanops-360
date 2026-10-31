@@ -15,7 +15,7 @@ const manifestSource: PrivateFileSource = Object.freeze({
   path: '/run/cleanops-b1-private/installation.json', uid: 0, gid: 999, mode: 0o440, maxBytes: 65536,
 })
 export type ReviewedInstallationManifest = Readonly<{
-  version: 1 | 2
+  version: 2
   origin: string; internalOrigins: readonly string[]
   postgres: InstallationBootstrapInputs['postgres']
   bao: InstallationBootstrapInputs['bao']
@@ -63,7 +63,7 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
   try {
     const m = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) as ReviewedInstallationManifest
     if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
-        (m.version !== 1 && m.version !== 2) || m.postgres?.environment !== 'staging' ||
+        m.version !== 2 || m.postgres?.environment !== 'staging' ||
         m.postgres?.loginRole !== 'cleanops_staging_identity_login' || m.postgres.contractualRole !== 'cleanops_identity_service' ||
         m.bao?.environment !== 'staging' || m.bao.mount !== 'b1-keys' ||
         !exact(m.integration, 'approval,sha256,source') || !approved(m.integration.approval) ||
@@ -84,7 +84,8 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
     dummy = await readTrustedPrivateFile(m.dummyPasswordHash)
     const dummyPasswordHash = new TextDecoder('utf-8', { fatal: true }).decode(dummy)
     validateDummyPasswordHash(dummyPasswordHash)
-    const loaded = await loadIntegration(m.integration, m.version === 2)
+    const loaded = await loadIntegration(m.integration, true)
+    if (!loaded.bindIngress) throw invalid()
     const context = createInstallationContext(loaded.integration)
     return Object.freeze({
       postgres: m.postgres, bao: m.bao, catalog: m.catalog, sources: m.sources,
