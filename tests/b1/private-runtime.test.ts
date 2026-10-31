@@ -57,6 +57,7 @@ test('request context is not invoked outside a request during runtime selection'
 })
 test('trusted ingress binding shares canonical pool lifecycle without an extra pool', async () => {
  let binderCalls = 0, connections = 0, releases = 0
+ let claim: ((input: { issuer: string; audience: string; nonce: string; expiresAt: number }) => Promise<'claimed' | 'duplicate'>) | undefined
  const calls: string[] = []
  const patched = mock.method(pg.Pool.prototype, 'connect', async () => {
   connections++
@@ -74,14 +75,17 @@ test('trusted ingress binding shares canonical pool lifecycle without an extra p
    assert.equal(typeof dependencies.credentials.enroll, 'function')
    // No IO during startup wiring.
    assert.equal(connections, 0)
-   const claim = dependencies.replay.claim
-   void claim
+   claim = dependencies.replay.claim
   })
   assert.equal(binderCalls, 1)
+  assert.ok(claim)
+  assert.equal(await claim({ issuer: 'fixture', audience: 'https://fixture.invalid',
+   nonce: Buffer.alloc(32, 1).toString('base64url'), expiresAt: Date.now() + 10000 }), 'claimed')
   await selection.close()
-  assert.equal(connections, 0)
-  assert.equal(releases, 0)
-  assert.deepEqual(calls, [])
+  assert.equal(connections, 1)
+  assert.equal(releases, 1)
+  assert.deepEqual(calls, ['BEGIN ISOLATION LEVEL READ COMMITTED',
+   'SELECT auth_api.ingress_claim($1,$2,$3,$4) AS value', 'COMMIT'])
  } finally { patched.mock.restore() }
 })
 
