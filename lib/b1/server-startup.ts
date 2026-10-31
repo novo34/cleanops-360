@@ -26,6 +26,9 @@ export async function startTrustedB1Server(
     // A private B1 server must always use the shared durable ingress binding.
     // Reject before reading custody files or opening connections.
     if (spec && typeof spec.bindIngress !== 'function') throw new Error('B1_INGRESS_BINDING_REQUIRED')
+    // Never enable a private web runtime without its reviewed internal ingress.
+    // This prevents a partially installed B1 service from going live.
+    if (spec && !ingressSpec) throw new Error('B1_INGRESS_LISTENER_REQUIRED')
     prepared = await assembleInstallationPrivateInputs(spec)
     installTrustedRuntime(prepared.configuration, spec.requestScope, spec.bindIngress)
     runtimeInstalled = true
