@@ -79,7 +79,14 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
     const custody = createOpenBaoKeys({ ...c.bao, allowed, token })
     const pool = createPgIdentityPool(c.postgres)
     // Bind only repositories borrowing the canonical pool; no repository owns it.
-    if (bindIngress) bindIngress(createPgIngressRepositories(pool))
+    // The binder runs before any runtime is published. If it rejects, dispose
+    // the one canonical pool; never leave an orphaned connection owner behind.
+    try {
+      if (bindIngress) bindIngress(createPgIngressRepositories(pool))
+    } catch {
+      void pool.end().catch(() => { /* installation remains unavailable */ })
+      throw unavailable()
+    }
     const backend = createCustodiedBackend({pool,custody,references:refs,totpKeys:versions.map(x=>x.reference),lifetimeMs:c.lifetimeMs,
       dependencies: borrow => ({
         passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
