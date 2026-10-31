@@ -1,0 +1,6 @@
+# Keep approval-pinned B1 source artifacts byte-stable across Windows and Linux.
+# Historical SHA-1 Git blobs and SHA-256 manifests cover raw file bytes.
+/docs/canonical/auth-review/v4/** text eol=lf
+/docs/implementation/b1/** text eol=lf
+/docs/proposals/** text eol=lf
+/lib/b1/openapi.json text eol=lf

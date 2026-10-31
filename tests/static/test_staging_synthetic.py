@@ -77,11 +77,52 @@ class Synthetic(unittest.TestCase):
                                     capture_output=True, text=True, check=True)
             config = json.loads(result.stdout)
             self.assertEqual(set(config["services"]), {"web", "postgres"})
+            agent_config = json.loads(subprocess.run(command[:-1] + ["--profile", "identity-agent", "config", "--format", "json"],
+                cwd=ROOT, env=env, capture_output=True, text=True, check=True).stdout)
+            self.assertEqual(set(agent_config['services']), {'web', 'postgres', 'openbao-agent'})
+            agent = agent_config['services']['openbao-agent']
+            self.assertEqual(agent['user'], '1000:1000')
+            self.assertEqual(agent['pull_policy'], 'never')
+            self.assertNotIn('build', agent)
+            self.assertEqual(set(agent['networks']), {'identity_bao'})
+            self.assertTrue(agent_config['networks']['identity_bao']['external'])
+            self.assertEqual(agent_config['networks']['identity_bao']['name'], 'cleanops-existing-bao-network-fixture')
+            self.assertEqual(next(v for v in agent['volumes'] if v['target']=='/run/cleanops-agent-tls')['type'], 'bind')
+            self.assertEqual(agent['cap_drop'], ['ALL'])
+            self.assertIs(agent['read_only'], True)
+            self.assertIn('rm -f /run/cleanops-agent/token; exec /usr/local/bin/bao agent ', agent['command'][0])
+            self.assertEqual(agent['labels']['traefik.enable'], 'false')
+            for service, readonly in [('web', True), ('openbao-agent', False)]:
+                sink = next(v for v in agent_config['services'][service]['volumes'] if v['target']=='/run/cleanops-agent')
+                self.assertEqual(sink['source'], 'identity_agent_sink')
+                self.assertEqual(sink.get('read_only', False), readonly)
+                self.assertTrue(sink['volume']['nocopy'])
+            sink_volume = agent_config['volumes']['identity_agent_sink']
+            self.assertTrue(sink_volume['external'])
+            self.assertTrue(sink_volume['name'].endswith('_identity_agent_sink'))
+            self.assertNotIn('driver_opts', sink_volume)
+            for v in agent['volumes']:
+                if v['type']=='bind':
+                    self.assertTrue(v['read_only'])
+                    self.assertFalse(v['bind'].get('create_host_path', False))
+                    self.assertNotIn('health', v['source'])
+            cert = module('agent_cert_fixture', 'tests/static/test_b1_agent_cert.py')
+            inputs = cert.AgentCert().inputs()
+            inputs['agent'].update(ca_file='/run/cleanops-agent-tls/ca.pem', client_cert_file='/run/cleanops-agent-tls/client.pem',
+                client_key_file='/run/cleanops-agent-tls/client-key.pem', sink_file='/run/cleanops-agent/token')
+            rendered = cert.renderer.prepare(inputs, agent_only=True)
+            reader = rendered['identity-verifier.sink-reader.json']
+            self.assertEqual((reader['uid'], reader['gid'], reader['directoryUid'], reader['directoryGid']), (1000,1000,1000,1000))
+            self.assertEqual((reader['mode'], reader['directoryMode']), (0o600,0o700))
+            self.assertEqual(reader['path'], '/run/cleanops-agent/token')
+            self.assertIn('auth/token/renew-self', rendered['identity-verifier.policy.json']['path'])
             for key in ["CLEANOPS_BAO_CONFIG_FILE", "CLEANOPS_BAO_TLS_DIR",
                         "CLEANOPS_BAO_SUBNET", "CLEANOPS_BAO_PRIVATE_IPV4",
                         "CLEANOPS_PG_TLS_CERT_FILE", "CLEANOPS_PG_TLS_KEY_FILE",
                         "CLEANOPS_PG_TLS_CA_FILE", "CLEANOPS_PG_HBA_FILE", "CLEANOPS_PG_HBA_TARGET", "CLEANOPS_COMPOSE_PROJECT", "CLEANOPS_PRIVATE_NETWORK",
-                        "CLEANOPS_PG_VOLUME", "CLEANOPS_PG_IMAGE", "CLEANOPS_PG_DATABASE", "CLEANOPS_PG_BOOTSTRAP_USER"]:
+                        "CLEANOPS_PG_VOLUME", "CLEANOPS_PG_IMAGE", "CLEANOPS_PG_DATABASE", "CLEANOPS_PG_BOOTSTRAP_USER",
+                        "CLEANOPS_AGENT_IMAGE", "CLEANOPS_AGENT_NETWORK", "CLEANOPS_IDENTITY_UID", "CLEANOPS_IDENTITY_GID", "CLEANOPS_AGENT_CONFIG_FILE",
+                        "CLEANOPS_AGENT_TLS_DIR"]:
                 missing = dict(env); missing.pop(key)
                 rejected = subprocess.run(command + ["-q"], cwd=ROOT, env=missing,
                                           capture_output=True, text=True)
@@ -434,68 +475,20 @@ registerHooks({ resolve(specifier, context, next) {
         self.assertIn("host: socket", native.NATIVE_MIGRATION_CHECKS)
         self.assertNotIn("connectionString", native.NATIVE_MIGRATION_CHECKS)
 
-    def test_backup_is_blocked_without_signed_synthetic_scope(self):
-        r, _ = fixture()
-        with self.assertRaises(ValueError):
-            maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/not-created-output"))
-
-    def test_direct_tools_cannot_bypass_the_synthetic_data_or_backup_directory_boundary(self):
-        for field in ["realPersonalData", "productionDatabaseCopies", "externalCommunications"]:
-            r, _ = fixture()
-            s = r["STAGING_SYNTHETIC"]
-            s.update(deploymentAuthorized=True, backupAuthorized=True, sql14FreshInstallAuthorized=True,
-                     deploymentApprovalReference="TEST_ONLY")
-            s[field] = True
-            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
-                install.install(r, True, lambda *_: self.fail("No Docker allowed"))
-            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
-                maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
-        r, _ = fixture()
-        s = r["STAGING_SYNTHETIC"]
-        s.update(deploymentAuthorized=True, backupAuthorized=True, deploymentApprovalReference="TEST_ONLY")
-        s["backup"]["destinationDirectory"] = "/owned-cleanops-backups"
-        with self.assertRaisesRegex(ValueError, "DEDICATED_STAGING_BACKUP_DIRECTORY_REQUIRED"):
-            maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
-
-    def test_merged_compose_has_only_web_ingress_and_persistent_private_bao(self):
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d); (p / "pw").write_text("synthetic-config-only")
-            (p / "server.json").write_text("{}"); (p / "tls").mkdir()
-            env = dict(os.environ, CLEANOPS_AUTH_ORIGIN="https://cleanops.nuvurent.com",
-                       CLEANOPS_PG_PASSWORD_FILE=str(p / "pw"), CLEANOPS_BAO_CONFIG_FILE=str(p / "server.json"),
-                       CLEANOPS_BAO_TLS_DIR=str(p / "tls"), CLEANOPS_BAO_PRIVATE_IPV4="10.249.88.2",
-                       CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
-                       CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
-            env.update(CLEANOPS_COMPOSE_PROJECT="cleanops-offline-fixture",
-                       CLEANOPS_PRIVATE_NETWORK="cleanops-offline-network", CLEANOPS_PG_VOLUME="cleanops-offline-volume",
-                       CLEANOPS_PG_IMAGE="postgres:16-bookworm", CLEANOPS_PG_DATABASE="cleanops_offline",
-                       CLEANOPS_PG_BOOTSTRAP_USER="offline_bootstrap", CLEANOPS_PG_TLS_CERT_FILE=str(p / "server.crt"),
-                       CLEANOPS_PG_TLS_KEY_FILE=str(p / "server.key"), CLEANOPS_PG_TLS_CA_FILE=str(p / "ca.crt"),
-                       CLEANOPS_PG_HBA_FILE=str(p / "pg_hba.conf"), CLEANOPS_PG_HBA_TARGET="/var/lib/postgresql/data/pg_hba.conf")
-            result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
-                                     "deploy/staging/compose.ingress.yaml",
-                                     "--profile", "synthetic-custody", "config", "--format", "json"],
-                                    cwd=ROOT, env=env, capture_output=True, text=True, check=True)
-            config = json.loads(result.stdout)
-            for name, service in config["services"].items():
-                self.assertFalse(service.get("ports"), name)
-                self.assertFalse(service.get("privileged", False), name)
-            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "ingress"})
-            self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
-            self.assertEqual(config["services"]["postgres"]["user"], "postgres")
-            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][0], "CMD-SHELL")
-            self.assertIn('SELECT 1', config["services"]["postgres"]["healthcheck"]["test"][1])
-            bao = config["services"]["openbao"]
-            self.assertEqual(set(bao["networks"]), {"custody"})
-            self.assertTrue(config["networks"]["custody"]["internal"])
-            self.assertEqual(bao["labels"]["traefik.enable"], "false")
-            self.assertEqual(len([v for v in bao["volumes"] if v["type"] == "volume"]), 2)
-
-
     def test_postgres_tls_compose_changes_only_command_and_readonly_mounts(self):
         import hashlib
         import yaml
         current = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
+        # Preserve the published PG/TLS fingerprint after the independently checked Agent additions.
+        self.assertEqual(current['include'].pop(), '../openbao/compose.agent.yaml')
+        self.assertEqual(current['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
+        # New web build identity must be exactly bound to the Agent sink owner.
+        self.assertEqual(current['services']['web']['build'].pop('args'), {
+            'CLEANOPS_WEB_UID': '${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required}',
+            'CLEANOPS_WEB_GID': '${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}',
+        })
+        self.assertEqual(current['services']['web']['networks'], ['private', 'identity_bao'])
+        current['services']['web']['networks'] = ['private']
         # Fingerprint of the parsed Compose at staging 198b4e41, independent of Git checkout depth.
         original_sha256 = 'c958b5a9ebfb11da7dd120a1fd06e40ccf3f7a20937a103dfc81795ce5fdf934'
         for path, variable, original in [
@@ -532,6 +525,302 @@ registerHooks({ resolve(specifier, context, next) {
             self.assertEqual(mount['target'], destination)
         pg['volumes'] = pg['volumes'][:1]
         self.assertEqual(hashlib.sha256(json.dumps(current, sort_keys=True).encode()).hexdigest(), original_sha256)
+
+    def test_first_actor_ciphertext_bounds_and_pg_regex_quantifiers(self):
+        import re
+        sql = (ROOT / 'db/migrations/0002_first_actor.review.sql').read_text()
+        length_check = re.search(r"length\(coalesce\(p->>'ciphertext',''\)\) NOT BETWEEN ([0-9]+) AND ([0-9]+)", sql)
+        self.assertIsNotNone(length_check)
+        low, high = map(int, length_check.groups())
+        self.assertEqual((low, high), (90, 314))
+        pattern = re.search(r"coalesce\(p->>'ciphertext',''\) !~ '([^']+)'", sql).group(1)
+        self.assertEqual(pattern, '^[a-f0-9]+$')
+        # Offline predicate evaluation; native PostgreSQL acceptance is pending.
+        accepts = lambda value: low <= len(value or '') <= high and re.fullmatch(pattern, value or '') is not None
+        for size, expected in [(89, False), (90, True), (314, True), (315, False), (91, True), (313, True)]:
+            self.assertEqual(accepts('a' * size), expected)
+        for value in [None, '', 'A' * 90, 'g' * 90, 'a' * 89 + ' ', 'a' * 89 + '\n', 'a' * 89 + 'é', 'a' * 89 + '\x00']:
+            self.assertFalse(accepts(value))
+        self.assertTrue(accepts('0123456789abcdef' * 10))
+        # Every remaining counted repetition must fit PostgreSQL's 0..255 bounds.
+        bounds = re.findall(r'\{([0-9]+)(?:,([0-9]*))?\}', sql)
+        self.assertEqual(bounds, [('64', ''), ('64', '')])
+        for pair in bounds:
+            for bound in pair:
+                if bound:
+                    self.assertLessEqual(int(bound), 255)
+
+    def test_first_actor_native_preparation_is_explicit_owned_and_offline_on_import(self):
+        from unittest.mock import patch
+        with patch("subprocess.run", side_effect=AssertionError("Native execution forbidden")):
+            native = module("first_actor_native_preparation", "scripts/test-staging-postgres.py")
+            for args in [["--first-actor"], ["--authorization", "FIRST-ACTOR-NATIVE-01"], ["--first-actor", "--authorization", "OTHER"]]:
+                with self.assertRaises(SystemExit) as error:
+                    native.main(args)
+                self.assertEqual(error.exception.code, 2)
+        source = (ROOT / "scripts/test-staging-postgres.py").read_text()
+        self.assertIn('if not options.first_actor:', source)
+        self.assertIn('FIRST_ACTOR_NATIVE_CHECKS if options.first_actor', source)
+        self.assertIn('timeout=300 if options.first_actor else 120', source)
+        self.assertIn('first-actor-native.json', source)
+        body = native.FIRST_ACTOR_NATIVE_CHECKS
+        self.assertIn("host:socket", body)
+        self.assertNotIn('connectionString', body)
+        for contract in ['proposal.sql', 'pg_blocking_pids', 'first_actor_history', 'SYNTHETIC_ACK_LOST_AFTER_REAL_COMMIT',
+                         'fa_fail_audit', 'relforcerowsecurity', 'openEnrollmentSecret', 'ATTEMPTS_EXHAUSTED',
+                         'cleanops_first_actor_reader', 'deployment_enabled', 'app.sessions']:
+            self.assertIn(contract, body)
+        self.assertNotIn('INSERT INTO app.users', body)
+        self.assertNotIn('INSERT INTO identity_private.credentials', body)
+
+    def test_first_actor_native_diagnostics_are_useful_and_do_not_disclose_material(self):
+        native = module("first_actor_diagnostics_offline", "scripts/test-staging-postgres.py")
+        javascript = "import assert from 'node:assert/strict'\nimport { AuthError } from './lib/b1/service.ts'\n" + native.FIRST_ACTOR_DIAGNOSTICS + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const diagnostics=[]
+try { assertion('FA-A014').equal(2,3,secret) } catch(e) { diagnostics.push(failure(e)) }
+try { await assertion('FA-A017').rejects(Promise.resolve(secret)) } catch(e) { diagnostics.push(failure(e)) }
+phase='FA-S01-EXECUTE'
+diagnostics.push(failure(Object.assign(Error(secret),{code:'42501',detail:secret,query:secret,parameters:[secret]})))
+diagnostics.push(failure(Object.assign(Error(secret),{code:secret,name:secret,actual:secret,expected:secret})))
+try { assertion('FA-A014').equal(secret,'another-private-value') } catch(e) { diagnostics.push(failure(e)) }
+try { assertion('FA-A079').equal(5,6,secret) } catch(e) { diagnostics.push(failure(e)) }
+process.stdout.write(JSON.stringify(diagnostics))
+"""
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'], input=javascript,
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        self.assertNotIn('another-private-value', result.stdout)
+        rows = json.loads(result.stdout)
+        self.assertEqual(rows[0], dict(id='FA-A014', type='AssertionError', sqlstate=None, actual=2, expected=3))
+        self.assertEqual(rows[1]['id'], 'FA-A017')
+        self.assertEqual(rows[2], dict(id='FA-S01-EXECUTE', type='PostgreSQLError', sqlstate='42501'))
+        self.assertEqual(rows[3]['type'], 'OtherError')
+        for row in rows:
+            self.assertTrue(native.valid_native_diagnostic(row))
+        for row in rows[4:]:
+            self.assertNotIn('actual', row)
+            self.assertNotIn('expected', row)
+        self.assertFalse(native.valid_native_diagnostic(dict(id='PRIVATE_TOKEN', type='OtherError', sqlstate=None)))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], actual='PRIVATE_PASSWORD')))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], sqlstate='UNREVIEWED')))
+        self.assertFalse(native.valid_native_diagnostic(dict(rows[0], message='PRIVATE_SQL')))
+
+    def test_first_actor_prepare_preserves_sql_cause_before_auth_sanitization(self):
+        native = module("first_actor_causal_offline", "scripts/test-staging-postgres.py")
+        setup = native.FIRST_ACTOR_NATIVE_CHECKS.split("const aead=", 1)[1].split("const value=", 1)[0]
+        javascript = """import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { AuthError } from './lib/b1/service.ts'
+import { createFirstActorCeremony } from './lib/b1/first-actor.ts'
+import { createPgIdentityUnitOfWork } from './lib/b1/pg-identity-driver.ts'
+const held=[]
+""" + native.FIRST_ACTOR_DIAGNOSTICS + "const aead=" + setup + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const sqlError=()=>Object.assign(Error(secret),{code:'42501',query:secret,parameters:[secret]})
+const cleanupError=()=>Object.assign(Error(secret),{code:'23505'})
+const reports=[]
+phase='FA-S01-PREPARE'
+let rollbacks=0,releases=0
+const p={async connect(){return {async query(sql){
+ if(sql==='ROLLBACK'){rollbacks++;throw cleanupError()}
+ if(sql.startsWith('SELECT identity_provision.first_actor_begin('))throw sqlError()
+ return {rows:[]}
+},release(){releases++;throw cleanupError()}}}}
+try{await ceremony(p).prepare(testPassword);assert.fail('must reject')}
+catch(error){assert(error instanceof AuthError);reports.push(failure(error))}
+assert.equal(rollbacks,1);assert.equal(releases,1)
+assert.deepEqual(reports[0],{id:phase,type:'AuthError',sqlstate:'42501',operation:'FIRST_ACTOR_BEGIN',check:'FA-OBS-SQL-REJECT',authCode:'AUTH_DEPENDENCY_UNAVAILABLE',authStatus:503})
+for(const [sql,operation] of [['BEGIN ISOLATION LEVEL READ COMMITTED','BEGIN'],['SELECT identity_provision.first_actor_stage(','FIRST_ACTOR_STAGE'],['COMMIT','COMMIT']]){
+ const pool={async connect(){return {async query(q){if(q===sql)throw sqlError();if(q==='ROLLBACK')throw cleanupError()},release(){throw cleanupError()}}}}
+ const service=observedCeremony(pool,deps,(observed)=>({async prepare(){return createPgIdentityUnitOfWork(observed).run(c=>c.query('SELECT identity_provision.first_actor_stage('))}}))
+ try{await service.prepare();assert.fail('must reject')}catch(error){assert.equal(failure(error).operation,operation);assert.equal(failure(error).sqlstate,'42501')}
+}
+for(const operation of ['CUSTODY','CRYPTO_PREPARE']){
+ const pool={async connect(){return {async query(){return {rows:[{value:{state:'RESERVED'}}]}},release(){}}}}
+ const dependencies={...deps,custody:operation==='CUSTODY'?{async withKeys(){throw Error(secret)}}:deps.custody,passwordAdmission:async()=>{throw Error(secret)}}
+ const service=observedCeremony(pool,dependencies,(p,d)=>createFirstActorCeremony(p,manifest,d))
+ try{await service.prepare(testPassword);assert.fail('must reject')}catch(error){reports.push(failure(error));assert.equal(failure(error).operation,operation)}
+}
+assert(!('authCode' in failure(Object.assign(Error(secret),{name:'AuthError',code:'AUTH_DEPENDENCY_UNAVAILABLE',status:503}))))
+assert(!('authCode' in failure(new AuthError(500,secret))))
+assert(!('authCode' in failure(new AuthError(undefined,secret))))
+assert(held.every(b=>b.every(v=>v===0)))
+process.stdout.write(JSON.stringify(reports))
+"""
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'],
+                                input=javascript, text=True, capture_output=True, timeout=20, cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        for row in json.loads(result.stdout):
+            self.assertTrue(native.valid_native_diagnostic(row))
+        for extra in [dict(operation='PRIVATE_SQL'),dict(authCode='PRIVATE_TOKEN',authStatus=503),dict(authCode='AUTH_DEPENDENCY_UNAVAILABLE',authStatus=500)]:
+            self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE',type='AuthError',sqlstate=None,**extra)))
+
+    def test_first_actor_prepare_stage_offline_real_wrappers_and_pg_serialization(self):
+        native = module("first_actor_stage_offline", "scripts/test-staging-postgres.py")
+        setup = native.FIRST_ACTOR_NATIVE_CHECKS.split("const aead=", 1)[1].split("const value=", 1)[0]
+        javascript = """import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
+import { createRequire } from 'node:module'
+import { AuthError } from './lib/b1/service.ts'
+import { createFirstActorCeremony } from './lib/b1/first-actor.ts'
+const require=createRequire(import.meta.url)
+const pg=require('pg'),utils=require('pg/lib/utils'),{serialize}=require('pg-protocol')
+const held=[]
+""" + native.FIRST_ACTOR_DIAGNOSTICS + "const aead=" + setup + r"""
+const secret='PRIVATE_SQL_PASSWORD_CIPHERTEXT_TOKEN_TOTP_URI_RECOVERY'
+const reports=[]
+phase='FA-S01-PREPARE'
+for(const scenario of ['success','client-reject','client-serialization','lease-before-stage','lease-after-stage','bad-result']){
+ let remaining=30000,submitted=0,completed=0,commits=0,rollbacks=0,released=false,discarded=false,serialized=false
+ // Transport/result simulation only. Service, transaction/deadline wrappers,
+ // password/TOTP/recovery preparation and PG Query/Bind serialization are real.
+ const pool={async connect(){return {async query(sql,args){
+  if(sql==='COMMIT'){commits++;return {rows:[]}}
+  if(sql==='ROLLBACK'){rollbacks++;return {rows:[]}}
+  if(sql.startsWith('SELECT identity_provision.first_actor_begin('))return {rows:[{value:{state:'RESERVED'}}]}
+  if(!sql.startsWith('SELECT identity_provision.first_actor_stage('))return {rows:[]}
+  submitted++
+  assert.ok(args.length===4 && typeof args[0]==='string' && typeof args[1]==='string' && Buffer.isBuffer(args[2]) && args[2].length===32 && typeof args[3]==='string')
+  const payload=JSON.parse(args[3])
+  assert.ok(/^\$argon2id\$/.test(payload.passwordHash) && /^[a-f0-9]{90,314}$/.test(payload.ciphertext) && /^[a-f0-9]{64}$/.test(payload.capDigest))
+  assert.ok(payload.recovery.every(x=>/^[a-f0-9]{64}$/.test(x)))
+  assert.ok(utils.prepareValue(args[2])===args[2]) // Buffer is binary, never JSON.
+  assert.ok(utils.prepareValue(args[3])===args[3])
+  assert.ok(utils.prepareValue({digest:args[2]}).includes('"type":"Buffer"')) // nested object differs from direct bytea parameter
+  await new Promise((resolve,reject)=>{
+   const query=new pg.Query(sql,args,error=>error?reject(error):resolve())
+   const connection={parsedStatements:{},stream:{},parse(){},describe(){},execute(){},sync(){},query(){},
+    bind(config){
+     if(scenario==='client-serialization')throw new TypeError(secret)
+     const wire=serialize.bind(config)
+     // Bind: message header, empty portal/statement, parameter formats, values.
+     let at=5;while(wire[at++]!==0){};while(wire[at++]!==0){}
+     assert.equal(wire.readInt16BE(at),4);at+=2
+     const formats=[];for(let j=0;j<4;j++){formats.push(wire.readInt16BE(at));at+=2}
+     assert.deepEqual(formats,[0,0,1,0]);assert.equal(wire.readInt16BE(at),4);at+=2
+     for(let j=0;j<4;j++){
+      const size=wire.readInt32BE(at);at+=4
+      const expected=Buffer.isBuffer(args[j])?args[j]:Buffer.from(args[j])
+      assert.ok(size===expected.length && wire.subarray(at,at+size).equals(expected));at+=size
+     }
+     serialized=true
+    }}
+   const error=query.submit(connection)
+   if(error)reject(error)
+   else if(scenario!=='client-serialization')resolve()
+  })
+  if(scenario==='client-reject')throw Object.assign(Error(secret),{code:'22P02',query:secret,parameters:[secret]})
+  completed++
+  if(scenario==='lease-after-stage')remaining=0
+  return scenario==='bad-result'?{rows:[]}:{rows:[{value:{state:'PREPARED'}}]}
+ },release(discard){released=true;discarded=discard}}}}
+ const dependencies={...deps,passwordAdmission:async()=>{if(scenario==='lease-before-stage')remaining=0;return true},custody:{async withKeys(refs,lifetime,work){
+  const a=Buffer.from(aead),r=Buffer.from(recovery);held.push(a,r)
+  try{return await work((ref,fn)=>fn(ref.purpose==='totp-aead'?a:r),{remainingMs:()=>remaining,acknowledgeCommit(){}})}finally{a.fill(0);r.fill(0)}
+ }}}
+ const service=observedCeremony(pool,dependencies,(p,d)=>createFirstActorCeremony(p,manifest,d))
+ let diagnostic=null
+ try{const artifact=await service.prepare(testPassword);assert.equal(scenario,'success');assert.equal(artifact.state,'PREPARED');assert.ok('capability' in artifact)}
+ catch(error){assert(error instanceof AuthError);diagnostic=failure(error)}
+ if(scenario==='success'){assert.equal(commits,1);assert.equal(discarded,false);assert.equal(completed,1)}
+ else{
+  assert.equal(commits,0);assert.equal(rollbacks,1);assert.equal(discarded,true)
+  assert.equal(diagnostic.type,'AuthError');assert.equal(diagnostic.authStatus,503)
+  assert.equal(diagnostic.operation,scenario==='lease-before-stage'?'CRYPTO_PREPARE':'FIRST_ACTOR_STAGE')
+  assert.equal(diagnostic.sqlstate,scenario==='client-reject'?'22P02':null)
+ }
+ assert.equal(submitted,scenario==='lease-before-stage'?0:1)
+ assert.equal(completed,['success','lease-after-stage','bad-result'].includes(scenario)?1:0)
+ assert.equal(serialized,!['lease-before-stage','client-serialization'].includes(scenario))
+ assert.ok(released && held.every(b=>b.every(v=>v===0)))
+ const checks={'client-reject':'FA-OBS-SQL-REJECT','client-serialization':'FA-OBS-CLIENT-TYPE','lease-before-stage':'FA-OBS-LEASE-BEFORE-STAGE','lease-after-stage':'FA-OBS-LEASE-AFTER-STAGE','bad-result':'FA-OBS-STAGE-RESULT'}
+ if(diagnostic)assert.equal(diagnostic.check,checks[scenario])
+ reports.push({scenario,submitted,completed,diagnostic})
+}
+for(const code of ['22P02','22021','ZZ999','00000'])assert.equal(failure(Object.assign(Error(secret),{code})).sqlstate,code)
+for(const code of ['22p02','22P02\n','É2P02','2202','220021',null,22021])assert.equal(failure(Object.assign(Error(secret),{code})).sqlstate,null)
+process.stdout.write(JSON.stringify(reports))
+"""
+        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'],
+                                input=javascript, text=True, capture_output=True, timeout=60, cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('PRIVATE_', result.stdout)
+        self.assertNotIn('argon2id', result.stdout)
+        self.assertNotIn('otpauth:', result.stdout)
+        rows = json.loads(result.stdout)
+        self.assertEqual(len(rows), 6)
+        # Uniqueness uses only the report diagnostic, never fixture names/counters.
+        self.assertEqual(len({json.dumps(row['diagnostic'], sort_keys=True) for row in rows}), 6)
+        self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=None, check='PRIVATE_TOKEN')))
+        for row in rows:
+            self.assertTrue(native.valid_native_diagnostic(row['diagnostic']))
+        for code in ['22P02', '22021', 'ZZ999', '00000']:
+            self.assertTrue(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=code)))
+        for code in ['22p02', '22P02\n', 'É2P02', '2202', '220021', 22021]:
+            self.assertFalse(native.valid_native_diagnostic(dict(id='FA-S01-PREPARE', type='AuthError', sqlstate=code)))
+
+    def test_backup_is_blocked_without_signed_synthetic_scope(self):
+        r, _ = fixture()
+        with self.assertRaises(ValueError):
+            maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/not-created-output"))
+
+    def test_direct_tools_cannot_bypass_the_synthetic_data_or_backup_directory_boundary(self):
+        for field in ["realPersonalData", "productionDatabaseCopies", "externalCommunications"]:
+            r, _ = fixture()
+            s = r["STAGING_SYNTHETIC"]
+            s.update(deploymentAuthorized=True, backupAuthorized=True, sql14FreshInstallAuthorized=True,
+                     deploymentApprovalReference="TEST_ONLY")
+            s[field] = True
+            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
+                install.install(r, True, lambda *_: self.fail("No Docker allowed"))
+            with self.assertRaisesRegex(ValueError, "AUTHORIZATION_REQUIRED"):
+                maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
+        r, _ = fixture()
+        s = r["STAGING_SYNTHETIC"]
+        s.update(deploymentAuthorized=True, backupAuthorized=True, deploymentApprovalReference="TEST_ONLY")
+        s["backup"]["destinationDirectory"] = "/owned-cleanops-backups"
+        with self.assertRaisesRegex(ValueError, "DEDICATED_STAGING_BACKUP_DIRECTORY_REQUIRED"):
+            maintenance.backup(r, Path("/not-created"), Path("/not-created-key"), Path("/other-project/file"))
+
+    def test_merged_compose_has_only_web_ingress_and_persistent_private_bao(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d); (p / "pw").write_text("synthetic-config-only")
+            (p / "server.json").write_text("{}"); (p / "tls").mkdir()
+            env = dict(os.environ, CLEANOPS_AUTH_ORIGIN="https://cleanops.nuvurent.com",
+                       CLEANOPS_PG_PASSWORD_FILE=str(p / "pw"), CLEANOPS_BAO_CONFIG_FILE=str(p / "server.json"),
+                       CLEANOPS_BAO_TLS_DIR=str(p / "tls"), CLEANOPS_BAO_PRIVATE_IPV4="10.249.88.2",
+                       CLEANOPS_BAO_SUBNET="10.249.88.0/24", CLEANOPS_TRAEFIK_NETWORK="synthetic-ingress",
+                       CLEANOPS_TRAEFIK_ENTRYPOINT="websecure", CLEANOPS_TRAEFIK_CERTRESOLVER="synthetic")
+            env.update(CLEANOPS_COMPOSE_PROJECT="cleanops-offline-fixture", CLEANOPS_PRIVATE_NETWORK="cleanops-offline-network",
+                       CLEANOPS_PG_VOLUME="cleanops-offline-volume", CLEANOPS_PG_IMAGE="postgres:16-bookworm",
+                       CLEANOPS_PG_DATABASE="cleanops_offline", CLEANOPS_PG_BOOTSTRAP_USER="offline_bootstrap",
+                       CLEANOPS_PG_TLS_CERT_FILE=str(p / "server.crt"), CLEANOPS_PG_TLS_KEY_FILE=str(p / "server.key"),
+                       CLEANOPS_PG_TLS_CA_FILE=str(p / "ca.crt"), CLEANOPS_PG_HBA_FILE=str(p / "pg_hba.conf"),
+                       CLEANOPS_PG_HBA_TARGET="/var/lib/postgresql/data/pg_hba.conf",
+                       CLEANOPS_AGENT_IMAGE="cleanops-existing-agent-fixture:offline", CLEANOPS_AGENT_NETWORK="cleanops-existing-bao-network-fixture", CLEANOPS_IDENTITY_UID="1000", CLEANOPS_IDENTITY_GID="1000",
+                       CLEANOPS_AGENT_CONFIG_FILE=str(p / "agent.hcl"), CLEANOPS_AGENT_TLS_DIR=str(p / "agent-tls"))
+            result = subprocess.run(["docker", "compose", "-f", "deploy/staging/compose.yaml", "-f",
+                                     "deploy/staging/compose.ingress.yaml",
+                                     "--profile", "synthetic-custody", "config", "--format", "json"],
+                                    cwd=ROOT, env=env, capture_output=True, text=True, check=True)
+            config = json.loads(result.stdout)
+            for name, service in config["services"].items():
+                self.assertFalse(service.get("ports"), name)
+                self.assertFalse(service.get("privileged", False), name)
+            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "identity_bao", "ingress"})
+            self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
+            self.assertEqual(config["services"]["postgres"]["user"], "postgres")
+            self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][0], "CMD-SHELL")
+            self.assertIn('SELECT 1', config["services"]["postgres"]["healthcheck"]["test"][1])
+            bao = config["services"]["openbao"]
+            self.assertEqual(set(bao["networks"]), {"custody"})
+            self.assertTrue(config["networks"]["custody"]["internal"])
+            self.assertEqual(bao["labels"]["traefik.enable"], "false")
+            self.assertEqual(len([v for v in bao["volumes"] if v["type"] == "volume"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,22 @@ import { runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migr
 import { readFile } from "node:fs/promises"
 
 const temporaryDirectories: string[] = []
+
+it('FIRST-ACTOR incremental is hash-verified as a proposal and cannot enter the B1 apply queue', async () => {
+  expect(await loadTrustedMigrations(undefined,'b1')).toEqual([])
+  const proposed=await loadTrustedMigrations(undefined,'b1',true)
+  expect(proposed.map(p=>p.id)).toEqual(['0002_first_actor'])
+  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
+  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
+  expect(proposed[0].sql).toContain('CREATE TABLE identity_provision.first_actor_history')
+  expect(proposed[0].sql).toContain("r.state<>'ABORTED'")
+  expect(proposed[0].sql).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
+  expect(proposed[0].sql).not.toMatch(/DELETE FROM identity_provision/)
+  expect(proposed[0].sql).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
+  const plan=await runMigrations({mode:'offline-plan',profile:'b1'})
+  expect(plan.migrations).toEqual([])
+  expect(plan.proposed[0]).toMatchObject({id:'0002_first_actor',executable:false})
+})
 const committedSql = new URL("../db/migrations/0001_system_status.sql", import.meta.url)
 
 async function fixture() {

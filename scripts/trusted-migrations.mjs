@@ -11,12 +11,20 @@ const migrations = [
     file: "0001_system_status.sql",
     sha256: "a9392c9c0632117b6fe7e924cf9c7d3fc1bfe348bb1adb6460bdcaf9a907f357",
   },
+  {
+    id: "0002_first_actor",
+    profile: "b1",
+    proposed: true,
+    file: "0002_first_actor.review.sql",
+    sha256: "44ae87c4ed37d2be2a2025293e60ad5135bf009caf0dc59264811f49c1a5e3d2",
+  },
 ]
 
-export async function loadTrustedMigrations(directory = new URL("../db/migrations/", import.meta.url), profile = "foundation") {
+export async function loadTrustedMigrations(directory = new URL("../db/migrations/", import.meta.url), profile = "foundation", proposalsOnly = false) {
   if (!["foundation", "b1"].includes(profile)) throw new Error("Unknown migration profile")
+  if (typeof proposalsOnly !== 'boolean') throw new Error('Explicit proposal selection required')
   const verified = []
-  for (const migration of migrations) {
+  for (const migration of migrations.filter(m => m.profile === profile && Boolean(m.proposed) === proposalsOnly)) {
     const file = await open(new URL(migration.file, directory), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
     try {
       if (!(await file.stat()).isFile()) throw new Error(`Migration must be a regular file: ${migration.file}`)

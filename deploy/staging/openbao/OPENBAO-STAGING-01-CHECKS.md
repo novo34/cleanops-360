@@ -1,4 +1,43 @@
-# OPENBAO-STAGING-01 — scope CLI y OpenBao 2.7.2, 28/10/2026
+# OPENBAO-STAGING-01 — evidencia vigente y archivo histórico
+
+## Cierre local del incremento de custodia, 30/10/2026
+
+El plan único vigente es el apartado inicial de OPENBAO-STAGING-01.md. Reconoce
+la custodia en KeePassXC del token inicial y clave de desbloqueo comunicada por el
+propietario y propone una ceremonia inicial exclusivamente administrativa, aún
+no autorizada a ejecutarse. No presenta como existentes un administrador no root,
+manifiesto operativo, certificados workload o claves del primer tenant.
+
+Referencias revalidadas mediante GET de GitHub:
+- staging: d3ea84b38fd1574db1610f03b59c8c4a5050ac72.
+- prep/staging-runtime-custody-01: 1bbb9fcac650ba7f2c973a5629931e94385cf217.
+- prep/pg-tls-01: d3ea84b38fd1574db1610f03b59c8c4a5050ac72.
+
+Checkpoint local 34a425e y rama local prep/runtime-agent-saved-20261030 conservan
+los doce archivos del delta previo, incluidos autenticación privada, Agent y sus
+pruebas. Se reconcilia staging mediante merge LOCAL, sin rebase/force/publicación.
+La única resolución de código reutiliza la comprobación PG/TLS ya publicada,
+conserva las adiciones Agent y evita depender de HEAD para el snapshot anterior.
+No añade casos de empaquetado simulado ni cambia PostgreSQL/TLS o el runtime.
+
+Verificación nueva por esa resolución: el caso existente
+test_postgres_tls_compose_changes_only_command_and_readonly_mounts pasa 1/1
+(0.021s). Solo parsea YAML y compara el fingerprint revisado; no invoca Docker,
+PostgreSQL, SQL ni Bao. git diff --check: PASS. Las pruebas acreditadas anteriores
+se conservan como historia y no se repiten por guardar commits o escribir el plan.
+
+FIRST-ACTOR nativo: aceptación del run 40869443575 comunicada y aceptada por el
+propietario, sin reejecución. No se promueve la incremental, no se modifica SQL14
+ni la cola aplicable. Agent/cert/TLS/renovación/reautenticación/revocación/tmpfs
+real e imagen web real siguen SIN ACEPTACIÓN NATIVA en este incremento.
+
+No se ha leído KeePassXC ni un secreto; no se ha ejecutado Bao/Agent, SQL, PKI,
+build, instalación, provisión, VPS, workflow, despliegue o activación. No se ha
+hecho push, PR ni merge remoto. closedBackend, Autodeploy OFF, R4, CRM y AUD-031
+permanecen protegidos. El SHA final del merge local se entrega en el cierre de
+la tarea; no se introduce una referencia autorreferente en este archivo.
+
+## Archivo histórico — scope CLI y OpenBao 2.7.2, 28/10/2026
 
 Corrección sobre 716ada676ea35f7aef0a555e1761cdce518a1cff en PR #27.
 Evidencia histórica de gates/consumidores: versión de este informe en ese SHA.
@@ -163,3 +202,686 @@ CI real y revisión independiente del nuevo candidato: pendientes. Publicar un P
 SHA256 de los archivos actualizados (informe excluido):
 73a5565d12d1e9b60abb88d305d93acad4a05a60140a2c8c32847b36f46ec478  .github/workflows/staging-preflight.yml
 d9a590a5c16247a4f59b1c6c839e7e33af2a7a867b37088d6dc6b1d454d8f661  tests/static/test_staging_synthetic.py
+
+## RUNTIME-CUSTODY-01 — preparación sobre staging 6d89888
+
+Fuente base oficial 6d89888804ffa4e2ba7635878c88eaf7f3b9c997; main leído
+4f19c36f8eda2c846c6e3c7164814f26841b3bce; R4 9a4c8b90a159f2853f040dc5597042c17408da00;
+CRM conservado 09c578137860cfc3726e67a21304a228c0657061. QG-0, inputs/decisiones,
+ruta bootstrap y auth, política operativa/admin y futuras autorizaciones A-D
+en la sección nueva del procedimiento OPENBAO-STAGING-01.md. Los bloques previos
+son evidencia histórica de instalación/preparación, no operaciones a repetir.
+
+Estado comunicado por el propietario: web/PG/Bao healthy sin reinicios, Bao2.7.2
+inicializado y desellado, staging 1-de-1, auditoría privada correlacionada y token
+HMAC con rechazo sin token; backend cerrado, Autodeploy OFF. No se inspeccionó
+VPS ni auditoría real aquí. No basta para afirmar custodia integral/R4/CRM completos.
+
+Inventario del diff: ocho blobs canónicos de main (cuatro módulos de lease/PG y
+sus cuatro suites), dos documentos existentes actualizados y un archivo nuevo
+runtime-catalog.review.sql. Deadline módulo/test son nuevos en staging pero ya
+canónicos en main. Cero nuevos runners ni motor de permisos, setter de runtime,
+cliente AppRole duplicado o tabla SQL. No se toca Dockerfile, Compose, TLS,
+private-adapter, runtime/proxy, service/backend/contracts/broker, R4/CRM/historia.
+
+PASS ejecutados localmente:
+
+- npm ci --ignore-scripts --audit=false --fund=false, lock existente: 570 paquetes;
+  únicamente dependencias de desarrollo en este workspace, ningún lifecycle script,
+  ningún servicio/build ni clave real. Lock y package.json sin cambios.
+- 26/26 Node tests de custody-composition, custody-deadline, openbao-keys y
+  pg-identity-driver, 764ms. Mock HTTPS/provider y pool en memoria, sin PG/Bao.
+- 28/28 Node tests de private-adapter/service/v4-broker, 477ms, fronteras
+  HTTP/transacción en memoria. Sin sockets/consultas reales a PostgreSQL.
+- 16/16 tests estáticos de guard/contexto Semgrep, 105ms. Manifiesto histórico
+  y findings no se modifican. Esto NO es un scan Semgrep nuevo.
+- 2/2 tests estáticos custody_harness_wiring, 1ms: runtime permanece cerrado y
+  no importa harness; el consumidor sintético usa la composición privada.
+- ESLint de los ocho archivos canónicos: exit0; tsc --noEmit --incremental false
+  sobre proyecto: exit0. Sin next build ni generación de tipos/build.
+- Igualdad de los ocho blobs importados con main comprobada byte por byte.
+  Trece rutas protegidas del runtime/despliegue/config iguales a 6d89888.
+- Archivo catálogo: inspección léxica de solo lectura, sin DDL/DML fuera de
+  literales ni SELECT sobre filas app/identity_private/auth_api; sin pg_authid.
+  Se propone BEGIN READ ONLY y límites locales; NO se ejecutó/parseó en PG.
+
+Comandos reproducibles offline tras disponer de dependencias del lock:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/pg-identity-driver.test.ts tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/private-adapter.test.ts tests/b1/service.test.ts tests/b1/v4-broker.test.ts
+python -B -m unittest discover -s tests/static -p test_semgrep_reviewed.py -v
+python -B -m unittest discover -s tests/static -p test_b1_custody_harness_wiring.py -v
+npx --no-install eslint lib/b1/custody-composition.ts lib/b1/custody-deadline.ts lib/b1/openbao-keys.ts lib/b1/pg-identity-driver.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/openbao-keys.test.ts tests/b1/pg-identity-driver.test.ts
+npx --no-install tsc --noEmit --incremental false
+```
+
+FAIL/diagnóstico conservado: primera ejecución sin node_modules falló al resolver
+otpauth; instalación local con scripts desactivados y repetición de esa suite dio
+26/26 PASS. Comprobación léxica inicial demasiado simple detectaba UPDATE dentro
+del literal de has_table_privilege; se corrigió la comprobación para separar
+literales/comentarios, sin cambiar consulta ni ejecutar SQL. git diff --check
+señala una línea vacía final en pg-identity-driver.ts y su test, ambas ya exactas
+en main; se conservan los blobs canónicos, no se oculta como PASS global.
+
+BLOCKED: conectar runtime real hasta catálogo/identidad/keys/ingress y renovación
+del token provider aprobados, más verificación de bootstrap/renovación de sesión.
+No se introduce un encendido incompleto en nombre de este objetivo. El diff de
+conexión posterior se delimita por archivo en el procedimiento y requerirá los
+inputs reales. R4/AUD-031 solo es previo si la provisión requiere invitación; no
+se importa ni degrada su firma. CRM tiene SQL/ACL/guard de módulo pendientes.
+
+SKIP: consulta runtime-catalog.review.sql, parser PostgreSQL real (pglast no
+disponible), funciones/roles/datos desplegados, Bao APIs/capabilities, credenciales
+operativas, revocación root, build/deploy, aplicación de SQL14 u otro SQL, TLS real,
+recuperación, E2E login/TOTP/CRM, CI remota y revisión independiente del nuevo SHA.
+No se abre PR que dispare Quality/PG ni se reutiliza autorización de CI de PR28
+para este incremento nuevo. Rama revisable sin modificar main/staging/R4/CRM.
+
+### SHA256 de RUNTIME-CUSTODY-01
+
+5002de44512401ac5c052d3ef0f495781309317d59426d7f0201cd1af95761f2  lib/b1/custody-composition.ts
+
+b9314a806e6c52088bd86871ea6b53e0b2f6f4f477f184877f0cb2268d8f795a  lib/b1/custody-deadline.ts
+
+265611c3d706f7c8406faa08d9660074621871cb014502493ba34b77d051c13f  lib/b1/openbao-keys.ts
+
+6f5ec3ccc65a9a20796615824e8e8f920849eef54e3e10ba6cae0923a482c3e0  lib/b1/pg-identity-driver.ts
+
+34cef8de0b8cbee97b781a2d22d739e0d056b408430b59f0a38fd160a95c9bc4  tests/b1/custody-composition.test.ts
+
+5b5592b003422422c83cd130ce7032fe06ca712fddd382b8fcba4ca87e4e26f0  tests/b1/custody-deadline.test.ts
+
+488084cc5cc989dfc15d3e4cab23f150fc721f3085858cdabdb2ba28fda085d7  tests/b1/openbao-keys.test.ts
+
+368ad6f4ef0585f11df356726a55673b5726593c2e439dbf213dc4ab02145e87  tests/b1/pg-identity-driver.test.ts
+
+200a10a086bcf100f3c3dedb5b37aa80c079709d9f23a88f20c710545bd6775c  deploy/staging/openbao/runtime-catalog.review.sql
+
+0c9bff92bb252b7b9358d07574e79bc358fabb5c5f1f7cdaa869d3fcc7638e04  deploy/staging/openbao/OPENBAO-STAGING-01.md
+
+Los hashes anteriores del informe se conservan como historia del SHA entonces revisado; este bloque identifica los bytes de la preparación actual. El informe se excluye a sí mismo.
+# Continuación local sobre 198b4e4 — 28/10/2026
+
+QG-3: candidato original 4d5563899bc327f3c272ef13625ebffc3cc96b46 reconciliado
+con staging 198b4e41d89c373c7aebda23ee20700643ce339c. Sin merge remoto, push,
+PR, SQL, Bao, Docker, generación de credenciales ni activación. La entrega queda
+como delta local sobre staging; no hay commit de merge en la rama entregada.
+El alcance y decisiones pendientes están en el apartado de continuación del
+procedimiento OPENBAO-STAGING-01.md. No se han modificado runtime.ts, SQL14,
+migraciones, R4, CRM, AUD-031, Compose ni workflows.
+
+Validación auténtica local con Node v24.19.0:
+
+- PASS: `node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts tests/b1/pg-identity-driver.test.ts`: 27/27, cero omitidos.
+- PASS: `npm run typecheck`.
+- PASS: `npx eslint lib/b1/openbao-keys.ts tests/b1/openbao-keys.test.ts`.
+- PASS: `git diff --check`.
+- PASS tras corrección de comentario lint: suite openbao-keys 7/7.
+- Primer intento: 18 PASS y una suite sin cargar por dependencia otpauth ausente.
+  Resuelto con `npm ci --ignore-scripts --audit=false --fund=false`, usando lock
+  existente, sin modificarlo ni ejecutar lifecycle scripts. La ejecución 27/27
+  posterior es la evidencia completa. Lint señaló un bloque vacío del test nuevo;
+  corregido con comentario que explica el bloqueo intencional del event loop.
+- NO EJECUTADO: integración PG16/Bao, cancelación nativa, TLS real, AppRole,
+  rotación/revocación, R4/invitación/TOTP real, navegador y despliegue.
+
+No se abre PR porque Quality de esta rama iniciaría PostgreSQL y ejecutaría SQL,
+fuera del alcance autorizado. No se alteran guards para evitar esa restricción.
+La revisión independiente y aceptación del propietario siguen pendientes; estas
+pruebas unitarias no acreditan conexión funcional ni custodia operativa completa.
+
+## Corrección KV end tras revisión independiente — 28/10/2026
+
+Referencia revisada: patch af1f15677f3804ee88e854c207b603fd9bab301e021154714e01b66839e179d8.
+HEAD local y base exacta conservados: 198b4e41d89c373c7aebda23ee20700643ce339c.
+El patch actualizado es el delta completo contra esa base, no solo esta corrección.
+Las secciones anteriores son evidencia histórica; sus hashes no identifican los
+bytes posteriores a esta corrección. Ningún resultado del VPS se presenta como
+comprobación local: SQL14 instalado, fila b1_sql14 y procedencia, Bao desellado y
+auditoría verificada siguen siendo hechos comunicados por el propietario.
+
+QG-0: objetivo observable, impedir que una lectura KV completada fuera del plazo
+inicie work bajo una lease nueva; mismo módulo B1 y requisitos de custodia.
+Inventario: read/end/fail de createOpenBaoKeys, withKeys y limpieza de buffers,
+withB1Custody, createCustodyDeadlinePool, unit-of-work PG y cuatro suites originales.
+Se corrige el punto canónico en openbao-keys.ts y se extiende su suite existente;
+no nuevo cliente, runner, contrato de tenant ni dependencia. Documentación existente
+de procedimiento/evidencia actualizada; sin archivos nuevos adicionales en Git.
+Riesgo: timer retrasado por el event loop, clave y respuesta privadas retenidas;
+la comprobación monotónica previa a resolve usa catch/finally existentes para
+borrar clave decodificada, raw y chunks. No cambia acknowledgeCommit ni la entrega
+de un resultado cuyo COMMIT ya fue confirmado. Conserva regresión de token tardío.
+Plan ejecutado: demostrar fallo antes del fix, cuatro suites originales completas,
+typecheck, lint de los ocho módulos/tests del candidato y diff contra HEAD.
+
+### Reproducción auténtica antes del fix
+
+Se añadió únicamente la nueva regresión y se ejecutó contra el código vulnerable:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none --test-name-pattern='KV completion after the acquisition deadline' tests/b1/openbao-keys.test.ts
+```
+
+FAIL esperado, exit 1: 1 test, 0 PASS, 1 FAIL, cero omitidos;
+AssertionError: Missing expected rejection, duración total 203.499058 ms.
+Log completo conservado en el paquete descargable: custody-kv-regression-before.log.
+No se presenta ese FAIL como ejecución final ni como fallo de infraestructura.
+
+### Validación final ejecutada después del fix
+
+Node v24.19.0; dependencias del lock ya instaladas, sin reinstalar paquetes.
+Comandos ejecutados, todos exit 0:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts tests/b1/custody-composition.test.ts tests/b1/pg-identity-driver.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/custody-composition.ts lib/b1/custody-deadline.ts lib/b1/openbao-keys.ts lib/b1/pg-identity-driver.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/openbao-keys.test.ts tests/b1/pg-identity-driver.test.ts
+git diff HEAD --check
+```
+
+PASS: 28/28, cero FAIL/cancelled/skipped/todo, duración total 1270.641213 ms.
+Desglose: composición 9, deadline 4, claves Bao 8, driver PG 7.
+Los 27 casos previos se revalidaron, incluida regresión del token tardío y recibo
+tras COMMIT confirmado tardío; la regresión KV es UN caso nuevo, no otra suite.
+El resultado anterior de 27/27 sigue siendo histórico, no se renombra como 28/28.
+
+Nueva regresión:
+OpenBao KV completion after the acquisition deadline rejects and wipes received material before work.
+Token inmediato del fixture, HTTPS totalmente simulado, timeoutMs=10; tras data
+se bloquea el event loop durante al menos 30 ms antes de emitir end, impidiendo
+que el timer sea la causa del rechazo. Comprueba AUTH_DEPENDENCY_UNAVAILABLE,
+exactamente un request simulado, work no invocado, respuesta agregada no vacía
+capturada y borrada, y chunk recibido borrado. La clave decodificada se borra en
+el catch canónico; el test observa directamente raw/chunk, no strings internos JS.
+No se afirma borrado perfecto de strings/base64 o memoria del recolector de JS.
+
+Los logs completos de esta ejecución y checks se entregan como
+custody-kv-suites.log, custody-kv-typecheck.log, custody-kv-lint.log y
+custody-kv-diff-check.log. Lint y diff exitosos no producen salida; el archivo de
+metadatos del paquete registra sus exit codes. Node emitió el aviso no bloqueante
+MODULE_TYPELESS_PACKAGE_JSON; no se cambia package.json para silenciarlo.
+
+### QG-3 / alcance y límites
+
+PASS comprobados localmente: regresiones con EventEmitter/HTTPS simulado, buffers,
+pool en memoria, protocolo transaccional, typecheck, lint y diff limpio.
+NO EJECUTADO: SQL/Bao reales, credenciales reales, TLS/AppRole reales, activación,
+build/despliegue, push, PR, merge ni pruebas de navegador. Ninguna evidencia nueva
+de cancelación real PostgreSQL, ni de conexión funcional del login al VPS.
+runtime.ts, SQL14/migraciones, CRM y AUD-031 permanecen intactos; no cambian gates,
+workflows ni autorizaciones. Revisión independiente del nuevo patch pendiente.
+
+SHA256 de los dos archivos de código/test corregidos:
+
+1936c28c24d47527330e4a6dc2cf19618f0a91eab891095de8d00432052fe78c  lib/b1/openbao-keys.ts
+8658240e1a97ff87ea9527c231cf674bb49efe22871668e65c2abf1be14dbe7d  tests/b1/openbao-keys.test.ts
+
+El SHA256 del patch completo actualizado se entrega fuera de este documento para
+evitar una referencia circular al hash del propio patch que lo incluye.
+
+## Diseño operativo documental posterior a a6d2f45 — 28/10/2026
+
+Alcance autorizado: concretar recomendaciones PG/AppRole/primer actor en los
+documentos existentes. No implementación de decisiones normativas nuevas.
+HEAD/base: 198b4e41d89c373c7aebda23ee20700643ce339c. Antes de editar se calculó
+SHA256 de git diff HEAD --binary y coincidió exactamente con
+a6d2f45ac2bd3e83324d4b0a7c5a7a10de5d7bc812104d7c35c67b507442e5c3.
+El ZIP conserva esos bytes como reviewed-a6d2f45.patch; el delta documental y el
+patch consolidado nuevo se etiquetan aparte. No se atribuye al patch nuevo la
+revisión independiente del anterior.
+
+Referencias revalidadas por conector GitHub, solo lectura:
+
+- staging: 198b4e41d89c373c7aebda23ee20700643ce339c.
+- prep/staging-runtime-custody-01: 4d5563899bc327f3c272ef13625ebffc3cc96b46.
+- codex/r4-aud-031: 9a4c8b90a159f2853f040dc5597042c17408da00.
+
+Se obtuvo el árbol R4 con git fetch origin codex/r4-aud-031 para lectura local,
+sin checkout, merge o push. Se inspeccionaron su aceptación TS, SQL4, variantes
+SQL5 y manifest AUD031. Se encontró exactamente la firma de cuatro argumentos
+en 005-invitation-acceptance.aud031-candidate.review.sql, no en el candidato r3.
+SHA256 de ese SQL verificado offline contra el manifest del mismo árbol:
+06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471.
+No se ejecutaron sus tests ni SQL, no se repitió AUD-031.
+
+Inventario/búsqueda documentados en el nuevo apartado del procedimiento: SQL14
+roles/ACL/require_enabled/tablas, pg-identity-driver/v4-broker/approved-backend,
+renderer y README de Bao, harness sintéticos, runtime/proxy, Product Master/SRS,
+AUTHENTICATION_SPEC/DATA_MODEL/ROADMAP/gates, scripts y git log --all por
+bootstrap/provision/invitation. No se halló contrato aprobado del primer actor
+en esos árboles/historial disponibles; no se extrapola a documentos privados.
+No confundir seed data normativo de pruebas con autorización de provisioning.
+
+Diseño entregado: SQL PG-P1 y verificaciones PG-P2 embebidos NO EJECUTADOS;
+LOGIN separado/herencia PG16 sin SET ROLE, transporte TLS+SCRAM y control HBA;
+policy template BAO-B1 y protocolo de distribuidor cert/supervisor en memoria,
+sin otro cliente Bao ni renovación implícita; FIRST-ACTOR-01 propuesto con
+singleton, auditoría, status/recibo y recuperación de COMMIT incierto.
+R4 no es previo al primer actor recomendado; slice exacto de invitaciones queda
+identificado para usuario posterior, sin exigir cerrar todo R4. No hay emisor
+autorreferente, INSERT administrativo ni fixtures usados como provisioning.
+
+Validación de ESTE encargo: solo inspección/diff/hash y comprobación de paquete.
+No se reejecutaron suites de código, typecheck o lint: no hay cambios ejecutables.
+La evidencia anterior 28/28/typecheck/lint pertenece a la corrección KV ya
+registrada. El propietario comunica revisión independiente del hash a6d2f45 y
+20/20 (19 originales más regresión KV independiente); no se afirma haber ejecutado
+esas 20 pruebas aquí ni se suman a las 28 como si fueran 48 pruebas distintas.
+Estado VPS (SQL14/fila b1_sql14/Bao/auditoría) sigue comunicado, no inspeccionado.
+
+Controles offline de entrega: git diff HEAD --check; igualdad de todos los blobs
+no documentales del delta con la reconstrucción del patch revisado; SHA256 del
+SQL5 AUD031 obtenido por git show; ambos únicos documentos modificados desde
+ese patch; integridad ZIP, hashes, presencia de patch original y docs completos.
+Resultados y lista exacta de entradas en DELIVERY-METADATA.json/SHA256SUMS.txt
+del ZIP. SQL-PG y HCL son propuestas textuales, no sintaxis nativa acreditada.
+
+Sin SQL/Bao reales, credenciales generadas, provisión, activación, build/deploy,
+push, PR, merge o cambios a Compose efectivo/Autodeploy. Runtime cerrado;
+CRM y AUD-031 intactos. Aprobar diseño no autoriza las escrituras futuras O4–O8;
+PG-P1/PG-P2, ACL cert y FIRST-ACTOR necesitan revisión y permisos específicos.
+
+## Incremento canónico entre entornos — 29/10/2026
+
+Solo cuatro archivos cambian desde el diseño anterior: pg-identity-driver.ts,
+su test y estos dos documentos existentes. Runtime no consume aún el factory.
+QG-0/alternativas y puntos de extensión en el apartado final del procedimiento.
+No ZIP nuevo ni documentos históricos repetidos como evidencia nueva.
+
+GitHub revalidado mediante fetch_commit, solo lectura: staging
+198b4e41d89c373c7aebda23ee20700643ce339c, candidato remoto
+4d5563899bc327f3c272ef13625ebffc3cc96b46, codex/r4-aud-031
+9a4c8b90a159f2853f040dc5597042c17408da00. HEAD local sigue en staging;
+no se presenta este delta local como cambio publicado en esas referencias.
+
+Fuentes oficiales leídas mediante fetch_file de openbao/openbao, tag v2.7.2:
+website/content/docs/agent-and-proxy/autoauth/index.mdx,
+autoauth/methods/cert.mdx, autoauth/methods/approle.mdx,
+autoauth/sinks/file.mdx y agent/index.mdx. Acreditan documentalmente auto-auth,
+renew/reauth, cert reload, archivos/unwrap de AppRole y sink de token; NO son
+ejecuciones de Agent/Bao ni prueban configuración instalada. Intentos de lectura
+de código cert en dos rutas supuestas y API cert en otra ruta devolvieron 404;
+no se citan como fuentes ni se infiere que falte el método documentado.
+
+Recomendación vigente pendiente: Agent cert por workload con sink tmpfs, sin
+distribuidor/supervisor propio. Requiere aprobar método, canal de certificados,
+permiso explícito renew-self, sink/loader y pruebas de lifecycle. No se instala
+policy ni se presupone que Agent resuelva distribución de SecretID/certificados.
+FIRST-ACTOR genérico sigue siendo propuesta normativa, no código de provisión.
+
+Validación local nueva, Node v24.19.0; ninguna conexión PG ni credencial obtenida:
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/pg-identity-driver.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/pg-identity-driver.ts tests/b1/pg-identity-driver.test.ts
+git diff HEAD --check
+```
+
+PASS: 8/8 en la suite modificada (7 casos previos más 1 de configuración), cero
+FAIL/skipped, ejecución final de la suite 139.736399 ms. Verifica construcción
+sin sockets/password, mismo factory en staging/production, TLS verificado/CA
+copiada/opciones explícitas y rechazo de endpoint/rol/CA/límites/DSN inválidos.
+Typecheck, lint y diff: exit 0. Aviso MODULE_TYPELESS_PACKAGE_JSON no bloqueante.
+Se ejecutó la suite al añadir el factory y se revalidó tras endurecer CA y
+verificación del nombre TLS; no se suman esas ejecuciones como pruebas distintas.
+No se reejecutaron suites Bao/deadline/composición, AUD-031 ni pruebas históricas.
+Sus PASS anteriores permanecen atribuidos a sus entregas; no se afirma que los
+28/28 completos se hayan ejecutado con este factory nuevo.
+
+Sin SQL/Bao reales, generación/provisión de credenciales, activación, VPS, build,
+deploy, push, PR o merge. No cambios a SQL14, Compose efectivo, Autodeploy, CRM,
+AUD-031, openbao-keys/deadline ni renderer/policies. Falta aceptación PG16 real
+de ACL/herencia/SET/HBA/TLS; Agent 2.7.2 real con sink/renew/reauth/revocación y
+rotación PKI; FIRST-ACTOR único con entregas/recuperación; integración web futura.
+
+## Desarrollo local Agent cert / FIRST-ACTOR-01 — 29/10/2026
+
+Autorización del propietario: desarrollo local de Agent oficial cert/sink y
+ceremonia única por instalación, sin activación ni operaciones reales. QG-0 y
+enumeración exacta B1-SELF-01..08 constan en el apartado final del procedimiento;
+no create/users ni grants por nombre de rol. AGENTS.md/política leídos antes de
+escribir; inventario de renderer, custodia, PG, factores, recovery, auditoría y
+MIGRATIONS-01 completado. No dependencias, frameworks ni runners nuevos.
+
+Refs revalidadas por GitHub en lectura: staging
+198b4e41d89c373c7aebda23ee20700643ce339c, candidato publicado
+87938c0e1d7e8294bbffc58cec6b301a9370093c y R4
+9a4c8b90a159f2853f040dc5597042c17408da00. El propietario aclaró expresamente
+que autoriza SOLO merge local de staging; se efectuó sin conflicto, commit
+43c6446715d2f04a0b8146a6431d63960c9efc10. Staging y candidato publicado son
+ancestros de ese HEAD; el merge no cambió contenido del candidato. La implementación
+nueva queda como cambios locales sin publicar. No force/rebase/PR/merge remoto.
+
+Inventario final de archivos nuevos/modificados de ESTE incremento (16):
+
+```text
+db/migrations/0002_first_actor.review.sql
+lib/b1/first-actor.ts
+lib/b1/recovery-material.ts
+lib/b1/approved-backend.ts
+lib/b1/openbao-keys.ts
+scripts/prepare-b1-openbao.py
+scripts/trusted-migrations.mjs
+scripts/trusted-migrations.d.mts
+scripts/migrate-postgres.mjs
+scripts/migrate-postgres.d.mts
+tests/b1/agent-sink.test.ts
+tests/b1/first-actor.test.ts
+tests/static/test_b1_agent_cert.py
+tests/trusted-migrations.test.ts
+deploy/staging/openbao/OPENBAO-STAGING-01.md
+deploy/staging/openbao/OPENBAO-STAGING-01-CHECKS.md
+```
+
+El renderer comparte políticas/scopes y produce bundle cert para ambos entornos
+sin inputs de servidor/SecretID; usa HCL mínimo y JSON de binding/policy/lector.
+Se consultaron fuentes oficiales v2.7.2, incluidas rutas reales internal/command/
+agent/config/config.go y agentproxyshared/auth/cert/cert.go para forma del config
+y reload. No se ejecutó Agent ni se reabrió la verificación criptográfica del
+artefacto ya fijado. Native parser HCL y operación real siguen NO EJECUTADOS.
+
+### Evidencia ejecutada, exclusivamente offline
+
+```sh
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts tests/b1/agent-sink.test.ts tests/b1/openbao-keys.test.ts tests/b1/custody-composition.test.ts tests/b1/custody-deadline.test.ts tests/b1/approved-backend.test.ts
+npx --no-install vitest run tests/trusted-migrations.test.ts
+python3 -B -m unittest discover -s tests/static -p test_b1_agent_cert.py -v
+python3 -B -m unittest discover -s tests/static -p test_b1_openbao_preparation.py -v
+npm run typecheck
+npx --no-install eslint lib/b1/openbao-keys.ts lib/b1/first-actor.ts lib/b1/recovery-material.ts lib/b1/approved-backend.ts tests/b1/agent-sink.test.ts tests/b1/first-actor.test.ts tests/trusted-migrations.test.ts scripts/trusted-migrations.mjs scripts/migrate-postgres.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+- PASS Node: 37/37, cero FAIL/cancelled/skipped/todo, ejecución final 2362.135917 ms.
+  Desglose: sink 3, FIRST-ACTOR 4, claves 8, composición 9, deadlines 4, backend 9.
+  Se revalidaron los módulos tocados y consumidores de recovery/custodia; no toda
+  la aplicación ni AUD-031. Logs locales: /tmp/cleanops-agent-first-actor-node.log.
+- Sink: descriptores reales en directorio temporal con tipo tmpfs SIMULADO mediante
+  statfs; propietario/modos, ausencia, reemplazo, tamaño, bytes inválidos, symlink
+  final/padre, no tmpfs, deadline de I/O tardío, cierre fallido saneado y borrado de
+  buffers capturados. Esto NO demuestra montaje tmpfs/UIDs de contenedores reales.
+- FIRST-ACTOR: pool/store/SQL SIMULADOS con exclusión mutua entre transacciones;
+  TOTP/Argon2/recovery criptográficos sobre fixtures exclusivamente sintéticos.
+  Dos prepares concurrentes entregan una vez; confirm sin ack/proof/cap válida
+  rechaza; dos commits concurrentes con una respuesta perdida conservan un efecto
+  durable/recibo; auditoría fallida después de escrituras simuladas revierte efectos;
+  expiración y límite otp_attempts borran material; instalación/op/digest/tenant
+  ajenos rechazan; pérdida de respuesta prepare no regenera ni reentrega; contraseña
+  no admitida revierte reserva; keys prestadas quedan a cero. Sin sesión automática.
+- PASS migraciones: 20/20 Vitest, simulación de protocolo sin PG; log local
+  /tmp/cleanops-agent-first-actor-migrations.log. Nueva prueba acredita propuesta
+  hash-verificada, no función/DDL ejecutada: migrations=[] y proposed[0].executable=false.
+- PASS Python: 2/2 Agent cert (staging/production con configuración mínima y
+  negativos), 6/6 preparación existente por cambio del renderer. No SQL/Bao/network
+  reales en esas suites. No se reetiquetan sus asserts como aceptación de Agent.
+- PASS typecheck, lint pertinente y diff, exit 0. Un lint intermedio detectó
+  no-unsafe-finally en el manejo de cierre del sink; se corrigió en origen para
+  completar limpieza y sanear fuera de finally. Se revalidaron código/tests afectados.
+  Avisos Node MODULE_TYPELESS_PACKAGE_JSON y Vite configLoader no bloqueantes.
+
+### Integridad y límites QG-3
+
+Incremental propuesta SHA256:
+f699b6aeb057134f98d7b25fc4d8f813f184b46ea55c4194e3b6d9b8e7ea2d62.
+SQL14 mantiene 965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa.
+No hay alteración de SQL14, ni segunda baseline/journal; primera propuesta B1 se
+inspecciona por el loader canónico y NO entra en runMigrations apply. Su ejecución
+futura necesita promoción/revisión de bytes y permiso, no un flag de encendido.
+
+Sin PostgreSQL/Bao reales, credenciales operativas, provisión, instalación Agent,
+cambios VPS, build/deploy, push, PR o merge remoto. Pruebas usan material sintético
+sin identidad operativa. Se conserva el contrato de COMMIT confirmado y los casos
+KV/token tardíos. Runtime sigue closedBackend; Compose efectivo, Autodeploy, CRM
+y AUD-031 intactos. Estado SQL14/Bao del VPS sigue comunicado por el propietario,
+no verificado remotamente en este incremento.
+
+Bloqueos concretos: parser/PG16 nativo y revisión independiente del SQL propuesto
+(pglast ausente, no instalado), privilegios/RLS/locks/auditoría/commit incierto
+nativos; Agent 2.7.2/parser real, PKI y cert binding, tmpfs/propietarios efectivos,
+TLS/renovación/reauth/revocación/reinicio reales; credenciales executor/reader y
+canal privado de entrega/acuse. EXPIRED/pérdida de entrega antes del primer actor
+es terminal sin reset/regeneración: falta procedimiento de recuperación revisado
+si ocurre. No se anuncia aceptación de producción ni login web conectado.
+
+## Corrección local de revisión de 9a691332839eb9a08057432dd479460bbe61ba46
+
+Este apartado sustituye la limitación histórica anterior de EXPIRED/pérdida de
+entrega terminal antes del commit. No altera ni amplía las pruebas históricas.
+
+QG-0 previo a escritura: reutilizados la ceremonia privada, singleton/ledger,
+executor nominal, manifest/digest, unidad de trabajo, advisory lock y guard de
+custodia. Abort usa el control privado de status, sin capability perdida ni Bao.
+No hay segundo provisioning, endpoint web, permisos self-service nuevos ni sesión.
+La generación nueva requiere aborto auditado y operationId nuevo explícito; todos
+los otros campos del manifiesto permanecen idénticos. COMMITTED nunca reinicializa.
+El archivo propuesto sigue fuera de la cola aplicable; SQL14 no cambia.
+
+Comandos locales ejecutados (raíz del repositorio; ninguno conecta a PG/Bao):
+
+```sh
+node --experimental-strip-types --test --test-isolation=none --test-name-pattern='final close blocks' tests/b1/agent-sink.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts tests/b1/agent-sink.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/first-actor.test.ts
+node --experimental-strip-types --test --test-isolation=none tests/b1/openbao-keys.test.ts tests/b1/custody-deadline.test.ts
+npx --no-install vitest run tests/trusted-migrations.test.ts
+npm run typecheck
+npx --no-install eslint lib/b1/openbao-keys.ts lib/b1/first-actor.ts tests/b1/agent-sink.test.ts tests/b1/first-actor.test.ts tests/trusted-migrations.test.ts scripts/trusted-migrations.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+Resultados comprobados localmente:
+
+- Regresión de cierre antes de corregir origen: FAIL esperado, 0/1, «Missing
+  expected rejection». Después: PASS, el último close bloquea el event loop
+  1100 ms con presupuesto 1000 ms; el timer no puede ejecutarse antes de la
+  continuación de limpieza. Rechaza con error saneado; todos los descriptores
+  cierran. El check monotónico ocurre después de limpiar buffers/cerrar y antes
+  de devolver el token. Tmpfs sigue SIMULADO mediante statfs sobre FS temporal.
+- Node: 11/11 ceremony/sink; nueva comprobación explícita de pérdida total de la
+  entrega prepare revalidada en 7/7 FIRST-ACTOR. Son 11 casos distintos, no 18.
+  Sink 4 (antes 3), ceremonia 7 (antes 4). Recuperación sin capability entregada,
+  aborto idempotente y respuesta perdida, fallo de auditoría con rollback,
+  expiración, intentos agotados, nueva generación explícita, dos prepares de
+  generación nueva y dos operaciones nuevas compitiendo; bloqueo de manifiesto
+  alterado, invalidación de capacidad/material antiguos y writers históricos,
+  historial sin material, COMMITTED terminal, carreras aborto/confirm y
+  aborto/commit en ambos órdenes. Un único efecto final o ninguno; buffers
+  prestados limpiados. Pool, SQL, auditoría, historial y concurrencia SIMULADOS;
+  TOTP/Argon2/recovery sobre fixtures sintéticos. No aceptación PostgreSQL.
+- Node custodia: 12/12 (8 claves + 4 deadline), incluidos token tardío, KV tardío,
+  limpieza y COMMIT confirmado que llega tras expirar lease. En total 23 casos
+  Node distintos afectados o de preservación, sin skipped/cancelled/todo.
+- Vitest migraciones: 20/20. Hash verificado, controles estáticos de abort/history
+  y writers actuales, ausencia de borrado de historia; loader B1 aplicable vacío.
+  Esto no interpreta/ejecuta PL/pgSQL ni acredita locks/RLS nativos.
+- Typecheck y lint pertinente: exit 0. Avisos Node MODULE_TYPELESS_PACKAGE_JSON y
+  Vite configLoader no bloqueantes. diff --check: exit 0.
+- Offline-plan: registry=UNKNOWN_NOT_CONNECTED, migrations=[], propuesta
+  0002_first_actor executable=false. SHA256 de los bytes propuestos y catálogo:
+  89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102.
+
+Logs locales de trabajo: /tmp/cleanops-sink-close-before.log,
+/tmp/cleanops-corrections-node.log, /tmp/cleanops-corrections-first-actor.log,
+/tmp/cleanops-corrections-custody.log, /tmp/cleanops-corrections-migrations.log,
+/tmp/cleanops-corrections-typecheck.log y /tmp/cleanops-corrections-lint.log.
+
+Pendiente aceptación nativa autorizada: parser/PG16, privilegios y RLS, auditoría
+transaccional, locks/carreras reales, recuperación de respuestas inciertas y
+Agent/tmpfs/renovación/reemplazo reales. La prueba de concurrencia local modela
+serialización transaccional, no demuestra el scheduler o locks de PostgreSQL.
+No se han ejecutado SQL/Bao ni generado credenciales operativas. Hechos del VPS
+siguen siendo comunicados por el propietario, no comprobados aquí. Sin provisión,
+instalación, activación, build/deploy, push, PR o merge. closedBackend, SQL14,
+Compose efectivo, Autodeploy OFF, CRM y AUD-031 intactos.
+
+## FIRST-ACTOR-NATIVE-01 — preparación, NO EJECUTADO
+
+Base local revisada: 7e8c04896cc00854e2fbf8b67e1c94fec963d3bd. El propietario
+comunica revisión independiente favorable de ambas correcciones y 5/5 pruebas
+independientes del sink. No se repiten ni se atribuyen como ejecución propia.
+FIRST-ACTOR SQL continúa sin aceptación nativa; no se anuncia login funcional.
+
+QG-0: inspeccionados test-staging-postgres.py (owned container/socket/limpieza,
+instalador SQL14 y checks MIGRATIONS-01), pg-b1-real-protocols.py y
+pg-b1-pool-real.ts (roles ordinarios y concurrencia), test_staging_synthetic.py,
+loader/runner MIGRATIONS-01, incremental propuesta y servicio FIRST-ACTOR.
+Se EXTIENDE el primer harness con --first-actor y autorización explícita; se
+REUTILIZAN instalador, loader hash-verificado, ceremonia, TOTP/AAD, recovery,
+unidad de trabajo y pool pg. Los otros harnesses no son adecuados: sus fixtures
+preinstalan actores, mientras aquí la base debe comenzar vacía. No se crea otro
+runner/CLI de provisioning, workflow, VPS o servicio permanente. Dueño B1;
+consumidor único: aceptación efímera del operador después de autorización.
+Diff local: scripts/test-staging-postgres.py, un test del harness estático
+existente y este registro. No modifica SQL14, incremental, catálogo ni runtime.
+
+### Alcance EXACTO propuesto para UNA ejecución posterior
+
+Entorno: checkout local/CI de revisión, dependencias del lock YA instaladas,
+Node con strip-types, Python/PyYAML, Docker local y sudo/chgrp del harness
+existente. Imagen postgres:16-bookworm YA disponible: --pull=never impide pulls;
+si falta, detener, no instalar ni descargar implícitamente. Se comprueba versión
+16.x nativa y se registra el image ID efectivo, sin prometer digest aún observado.
+No es aceptación de transporte TLS/HBA de producción ni de Bao/Agent.
+
+Un contenedor non-root --user=postgres, --network=none, sin puertos, cap-drop ALL,
+no-new-privileges, máximo 1 CPU/768 MiB/128 PIDs. Un volumen con label/owner único,
+directorio temporal /tmp/cleanops-staging-pg-* y socket Unix privado; se ignoran
+DSN/variables PG/DOCKER operativas. Sin acceso VPS. La credencial de bootstrap
+es sintética temporal, solo inicializa este cluster; no se usa para operaciones
+funcionales de ceremonia. Tres LOGINs de fixture sin contraseña (executor,
+reader y outsider) usan trust local del socket aislado; executor hereda solo
+cleanops_first_actor_executor, INHERIT TRUE/SET FALSE de PG16. No se cambia HBA
+operativo ni se crea credencial real. Ninguno se instala en el VPS.
+
+Instalación SQL14 UNA vez en cleanops_staging mediante staging-sql14.py canónico,
+solo en volumen vacío efímero. Se verifica su journal/checksum. La propuesta
+0002_first_actor se lee con loadTrustedMigrations(...,'b1',true), se ejecutan sus
+bytes exactos en UNA transacción de prueba, y el journal conserva solo baseline.
+No se promociona proposed=true ni se usa runMigrations apply; la cola aplicable
+sigue VACÍA. Esta aplicación directa es fixture de aceptación bajo el harness
+propietario, nunca procedimiento operativo para instalar la incremental.
+Se clona first_actor_template después de cerrar las conexiones a la fuente y
+se crean diez bases fa_native_1 a fa_native_10 desde ese template. No se repiten
+DDL/instalación SQL14 por escenario, ni tests históricos de migraciones/root
+startup/reinstalación, ni AUD-031. No se insertan actores como fixtures: todos
+los actores se crean mediante la ceremonia canónica.
+
+Trece grupos previstos (NO son trece PASS acreditados):
+
+1. Arranque PG16 non-root del recurso efímero.
+2. Instalación SQL14 exacta mediante instalador existente.
+3. Incremental nativa sobre SQL14, hash/versión/journal y cola vacía.
+4. Roles NOLOGIN y flags; membresía PG16 exacta; SET ROLE denegado; EXECUTE
+   permitido solo en las ocho transiciones al executor, solo status al reader,
+   ninguno al outsider/PUBLIC; helper/scope privados. SELECT/DELETE directos
+   rechazan y catálogo deniega todos los privilegios de tabla al caller.
+   FORCE RLS en las ocho tablas empresariales usadas; INSERT del owner fuera
+   de scope transaccional rechaza. Reader no lee preparación ni puede preparar,
+   pero recupera recibo COMMITTED. Incluye recorrido real prepare/confirm/commit.
+5. Trigger sintético que falla INSERT en app.audit_logs durante commit: PG debe
+   revertir organizaciones, actor, credencial, TOTP, recovery y configuración,
+   manteniendo CONFIRMED. Se retira solo ese fault del clone de prueba.
+   Después se pierde deliberadamente el ack tras COMMIT real: status/reader y
+   reintento deben recuperar el mismo recibo, un actor y un evento final.
+   TOTP persistido se descifra con AAD canónico y coincide con URI entregada;
+   digests recovery coinciden con todos los códigos/HMAC canónicos; contraseña
+   verifica Argon2, ocho self rules exactas, cero sesiones y deployment_enabled
+   false. Material privado final borrado; aborto y nueva operación postcommit
+   rechazan; prepare repetido no reentrega.
+6. Ack perdido de preparación, aborto sin capability entregada, ack de aborto
+   perdido, reintento idempotente, nueva generación explícita, writers antiguos
+   rechazados e historial/evento únicos; nuevo TOTP puede confirmar y cometer.
+7. Expiración: modificación controlada del timestamp SOLO por administrador del
+   clone para evitar esperar diez minutos; status ejecuta expiración real,
+   borra material, abort(EXPIRED) y operación nueva. Capacidad antigua inválida.
+8. Agotamiento de otp_attempts mediante pruebas inválidas del servicio; mismo
+   aborto y nueva generación, sin alterar política/contador administrativamente.
+9. Aborto frente a commit válido: abort gana, commit rechaza, cero actores.
+10. Aborto frente a confirm válida: abort gana, confirm rechaza.
+11. Confirm frente a aborto: ambas transiciones serializan; acaba ABORTED.
+12. Commit frente a aborto: commit gana, abort rechaza; un actor COMMITTED.
+13. Aborto frente a prepare de operación nueva y después dos generaciones
+    nuevas competidoras: una sola generación materializada y contador histórico
+    conservado. En cada carrera se retiene la transacción A DESPUÉS de ejecutar
+    su función real y se observa B esperando Lock con pg_blocking_pids antes de
+    liberar A; no se acredita concurrencia solo con Promise.all o un sleep.
+
+Resultado incierto: pérdida de RESPUESTA inyectada en cliente después de COMMIT
+real, sin repetir efectos SQL. No es corte de red/kernel/caída de PostgreSQL;
+no acredita esos modos de fallo. Criptografía y persistencia serán reales con
+material exclusivamente sintético en memoria; admisión de contraseña y custodia
+inyectadas con fixtures; Bao/PKI/custodia real no participan.
+El administrador solo instala/verifica, inyecta el fallo de auditoría y mueve el
+timestamp de expiración del clone. Sin grants para superar un FAIL funcional.
+
+Presupuesto: cuerpo Node máximo 300 s, cada proceso Docker máximo 120 s y
+statement_timeout de cada conexión 10 s; barrera 10 s/observación lock acotada.
+finally cierra pools, borra buffers prestados y verifica labels antes de eliminar
+contenedor/volumen; TemporaryDirectory retira socket y password sintético.
+Abortos externos duros del proceso no acreditan cleanup: requieren inspección de
+los recursos con el owner de sus labels antes de una nueva ejecución.
+Informe previsto: artifacts/staging-synthetic/first-actor-native.json con 13
+checks, scope FIRST_ACTOR_NATIVE_EPHEMERAL, sourceCommit, artifactSha256, pgImageId,
+resultado, cleanup, runtime closedBackend y hostingerAccessed=false. El sourceCommit
+identifica HEAD; artifactSha256 identifica los bytes locales si el checkout tiene
+delta sin commit. Fallos se sanean, sin SQL/contraseñas/TOTP/recovery en informe.
+
+### Comandos completos, SOLO para autorización posterior
+
+Desde el checkout con esos requisitos preexistentes; NO ejecutados aquí:
+
+```sh
+cd /workspace/cleanops-360
+sha256sum scripts/test-staging-postgres.py tests/static/test_staging_synthetic.py db/migrations/0002_first_actor.review.sql docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+python3 -B scripts/test-staging-postgres.py --first-actor --authorization FIRST-ACTOR-NATIVE-01
+cat artifacts/staging-synthetic/first-actor-native.json
+sha256sum artifacts/staging-synthetic/first-actor-native.json
+```
+
+La cadena FIRST-ACTOR-NATIVE-01 delimita el modo, NO concede autorización por sí
+misma. Antes de invocarlo, propietario debe autorizar esos hashes y UN arranque,
+instalación SQL14 + propuesta sobre el cluster efímero, LOGINs sintéticos y diez
+clones con los trece grupos indicados. Cualquier cambio de bytes exige revisar
+el delta; no repetir automáticamente un fallo ni modificar roles/SQL para pasarlo.
+No incluye instalar dependencias, descargar imagen, operar VPS, SQL14 existente,
+Bao, login web, activación, deploy, PR/merge, ni modificar Compose/Autodeploy/CRM.
+
+### Evidencia OFFLINE de preparación
+
+Ejecutado: compile() Python y node --input-type=module --check sobre ambos cuerpos
+JavaScript extraídos por import, sin ejecutar sus imports/cuerpo; ESLint por stdin
+con filename scripts/first-actor-native.mjs: PASS. Un primer lint señaló import
+createHash no utilizado: retirado y revalidado. Se ejecutó:
+
+```sh
+python3 -B -m unittest discover -s tests/static -p test_staging_synthetic.py -k native_ -v
+npx --no-install eslint --stdin --stdin-filename scripts/first-actor-native.mjs < /tmp/cleanops-first-actor-native.mjs
+node scripts/migrate-postgres.mjs --offline-plan --profile=b1
+git diff --check
+```
+
+3/3 pruebas Python PASS (la selección también coincide con el test existente de
+alternativa prebuilt); importación y rechazos de CLI con subprocess.run prohibido,
+contratos estáticos y aislamiento de conexión. NO validan semántica SQL/PG ni
+constituyen aceptación nativa. Offline-plan confirmado migrations=[] y propuesta
+executable=false. No se repiten pruebas de dominio/sink ni auditorías cerradas.
+
+SHA256 preparados:
+
+- scripts/test-staging-postgres.py:
+  84b9e7a3bac0661f7e8df460cd23477b53f6b68b8285eeecaa794be30b5c3732
+- tests/static/test_staging_synthetic.py:
+  76ad72f37436a700aa2f2b9965e15317dd5164804e23c598cfe980bb5200e9ec
+- db/migrations/0002_first_actor.review.sql (sin cambios):
+  89cf831220d23e01c528640412f06143eda5d52e1230217e8dfad0f7f89d5102
+- SQL14 (sin cambios):
+  965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa
+
+Estado: PREPARED / NATIVE NOT RUN. closedBackend, SQL14, cola vacía, Compose,
+Autodeploy OFF, CRM y AUD-031 conservados. Sin SQL/Bao, credenciales operativas,
+provisión real, contenedor iniciado, instalación, despliegue, publicación o PR.

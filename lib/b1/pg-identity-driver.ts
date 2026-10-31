@@ -1,8 +1,61 @@
-import type { PoolClient } from 'pg'
+import { Pool, type PoolClient } from 'pg'
+import { X509Certificate } from 'node:crypto'
+import { isIP } from 'node:net'
+import { checkServerIdentity } from 'node:tls'
 import { AuthError, type Transaction } from './service.ts'
 import type { PrivateTransactionalDriver } from './private-adapter.ts'
 
 const unavailable = () => new AuthError(503, 'AUTH_DEPENDENCY_UNAVAILABLE')
+export type PgIdentityConfiguration = Readonly<{
+  environment: string
+  host: string
+  port: number
+  database: string
+  loginRole: string
+  contractualRole: string
+  ca: Buffer
+  password: () => Promise<string>
+  maxConnections: number
+  connectionTimeoutMs: number
+}>
+
+/** Trusted composition only, identical across environments. Construction opens
+ * no socket and obtains no credential. Role ACL/NOLOGIN and HBA require separate
+ * approved catalog acceptance; names alone cannot prove server privileges.
+ */
+export function createPgIdentityPool(input: PgIdentityConfiguration): Pool {
+  const identifier = /^[a-z_][a-z0-9_]{0,62}$/
+  const forbidden = new Set(['postgres', 'cleanops_bootstrap', 'cleanops_auth_broker', 'cleanops_ddl_owner'])
+  if (!input || Object.keys(input).sort().join(',') !== 'ca,connectionTimeoutMs,contractualRole,database,environment,host,loginRole,maxConnections,password,port' ||
+      !/^[a-z][a-z0-9_-]{0,62}$/.test(input.environment) ||
+      ![input.database, input.loginRole, input.contractualRole].every(v => typeof v === 'string' && identifier.test(v)) ||
+      input.loginRole === input.contractualRole || forbidden.has(input.loginRole) || input.loginRole.startsWith('pg_') ||
+      typeof input.host !== 'string' || input.host.length > 253 || !(isIP(input.host) ||
+        input.host.split('.').every(label => /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label))) ||
+      !Number.isSafeInteger(input.port) || input.port < 1 || input.port > 65535 ||
+      !Number.isSafeInteger(input.maxConnections) || input.maxConnections < 1 || input.maxConnections > 16 ||
+      !Number.isSafeInteger(input.connectionTimeoutMs) || input.connectionTimeoutMs < 1 || input.connectionTimeoutMs > 30000 ||
+      !Buffer.isBuffer(input.ca) || input.ca.length > 65536 ||
+      !/^-----BEGIN CERTIFICATE-----\r?\n[A-Za-z0-9+/=\r\n]+\r?\n-----END CERTIFICATE-----\r?\n?$/.test(input.ca.toString('ascii')) ||
+      typeof input.password !== 'function') throw unavailable()
+  try { if (!new X509Certificate(input.ca).ca) throw unavailable() } catch { throw unavailable() }
+  const source = input.password
+  const host = input.host
+  return new Pool({
+    host: input.host, port: input.port, database: input.database, user: input.loginRole,
+    password: async () => {
+      try {
+        const value = await source()
+        if (typeof value !== 'string' || value.length < 1 || Buffer.byteLength(value) > 4096 || /[\r\n\0]/.test(value)) throw unavailable()
+        return value
+      } catch { throw unavailable() }
+    },
+    ssl: { ca: Buffer.from(input.ca), rejectUnauthorized: true,
+      checkServerIdentity: (_name, certificate) => checkServerIdentity(host, certificate) },
+    max: input.maxConnections, connectionTimeoutMillis: input.connectionTimeoutMs,
+    options: '', application_name: `cleanops-identity-${input.environment}`,
+  })
+}
 /** Deliberately NOT configured by runtime. Uses a dedicated identity-service pool only.
  * A broker implementation must exclusively invoke approved V4 functions; no direct table
  * access, arbitrary request-derived SQL, privileged owner role or user-controlled GUC.
@@ -45,15 +98,16 @@ export function createPgIdentityUnitOfWork(pool: IdentityPool) {
     let connection: IdentityConnection | undefined
     let begun = false
     let committed = false
+    let result: T
+    let releaseFailed = false
     try {
       connection = await pool.connect()
       if (!connection || typeof connection.query !== 'function' || typeof connection.release !== 'function') throw unavailable()
       await connection.query('BEGIN ISOLATION LEVEL READ COMMITTED')
       begun = true
-      const result = await operation(connection)
+      result = await operation(connection)
       await connection.query('COMMIT')
       committed = true
-      return result
     } catch (error) {
       if (connection && begun && !committed) {
         try { await connection.query('ROLLBACK') } catch { /* discard connection */ }
@@ -62,8 +116,13 @@ export function createPgIdentityUnitOfWork(pool: IdentityPool) {
       throw unavailable()
     } finally {
       // Never allow an uncertain transaction/session state back into the pool.
-      if (connection) connection.release(!committed)
+      if (connection) {
+        try { connection.release(!committed) }
+        catch { releaseFailed = true }
+      }
     }
+    if (releaseFailed) throw unavailable()
+    return result
   }
   return Object.freeze({ run })
 }

@@ -47,6 +47,13 @@ jobs:
             printf 'CLEANOPS_BAO_TLS_DIR=%s\n' "$fixture/tls"
             printf 'CLEANOPS_BAO_SUBNET=10.249.88.0/24\n'
             printf 'CLEANOPS_BAO_PRIVATE_IPV4=10.249.88.2\n'
+            # Agent config paths only; this fixture never starts Agent or Bao.
+            printf 'CLEANOPS_AGENT_IMAGE=cleanops-existing-agent-fixture:offline\n'
+            printf 'CLEANOPS_AGENT_NETWORK=cleanops-existing-bao-network-fixture\n'
+            printf 'CLEANOPS_IDENTITY_UID=1000\n'
+            printf 'CLEANOPS_IDENTITY_GID=1000\n'
+            printf 'CLEANOPS_AGENT_CONFIG_FILE=%s\n' "$fixture/agent.hcl"
+            printf 'CLEANOPS_AGENT_TLS_DIR=%s\n' "$fixture/agent-tls"
           } >> "$GITHUB_ENV"
       - name: Validate syntax and isolation
         shell: bash

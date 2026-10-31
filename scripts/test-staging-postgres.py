@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """CI: real non-root PG16 packaging and exact SQL installer, isolated synthetic only."""
+import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -144,6 +146,317 @@ process.stdout.write(JSON.stringify(results))
 """
 
 
+FIRST_ACTOR_DIAGNOSTICS = r"""
+const diagnosticErrors = new WeakMap()
+const causalErrors = new WeakMap()
+const authPairs = new Map([['AUTH_DEPENDENCY_UNAVAILABLE',503],['FIRST_ACTOR_CONFLICT',409],['AUTH_INVALID',401],['INVALID_INPUT',422]])
+const sqlstate = value => typeof value==='string' && value.length===5 && /^[A-Z0-9]{5}$/.test(value) ? value : null
+const safeAssertions = new Set(['FA-A014', 'FA-A016', 'FA-A017', 'FA-A018', 'FA-A019', 'FA-A020', 'FA-A022', 'FA-A023']) // populated with explicitly selected count/boolean assertions below
+let phase = 'FA-SETUP'
+function failure(error) {
+ const id = diagnosticErrors.get(error) ?? phase
+ const cause = causalErrors.get(error)
+ const state = cause?.sqlstate ?? sqlstate(error?.code)
+ const type = error instanceof AuthError ? 'AuthError' : error instanceof assert.AssertionError ? 'AssertionError' : state ? 'PostgreSQLError' : error instanceof TypeError ? 'TypeError' : 'OtherError'
+ const result = {id, type, sqlstate:state}
+ if (cause) { result.operation = cause.operation; result.check = cause.check }
+ if (error instanceof AuthError && authPairs.has(error.code) && authPairs.get(error.code) === error.status) { result.authCode=error.code;result.authStatus=error.status }
+ if (type === 'AssertionError' && safeAssertions.has(id)) {
+  for (const key of ['actual','expected']) {
+   const v=error[key]
+   if (typeof v==='boolean'||(typeof v==='number'&&Number.isSafeInteger(v)&&v>=0&&v<=10000)) result[key]=v
+  }
+ }
+ return result
+}
+// Harness-only observation, below the production sanitization boundary. No SQL or
+// error object is retained: only fixed operation identifiers and format-validated SQLSTATE.
+function observedCeremony(pool, deps, factory) {
+ let operation='CUSTODY', causal, stageReturned=false
+ const record=(error,op=operation,check=sqlstate(error?.code)?'FA-OBS-SQL-REJECT':error instanceof TypeError?'FA-OBS-CLIENT-TYPE':'FA-OBS-QUERY-REJECT')=>{causal ??= {operation:op,sqlstate:sqlstate(error?.code),check}}
+ const observed={async connect(){
+  operation='CONNECT'
+  let c
+  try {c=await pool.connect()} catch(error){record(error);throw error}
+  return {async query(sql,args){
+   const names=['begin','stage','material','confirm','denied','commit','status','abort']
+   const name=names.find(n=>sql.startsWith('SELECT identity_provision.first_actor_'+n+'('))
+   const op=name ? 'FIRST_ACTOR_'+name.toUpperCase() : sql==='COMMIT' ? 'COMMIT' :
+    sql==='BEGIN ISOLATION LEVEL READ COMMITTED' ? 'BEGIN' : sql==='ROLLBACK' ? 'ROLLBACK' : 'DEADLINE_CONFIG'
+   if(op!=='ROLLBACK') operation=op
+   try {
+    const value=await c.query(sql,args)
+    if(op==='FIRST_ACTOR_BEGIN')operation='CRYPTO_PREPARE'
+    if(op==='FIRST_ACTOR_STAGE')stageReturned=true
+    return value
+   } catch(error){if(op!=='ROLLBACK')record(error,op);throw error}
+  },release(discard){c.release(discard)}}
+ }}
+ const custody={async withKeys(...args){
+  operation='CUSTODY'
+  let entered=false
+  const work=args[2]
+  args[2]=(borrow,lease)=>{entered=true;return work(borrow,{...lease,remainingMs(){
+   const value=lease.remainingMs()
+   if(!Number.isFinite(value)||Math.floor(value)<1||Math.floor(value)>30000)
+    record(null,operation,stageReturned?'FA-OBS-LEASE-AFTER-STAGE':'FA-OBS-LEASE-BEFORE-STAGE')
+   return value
+  }})}
+  try{return await deps.custody.withKeys(...args)}
+  catch(error){if(!entered)record(error,'CUSTODY');throw error}
+ }}
+ const service=factory(observed,{...deps,custody})
+ return Object.fromEntries(Object.entries(service).map(([name,method])=>[name,async(...args)=>{
+  causal=undefined;operation='CUSTODY';stageReturned=false
+  try{return await method(...args)}catch(error){
+   if(error && typeof error==='object')causalErrors.set(error,causal ?? {operation,sqlstate:null,check:stageReturned?'FA-OBS-STAGE-RESULT':'FA-OBS-LOCAL'})
+   throw error
+  }
+ }]))
+}
+function assertion(id) {
+ const mark = error => { if(error && typeof error==='object') diagnosticErrors.set(error,id); throw error }
+ return Object.fromEntries(['equal','deepEqual','ok','match','rejects','throws'].map(method=>[method,(...args)=>{
+  try {const value=assert[method](...args);return value instanceof Promise ? value.catch(mark) : value} catch(error){return mark(error)}
+ }]))
+}
+"""
+
+FIRST_ACTOR_NATIVE_CHECKS = FIRST_ACTOR_DIAGNOSTICS + r"""
+// This body is reachable ONLY through --first-actor in the owned PG16 harness.
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import { createHmac, randomUUID } from 'node:crypto'
+import pg from 'pg'
+import { URI, TOTP } from 'otpauth'
+import { verify } from 'argon2'
+import { loadTrustedMigrations, loadTrustedB1Baseline } from './scripts/trusted-migrations.mjs'
+import { createFirstActorCeremony, firstActorRules } from './lib/b1/first-actor.ts'
+import { openEnrollmentSecret } from './lib/b1/ceremony-preparation.ts'
+import { canonical } from './lib/b1/contracts.ts'
+import { numeric } from './lib/b1/config.ts'
+import { AuthError } from './lib/b1/service.ts'
+const socket=process.env.CLEANOPS_NATIVE_SOCKET
+assert(socket && socket.startsWith('/tmp/cleanops-staging-pg-'))
+const password=fs.readFileSync(process.env.CLEANOPS_NATIVE_PASSWORD_FILE,'utf8')
+const results=[], pools=[], held=[]
+const check=name=>results.push({name,status:'PASS'})
+function pool(database,user='cleanops_bootstrap',tag='first-actor-native') {
+  const p=new pg.Pool({host:socket,port:5432,database,user,password:user==='cleanops_bootstrap'?password:undefined,
+    ssl:false,options:'',application_name:tag,max:4,connectionTimeoutMillis:3000,statement_timeout:10000})
+  pools.push(p);return p
+}
+let root=pool('cleanops_staging')
+const [proposal]=await loadTrustedMigrations(undefined,'b1',true),baseline=await loadTrustedB1Baseline()
+assertion('FA-A001').equal(proposal.id,'0002_first_actor');assertion('FA-A002').deepEqual(await loadTrustedMigrations(undefined,'b1'),[])
+const aead=Buffer.alloc(32,41),recovery=Buffer.alloc(32,71),testPassword='native-synthetic-only-not-operational'
+const manifest={installationId:randomUUID(),operationId:randomUUID(),tenantId:randomUUID(),userId:randomUUID(),principalId:randomUUID(),
+ tenantName:'Synthetic installation',displayName:'Synthetic actor',email:'first@example.invalid',accountLabel:'synthetic-only',approval:'FIRST_ACTOR_NATIVE_EPHEMERAL_ONLY'}
+const key=purpose=>({tenantId:manifest.tenantId,purpose,keyId:'synthetic-'+purpose,version:1})
+const totpKeyVersion='synthetic-totp-1'
+const custody={async withKeys(refs,lifetime,work){
+ assertion('FA-A003').deepEqual(refs,[key('totp-aead'),key('recovery-hmac')])
+ const a=Buffer.from(aead),r=Buffer.from(recovery);held.push(a,r);const end=performance.now()+lifetime
+ try{return await work((ref,fn)=>fn(ref.purpose==='totp-aead'?a:r),{remainingMs:()=>end-performance.now(),acknowledgeCommit(){}})}
+ finally{a.fill(0);r.fill(0)}
+}}
+const deps={custody,totpKey:key('totp-aead'),recoveryKey:key('recovery-hmac'),totpKeyVersion,lifetimeMs:30000,
+ passwordAdmission:async p=>p===testPassword,normalizeEmail:s=>s.toLowerCase()}
+const ceremony=(p,m=manifest)=>observedCeremony(p,deps,(observed,dependencies)=>createFirstActorCeremony(observed,m,dependencies))
+const value=async(p,sql,args)=>(await p.query(sql,args)).rows[0]
+async function denied(p,sql,args){await assertion('FA-A004').rejects(p.query(sql,args),e=>e.code==='42501')}
+async function prepare(c){const p=await c.prepare(testPassword);assertion('FA-A005').ok('capability' in p);return p}
+async function confirm(c,p){const otp=URI.parse(p.provisioningUri);assertion('FA-A006').ok(otp instanceof TOTP);return c.confirm(p.capability,otp.generate(),true)}
+async function uncertain(p,operation,work){
+ let armed=true
+ const wrapped={async connect(){const c=await p.connect();let target=false
+  return {async query(sql,args){if(sql.includes('first_actor_'+operation))target=true
+   const r=await c.query(sql,args)
+   if(sql==='COMMIT'&&target&&armed){armed=false;throw Error('SYNTHETIC_ACK_LOST_AFTER_REAL_COMMIT')}
+   return r},release(discard){c.release(discard)}}}}
+ await assertion('FA-A007').rejects(work(ceremony(wrapped)));assertion('FA-A008').equal(armed,false)
+}
+// A real function runs on connection A and holds its transaction open. Connection B
+// MUST be observed waiting on a PG lock held by A before the barrier is released.
+async function lockedRace(database,operation,first,second){
+ const tag='fa-contender-'+randomUUID(),p=pool(database,'fa_native_executor'),q=pool(database,'fa_native_executor',tag)
+ let entered,release
+ const acquired=new Promise(r=>{entered=r}),barrier=new Promise(r=>{release=r})
+ const wrapped={async connect(){const c=await p.connect();return{async query(sql,args){const r=await c.query(sql,args)
+  if(sql.includes('first_actor_'+operation)){entered();await barrier}return r},release(d){c.release(d)}}}}
+ const settle=p=>p.then(value=>({value}),error=>({error}))
+ const one=settle(first(ceremony(wrapped),wrapped))
+ let timer,two
+ try{
+  await Promise.race([acquired,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('FIRST_BARRIER_NOT_REACHED')),10000)})])
+  two=settle(second(ceremony(q),q))
+  let blocked=false
+  for(let n=0;n<200;n++){
+   const r=await root.query('SELECT pid FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type=\'Lock\' AND cardinality(pg_blocking_pids(pid))>0',[tag])
+   if(r.rowCount){blocked=true;break}await new Promise(r=>setTimeout(r,10))
+  }
+  assertion('FA-A009').equal(blocked,true,'SECOND_CONNECTION_MUST_ACTUALLY_WAIT_ON_LOCK')
+ }finally{clearTimeout(timer);release()}
+ const a=await one,b=two?await two:null;assertion('FA-A010').ok(b);return [a,b]
+}
+let dbNumber=0
+async function scenario(work){
+ phase='FA-S'+String(dbNumber+1).padStart(2,'0')
+ const name='fa_native_'+(++dbNumber)
+ await root.query('CREATE DATABASE '+name+' TEMPLATE first_actor_template')
+ const admin=pool(name),executor=pool(name,'fa_native_executor'),reader=pool(name,'fa_native_reader'),outsider=pool(name,'fa_native_outsider')
+ return work({name,admin,executor,reader,outsider,c:ceremony(executor)})
+}
+try{
+ assertion('FA-A011').match((await value(root,'SHOW server_version')).server_version,/^16\./)
+ assertion('FA-A012').equal((await value(root,'SELECT checksum FROM public._migrations WHERE id=$1',[baseline.id])).checksum,baseline.sha256)
+ const client=await root.connect()
+ try{
+  await client.query('BEGIN');await client.query(proposal.sql);await client.query('COMMIT')
+ }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+ assertion('FA-A013').equal((await value(root,"SELECT count(*)::int AS n FROM public._migrations")).n,1)
+ // Fixture-only LOGINs, no passwords or operational credentials; local Unix trust
+ // inside the owned network-none container. Production HBA/TLS is NOT covered.
+ await root.query('CREATE ROLE fa_native_executor LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE fa_native_reader LOGIN INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE fa_native_outsider LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT cleanops_first_actor_executor TO fa_native_executor WITH INHERIT TRUE, SET FALSE; GRANT cleanops_first_actor_reader TO fa_native_reader WITH INHERIT TRUE, SET FALSE')
+ // Close every connection to the source before cloning; do not reinstall SQL14.
+ // root is itself on cleanops_staging, so clone from a separate admin DB connection.
+ const cluster=pool('postgres');await root.end();pools.splice(pools.indexOf(root),1)
+ await cluster.query('CREATE DATABASE first_actor_template TEMPLATE cleanops_staging')
+ // Subsequent administrative control uses postgres, never a remote endpoint.
+ root=cluster
+ check('first-actor-exact-proposal-native-install-over-sql14-no-apply-queue')
+ await scenario(async({admin,executor,reader,outsider,c})=>{
+  phase='FA-S01-ROLES'
+  const roles=await admin.query("SELECT rolname,rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname LIKE 'cleanops_first_actor_%'")
+  assertion('FA-A014').equal(roles.rowCount,3)
+  for(const r of roles.rows)assertion('FA-A015').ok(!r.rolcanlogin&&!r.rolsuper&&!r.rolcreatedb&&!r.rolcreaterole&&!r.rolreplication&&!r.rolbypassrls)
+  phase='FA-S01-MEMBERSHIPS'
+  const memberships=await admin.query("SELECT granted.rolname,m.inherit_option,m.set_option FROM pg_auth_members m JOIN pg_roles member ON member.oid=m.member JOIN pg_roles granted ON granted.oid=m.roleid WHERE member.rolname='fa_native_executor'")
+  assertion('FA-A016').deepEqual(memberships.rows,[{rolname:'cleanops_first_actor_executor',inherit_option:true,set_option:false}])
+  await denied(executor,'SET ROLE cleanops_first_actor_owner');await denied(executor,'SET ROLE cleanops_first_actor_executor')
+  phase='FA-S01-EXECUTE'
+  const functions=await admin.query("SELECT p.oid,p.proname,has_function_privilege('fa_native_executor',p.oid,'EXECUTE') AS executor,has_function_privilege('fa_native_reader',p.oid,'EXECUTE') AS reader,has_function_privilege('fa_native_outsider',p.oid,'EXECUTE') AS outsider FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='identity_provision'")
+  assertion('FA-A017').equal(functions.rowCount,10)
+  const allowed=['begin','stage','material','confirm','denied','abort','commit','status'].map(n=>'first_actor_'+n)
+  for(const f of functions.rows){assertion('FA-A018').equal(f.executor,allowed.includes(f.proname));assertion('FA-A019').equal(f.reader,f.proname==='first_actor_status');assertion('FA-A020').equal(f.outsider,false)}
+  phase='FA-S01-DIRECT-ACCESS'
+  for(const table of ['identity_provision.first_actor','identity_provision.first_actor_history','identity_provision.events','app.users','app.organizations','app.mfa_methods','app.recovery_codes','app.audit_logs','identity_private.credentials']){
+   for(const p of [executor,reader,outsider]){await denied(p,'SELECT * FROM '+table);await denied(p,'DELETE FROM '+table)}
+   for(const role of ['fa_native_executor','fa_native_reader','fa_native_outsider'])assertion('FA-A021').equal((await value(admin,"SELECT has_table_privilege($1,$2,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS allowed",[role,table])).allowed,false)
+  }
+  phase='FA-S01-RLS'
+  const rls=await admin.query("SELECT relrowsecurity,relforcerowsecurity FROM pg_class WHERE oid=ANY($1::regclass[])",[['app.organizations','app.users','app.mfa_methods','app.recovery_codes','app.audit_logs','identity_private.principals','identity_private.credentials','identity_private.configuration']])
+  assertion('FA-A022').equal(rls.rowCount,8);assertion('FA-A023').ok(rls.rows.every(r=>r.relrowsecurity&&r.relforcerowsecurity))
+  phase='FA-S01-OWNER-SCOPE'
+  const owner=await admin.connect()
+  try{await owner.query('BEGIN');await owner.query('SET LOCAL ROLE cleanops_first_actor_owner');await denied(owner,"INSERT INTO app.organizations(id,name,state,created_at,version) VALUES(gen_random_uuid(),'forbidden','ACTIVE',now(),1)")}
+  finally{await owner.query('ROLLBACK');owner.release()}
+  await assertion('FA-A024').rejects(()=>ceremony(outsider).status());await assertion('FA-A025').rejects(()=>ceremony(reader).prepare(testPassword))
+  phase='FA-S01-PREPARE'
+  const p=await prepare(c);await assertion('FA-A026').rejects(()=>ceremony(reader).status())
+  await assertion('FA-A027').rejects(()=>c.confirm(p.capability,'invalid',true));await assertion('FA-A028').rejects(()=>c.confirm(p.capability,'000000',false))
+  phase='FA-S01-CONFIRM-COMMIT'
+  await confirm(c,p);await c.commit(p.capability);assertion('FA-A029').equal((await ceremony(reader).status()).state,'COMMITTED')
+  check('first-actor-native-roles-execute-rls-direct-access-denied')
+ })
+ await scenario(async({admin,c,executor,reader})=>{
+  const p=await prepare(c);assertion('FA-A030').equal((await c.prepare('ignored')).state,'PREPARED')
+  await confirm(c,p)
+  // Real PG trigger, test fault only: business writes precede audit failure.
+  await admin.query("CREATE FUNCTION public.fa_fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'SYNTHETIC_AUDIT_FAILURE'; END $$; CREATE TRIGGER fa_fail_audit BEFORE INSERT ON app.audit_logs FOR EACH ROW EXECUTE FUNCTION public.fa_fail_audit()")
+  await assertion('FA-A031').rejects(()=>c.commit(p.capability))
+  for(const table of ['app.organizations','app.users','app.mfa_methods','app.recovery_codes','identity_private.principals','identity_private.credentials','identity_private.configuration','app.audit_logs'])assertion('FA-A032').equal((await value(admin,'SELECT count(*)::int AS n FROM '+table)).n,0)
+  assertion('FA-A033').equal((await c.status()).state,'CONFIRMED')
+  await admin.query('DROP TRIGGER fa_fail_audit ON app.audit_logs; DROP FUNCTION public.fa_fail_audit()')
+  await uncertain(executor,'commit',x=>x.commit(p.capability))
+  const receipt=await c.status();assertion('FA-A034').equal(receipt.state,'COMMITTED');assertion('FA-A035').deepEqual(await c.commit(p.capability),receipt)
+  assertion('FA-A036').deepEqual(await ceremony(reader).status(),receipt)
+  assertion('FA-A037').equal((await value(admin,'SELECT count(*)::int AS n FROM app.users')).n,1)
+  assertion('FA-A038').equal((await value(admin,'SELECT count(*)::int AS n FROM app.audit_logs')).n,1)
+  assertion('FA-A039').equal((await value(admin,"SELECT count(*)::int AS n FROM identity_provision.events WHERE transition='COMMITTED'")).n,1)
+  const method=await value(admin,'SELECT * FROM app.mfa_methods')
+  assertion('FA-A040').equal(method.state,'ACTIVE');assertion('FA-A041').equal(method.algorithm,'SHA256');assertion('FA-A042').ok(method.last_totp_counter!==null)
+  const decrypted=openEnrollmentSecret(method.secret_ciphertext,aead,totpKeyVersion,{tenantId:manifest.tenantId,userId:manifest.userId,methodId:method.id,initialMethodVersion:'1',algorithm:'SHA256'})
+  try{const otp=URI.parse(p.provisioningUri);assertion('FA-A043').ok(otp instanceof TOTP);assertion('FA-A044').deepEqual(Array.from(decrypted),Array.from(otp.secret.bytes))}finally{decrypted.fill(0)}
+  const codes=await admin.query('SELECT digest FROM app.recovery_codes')
+  assertion('FA-A045').deepEqual(codes.rows.map(r=>r.digest.toString('hex')).sort(),p.recoveryCodes.map(code=>createHmac('sha256',recovery).update(canonical(['RECOVERY',manifest.tenantId,manifest.userId,code])).digest('hex')).sort())
+  assertion('FA-A046').ok(await verify((await value(admin,'SELECT argon2id_hash FROM identity_private.credentials')).argon2id_hash,testPassword))
+  assertion('FA-A047').deepEqual((await admin.query('SELECT rule_key FROM app.self_service_rules ORDER BY rule_key')).rows.map(r=>r.rule_key),firstActorRules)
+  assertion('FA-A048').equal((await value(admin,'SELECT count(*)::int AS n FROM app.sessions')).n,0)
+  assertion('FA-A049').equal((await value(admin,'SELECT deployment_enabled FROM identity_private.configuration')).deployment_enabled,false)
+  assertion('FA-A050').equal((await value(admin,'SELECT material FROM identity_provision.first_actor')).material,null)
+  await assertion('FA-A051').rejects(()=>c.abort('OPERATOR_CANCELLED'));await assertion('FA-A052').rejects(()=>ceremony(executor,{...manifest,operationId:randomUUID()}).prepare(testPassword))
+  assertion('FA-A053').ok(!('capability' in await c.prepare('ignored')))
+  check('first-actor-native-audit-rollback-uncertain-commit-persisted-totp-recovery-terminal')
+ })
+ await scenario(async({admin,c,executor})=>{
+  await uncertain(executor,'stage',x=>x.prepare(testPassword))
+  assertion('FA-A054').ok(!('capability' in await c.prepare('ignored')))
+  await uncertain(executor,'abort',x=>x.abort('DELIVERY_LOST'))
+  await c.abort('DELIVERY_LOST');const next=ceremony(executor,{...manifest,operationId:randomUUID()});const p=await prepare(next)
+  assertion('FA-A055').equal(p.generation,2);assertion('FA-A056').equal((await c.status()).state,'ABORTED')
+  assertion('FA-A057').ok(!('capability' in await c.prepare('ignored')));await assertion('FA-A058').rejects(()=>c.commit(p.capability))
+  await assertion('FA-A059').rejects(()=>c.confirm(p.capability,'invalid',true));await c.abort('DELIVERY_LOST')
+  assertion('FA-A060').equal((await next.status()).state,'PREPARED')
+  const history=await value(admin,'SELECT count(*)::int AS n FROM identity_provision.first_actor_history');assertion('FA-A061').equal(history.n,1)
+  assertion('FA-A062').equal((await value(admin,"SELECT count(*)::int AS n FROM identity_provision.events WHERE transition='ABORTED_DELIVERY_LOST'")).n,1)
+  await confirm(next,p);await next.commit(p.capability)
+  check('first-actor-native-lost-delivery-abort-uncertainty-generation-history')
+ })
+ for(const reason of ['EXPIRED','ATTEMPTS_EXHAUSTED'])await scenario(async({admin,c,executor})=>{
+  const p=await prepare(c)
+  if(reason==='EXPIRED')await admin.query("UPDATE identity_provision.first_actor SET expires_at=clock_timestamp()-interval '1 second'")
+  else for(let n=0;n<numeric('otp_attempts');n++)await assertion('FA-A063').rejects(()=>c.confirm(p.capability,'invalid',true))
+  assertion('FA-A064').equal((await c.status()).state,'EXPIRED');assertion('FA-A065').equal((await value(admin,'SELECT material FROM identity_provision.first_actor')).material,null)
+  await c.abort(reason);const next=ceremony(executor,{...manifest,operationId:randomUUID()});const fresh=await prepare(next)
+  assertion('FA-A066').equal(fresh.generation,2);await assertion('FA-A067').rejects(()=>next.confirm(p.capability,'invalid',true))
+  check('first-actor-native-recover-'+reason.toLowerCase())
+ })
+ for(const firstOperation of ['abort','abort-confirm','confirm','commit'])await scenario(async({name,c,admin})=>{
+  const p=await prepare(c)
+  if(['abort','commit'].includes(firstOperation))await confirm(c,p)
+  const [a,b]=await lockedRace(name,firstOperation==='abort-confirm'?'abort':firstOperation,
+   x=>firstOperation.startsWith('abort')?x.abort('OPERATOR_CANCELLED'):firstOperation==='confirm'?confirm(x,p):x.commit(p.capability),
+   x=>firstOperation==='abort'?x.commit(p.capability):firstOperation==='abort-confirm'?confirm(x,p):x.abort('OPERATOR_CANCELLED'))
+  assertion('FA-A068').ok(!a.error)
+  if(firstOperation==='confirm'){assertion('FA-A069').ok(!b.error);assertion('FA-A070').equal((await c.status()).state,'ABORTED')}
+  else {assertion('FA-A071').ok(b.error);assertion('FA-A072').equal((await c.status()).state,firstOperation==='commit'?'COMMITTED':'ABORTED')}
+  assertion('FA-A073').equal((await value(admin,'SELECT count(*)::int AS n FROM app.users')).n,firstOperation==='commit'?1:0)
+  check('first-actor-native-real-lock-race-'+firstOperation+'-first')
+ })
+ await scenario(async({name,c,executor,admin})=>{
+  await prepare(c)
+  const nextManifest={...manifest,operationId:randomUUID()}
+  const [a,b]=await lockedRace(name,'abort',x=>x.abort('DELIVERY_LOST'),(_x,q)=>ceremony(q,nextManifest).prepare(testPassword))
+  assertion('FA-A074').ok(!a.error&&!b.error);assertion('FA-A075').ok('capability' in b.value);assertion('FA-A076').equal(b.value.generation,2)
+  const next=ceremony(executor,nextManifest);await next.abort('OPERATOR_CANCELLED')
+  const m1={...manifest,operationId:randomUUID()},m2={...manifest,operationId:randomUUID()}
+  const [one,two]=await lockedRace(name,'begin',(_x,p)=>ceremony(p,m1).prepare(testPassword),(_x,q)=>ceremony(q,m2).prepare(testPassword))
+  assertion('FA-A077').ok(!one.error&&two.error)
+  assertion('FA-A078').equal((await value(admin,'SELECT generation FROM identity_provision.first_actor')).generation,'3')
+  check('first-actor-native-real-lock-abort-new-generation-and-competing-generations')
+ })
+ assertion('FA-A079').ok(held.every(b=>b.every(v=>v===0)))
+ process.stdout.write(JSON.stringify(results))
+}catch(error){results.push({name:'first-actor-native-failure-redacted',status:'FAIL',diagnostic:failure(error)});process.stdout.write(JSON.stringify(results));process.exitCode=1
+}finally{aead.fill(0);recovery.fill(0);await Promise.all(pools.map(p=>p.end()))}
+"""
+
+
+def valid_native_diagnostic(d):
+    if d is None:
+        return True
+    return (isinstance(d, dict) and set(d) <= {"id", "type", "sqlstate", "actual", "expected", "operation", "authCode", "authStatus", "check"}
+            and {"id", "type", "sqlstate"} <= set(d)
+            and isinstance(d["id"], str) and re.fullmatch(r"FA-(?:A[0-9]{3}|SETUP|S[0-9]{2}(?:-[A-Z-]+)?)", d["id"])
+            and d["type"] in ("AssertionError", "PostgreSQLError", "TypeError", "OtherError", "AuthError")
+            and (d["sqlstate"] is None or (isinstance(d["sqlstate"], str) and re.fullmatch(r"[A-Z0-9]{5}", d["sqlstate"])))
+            and ("check" not in d or d["check"] in ("FA-OBS-SQL-REJECT", "FA-OBS-CLIENT-TYPE", "FA-OBS-QUERY-REJECT", "FA-OBS-LEASE-AFTER-STAGE", "FA-OBS-LEASE-BEFORE-STAGE", "FA-OBS-STAGE-RESULT", "FA-OBS-LOCAL"))
+            and ("operation" not in d or d["operation"] in ("CUSTODY", "CONNECT", "BEGIN", "COMMIT", "DEADLINE_CONFIG", "CRYPTO_PREPARE", "FIRST_ACTOR_BEGIN", "FIRST_ACTOR_STAGE", "FIRST_ACTOR_MATERIAL", "FIRST_ACTOR_CONFIRM", "FIRST_ACTOR_DENIED", "FIRST_ACTOR_COMMIT", "FIRST_ACTOR_STATUS", "FIRST_ACTOR_ABORT"))
+            and (("authCode" not in d and "authStatus" not in d) or (d["type"] == "AuthError" and (d.get("authCode"),d.get("authStatus")) in (("AUTH_DEPENDENCY_UNAVAILABLE",503),("FIRST_ACTOR_CONFLICT",409),("AUTH_INVALID",401),("INVALID_INPUT",422))))
+            and all(type(d[k]) is bool or (type(d[k]) is int and 0 <= d[k] <= 10000) for k in ("actual", "expected") if k in d))
+
+
 def isolated_environment(inherited):
     env = dict(inherited)
     for k in ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_TLS", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH"]:
@@ -157,11 +470,18 @@ def isolated_environment(inherited):
     return env
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--first-actor", action="store_true", help="Only owned ephemeral FIRST-ACTOR native acceptance")
+    parser.add_argument("--authorization", choices=["FIRST-ACTOR-NATIVE-01"])
+    options = parser.parse_args(argv)
+    if options.first_actor != (options.authorization == "FIRST-ACTOR-NATIVE-01"):
+        parser.error("FIRST_ACTOR_EXPLICIT_AUTHORIZATION_REQUIRED")
     owner = "cleanops-staging-pg-" + uuid.uuid4().hex
     container = None
     checks = []
     volume_created = False
+    pg_image_id = None
     env = isolated_environment(os.environ)
 
     def docker(*args, data=None, check=True):
@@ -201,16 +521,19 @@ def main():
                     "--mount", "type=bind,src=" + str(password) + ",dst=/run/secrets/password,readonly",
                     "--mount", "type=bind,src=" + str(socket) + ",dst=/run/cleanops-native-socket",
                     "-v", owner + ":/var/lib/postgresql/data"]
+            if options.first_actor:
+                args.extend(["--pull=never", "--cpus=1", "--memory=768m", "--pids-limit=128"])
             server = ["postgres:16-bookworm", "-c", "unix_socket_directories=/var/run/postgresql,/run/cleanops-native-socket"]
-            # Reproduce the old root+drop-ALL incompatibility before testing the fixed recipe.
-            container = docker(*args, *server).stdout.decode().strip()
-            for _ in range(30):
-                meta = json.loads(docker("inspect", container).stdout)[0]
-                if not meta["State"]["Running"]: break
-                time.sleep(0.25)
-            assert not meta["State"]["Running"], "ROOT_DROP_ALL_FAILURE_NOT_REPRODUCED"
-            checks.append({"name": "old-root-drop-all-startup-failure-reproduced", "status": "PASS"})
-            docker("rm", "-f", container); container = None
+            if not options.first_actor:
+                # Reproduce the old root+drop-ALL incompatibility before testing the fixed recipe.
+                container = docker(*args, *server).stdout.decode().strip()
+                for _ in range(30):
+                    meta = json.loads(docker("inspect", container).stdout)[0]
+                    if not meta["State"]["Running"]: break
+                    time.sleep(0.25)
+                assert not meta["State"]["Running"], "ROOT_DROP_ALL_FAILURE_NOT_REPRODUCED"
+                checks.append({"name": "old-root-drop-all-startup-failure-reproduced", "status": "PASS"})
+                docker("rm", "-f", container); container = None
             container = docker(*args, "--user=postgres", *server).stdout.decode().strip()
             for _ in range(100):
                 logs = docker("logs", container, check=False)
@@ -237,23 +560,35 @@ def main():
                 deploymentApprovalReference="CI_SYNTHETIC_ONLY_NO_HOSTINGER", sql14FreshInstallAuthorized=True)
             assert m.install(record, True, runner, compose_env_file=compose_env).startswith("EXACT_SQL14_INSTALLED")
             checks.append({"name": "exact-sql14-verified-installer-fresh-real-pg16", "status": "PASS"})
-            try: m.install(record, True, runner, compose_env_file=compose_env)
-            except ValueError: pass
-            else: raise RuntimeError("REINSTALL_NOT_DENIED")
-            checks.append({"name": "existing-installed-state-rejected-no-overwrite", "status": "PASS"})
+            if not options.first_actor:
+                try: m.install(record, True, runner, compose_env_file=compose_env)
+                except ValueError: pass
+                else: raise RuntimeError("REINSTALL_NOT_DENIED")
+                checks.append({"name": "existing-installed-state-rejected-no-overwrite", "status": "PASS"})
             meta = json.loads(docker("inspect", container).stdout)[0]
             if (meta["Config"]["Labels"].get("cleanops.staging-pg") != owner
                 or meta["HostConfig"].get("NetworkMode") != "none"
                 or meta["HostConfig"].get("PortBindings")
                 or not any(v.get("Source") == str(socket) and v.get("Destination") == "/run/cleanops-native-socket" for v in meta["Mounts"])):
                 raise RuntimeError("NATIVE_SOCKET_OWNERSHIP_REQUIRED")
+            pg_image_id = meta["Image"]
             native_env = dict(env, CLEANOPS_NATIVE_SOCKET=str(socket), CLEANOPS_NATIVE_PASSWORD_FILE=str(password))
-            result = subprocess.run(["node", "--input-type=module", "-"], cwd=ROOT, env=native_env,
-                                    input=NATIVE_MIGRATION_CHECKS.encode(), capture_output=True, timeout=120)
+            result = subprocess.run(["node", "--experimental-strip-types", "--input-type=module", "-"], cwd=ROOT, env=native_env,
+                                    input=(FIRST_ACTOR_NATIVE_CHECKS if options.first_actor else NATIVE_MIGRATION_CHECKS).encode(), capture_output=True, timeout=300 if options.first_actor else 120)
             if result.returncode:
+                if options.first_actor:
+                    try:
+                        partial = json.loads(result.stdout)
+                        if isinstance(partial, list) and all(isinstance(c, dict) and
+                                set(c) in ({"name", "status"}, {"name", "status", "diagnostic"}) and
+                                valid_native_diagnostic(c.get("diagnostic")) and re.fullmatch(r"first-actor-[a-z0-9_-]+", c["name"]) and
+                                c["status"] in ("PASS", "FAIL") for c in partial):
+                            checks.extend(partial)
+                    except (ValueError, TypeError, KeyError):
+                        pass
                 raise RuntimeError("NATIVE_MIGRATION_CHECKS_FAILED_REDACTED")
             native_checks = json.loads(result.stdout)
-            if len(native_checks) != 7 or any(item.get("status") != "PASS" for item in native_checks):
+            if len(native_checks) != (11 if options.first_actor else 7) or any(item.get("status") != "PASS" for item in native_checks):
                 raise RuntimeError("NATIVE_MIGRATION_CHECKS_INCOMPLETE")
             checks.extend(native_checks)
             status = "PASS"
@@ -269,10 +604,15 @@ def main():
             meta = json.loads(docker("volume", "inspect", owner).stdout)[0]
             if meta["Labels"].get("cleanops.staging-pg") != owner: raise RuntimeError("CLEANUP_VOLUME_MISMATCH")
             docker("volume", "rm", owner)
-        report = {"scope": "STAGING_SYNTHETIC_PG_PACKAGING", "result": status, "checks": checks, "cleanup": "PASS",
+        artifacts = {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in
+                     ["scripts/test-staging-postgres.py", "db/migrations/0002_first_actor.review.sql",
+                      "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"]} if options.first_actor else {}
+        source_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                                       text=True, timeout=10).stdout.strip() if options.first_actor else None
+        report = {"sourceCommit": source_commit, "pgImageId": pg_image_id, "artifactSha256": artifacts, "scope": "FIRST_ACTOR_NATIVE_EPHEMERAL" if options.first_actor else "STAGING_SYNTHETIC_PG_PACKAGING", "result": status, "checks": checks, "cleanup": "PASS",
                   "runtime": "closedBackend", "hostingerAccessed": False}
         path = ROOT / "artifacts/staging-synthetic"; path.mkdir(parents=True, exist_ok=True)
-        (path / "postgres-smoke.json").write_text(json.dumps(report, indent=2) + "\n")
+        (path / ("first-actor-native.json" if options.first_actor else "postgres-smoke.json")).write_text(json.dumps(report, indent=2) + "\n")
         print(json.dumps(report))
     return 0 if status == "PASS" else 1
 

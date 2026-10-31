@@ -1,0 +1,44 @@
+name: B1 preparation validation (unprivileged)
+on:
+  push:
+    branches:
+      - prep/installation-catalog-20261030
+    paths:
+      - '.github/workflows/b1-preparation-validation.yml'
+      - '.gitattributes'
+      - 'lib/b1/**'
+      - 'tests/b1/**'
+      - 'deploy/staging/Dockerfile'
+      - 'deploy/staging/compose.yaml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  b1-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts --audit=false --fund=false
+      - name: Verify TypeScript
+        run: npm run typecheck
+      - name: Run complete B1 suite from Linux Git checkout
+        run: npm run test:b1
+      - name: Verify Dockerfile identity contract (offline)
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          file = Path('deploy/staging/Dockerfile').read_text()
+          compose = Path('deploy/staging/compose.yaml').read_text()
+          assert 'USER ${CLEANOPS_WEB_UID}:${CLEANOPS_WEB_GID}' in file
+          assert 'CLEANOPS_WEB_UID: ${CLEANOPS_IDENTITY_UID:?' in compose
+          assert 'CLEANOPS_WEB_GID: ${CLEANOPS_IDENTITY_GID:?' in compose
+          print('PASS: web identity is bound to agent identity; no deploy')
+          PY

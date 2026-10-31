@@ -1,0 +1,54 @@
+# Canonical official cert Agent; include unchanged in each installation.
+services:
+  openbao-agent:
+    profiles: [identity-agent]
+    image: ${CLEANOPS_AGENT_IMAGE:?Existing verified OpenBao 2.7.2 image required}
+    pull_policy: never
+    user: ${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required}:${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}
+    restart: unless-stopped
+    read_only: true
+    init: true
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - umask 077; rm -f /run/cleanops-agent/token; exec /usr/local/bin/bao agent -config=/etc/cleanops-agent/agent.hcl -log-level=warn -log-format=json
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    cpus: ${CLEANOPS_AGENT_CPUS:-0.10}
+    mem_limit: ${CLEANOPS_AGENT_MEMORY_LIMIT:-128m}
+    ulimits:
+      core: {soft: 0, hard: 0}
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=8m
+    volumes:
+      - type: bind
+        source: ${CLEANOPS_AGENT_CONFIG_FILE:?Private rendered cert agent.hcl required}
+        target: /etc/cleanops-agent/agent.hcl
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${CLEANOPS_AGENT_TLS_DIR:?Dedicated private Agent TLS directory required}
+        target: /run/cleanops-agent-tls
+        read_only: true
+        bind: {create_host_path: false}
+      - type: volume
+        source: identity_agent_sink
+        target: /run/cleanops-agent
+        volume: {nocopy: true}
+    networks: [identity_bao]
+    labels:
+      traefik.enable: "false"
+      cleanops.component: identity-agent
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: "2"}
+networks:
+  identity_bao:
+    external: true
+    name: ${CLEANOPS_AGENT_NETWORK:?Existing private Bao network required}
+volumes:
+  identity_agent_sink:
+    name: ${CLEANOPS_COMPOSE_PROJECT:?Explicit installation project required}_identity_agent_sink
+    # Already provisioned and verified. Compose must neither create/relabel nor
+    # destroy this shared tmpfs. The canonical reader still validates it on use.
+    external: true
