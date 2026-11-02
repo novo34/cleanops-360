@@ -125,7 +125,7 @@ export async function runPrivateOperator(directory) {
     const value = await dispatch(request, installation, prepared, operatorPool, operatorSigningKey)
     await resultFile.writeFile(JSON.stringify(value) + '\n')
     await resultFile.sync()
-  } catch (error) {
+  } catch {
     if (!applied) await fs.unlink(output).catch(() => {})
     throw refused() // never stringify errors that could include credentials
   } finally {
