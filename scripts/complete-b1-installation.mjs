@@ -25,17 +25,20 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex')
 const isObject = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const hasNull = v => v == null || (Array.isArray(v) ? v.some(hasNull) : isObject(v) && Object.values(v).some(hasNull))
 const get = (o, p) => p.reduce((a, k) => (isObject(a) ? a[k] : undefined), o)
-function put(o, p, v) { let a = o; for (const k of p.slice(0, -1)) { if (!isObject(a[k])) a[k] = {}; a = a[k] } a[p.at(-1)] = v }
+function put(o, p, v) { let a = o; for (const k of p.slice(0, -1)) { if (a[k] != null && !isObject(a[k])) throw refuse(); if (!isObject(a[k])) a[k] = {}; a = a[k] } a[p.at(-1)] = v }
 
 /** Template walk: fill only absent/null leaves that the template fixes; list the rest as pending. */
-function plan(current, template, path, out) {
+export function plan(current, template, path, out) {
   for (const [key, fixed] of Object.entries(template)) {
     const p = [...path, key], value = isObject(current) ? current[key] : undefined
     if (value == null) {
       if (!hasNull(fixed)) out.fills.push({ path: p.join('.'), keys: p, value: fixed, basis: 'contract template' })
       else if (isObject(fixed)) plan(undefined, fixed, p, out)
       else out.pending.push(p.join('.'))
-    } else if (isObject(fixed)) plan(value, fixed, p, out)
+    } else if (isObject(fixed)) {
+      if (!isObject(value)) out.differs.push(p.join('.'))
+      else plan(value, fixed, p, out)
+    }
     else if (!hasNull(fixed) && JSON.stringify(fixed) !== JSON.stringify(value)) out.differs.push(p.join('.'))
   }
   if (isObject(current)) for (const k of Object.keys(current)) if (!(k in template)) out.invalid.push([...path, k].join('.') + ': unexpected key')

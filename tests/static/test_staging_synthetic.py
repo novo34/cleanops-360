@@ -588,7 +588,7 @@ try { assertion('FA-A079').equal(5,6,secret) } catch(e) { diagnostics.push(failu
 process.stdout.write(JSON.stringify(diagnostics))
 """
         result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-'], input=javascript,
-                                text=True, capture_output=True, timeout=10)
+                                text=True, capture_output=True, timeout=10, cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('PRIVATE_', result.stdout)
         self.assertNotIn('another-private-value', result.stdout)

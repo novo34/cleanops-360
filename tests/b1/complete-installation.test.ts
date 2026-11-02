@@ -5,11 +5,20 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { completeB1Installation } from '../../scripts/complete-b1-installation.mjs'
+import { completeB1Installation, plan } from '../../scripts/complete-b1-installation.mjs'
 
 const sha = (b: Buffer | string) => createHash('sha256').update(b).digest('hex')
 const openssl = (() => { try { execFileSync('openssl', ['version'], { stdio: 'ignore' }); return true } catch { return false } })()
 const skip = (process.getuid?.() !== 0 && 'root required for root:999 files') || (!openssl && 'OpenSSL not available')
+
+test('completion refuses to plan overwrites of primitive manifest branches (rootless)', () => {
+  const out: Parameters<typeof plan>[3] = { fills: [], pending: [], differs: [], invalid: [] }
+  plan({ sink: 5 }, { sink: { path: '/run/cleanops-agent/token', mode: 0o600 } }, [], out)
+  assert.deepEqual(out.differs, ['sink'])
+  assert.deepEqual(out.fills, [])
+  assert.deepEqual(out.pending, [])
+  assert.deepEqual(out.invalid, [])
+})
 
 test('completion fills only verifiable null fields, never overwrites, backs up, is idempotent and reports what is pending', { skip }, async () => {
   const dir = await fs.mkdtemp(join(tmpdir(), 'b1-complete-')), backups = await fs.mkdtemp(join(tmpdir(), 'b1-backup-'))
@@ -75,5 +84,13 @@ test('completion fills only verifiable null fields, never overwrites, backs up, 
 
     await fs.writeFile(join(dir, 'identity.password'), 'trailing-newline\n')
     assert.match((await completeB1Installation({ packageDir: dir })).files.find(f => f.label === 'sources.postgresPassword')!.status, /INVALID_CONTENT/)
+
+    // An existing primitive subtree must survive --apply, even if other fields are fillable.
+    await fs.writeFile(manifest, JSON.stringify({ ...original, sink: 5 }))
+    const conflict = await completeB1Installation({ packageDir: dir })
+    assert.ok(conflict.differsFromContract.includes('sink'))
+    assert.ok(!conflict.filled.some(f => f.path === 'sink' || f.path.startsWith('sink.')))
+    await completeB1Installation({ packageDir: dir, apply: true, backupDir: backups })
+    assert.equal(JSON.parse(await fs.readFile(manifest, 'utf8')).sink, 5)
   } finally { await fs.rm(dir, { recursive: true, force: true }); await fs.rm(backups, { recursive: true, force: true }) }
 })
