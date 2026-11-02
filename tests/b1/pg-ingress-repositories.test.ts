@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { randomBytes } from 'node:crypto'
+import { generateKeyPairSync, randomBytes } from 'node:crypto'
+import { dispatchPrivateOperator } from '../../scripts/b1-private-operator.mjs'
 import { Pool } from 'pg'
 import { createPgIngressRepositories, createPgIngressOperator, createPgIngressMaintenance } from '../../lib/b1/pg-ingress-repositories.ts'
 import type { IdentityPool } from '../../lib/b1/pg-identity-driver.ts'
@@ -189,6 +190,44 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         assert.equal(Number((await owner.query('SELECT count(*)::int AS n FROM identity_private.ingress_operator_audit')).rows[0].n), before)
         // Runtime repositories still block every credential write.
         await assert.rejects(a.credentials.revoke({ scope: { ...scope, id: id3 }, expectedRevision: '1', authorizationReference: 'x' }))
+        // Execute the SAME dispatch function used by the root-only private CLI
+        // against real operator/runtime PG16 roles. The private file loader and
+        // actual OpenBao TLS custody remain separate staging acceptance gates.
+        const signer = generateKeyPairSync('ed25519').privateKey
+        const prepared = { configuration: {}, ingress: { pseudonymKey: randomBytes(32) } }
+        const installation = { inputs: { origin: scope.audience }, ingress: {
+          issuer: scope.issuer, maximumDeviceLifetimeMs: 60000, contextLifetimeMs: 5000,
+          maximumBodyBytes: 1024, timeoutMs: 2000,
+        } }
+        const runtimeFactory = (_selection: unknown, bind: (dep: ReturnType<typeof createPgIngressRepositories>) => void) => {
+          bind(createPgIngressRepositories(p))
+          return {
+            ingressOperator: (operatorPool: IdentityPool) => createPgIngressOperator(operatorPool, p),
+            async close() {},
+          }
+        }
+        try {
+          const issued = await dispatchPrivateOperator({
+            operation: 'device.issue', device: 'ci-device', browser: 'ci-browser',
+            lifetimeMs: 30000, reference: 'CI-ENROL', authorizationReference: 'CI-APPROVED',
+          }, installation, prepared, op, signer, runtimeFactory)
+          assert.equal(issued.state, 'ENROLLED')
+          assert.match(issued.cookieValue, /^b1-device-v1\./)
+          assert.match(issued.cookieAttributes, /HttpOnly/)
+          const record = await a.credentials.read({ ...scope, id: issued.id })
+          assert.equal(record?.state, 'active')
+          const revoked = await dispatchPrivateOperator({
+            operation: 'device.revoke', id: issued.id, revision: '1',
+            authorizationReference: 'CI-REVOKE',
+          }, installation, prepared, op, undefined, runtimeFactory)
+          assert.deepEqual(revoked, { state: 'REVOKED' })
+          assert.equal((await a.credentials.read({ ...scope, id: issued.id }))?.state, 'revoked')
+          const audit = await owner.query(
+            "SELECT action, operator::text, authorization_reference FROM identity_private.ingress_operator_audit WHERE authorization_reference IN ('CI-APPROVED','CI-REVOKE') ORDER BY id"
+          )
+          assert.equal(audit.rows.length, 2)
+          assert.ok(audit.rows.every(row => row.operator === 'ingress_operator_login'))
+        } finally { prepared.ingress.pseudonymKey.fill(0) }
       })
       await t.test('D2: maintenance gc is bounded, non-overlapping, restricted to the maintenance pool and resumable', async () => {
         const gcScope = { issuer: 'gcm-' + fresh().slice(0, 8), audience: 'https://gc.invalid' }
