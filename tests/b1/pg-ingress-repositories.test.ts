@@ -25,10 +25,19 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       const version = await owner.query('SHOW server_version_num')
       assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 16)
       await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_auth_broker NOLOGIN; CREATE ROLE cleanops_auth_maintenance NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE cleanops_runtime NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE ROLE ingress_maint_login LOGIN IN ROLE cleanops_auth_maintenance; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service,cleanops_auth_maintenance; GRANT USAGE ON SCHEMA identity_private TO cleanops_auth_broker; GRANT USAGE,CREATE ON SCHEMA auth_api TO cleanops_auth_broker')
+      // Passwords are CI-fixture-only; never source an operator or runtime
+      // credential from a real installation. The fresh PG16 service has SCRAM on.
+      if (password) {
+        if (password !== 'cleanops_dev_only') throw new Error('B1_CI_FIXTURE_ONLY')
+        await owner.query("ALTER ROLE ingress_test_login PASSWORD 'cleanops_dev_only'; ALTER ROLE ingress_maint_login PASSWORD 'cleanops_dev_only'")
+      }
       // Compilation/execution in a disposable fixture, never a migration installation.
       await owner.query(await readFile(new URL('../../db/migrations/0003_ingress_persistence.review.sql', import.meta.url), 'utf8'))
       // The owner creates dedicated operator logins out of band; the migration only creates the NOLOGIN role.
       await owner.query('CREATE ROLE ingress_operator_login LOGIN IN ROLE cleanops_ingress_operator; CREATE ROLE ingress_mixed_login LOGIN IN ROLE cleanops_ingress_operator, cleanops_identity_service')
+      if (password) {
+        await owner.query("ALTER ROLE ingress_operator_login PASSWORD 'cleanops_dev_only'; ALTER ROLE ingress_mixed_login PASSWORD 'cleanops_dev_only'")
+      }
       const p = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
       const q = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
       const maint = new Pool({ ...config, user: 'ingress_maint_login', database, max: 4 })
