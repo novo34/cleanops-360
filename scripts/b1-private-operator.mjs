@@ -23,12 +23,12 @@ import { createDurableCandidateIssuer, credentialCookie } from '../lib/b1/ingres
 const refused = () => new Error('B1_OPERATOR_UNAVAILABLE')
 
 const manifestSource = Object.freeze({ path: '/run/cleanops-b1-private/installation.json', uid: 0, gid: 999, mode: 0o440, maxBytes: 65536 })
-async function dispatch(request, installation, prepared, operatorPool, operatorSigningKey) {
+export async function dispatchPrivateOperator(request, installation, prepared, operatorPool, operatorSigningKey, makeRuntime = selectAuthBackend) {
   let runtime
   let issuer
   try {
     let repositories
-    runtime = selectAuthBackend({ kind: 'private', configuration: prepared.configuration }, dependencies => {
+    runtime = makeRuntime({ kind: 'private', configuration: prepared.configuration }, dependencies => {
       repositories = dependencies
     })
     if (request.operation.startsWith('first-actor.')) {
@@ -122,7 +122,7 @@ export async function runPrivateOperator(directory) {
           !createPublicKey(operatorSigningKey).equals(createPublicKey(prepared.ingress.signingKey))) throw refused()
     }
     applied = true // from here SQL may commit; a failed output requires explicit recovery
-    const value = await dispatch(request, installation, prepared, operatorPool, operatorSigningKey)
+    const value = await dispatchPrivateOperator(request, installation, prepared, operatorPool, operatorSigningKey)
     await resultFile.writeFile(JSON.stringify(value) + '\n')
     await resultFile.sync()
   } catch {
