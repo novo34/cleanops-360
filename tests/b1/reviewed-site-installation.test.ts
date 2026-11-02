@@ -64,7 +64,13 @@ test('ingress signer and pseudonym material are validated before any runtime is 
     try {
       const spec = await loadReviewedB1Installation(f.manifestSource)
       const [[name, content]] = Object.entries(sources)
-      await fs.writeFile(spec.ingress.sources[name as keyof typeof spec.ingress.sources].path, content)
+      // This fixture intentionally enforces 0440 on disk. The test worker is
+      // non-root in Linux CI, so temporarily unlock ONLY the synthetic file
+      // before injecting malformed bytes; restore the strict contract afterwards.
+      const sourcePath = spec.ingress.sources[name as keyof typeof spec.ingress.sources].path
+      await fs.chmod(sourcePath, 0o600)
+      try { await fs.writeFile(sourcePath, content) }
+      finally { await fs.chmod(sourcePath, 0o440) }
       await assert.rejects(assembleInstallationPrivateInputs(spec), /^Error: INSTALLATION_CONFIG_INVALID$/)
       spec.inputs.corpus.content.fill(0)
     } finally { await f.cleanup() }
