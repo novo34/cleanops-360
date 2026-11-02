@@ -28,10 +28,14 @@ jobs:
           cache: npm
       - name: Install pinned dependencies
         run: npm ci --ignore-scripts --audit=false --fund=false
+      - name: Lint reviewed code
+        run: npm run lint
       - name: Verify TypeScript
         run: npm run typecheck
       - name: Run complete B1 suite from Linux Git checkout
         run: npm run test:b1
+      - name: Build production web image source without deploying
+        run: npm run build
       - name: Verify Dockerfile identity contract (offline)
         run: |
           python3 - <<'PY'
