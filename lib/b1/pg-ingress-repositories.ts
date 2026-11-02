@@ -154,8 +154,11 @@ export function createPgIngressMaintenance(maintenancePool: IdentityPool, runtim
             await connection.query('BEGIN')
             let n: number
             try {
-              await connection.query(`SET LOCAL statement_timeout = ${limits.statementTimeoutMs}`)
-              await connection.query(`SET LOCAL lock_timeout = ${limits.lockTimeoutMs}`)
+              // set_config(..., true) is transaction-local (SET LOCAL semantics).
+              // Both numeric limits were range-checked above; never interpolate SQL text.
+              await connection.query(
+                "SELECT set_config('statement_timeout',$1,true), set_config('lock_timeout',$2,true)",
+                [String(limits.statementTimeoutMs) + 'ms', String(limits.lockTimeoutMs) + 'ms'])
               n = Number(result(await connection.query('SELECT auth_api.ingress_gc($1) AS value', [limits.batchSize])))
               await connection.query('COMMIT')
             } catch (error) { await connection.query('ROLLBACK').catch(() => {}); throw error }
