@@ -9,6 +9,7 @@ on:
       - '.gitattributes'
       - 'lib/b1/**'
       - 'tests/b1/**'
+      - 'scripts/b1-private-operator*'
       - 'deploy/staging/Dockerfile'
       - 'deploy/staging/compose.yaml'
   workflow_dispatch:
