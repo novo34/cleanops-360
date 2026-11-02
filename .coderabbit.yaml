@@ -1,0 +1,4 @@
+# B1 review only: CodeRabbit must not modify the engineering-policy PR description.
+# Keep CodeRabbit analysis and inline review comments active.
+reviews:
+  high_level_summary: false
