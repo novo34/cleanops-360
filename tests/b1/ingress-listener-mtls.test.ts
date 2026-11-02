@@ -129,3 +129,15 @@ test('B1 ingress listener: real mutual TLS, readiness, path isolation and shutdo
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('B1 ingress listener: allowed-path validation matches the plan validator', async () => {
+  const input = (path: string) => ({
+    binding: '127.0.0.1', port: 1, tls: { key: 'k', cert: 'c', ca: 'a' }, allowedPaths: [path],
+    ready: async () => true, handle: async () => {}, drainTimeoutMs: 100,
+  })
+  for (const path of ['/a b', '/a\tb', '/a\\b', '//x', '/a?b', '/a#b', '/a%2fb']) {
+    await assert.rejects(startB1IngressListener(input(path)), /B1_INGRESS_LISTENER_CONFIG_INVALID/, JSON.stringify(path))
+  }
+  // A path with an ordinary letter such as "s" must pass path validation (TLS material is bogus, so it fails later).
+  await assert.rejects(startB1IngressListener(input('/sessions')), (error: Error) => error.message !== 'B1_INGRESS_LISTENER_CONFIG_INVALID')
+})

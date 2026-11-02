@@ -36,7 +36,7 @@ export async function startB1IngressListener(input: B1IngressListenerInputs): Pr
       input.port < 1 || input.port > 65535 || !input.tls?.key || !input.tls.cert || !input.tls.ca ||
       !Array.isArray(input.allowedPaths) || !input.allowedPaths.length ||
       input.allowedPaths.some(path => typeof path !== 'string' || !path.startsWith('/') ||
-        path.startsWith('//') || /[\\s?#%\\\\]/u.test(path)) ||
+        path.startsWith('//') || /[\s?#%\\]/u.test(path)) ||
       new Set(input.allowedPaths).size !== input.allowedPaths.length ||
       typeof input.ready !== 'function' || typeof input.handle !== 'function' ||
       !Number.isSafeInteger(input.drainTimeoutMs) || input.drainTimeoutMs < 1 ||
