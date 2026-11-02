@@ -5,7 +5,7 @@ This is an execution handoff, NOT a deployment authorization or an acceptance ce
 
 **Evidence register (read before asking for any repeated VPS test):** [B1-VPS-EVIDENCE-REGISTER-20261031.md](./B1-VPS-EVIDENCE-REGISTER-20261031.md). Do not repeat recorded PASS checks unless the relevant input bytes or running topology changed.
 
-**New code after recorded tests:** commit `8e08d1b891c4b78f3d92ec75f535be4706e7d8a3` connects the existing ingress listener to the trusted startup/shutdown lifecycle through an optional explicitly trusted parameter. This code change is **NOT yet tested**; `instrumentation.ts` still does not pass a reviewed listener specification, so actual staging ingress remains closed. Test only this new delta before acceptance.
+**Code state:** the reviewed v2 private manifest now carries the complete `ingress` block (bind address, port, allowed paths, issuer, pinned proxy certificate SHA-256, TLS/CA/signing/pseudonym sources). `startTrustedB1Server` builds the durable assertion issuer, the ForwardAuth handler and the mTLS listener from it, and owns their ordered shutdown. `instrumentation.ts` is unchanged. Tests of this delta are recorded under *Local verification of the wiring* below; they use local OpenSSL certificates and no real SQL, VPS or secrets. `AUTH-GATE-05` stays OPEN.
 
 ## Proven against preparation branch
 
@@ -24,7 +24,7 @@ Submit a combined immutable diff and rollback plan covering:
 1. `docs/proposals/b1-ingress-persistence.review.sql` (PROPOSAL ONLY), review schema, SECURITY DEFINER search_path and function owner, immutable nonce claims, expiry/retention and exact runtime read/claim EXECUTE permissions. No direct table access. No SQL14 rerun or silent SQL install.
 2. An independently authorized **operator-only** credential enrollment/revocation/recovery channel. Current `createPgIngressRepositories` deliberately rejects these writes in the runtime; enrollment cannot be conjured from the web listener. Separate operator identity, auditable approval and least privilege are required. Never grant enrollment to the runtime identity.
 3. A version 2 reviewed private manifest and immutable module bytes, email normalization approval and real snapshot, verifier public key/issuer/audience, and ingress signer key custody. `renderDurablePrivateIntegration` and the canonical-pool binder are prepared; no legacy process-local replay fallback.
-4. Listener lifecycle actually wired to the server owner with explicit IP/port, peer CA, pinned proxy fingerprint, ready/close and shutdown ordering (deny new ingress; drain listener; drain HTTP/runtime; close canonical PG pool; zero TLS). This is NOT presently wired by instrumentation.
+4. Real ingress material in the private package (values, not code): listener cert/key, trusted proxy client CA, pinned Traefik proxy certificate SHA-256, Ed25519 signing key and 32-byte pseudonym key. The lifecycle itself is wired in code (manifest `ingress` -> `startTrustedB1Server` -> listener; shutdown: deny new ingress, drain listener, close canonical PG pool, zero TLS and key buffers). Known limit: Next's own SIGTERM handler calls `process.exit` after `server.close` without awaiting B1, so a slow drain can be cut short; the shutdown is bounded by `drainTimeoutMs` and must be observed in the staging window.
 5. Traefik TLS proxy wiring/ForwardAuth header sanitation: original untrusted forwarded/assertion headers must be discarded and recreated once by the trusted proxy. Preserve existing web router, `/login`, static assets and `redirect-to-https@file`; narrow B1 paths only. Validate on effective Compose, never replace it wholesale.
 6. Required actual credentials, certificate fingerprints, trusted client CA and operator/owner assignments with verifiable metadata only. The implementation cannot manufacture approvals.
 
@@ -39,8 +39,8 @@ Do not change `main`, `staging`, Dokploy, VPS, Traefik, OpenBao, productive Post
 
 ## Known implementation caveats to review before any rollout
 - V2 private renderer verifies a reviewed public key, but its generated module and exact allowed imports must be bundled/reviewed for the actual Node private loader; isolated `data:` import tests are not proof of production bundler compatibility.
-- Trusted pool binder is optional in the current bootstrap API; staging must require v2 with successful binding, not silently accept v1, before relying on durable ingress.
-- The listener is an explicit separate component and does not yet participate in trusted startup/shutdown. Do not label it deployed.
+- The ingress binder and the `ingress` manifest block are mandatory at startup (`B1_INGRESS_BINDING_REQUIRED`, `B1_INGRESS_LISTENER_REQUIRED`); a v1 manifest is rejected.
+- The listener now participates in trusted startup/shutdown but is NOT deployed: no real certificates, proxy pin or Traefik ForwardAuth exist yet. Do not label it deployed.
 - PostgreSQL proposal is not installed or independently authorized. Owner-only credential writes remain a design/operation gate.
 
 
@@ -57,9 +57,16 @@ Observed: running web `cleanops360-f4fxmd-web-1` uses image digest `sha256:ad632
 | Private B1 package | Read-only mount of reviewed, root-owned private files at `/run/cleanops-b1-private`; use existing owner file contract and manifest v2 | Real package does not yet exist at checked path; must obtain approved bytes, SHA, metadata and certificate identity before creation |
 | Networking | Keep three observed web networks and Traefik service/router bindings; add only a proven missing private peer route | No public mTLS listener or unverified Agent network include |
 | Identity SQL | Apply **only** an independently approved ingress SQL candidate, not SQL14 and not operator enrollment via runtime pool | Metadata check whether candidate functions are already installed; independent operator authorization required |
-| Ingress/TLS | Wire listener, bounded shutdown and audited Traefik ForwardAuth only on B1 routes | Code listener presently unwired; actual proxy pin/CA and forwarded-header proof must be reviewed |
+| Ingress/TLS | Wire listener, bounded shutdown and audited Traefik ForwardAuth only on B1 routes | Code listener wired through the manifest (this branch); actual proxy pin/CA and forwarded-header proof must be reviewed |
 | Verification | One staged release and functional gate; verify login, TOTP, sessions, replay, revocation, failure behavior and rollback | Named Security reviewer and owner authorization of exact diff/SQL and downtime scope |
 
 **Exact no-op rollback state**: record previous operative Compose bytes/hash, current web image digest above, web networks, Traefik labels, web mount list (empty), preexisting PG/OpenBao/Agent IDs and volume names. For web-only failure, return to prior web image/mounts/routers after verified preconditions; do not roll back or recreate persistent PG/Bao volumes. SQL rollback, if separately approved and applied, requires its own reviewed forward recovery rather than blind DROP.
 
 No operation in this section is authorized merely by documenting it. Do not expose approval tokens or private material.
+
+## Local verification of the wiring (no VPS, no SQL)
+
+- `tests/b1/server-startup.test.ts`: real mTLS lifecycle (pinned proxy reaches the repository; CA-signed but unpinned peer is denied before any DB access; wrong path 403; no client certificate rejected), startup-failure cleanup, SIGTERM-driven shutdown restoring the signal-handler count, runtime answering 503 after stop.
+- `tests/b1/reviewed-site-installation.test.ts`, `tests/b1/installation-bootstrap.test.ts`: manifest v2 with `ingress`, Ed25519 signer / 32-byte pseudonym validation before any runtime is composed.
+- `scripts/check-semgrep-reviewed.py` must be re-pinned by the owner after independent review of the changed loader: apply `B1-RUNTIME-PIN-PENDING.patch` (runtime blob, loader hash, import entry line 50). Until then the Semgrep guard fails by design.
+- Known non-blocking: 30 Edge-runtime build warnings from the existing Node-only imports under `instrumentation.ts`.

@@ -117,6 +117,59 @@
   "maximumCorpusBytes": null,
   "maxEligibleTotpMethods": null,
   "lifetimeMs": null,
+  "ingress": {
+    "binding": null,
+    "port": null,
+    "allowedPaths": [
+      "/forward-auth"
+    ],
+    "issuer": null,
+    "proxyCertificateSha256": null,
+    "evidenceReference": null,
+    "tlsAuthorizationReference": null,
+    "drainTimeoutMs": null,
+    "contextLifetimeMs": null,
+    "maximumDeviceLifetimeMs": null,
+    "maximumBodyBytes": null,
+    "timeoutMs": null,
+    "sources": {
+      "tlsCert": {
+        "path": "/run/cleanops-b1-private/ingress-server.crt",
+        "uid": 0,
+        "gid": 999,
+        "mode": 288,
+        "maxBytes": 65536
+      },
+      "tlsKey": {
+        "path": "/run/cleanops-b1-private/ingress-server.key",
+        "uid": 0,
+        "gid": 999,
+        "mode": 288,
+        "maxBytes": 65536
+      },
+      "clientCa": {
+        "path": "/run/cleanops-b1-private/ingress-proxy-ca.crt",
+        "uid": 0,
+        "gid": 999,
+        "mode": 288,
+        "maxBytes": 65536
+      },
+      "signingKey": {
+        "path": "/run/cleanops-b1-private/ingress-signing.pem",
+        "uid": 0,
+        "gid": 999,
+        "mode": 288,
+        "maxBytes": 65536
+      },
+      "pseudonymKey": {
+        "path": "/run/cleanops-b1-private/ingress-pseudonym.key",
+        "uid": 0,
+        "gid": 999,
+        "mode": 288,
+        "maxBytes": 64
+      }
+    }
+  },
   "integration": {
     "source": {
       "path": "/run/cleanops-b1-private/integration.mjs",

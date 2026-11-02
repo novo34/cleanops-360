@@ -13,7 +13,7 @@ test('installation bootstrap fails closed when private files are unavailable', a
   await assert.rejects(assembleInstallationPrivateInputs({
     inputs: {} as never, postgres: { environment: 'staging' } as never,
     bao: { environment: 'staging', mount: 'b1-keys' } as never,
-    catalog: {} as never, sources,
+    catalog: {} as never, sources, bindIngress() {}, ingress: {} as never,
   }), /PRIVATE_MATERIAL_UNAVAILABLE/)
 })
 
@@ -22,6 +22,6 @@ test('bootstrap rejects wrong environment before accessing private sources', asy
     inputs: {} as never,
     postgres: { environment: 'production' } as never,
     bao: { environment: 'staging', mount: 'b1-keys' } as never,
-    catalog: {} as never, sources: {} as never,
+    catalog: {} as never, sources: {} as never, bindIngress() {}, ingress: {} as never,
   }), /INSTALLATION_CONFIG_INVALID/)
 })

@@ -25,12 +25,14 @@ export type ReviewedInstallationManifest = Readonly<{
   corpus: Readonly<{ version: string; sha256: string; source: PrivateFileSource }>
   dummyPasswordHash: PrivateFileSource
   maximumCorpusBytes: number; maxEligibleTotpMethods: number; lifetimeMs: number
+  ingress: InstallationBootstrapInputs['ingress']
   integration: Readonly<{ source: PrivateFileSource; sha256: string; approval: string }>
   baoClientIdentity: Readonly<{ scope: 'nextjs-identity-verifier'; certificateSha256: string; approval: string }>
 }>
 const invalid = () => new Error('INSTALLATION_CONFIG_INVALID')
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 const approved = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0 && value.length <= 512 && !/[\p{Cc}\p{Cf}]/u.test(value)
+const rootGroupReadOnly = (source: PrivateFileSource) => source?.uid === 0 && source.gid === 999 && source.mode === 0o440
 const exact = (value: unknown, keys: string) => !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).sort().join(',') === keys
 
 /** Import the exact reviewed bytes, avoiding a second path lookup or symlink race.
@@ -61,7 +63,7 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
   let content: Buffer | undefined, dummy: Buffer | undefined
   try {
     const m = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw)) as ReviewedInstallationManifest
-    if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
+    if (!exact(m, 'bao,baoClientIdentity,catalog,corpus,dummyPasswordHash,ingress,integration,internalOrigins,lifetimeMs,maxEligibleTotpMethods,maximumCorpusBytes,origin,postgres,sink,sources,version') ||
         m.version !== 2 || m.postgres?.environment !== 'staging' ||
         m.postgres?.loginRole !== 'cleanops_staging_identity_login' || m.postgres.contractualRole !== 'cleanops_identity_service' ||
         m.bao?.environment !== 'staging' || m.bao.mount !== 'b1-keys' ||
@@ -73,7 +75,13 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
         !Number.isSafeInteger(m.maximumCorpusBytes) || m.maximumCorpusBytes < 65 || m.maximumCorpusBytes > 65536) throw invalid()
     validateInstallationKeys(m.catalog)
     validateTotpMethodLimit(m.maxEligibleTotpMethods)
-    if (m.integration.source.uid !== 0 || m.integration.source.gid !== 999 || m.integration.source.mode !== 0o440) throw invalid()
+    if (!rootGroupReadOnly(m.integration.source)) throw invalid()
+    // Data only: semantics (bind address, pin, scope, lifetimes) are validated once by
+    // prepareB1IngressListenerPlan and the issuer at startup; here only the shape and
+    // the strict ownership contract of every private file are enforced.
+    if (!exact(m.ingress, 'allowedPaths,binding,contextLifetimeMs,drainTimeoutMs,evidenceReference,issuer,maximumBodyBytes,maximumDeviceLifetimeMs,port,proxyCertificateSha256,sources,timeoutMs,tlsAuthorizationReference') ||
+        !exact(m.ingress.sources, 'clientCa,pseudonymKey,signingKey,tlsCert,tlsKey') ||
+        !Object.values(m.ingress.sources).every(rootGroupReadOnly)) throw invalid()
     if (m.sink.path !== '/run/cleanops-agent/token' || m.sink.uid !== 999 || m.sink.gid !== 999 ||
         m.sink.directoryUid !== 999 || m.sink.directoryGid !== 999 || m.sink.mode !== 0o600 || m.sink.directoryMode !== 0o700) throw invalid()
     content = await readTrustedPrivateFile(m.corpus.source)
@@ -90,6 +98,7 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
       baoCertificateSha256: m.baoClientIdentity.certificateSha256,
       requestScope: context.requestScope,
       bindIngress: loaded.bindIngress,
+      ingress: m.ingress,
       inputs: { origin: m.origin, internalOrigins: m.internalOrigins, sink: m.sink, corpus, passwordPolicy,
         dummyPasswordHash, lifetimeMs: m.lifetimeMs, maxEligibleTotpMethods: m.maxEligibleTotpMethods,
         normalizeEmail: context.normalizeEmail, transport: context.transport, sessionLabels: context.sessionLabels },

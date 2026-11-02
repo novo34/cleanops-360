@@ -43,15 +43,7 @@ Frontera de seguridad: runtime permite funciones V4 aprobadas; estas funciones
 nuevas y sus permisos todavía no lo son. El integration.mjs se carga antes del
 pool canónico; el renderer serializa configuración y no puede transferir
 repositorios con funciones. No crear otro pool ni inventar canal de operador.
-Diff concreto pendiente, NO aplicado:
-`B1-INGRESS-PERSISTENCE-PENDING.patch`. Sustituye Map por claim obligatorio y
-consulta estado en emisor/verificador; emisión espera enrolamiento durable.
-Bloquea renderizado del wrapper hasta aprobar binding al pool único. El patch
-mantiene formato firmado, exige read activa con scope/iat/exp coincidentes y
-revalida tras operaciones asíncronas. `git apply --check` PASS; no acredita
-integración ni pruebas de ese patch. Falta revisión/aprobación del binding,
-ACL/funciones nuevas y canal de operador antes de aplicarlo. El consumidor
-productivo sigue con su candidato anterior, NO anunciar replay distribuido activo.
+La persistencia de ingreso (claim obligatorio, estado en emisor/verificador, binding al pool único) ya está en el código de la rama; el parche pendiente anterior fue retirado por obsoleto. Sigue faltando revisión/aprobación de ACL/funciones SQL nuevas y canal de operador. NO anunciar replay distribuido activo.
 
 Pruebas nuevas reales: PostgreSQL 16.15 en contenedor local desechable, datos
 tmpfs y puerto loopback; sin bases/credenciales operativas ni VPS. SQL propuesto
