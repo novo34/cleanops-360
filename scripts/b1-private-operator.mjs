@@ -7,6 +7,7 @@
  * The actual SQL migrations, LOGIN membership and approvals are external prerequisites.
  */
 import { constants } from 'node:fs'
+import { createPrivateKey, createPublicKey } from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -54,7 +55,7 @@ export function publicState(result) {
   return state
 }
 
-async function dispatch(request, installation, prepared, operatorPool) {
+async function dispatch(request, installation, prepared, operatorPool, operatorSigningKey) {
   let runtime
   let issuer
   try {
@@ -89,14 +90,14 @@ async function dispatch(request, installation, prepared, operatorPool) {
         authorizationReference: request.authorizationReference })
       return { state: 'REVOKED' }
     }
-    if (request.operation !== 'device.issue') throw refused()
+    if (request.operation !== 'device.issue' || !operatorSigningKey) throw refused()
     issuer = createDurableCandidateIssuer({
       issuer: scope.issuer, audience: scope.audience,
       maximumDeviceLifetimeMs: installation.ingress.maximumDeviceLifetimeMs,
       contextLifetimeMs: installation.ingress.contextLifetimeMs,
       maximumBodyBytes: installation.ingress.maximumBodyBytes,
       bodyTimeoutMs: installation.ingress.timeoutMs, clock: Date.now,
-      privateKey: prepared.ingress.signingKey, pseudonymKey: prepared.ingress.pseudonymKey,
+      privateKey: operatorSigningKey, pseudonymKey: prepared.ingress.pseudonymKey,
       credentials: { read: repositories.credentials.read, enroll: operator.enroll,
         revoke: operator.revoke, recover: operator.recover },
     })
@@ -132,7 +133,7 @@ export async function runPrivateOperator(directory) {
   // The output slot is reserved BEFORE any SQL write. Never overwrite an existing receipt.
   const resultFile = await fs.open(output, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600)
   let applied = false
-  let installation, prepared, operatorPool
+  let installation, prepared, operatorPool, operatorSigningKey
   try {
     await resultFile.chown(0, 0)
     await resultFile.chmod(0o600)
@@ -142,8 +143,18 @@ export async function runPrivateOperator(directory) {
       password: createPrivatePgPassword({ path: password, uid: 0, gid: 0, mode: 0o400, maxBytes: 4096 }),
       maxConnections: 1 }
     operatorPool = createPgIdentityPool(operatorConfig)
+    // The operator's signer is a separately custodied root-only copy, never
+    // the group-readable signer mounted into the web runtime.
+    if (request.operation === 'device.issue') {
+      const signingBytes = await readTrustedPrivateFile({ path: join(directory, 'ingress-signing.pem'),
+        uid: 0, gid: 0, mode: 0o400, maxBytes: 65536 })
+      try { operatorSigningKey = createPrivateKey(signingBytes) }
+      finally { signingBytes.fill(0) }
+      if (operatorSigningKey.asymmetricKeyType !== 'ed25519' ||
+          !createPublicKey(operatorSigningKey).equals(createPublicKey(prepared.ingress.signingKey))) throw refused()
+    }
     applied = true // from here SQL may commit; a failed output requires explicit recovery
-    const value = await dispatch(request, installation, prepared, operatorPool)
+    const value = await dispatch(request, installation, prepared, operatorPool, operatorSigningKey)
     await resultFile.writeFile(JSON.stringify(value) + '\n')
     await resultFile.sync()
   } catch (error) {
