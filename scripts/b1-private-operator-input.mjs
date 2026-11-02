@@ -33,3 +33,15 @@ export function publicState(result) {
   // Never serialize arbitrary SQL receipt or the privateArtifact object.
   return state
 }
+
+/** Resolve the only audience the reviewed installer actually provides. */
+export function operatorIngressScope(installation) {
+  const issuer = installation?.ingress?.issuer
+  const audience = installation?.inputs?.origin
+  if (typeof issuer !== 'string' || !issuer || typeof audience !== 'string') throw refused()
+  try {
+    const u = new URL(audience)
+    if (u.protocol !== 'https:' || u.origin !== audience) throw refused()
+  } catch { throw refused() }
+  return Object.freeze({ issuer, audience })
+}
