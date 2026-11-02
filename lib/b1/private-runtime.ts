@@ -8,7 +8,7 @@ import { validateDummyPasswordHash } from './approved-factors.ts'
 import { numeric } from './config.ts'
 import { createFirstActorCeremony, type FirstActorManifest } from './first-actor.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
-import { createPgIngressRepositories } from './pg-ingress-repositories.ts'
+import { createPgIngressRepositories, createPgIngressOperator } from './pg-ingress-repositories.ts'
 import type { DurableIngressCredentials, SharedIngressReplayRepository } from './installation-config.ts'
 import { AuthError, closedBackend, createAuthHandler, type Backend } from './service.ts'
 
@@ -44,6 +44,8 @@ const unavailable = () => new AuthError(503, 'AUTH_CONFIGURATION_REQUIRED')
 export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'private'; configuration: PrivateRuntimeConfiguration } = { kind: 'closed' }, bindIngress?: B1IngressPoolBinder): {
   backend: Backend; handler?: ReturnType<typeof createAuthHandler>;
   firstActor?: (manifest: FirstActorManifest, operatorPool: IdentityPool, keyVersion: string) => ReturnType<typeof createFirstActorCeremony>;
+  /** Operator-only ingress credential channel; same separate-pool rule as firstActor (D1). */
+  ingressOperator?: (operatorPool: IdentityPool) => ReturnType<typeof createPgIngressOperator>;
   close(): Promise<void>
 } {
   if (selection?.kind === 'closed' && Object.keys(selection).length === 1 && bindIngress === undefined) return { backend: closedBackend, async close() {} }
@@ -124,6 +126,7 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
             passwordAdmission, normalizeEmail,
           })
         },
+        ingressOperator: operatorPool => createPgIngressOperator(operatorPool, pool),
         close: () => pool.end(),
       }
     } catch {

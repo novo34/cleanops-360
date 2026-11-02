@@ -23,7 +23,7 @@ const migrations = [
     profile: "b1",
     proposed: true,
     file: "0003_ingress_persistence.review.sql",
-    sha256: "9b592b85ab263a8fcfdcf8695b304bae896410c3afa2522602659384647d9bca",
+    sha256: "40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca",
   },
 ]
 

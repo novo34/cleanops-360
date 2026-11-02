@@ -5,6 +5,7 @@ import { createServer, type ServerOptions } from 'node:https'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { isIP } from 'node:net'
+import { networkInterfaces } from 'node:os'
 import { TLSSocket } from 'node:tls'
 
 const deny = (response: ServerResponse) => {
@@ -12,6 +13,44 @@ const deny = (response: ServerResponse) => {
     response.writeHead(403, { 'cache-control': 'no-store', 'content-length': '0' })
     response.end()
   }
+}
+
+/**
+ * D3: Docker overlay addresses change on every container re-creation, so the reviewed
+ * manifest `ingress.binding` may be either a literal IP or a private network in CIDR form
+ * (same field, no schema change). The listener still binds ONE concrete interface address,
+ * never a wildcard. Resolution is fail-closed: exactly one non-loopback IPv4 address of this
+ * process inside a canonical RFC 1918 CIDR of at least 65,536 addresses (prefix 16..32).
+ * Zero or several matches abort startup. mTLS, proxy certificate pinning and allowed paths
+ * are unchanged and independent of this.
+ */
+export function resolveIngressBinding(
+  binding: unknown,
+  interfaces: ReturnType<typeof networkInterfaces> = networkInterfaces(),
+): string {
+  const fail = () => new Error('B1_INGRESS_BINDING_UNRESOLVED')
+  if (typeof binding !== 'string') throw fail()
+  if (!binding.includes('/')) return binding // literal IP: validated by the listener plan as before
+  const octets = (value: string) => {
+    const parts = value.split('.')
+    if (parts.length !== 4 || !parts.every(p => /^(0|[1-9][0-9]{0,2})$/.test(p) && Number(p) <= 255)) return undefined
+    return parts.map(Number).reduce((acc, n) => acc * 256 + n, 0)
+  }
+  const match = /^([0-9.]+)\/([0-9]{2})$/.exec(binding)
+  const base = match ? octets(match[1]) : undefined, prefix = match ? Number(match[2]) : NaN
+  if (base === undefined || prefix < 16 || prefix > 32) throw fail()
+  const size = 2 ** (32 - prefix)
+  if (base % size !== 0) throw fail()
+  const private_ = (base >= 0x0A000000 && base <= 0x0AFFFFFF) || (base >= 0xAC100000 && base <= 0xAC1FFFFF) || (base >= 0xC0A80000 && base <= 0xC0A8FFFF)
+  if (!private_) throw fail()
+  const found = new Set<string>()
+  for (const entries of Object.values(interfaces ?? {})) for (const entry of entries ?? []) {
+    if (entry.internal || String(entry.family) !== 'IPv4' && String(entry.family) !== '4') continue
+    const value = octets(entry.address)
+    if (value !== undefined && value >= base && value < base + size) found.add(entry.address)
+  }
+  if (found.size !== 1) throw fail()
+  return [...found][0]
 }
 
 export type B1IngressListenerInputs = Readonly<{

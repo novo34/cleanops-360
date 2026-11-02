@@ -22,7 +22,7 @@ Record current remote staging SHA, exact Dokploy running Compose location/hash/d
 ### B. Single independent approval package
 Submit a combined immutable diff and rollback plan covering:
 1. `db/migrations/0003_ingress_persistence.review.sql` (PROPOSAL ONLY, registered `proposed:true`, hash-pinned; S-1 bounded `ingress_gc` for `cleanops_auth_maintenance`, S-2 functions owned by `cleanops_auth_broker`, S-3 no BEGIN/COMMIT under the canonical runner), review schema, SECURITY DEFINER search_path and function owner, immutable nonce claims, expiry/retention and exact runtime read/claim EXECUTE permissions. No direct table access. No SQL14 rerun or silent SQL install.
-2. An independently authorized **operator-only** credential enrollment/revocation/recovery channel. Current `createPgIngressRepositories` deliberately rejects these writes in the runtime; enrollment cannot be conjured from the web listener. Separate operator identity, auditable approval and least privilege are required. Never grant enrollment to the runtime identity. NOT implemented: minimal contract awaiting owner approval in B1-OPERATOR-CHANNEL-CONTRACT-20261102.md.
+2. An independently authorized **operator-only** credential enrollment/revocation/recovery channel. Current `createPgIngressRepositories` deliberately rejects these writes in the runtime; enrollment cannot be conjured from the web listener. Separate operator identity, auditable approval and least privilege are required. Never grant enrollment to the runtime identity. Implemented in the repository but not applied: see B1-OPERATOR-CHANNEL-CONTRACT-20261102.md (login/key custody still owner decisions).
 3. A version 2 reviewed private manifest and immutable module bytes, email normalization approval and real snapshot, verifier public key/issuer/audience, and ingress signer key custody. `renderDurablePrivateIntegration` and the canonical-pool binder are prepared; no legacy process-local replay fallback.
 4. Real ingress material in the private package (values, not code): listener cert/key, trusted proxy client CA, pinned Traefik proxy certificate SHA-256, Ed25519 signing key and 32-byte pseudonym key. The lifecycle itself is wired in code (manifest `ingress` -> `startTrustedB1Server` -> listener; shutdown: deny new ingress, drain listener, close canonical PG pool, zero TLS and key buffers). Known limit: Next's own SIGTERM handler calls `process.exit` after `server.close` without awaiting B1, so a slow drain can be cut short; the shutdown is bounded by `drainTimeoutMs` and must be observed in the staging window.
 5. Traefik TLS proxy wiring/ForwardAuth header sanitation: original untrusted forwarded/assertion headers must be discarded and recreated once by the trusted proxy. Preserve existing web router, `/login`, static assets and `redirect-to-https@file`; narrow B1 paths only. Validate on effective Compose, never replace it wholesale.
@@ -70,3 +70,29 @@ No operation in this section is authorized merely by documenting it. Do not expo
 - `tests/b1/reviewed-site-installation.test.ts`, `tests/b1/installation-bootstrap.test.ts`: manifest v2 with `ingress`, Ed25519 signer / 32-byte pseudonym validation before any runtime is composed.
 - `scripts/check-semgrep-reviewed.py` pin update (runtime blob, loader hash, import entry) is already applied at 5403e12; the former `B1-RUNTIME-PIN-PENDING.patch` was redundant and has been removed.
 - Known non-blocking: 30 Edge-runtime build warnings from the existing Node-only imports under `instrumentation.ts`.
+
+## Final preparation package (2026-11-02) — D1-D5 status and the single staging operation list
+
+| Item | Status | Where |
+|---|---|---|
+| D1 operator channel | IMPLEMENTED (repo only; apply and login/key custody BLOCKED BY AUTHORIZATION) | 0003 role/audit/grants, `createPgIngressOperator`, OPERATOR-CHANNEL-CONTRACT |
+| D2 cleanup | IMPLEMENTED runner + tests; 0003 stays non-executable; scheduler BLOCKED BY AUTHORIZATION | SQL-HARDENING §D2 |
+| D3 mTLS listener / Traefik | IMPLEMENTED (CIDR binding resolution); Traefik/Compose delta PREPARED SIN ACTIVAR | `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` |
+| D4 SIGTERM | PREPARED (completion marker + grace period); Next limit not removed, must be observed | SQL-HARDENING §D4 |
+| D5 passwords | NO CHANGE; approved policy/corpus recorded, values verified against `security-values.json` | SQL-HARDENING §D5 |
+
+Cross-dependencies checked so nothing new surfaces in staging: Semgrep pins (`runtime.ts` blob, `reviewed-site-installation.ts` hash) untouched by design, hence no manifest schema change; `compose.b1-web.yaml` untouched (offline merge test); 0003 sha256 pin updated and its migration tests pass; the SQL14 role set and the existing ingress_claim/read grants are unchanged; `cleanops_runtime` must exist (it does after SQL14) because the operator check calls `pg_has_role` on it.
+
+### Staging operations still pending (each needs explicit owner authorization naming environment, files and steps)
+
+Preconditions for all: step A read-only evidence bundle recorded (Compose hash, router names, dokploy-network subnet and key name, web UID/GID); independent reviewer sign-off on the diff; backup of the operative Compose and Traefik dynamic directory.
+
+1. **Apply 0003** (separately approved; not SQL14): promote the reviewed file through the canonical runner with the pinned sha256 `40c9a316…90f4ca`. Verify role/ACL metadata (runtime: claim+read only; maintenance: gc only; operator: three writes only). Rollback: forward-recovery script reviewed beforehand (drop the six functions and three tables, drop the role); no blind DROP.
+2. **Operator login** (owner): create `<operator_login> LOGIN IN ROLE cleanops_ingress_operator`, custody of its secret and of the signing key decided; then controlled enrollment of the first device credential, check the audit row. Rollback: `DROP ROLE <operator_login>`.
+3. **Private package + manifest**: root-owned files under `/run/cleanops-b1-private`, manifest v2 with `ingress.binding` = dokploy-network CIDR, pinned proxy certificate SHA-256, listener certificate with `DNS:cleanops-b1-ingress` in the SAN. Rollback: previous web image/mounts (empty mount list).
+4. **Web redeploy** via `compose.b1-web.yaml` merged into the preserved operative Compose plus the alias and `stop_grace_period` from the delta file. Verify the listener bound to one overlay address, 403 for a CA-signed but unpinned client, no published port.
+5. **Traefik**: drop `b1-forward-auth.delta.example.yaml` (filled in) into the file-provider directory. Verify existing routers/`/login`/HTTP→HTTPS redirect still answer, then hostile-header sanitation, login/TOTP/sessions, replay, revoke, recovery. Rollback: delete that file.
+6. **Shutdown observation**: `docker stop` during an in-flight ForwardAuth request; the evidence is the `B1_SHUTDOWN_COMPLETE` line and exit code 143. If absent, record the limit and decide on `NEXT_MANUAL_SIG_HANDLE` in a new review.
+7. **Retention** (optional until scheduled): maintenance login runs the D2 runner or `SELECT auth_api.ingress_gc(5000)` until it returns less than the batch.
+
+AUTH-GATE-05 is NOT closed by this package; it requires the real acceptance above and the Product Owner decision.

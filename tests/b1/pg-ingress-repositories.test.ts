@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { randomBytes } from 'node:crypto'
 import { Pool } from 'pg'
-import { createPgIngressRepositories } from '../../lib/b1/pg-ingress-repositories.ts'
+import { createPgIngressRepositories, createPgIngressOperator, createPgIngressMaintenance } from '../../lib/b1/pg-ingress-repositories.ts'
 import type { IdentityPool } from '../../lib/b1/pg-identity-driver.ts'
 
 // Explicit disposable local PG16 fixture only; never read DATABASE_URL/private inputs.
@@ -21,9 +21,11 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
     try {
       const version = await owner.query('SHOW server_version_num')
       assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 16)
-      await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_auth_broker NOLOGIN; CREATE ROLE cleanops_auth_maintenance NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE ROLE ingress_maint_login LOGIN IN ROLE cleanops_auth_maintenance; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service,cleanops_auth_maintenance; GRANT USAGE ON SCHEMA identity_private TO cleanops_auth_broker; GRANT USAGE,CREATE ON SCHEMA auth_api TO cleanops_auth_broker')
+      await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_auth_broker NOLOGIN; CREATE ROLE cleanops_auth_maintenance NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE cleanops_runtime NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE ROLE ingress_maint_login LOGIN IN ROLE cleanops_auth_maintenance; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service,cleanops_auth_maintenance; GRANT USAGE ON SCHEMA identity_private TO cleanops_auth_broker; GRANT USAGE,CREATE ON SCHEMA auth_api TO cleanops_auth_broker')
       // Compilation/execution in a disposable fixture, never a migration installation.
       await owner.query(await readFile(new URL('../../db/migrations/0003_ingress_persistence.review.sql', import.meta.url), 'utf8'))
+      // The owner creates dedicated operator logins out of band; the migration only creates the NOLOGIN role.
+      await owner.query('CREATE ROLE ingress_operator_login LOGIN IN ROLE cleanops_ingress_operator; CREATE ROLE ingress_mixed_login LOGIN IN ROLE cleanops_ingress_operator, cleanops_identity_service')
       const p = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
       const q = new Pool({ ...config, user: 'ingress_test_login', database, max: 8 })
       const maint = new Pool({ ...config, user: 'ingress_maint_login', database, max: 4 })
@@ -36,7 +38,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         assert.equal(await a.replay.claim(claimed), 'claimed')
         assert.equal(await b.replay.claim(claimed), 'duplicate')
         await assert.rejects(p.query('SELECT * FROM identity_private.ingress_claims'))
-        await assert.rejects(p.query('SELECT auth_api.ingress_revoke($1,$2,$3,1)', [scope.issuer, scope.audience, fresh()]))
+        await assert.rejects(p.query("SELECT auth_api.ingress_revoke($1,$2,$3,1,'x')", [scope.issuer, scope.audience, fresh()]))
       })
       await t.test('two pools and 32 concurrent claims have exactly one winner; restart preserves claim', async () => {
         const input = { ...scope, nonce: fresh(), expiresAt: Date.now() + 20000 }
@@ -70,8 +72,8 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       const device = { ...scope, id: fresh() }
       const issued = Date.now(), expires = issued + 60000
       await t.test('enrollment is owner-only; runtime enrollment/revocation/recovery remain blocked', async () => {
-        await assert.rejects(p.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6)', [scope.issuer, scope.audience, device.id, issued, expires, 'test-reference']))
-        await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6)', [scope.issuer, scope.audience, device.id, issued, expires, 'test-reference'])
+        await assert.rejects(p.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6,$7)', [scope.issuer, scope.audience, device.id, issued, expires, 'test-reference', 'auth-ref']))
+        await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6,$7)', [scope.issuer, scope.audience, device.id, issued, expires, 'test-reference', 'auth-ref'])
         const record = await a.credentials.read(device)
         assert.equal(record?.state, 'active')
         assert.equal(record?.expiresAt, expires)
@@ -80,22 +82,23 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         await assert.rejects(a.credentials.recover({ previous: device, expectedRevision: '1', replacement: record!, authorizationReference: 'not-authority' }))
       })
       await t.test('concurrent individual revocation wins once; independent reader sees durable terminal state', async () => {
-        const results = await Promise.allSettled([1, 2].map(() => owner.query('SELECT auth_api.ingress_revoke($1,$2,$3,1)', [scope.issuer, scope.audience, device.id])))
+        const results = await Promise.allSettled([1, 2].map(() => owner.query("SELECT auth_api.ingress_revoke($1,$2,$3,1,'auth-ref')", [scope.issuer, scope.audience, device.id])))
         assert.equal(results.filter(x => x.status === 'fulfilled').length, 1)
         assert.equal((await b.credentials.read(device))?.state, 'revoked')
         assert.equal((await b.credentials.read(device))?.revision, '2')
       })
       await t.test('failed replacement is atomic and cannot revoke the prior profile', async () => {
         const previous = fresh()
-        await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6)', [scope.issuer, scope.audience, previous, issued, expires, 'test-reference'])
-        await assert.rejects(owner.query('SELECT auth_api.ingress_recover($1,$2,$3,1,$4,$5,$6,$7)', [scope.issuer, scope.audience, previous, device.id, issued, expires, 'test-reference']))
+        await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6,$7)', [scope.issuer, scope.audience, previous, issued, expires, 'test-reference', 'auth-ref'])
+        await assert.rejects(owner.query('SELECT auth_api.ingress_recover($1,$2,$3,1,$4,$5,$6,$7,$8)', [scope.issuer, scope.audience, previous, device.id, issued, expires, 'test-reference', 'auth-ref']))
         assert.equal((await a.credentials.read({ ...scope, id: previous }))?.state, 'active')
       })
       await t.test('S-2: every ingress function is owned by the broker, runs as definer and is not executable by PUBLIC', async () => {
         const rows = await owner.query(`SELECT p.proname, pg_get_userbyid(p.proowner) AS owner, p.prosecdef, p.proconfig::text AS cfg,
           has_function_privilege('public', p.oid, 'EXECUTE') AS public_exec,
           has_function_privilege('cleanops_identity_service', p.oid, 'EXECUTE') AS runtime_exec,
-          has_function_privilege('cleanops_auth_maintenance', p.oid, 'EXECUTE') AS maint_exec
+          has_function_privilege('cleanops_auth_maintenance', p.oid, 'EXECUTE') AS maint_exec,
+          has_function_privilege('cleanops_ingress_operator', p.oid, 'EXECUTE') AS operator_exec
           FROM pg_proc p WHERE p.pronamespace='auth_api'::regnamespace AND p.proname LIKE 'ingress\\_%' ORDER BY 1`)
         assert.deepEqual(rows.rows.map(r => r.proname), ['ingress_claim', 'ingress_credential_read', 'ingress_enroll', 'ingress_gc', 'ingress_recover', 'ingress_revoke'])
         for (const r of rows.rows) {
@@ -103,6 +106,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
           assert.match(r.cfg, /search_path=pg_catalog/); assert.equal(r.public_exec, false)
           assert.equal(r.runtime_exec, ['ingress_claim', 'ingress_credential_read'].includes(r.proname))
           assert.equal(r.maint_exec, r.proname === 'ingress_gc')
+          assert.equal(r.operator_exec, ['ingress_enroll', 'ingress_recover', 'ingress_revoke'].includes(r.proname))
         }
         const tables = await owner.query(`SELECT c.relname, pg_get_userbyid(c.relowner) AS owner,
           has_table_privilege('cleanops_identity_service', c.oid, 'SELECT,INSERT,UPDATE,DELETE') AS runtime_any,
@@ -113,7 +117,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
       await t.test('S-1: gc is maintenance-only; runtime and PUBLIC logins are denied', async () => {
         await assert.rejects(p.query('SELECT auth_api.ingress_gc(10)'), /permission denied/)
         await assert.rejects(maint.query('SELECT auth_api.ingress_claim($1,$2,$3,$4)', [scope.issuer, scope.audience, fresh(), Date.now() + 5000]), /permission denied/)
-        await assert.rejects(maint.query('SELECT auth_api.ingress_enroll($1,$2,$3,1,2,$4)', [scope.issuer, scope.audience, fresh(), 'x']), /permission denied/)
+        await assert.rejects(maint.query("SELECT auth_api.ingress_enroll($1,$2,$3,1,2,$4,'x')", [scope.issuer, scope.audience, fresh(), 'x']), /permission denied/)
         await assert.rejects(maint.query('SELECT * FROM identity_private.ingress_claims'), /permission denied/)
       })
       await t.test('S-1: gc is bounded by batch, validates its limit, keeps live and recently expired claims', async () => {
@@ -144,6 +148,74 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         const settled = await Promise.all(work)
         assert.equal(settled.slice(0, 32).filter(x => x === 'claimed').length, 1)
         assert.equal(await a.replay.claim(input), 'duplicate')
+      })
+      await t.test('D1: operator channel is a separate least-privilege pool; every write is audited with session_user', async () => {
+        const op = new Pool({ ...config, user: 'ingress_operator_login', database, max: 4 })
+        const mixed = new Pool({ ...config, user: 'ingress_mixed_login', database, max: 2 })
+        pools.push(op, mixed)
+        assert.throws(() => createPgIngressOperator(p, p))
+        assert.throws(() => createPgIngressOperator(op, op))
+        const operator = createPgIngressOperator(op, p)
+        const id = fresh(), id2 = fresh(), now = Date.now()
+        const rec = (cid: string) => ({ ...scope, id: cid, issuedAt: now, expiresAt: now + 60000, revision: '1', state: 'active' as const, enrollmentReference: 'enrol-ref' })
+        await operator.enroll({ record: rec(id), authorizationReference: 'AUTH-ENROLL-1' })
+        assert.equal((await a.credentials.read({ ...scope, id }))?.state, 'active')
+        await assert.rejects(operator.enroll({ record: rec(id), authorizationReference: 'AUTH-DUP' }))
+        await assert.rejects(operator.revoke({ scope: { ...scope, id }, expectedRevision: '7', authorizationReference: 'AUTH-STALE' }))
+        // Atomic recovery: replacement collision rolls back the revocation and its audit row.
+        await assert.rejects(operator.recover({ previous: { ...scope, id }, expectedRevision: '1', replacement: rec(id2), authorizationReference: 'AUTH-RECOVER-0' }).then(() =>
+          operator.recover({ previous: { ...scope, id: id2 }, expectedRevision: '1', replacement: rec(id), authorizationReference: 'AUTH-RECOVER-BAD' })))
+        assert.equal((await a.credentials.read({ ...scope, id: id2 }))?.state, 'active')
+        const id3 = fresh()
+        await operator.revoke({ scope: { ...scope, id: id2 }, expectedRevision: '1', authorizationReference: 'AUTH-REVOKE-1' })
+        assert.equal((await b.credentials.read({ ...scope, id: id2 }))?.state, 'revoked')
+        await operator.enroll({ record: rec(id3), authorizationReference: 'AUTH-ENROLL-3' })
+        const audit = await owner.query(`SELECT action, operator::text, authorization_reference, credential_id FROM identity_private.ingress_operator_audit WHERE issuer=$1 AND authorization_reference LIKE 'AUTH-%' ORDER BY id`, [scope.issuer])
+        const refs = audit.rows.map(r => r.authorization_reference)
+        for (const r of audit.rows) assert.equal(r.operator, 'ingress_operator_login')
+        assert.ok(refs.includes('AUTH-ENROLL-1') && refs.includes('AUTH-REVOKE-1') && refs.includes('AUTH-RECOVER-0'))
+        assert.ok(!refs.includes('AUTH-DUP') && !refs.includes('AUTH-STALE') && !refs.includes('AUTH-RECOVER-BAD'))
+        // Least privilege: the operator login can do nothing else, the runtime cannot read the audit.
+        for (const sql of ["SELECT auth_api.ingress_claim('x','https://x.invalid','" + fresh() + "',1)", 'SELECT auth_api.ingress_credential_read($1,$1,$1)', 'SELECT auth_api.ingress_gc(1)',
+          'SELECT * FROM identity_private.ingress_credentials', 'SELECT * FROM identity_private.ingress_operator_audit', 'DELETE FROM identity_private.ingress_operator_audit'])
+          await assert.rejects(op.query(sql, sql.includes('$1') ? ['x'] : []), /permission denied/)
+        await assert.rejects(p.query('SELECT * FROM identity_private.ingress_operator_audit'), /permission denied/)
+        await assert.rejects(maint.query('SELECT auth_api.ingress_revoke($1,$2,$3,1,$4)', [scope.issuer, scope.audience, id3, 'x']), /permission denied/)
+        // A login that also holds a runtime role is refused inside the same transaction (no write, no audit).
+        const before = Number((await owner.query('SELECT count(*)::int AS n FROM identity_private.ingress_operator_audit')).rows[0].n)
+        await assert.rejects(createPgIngressOperator(mixed, p).enroll({ record: rec(fresh()), authorizationReference: 'AUTH-MIXED' }), /AUTH_CONFIGURATION_REQUIRED|AUTH_DEPENDENCY_UNAVAILABLE/)
+        assert.equal(Number((await owner.query('SELECT count(*)::int AS n FROM identity_private.ingress_operator_audit')).rows[0].n), before)
+        // Runtime repositories still block every credential write.
+        await assert.rejects(a.credentials.revoke({ scope: { ...scope, id: id3 }, expectedRevision: '1', authorizationReference: 'x' }))
+      })
+      await t.test('D2: maintenance gc is bounded, non-overlapping, restricted to the maintenance pool and resumable', async () => {
+        const gcScope = { issuer: 'gcm-' + fresh().slice(0, 8), audience: 'https://gc.invalid' }
+        const seed = (n: number) => owner.query(`INSERT INTO identity_private.ingress_claims SELECT $1,$2,'m'||lpad(g::text,42,'0'),$3 FROM generate_series(1,$4::int) g ON CONFLICT DO NOTHING`, [gcScope.issuer, gcScope.audience, Date.now() - 120000, n])
+        const left = async () => Number((await owner.query('SELECT count(*)::int AS n FROM identity_private.ingress_claims WHERE issuer=$1', [gcScope.issuer])).rows[0].n)
+        const limits = { batchSize: 10, maxBatches: 2, maxDurationMs: 30000, statementTimeoutMs: 5000, lockTimeoutMs: 1000 }
+        assert.throws(() => createPgIngressMaintenance(p, p)); assert.throws(() => createPgIngressMaintenance(maint, maint))
+        await assert.rejects(createPgIngressMaintenance(maint, p).gc({ ...limits, batchSize: 10001 }))
+        await assert.rejects(createPgIngressMaintenance(maint, p).gc({ ...limits, maxBatches: 0 }))
+        await assert.rejects(createPgIngressMaintenance(p, q).gc(limits), /AUTH_DEPENDENCY_UNAVAILABLE/) // runtime login has no EXECUTE
+        await seed(35)
+        const job = createPgIngressMaintenance(maint, p)
+        assert.deepEqual(await job.gc(limits), { purged: 20, batches: 2, complete: false, reason: 'max-batches' })
+        assert.equal(await left(), 15)
+        // Recovery after an interrupted run is simply running again; overlapping runs skip instead of queueing.
+        const holder = await maint.connect()
+        try {
+          await holder.query("SELECT pg_advisory_lock(hashtextextended('cleanops.ingress_gc',0))")
+          assert.deepEqual(await job.gc(limits), { purged: 0, batches: 0, complete: false, reason: 'busy' })
+        } finally { await holder.query("SELECT pg_advisory_unlock(hashtextextended('cleanops.ingress_gc',0))"); holder.release() }
+        assert.equal((await job.gc({ ...limits, maxBatches: 10 })).reason, 'drained')
+        assert.equal(await left(), 0)
+        await seed(5)
+        let tick = 0
+        assert.equal((await job.gc(limits, () => (tick++) * 40000)).reason, 'deadline')
+        const racing = await Promise.all([job.gc({ ...limits, maxBatches: 10 }), job.gc({ ...limits, maxBatches: 10 })])
+        assert.ok(racing.every(r => r.reason === 'drained' || r.reason === 'busy'))
+        assert.equal(await left(), 0)
+        await assert.rejects(maint.query('SELECT * FROM identity_private.ingress_operator_audit'), /permission denied/)
       })
       await t.test('S-3: the migration is atomic under the canonical runner transaction (rollback leaves no trace; success is idempotent-safe)', async () => {
         const sql = await readFile(new URL('../../db/migrations/0003_ingress_persistence.review.sql', import.meta.url), 'utf8')

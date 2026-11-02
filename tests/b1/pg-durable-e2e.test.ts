@@ -41,8 +41,8 @@ test('PG16 durable B1: enrolled credential, shared replay, revocation and unavai
       const payload = JSON.parse(Buffer.from(credential.split('.')[1], 'base64url').toString('utf8')) as {
         iss: string; aud: string; id: string; iat: number; exp: number
       }
-      await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6)', [
-        payload.iss, payload.aud, payload.id, payload.iat, payload.exp, 'fixture-operator-only',
+      await owner.query('SELECT auth_api.ingress_enroll($1,$2,$3,$4,$5,$6,$7)', [
+        payload.iss, payload.aud, payload.id, payload.iat, payload.exp, 'fixture-operator-only', 'fixture-authorization',
       ])
       const report = checkEmailCompatibility([{ id: 'fixture', emailNormalized: 'A@example.com' }])
       const approval = { reference: 'test-only', policyVersion: report.policyVersion,
@@ -64,8 +64,8 @@ test('PG16 durable B1: enrolled credential, shared replay, revocation and unavai
       assert.equal((await a.resolveRequestContext(first.clone())).device.length, 32)
       await assert.rejects(b.resolveRequestContext(first.clone()), /AUTH_DEPENDENCY_UNAVAILABLE/)
       const second = await makeRequest()
-      await owner.query('SELECT auth_api.ingress_revoke($1,$2,$3,$4)', [
-        payload.iss, payload.aud, payload.id, 1,
+      await owner.query('SELECT auth_api.ingress_revoke($1,$2,$3,$4,$5)', [
+        payload.iss, payload.aud, payload.id, 1, 'fixture-authorization',
       ])
       await assert.rejects(a.resolveRequestContext(second.clone()), /AUTH_DEPENDENCY_UNAVAILABLE/)
       // Unavailable database must never create a local replay success.

@@ -3,7 +3,7 @@ import { assembleInstallationPrivateInputs, type InstallationBootstrapInputs } f
 import { prepareB1IngressListenerPlan } from './installation-config.ts'
 import { createDurableCandidateIssuer } from './ingress-assertion.ts'
 import { createForwardAuthHandler } from './ingress-forward-auth.ts'
-import { startB1IngressListener } from './ingress-listener.ts'
+import { resolveIngressBinding, startB1IngressListener } from './ingress-listener.ts'
 import type { B1IngressPoolBinder } from './private-runtime.ts'
 import { closeTrustedRuntime, installTrustedRuntime } from './runtime.ts'
 
@@ -22,7 +22,10 @@ let onSignal: (() => void) | undefined
  */
 function watchTermination() {
   onSignal = () => {
-    void stopTrustedB1Server().catch(error => {
+    // D4: B1_SHUTDOWN_COMPLETE is the only evidence that listener drain, pool close and key
+    // zeroing finished. A process that exits (Next calls process.exit(143) after its own
+    // server.close, without awaiting B1) without this line did NOT complete B1 shutdown.
+    void stopTrustedB1Server().then(() => console.info('B1_SHUTDOWN_COMPLETE'), error => {
       if ((error as Error)?.message !== 'B1_SERVER_NOT_STARTED') console.error('B1_SHUTDOWN_INCOMPLETE')
     })
   }
@@ -69,7 +72,7 @@ export async function startTrustedB1Server(spec: InstallationBootstrapInputs): P
     const config = spec.ingress
     const audience = new URL(spec.inputs.origin).origin
     const plan = prepareB1IngressListenerPlan({
-      binding: config.binding, port: config.port, allowedPaths: config.allowedPaths,
+      binding: resolveIngressBinding(config.binding), port: config.port, allowedPaths: config.allowedPaths,
       issuer: config.issuer, audience, nextOrigin: audience,
       topology: 'shared-atomic-all-consumers',
       trust: {
