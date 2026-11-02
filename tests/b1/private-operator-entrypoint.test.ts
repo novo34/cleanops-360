@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateRequest, publicState } from '../../scripts/b1-private-operator-input.mjs'
+import { validateRequest, publicState, operatorIngressScope } from '../../scripts/b1-private-operator-input.mjs'
 
 const base = { version: 1, operatorLoginRole: 'cleanops_b1_operator_login' }
 test('rejects undeclared operations, missing values and runtime-looking injections', () => {
@@ -20,4 +20,11 @@ test('permits the reviewed, explicitly declared private paths', () => {
 test('status output never serializes SQL receipts or private ceremony material', () => {
   assert.deepEqual(publicState({ state: 'COMMITTED', generation: 1, receipt: { credentials: 'SECRET' }, provisioningUri: 'SECRET' }), { state: 'COMMITTED', generation: 1 })
   assert.throws(() => publicState({ state: 'BACKDOOR', receipt: 'bad' }), /B1_OPERATOR_UNAVAILABLE/)
+})
+
+test('issuer uses the actual reviewed installer inputs.origin, never an absent top-level property', () => {
+  const installation = { ingress: { issuer: 'cleanops-b1-staging' }, inputs: { origin: 'https://cleanops.nuvurent.com' } }
+  assert.deepEqual(operatorIngressScope(installation), { issuer: 'cleanops-b1-staging', audience: 'https://cleanops.nuvurent.com' })
+  assert.throws(() => operatorIngressScope({ ingress: { issuer: 'staging' }, origin: 'https://cleanops.nuvurent.com' }), /B1_OPERATOR_UNAVAILABLE/)
+  assert.throws(() => operatorIngressScope({ ingress: { issuer: 'staging' }, inputs: { origin: 'http://localhost' } }), /B1_OPERATOR_UNAVAILABLE/)
 })
