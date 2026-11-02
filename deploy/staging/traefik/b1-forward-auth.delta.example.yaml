@@ -32,8 +32,14 @@ http:
           cert: <path of the pinned Traefik client certificate (SHA-256 = manifest proxyCertificateSha256)>
           key: <path of its private key, never in Git>
           insecureSkipVerify: false
-        # Forwarded to the listener: only what the assertion binds (cookie carries the device credential).
-        authRequestHeaders: [Cookie, X-Forwarded-Method, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Uri, X-Forwarded-For]
+        # The issuer binds the exact request body and selected headers. Traefik
+        # defaults forwardBody=false, which would invalidate every nonempty POST.
+        # The private listener also enforces the reviewed maximumBodyBytes.
+        forwardBody: true
+        maxBodySize: 65536
+        # Keep precisely the request headers covered by requestBinding(), plus
+        # Traefik-rebuilt forwarding metadata. Do not accept untrusted assertions.
+        authRequestHeaders: [Host, Authorization, Cookie, Origin, Content-Type, Content-Encoding, X-CSRF-Token, Idempotency-Key, Sec-Fetch-Site, X-Forwarded-Method, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Uri, X-Forwarded-For]
         # The only header copied from the ForwardAuth answer onto the upstream request.
         authResponseHeaders: [X-Cleanops-B1-Assertion]
     cleanops-b1-strip-assertion:
