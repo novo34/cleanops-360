@@ -7,7 +7,7 @@
  * The actual SQL migrations, LOGIN membership and approvals are external prerequisites.
  */
 import { constants } from 'node:fs'
-import { validateRequest, publicState } from './b1-private-operator-input.mjs'
+import { validateRequest, publicState, operatorIngressScope } from './b1-private-operator-input.mjs'
 import { createPrivateKey, createPublicKey } from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import { join } from 'node:path'
@@ -52,7 +52,7 @@ async function dispatch(request, installation, prepared, operatorPool, operatorS
     }
     if (!repositories?.credentials?.read || typeof runtime.ingressOperator !== 'function') throw refused()
     const operator = runtime.ingressOperator(operatorPool)
-    const scope = { issuer: installation.ingress.issuer, audience: installation.origin }
+    const scope = operatorIngressScope(installation)
     if (request.operation === 'device.revoke') {
       await operator.revoke({ scope: { ...scope, id: request.id }, expectedRevision: request.revision,
         authorizationReference: request.authorizationReference })
