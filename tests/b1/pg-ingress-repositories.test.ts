@@ -12,7 +12,9 @@ const port = Number(process.env.CLEANOPS_B1_TEST_PG_PORT)
 test('PG16 ingress repositories: atomicity, retention, credentials, ACL and uncertain commit',
   { skip: !port }, async t => {
     assert.ok(Number.isInteger(port) && port > 0 && port <= 65535)
-    const config = { host: '127.0.0.1', port, user: 'postgres', connectionTimeoutMillis: 2000 }
+    const adminUser = process.env.CLEANOPS_B1_TEST_PG_USER || 'postgres'
+    const password = process.env.CLEANOPS_B1_TEST_PG_PASSWORD
+    const config = { host: '127.0.0.1', port, user: adminUser, ...(password ? { password } : {}), connectionTimeoutMillis: 2000 }
     const bootstrap = new Pool({ ...config, database: 'postgres' })
     const database = 'b1_ingress_' + randomBytes(8).toString('hex')
     await bootstrap.query(`CREATE DATABASE ${database}`)
@@ -228,7 +230,7 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
           try {
             await c.query('BEGIN')
             await c.query(sql)
-            assert.equal((await c.query('SELECT current_user AS u')).rows[0].u, 'postgres') // runner role restored for its journal write
+            assert.equal((await c.query('SELECT current_user AS u')).rows[0].u, adminUser) // runner role restored for its journal write
             await c.query('ROLLBACK')
           } finally { c.release() }
           const gone = await pr.query(`SELECT to_regclass('identity_private.ingress_claims') AS t, to_regprocedure('auth_api.ingress_gc(integer)') AS f`)
