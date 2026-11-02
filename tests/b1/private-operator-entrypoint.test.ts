@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validateRequest, publicState } from '../../scripts/b1-private-operator.mjs'
+import { validateRequest, publicState } from '../../scripts/b1-private-operator-input.mjs'
 
 const base = { version: 1, operatorLoginRole: 'cleanops_b1_operator_login' }
 test('rejects undeclared operations, missing values and runtime-looking injections', () => {
