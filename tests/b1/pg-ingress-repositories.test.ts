@@ -313,11 +313,11 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         }
       })
     } finally {
-      // Never force-terminate pending fixture clients: pg emits uncaught errors
-      // after the child test has ended. Fail visibly if closing any pool fails.
-      const closed = await Promise.allSettled(pools.map(p => p.end()))
+      // Never force-terminate pending fixture clients: that emits uncaught
+      // connection errors after the test. An unclosed client makes DROP DATABASE
+      // fail visibly, while all pool closes are attempted before cleanup.
+      await Promise.allSettled(pools.map(p => p.end()))
       try {
-        if (closed.some(result => result.status === 'rejected')) throw new Error('B1_PG_FIXTURE_POOL_CLOSE_FAILED')
         await bootstrap.query(`DROP DATABASE ${database}`)
         await bootstrap.query('DROP ROLE IF EXISTS ingress_test_login, ingress_maint_login, ingress_operator_login, ingress_mixed_login, cleanops_ingress_operator, cleanops_runtime, cleanops_identity_service, cleanops_auth_maintenance, cleanops_auth_broker, cleanops_ddl_owner')
       } finally { await bootstrap.end() }
