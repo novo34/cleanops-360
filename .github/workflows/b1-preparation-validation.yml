@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - prep/installation-catalog-20261030
+      - prep/b1-final-closure-20261102
     paths:
       - '.github/workflows/b1-preparation-validation.yml'
       - '.gitattributes'
