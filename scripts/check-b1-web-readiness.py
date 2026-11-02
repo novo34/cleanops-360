@@ -52,6 +52,7 @@ def evaluate(containers: dict[str, dict], volume: dict) -> bool:
         passed &= report(f"{label} running", running(c))
     passed &= report("PostgreSQL healthy", healthy(pg))
     passed &= report("OpenBao healthy", healthy(bao))
+    passed &= report("Web healthy", healthy(web))
 
     opts = volume.get("Options") or {}
     flags = set((opts.get("o") or "").split(","))

@@ -63,6 +63,15 @@ test('completion fills only verifiable null fields, never overwrites, backs up, 
     assert.equal(again.applied, false); assert.deepEqual(again.filled, [])
     assert.equal((await fs.readdir(backups)).length, 1)                        // idempotent: no new backup or write
     assert.deepEqual(again.pendingValues.sort(), applied.pendingValues.sort())
+     // Correct mode but wrong owner must not be silently accepted.
+     await fs.chown(manifest, 1000, 1000)
+     const wrong = await completeB1Installation({ packageDir: dir })
+     assert.ok(wrong.invalid.some(label => label.startsWith('installation.json metadata')))
+     const repaired = await completeB1Installation({ packageDir: dir, apply: true, backupDir: backups })
+     assert.equal(repaired.applied, true)
+     const statAfter = await fs.stat(manifest)
+     assert.deepEqual([statAfter.uid, statAfter.gid, statAfter.mode & 0o7777], [0, 999, 0o440])
+     assert.equal((await fs.readdir(backups)).length, 1)
 
     await fs.writeFile(join(dir, 'identity.password'), 'trailing-newline\n')
     assert.match((await completeB1Installation({ packageDir: dir })).files.find(f => f.label === 'sources.postgresPassword')!.status, /INVALID_CONTENT/)

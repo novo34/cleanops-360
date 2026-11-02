@@ -313,8 +313,10 @@ test('PG16 ingress repositories: atomicity, retention, credentials, ACL and unce
         }
       })
     } finally {
-      await Promise.all(pools.map(p => p.end()))
-      try { await bootstrap.query(`DROP DATABASE ${database}`) }
-      finally { await bootstrap.end() }
+      await Promise.allSettled(pools.map(p => p.end()))
+      try {
+        await bootstrap.query(`DROP DATABASE ${database} WITH (FORCE)`)
+        await bootstrap.query('DROP ROLE IF EXISTS ingress_test_login, ingress_maint_login, ingress_operator_login, ingress_mixed_login, cleanops_ingress_operator, cleanops_runtime, cleanops_identity_service, cleanops_auth_maintenance, cleanops_auth_broker, cleanops_ddl_owner')
+      } finally { await bootstrap.end() }
     }
   })

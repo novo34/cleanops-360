@@ -147,7 +147,8 @@ export async function completeB1Installation({ packageDir, apply = false, backup
   if (present('baoClientIdentity.certificateSha256')) check('baoClientIdentity.certificateSha256: 64 lowercase hex', () => { if (!/^[a-f0-9]{64}$/.test(merged.baoClientIdentity.certificateSha256)) throw 0 })
   if (present('ingress.proxyCertificateSha256')) check('ingress.proxyCertificateSha256: AA:BB:… (32 bytes)', () => { if (!/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(merged.ingress.proxyCertificateSha256)) throw 0 })
   if (present('integration.sha256')) check('integration.sha256: 64 lowercase hex', () => { if (!/^[a-f0-9]{64}$/.test(merged.integration.sha256)) throw 0 })
-  if (manifestMeta.uid !== 0 || manifestMeta.gid !== 999 || manifestMeta.mode !== 0o440)
+  const metadataNeedsRepair = manifestMeta.uid !== 0 || manifestMeta.gid !== 999 || manifestMeta.mode !== 0o440
+  if (metadataNeedsRepair)
     out.invalid.push(`installation.json metadata ${manifestMeta.uid}:${manifestMeta.gid} ${manifestMeta.mode.toString(8)} (loader requires 0:999 440; --apply sets it)`)
 
   const files = [...fileState.values()]
@@ -165,11 +166,11 @@ export async function completeB1Installation({ packageDir, apply = false, backup
       await t.writeFile(JSON.stringify(merged, null, 2) + '\n'); await t.sync()
     } catch (e) { await fs.unlink(temp).catch(() => {}); throw e } finally { await t.close() }
     await fs.rename(temp, manifestPath)
-  } else if (apply && manifestMeta.mode !== 0o440) { await fs.chown(manifestPath, 0, 999); await fs.chmod(manifestPath, 0o440) }
+  } else if (apply && metadataNeedsRepair) { await fs.chown(manifestPath, 0, 999); await fs.chmod(manifestPath, 0o440) }
   const stillInvalid = out.invalid.filter(x => !(apply && x.startsWith('installation.json metadata')))
   const badFiles = files.filter(f => !f.status.startsWith('OK'))
   return {
-    applied: apply && out.fills.length > 0, backup,
+    applied: apply && (out.fills.length > 0 || metadataNeedsRepair), backup,
     filled: out.fills.map(({ path, value, basis }) => ({ path, value: typeof value === 'object' ? '(contract block)' : value, basis })),
     pendingValues: out.pending, differsFromContract: out.differs, invalid: stillInvalid, files,
     ready: !out.pending.length && !out.differs.length && !stillInvalid.length && !badFiles.length,

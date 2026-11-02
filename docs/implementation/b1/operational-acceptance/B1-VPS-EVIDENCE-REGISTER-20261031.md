@@ -1,4 +1,4 @@
-# Registro único de evidencias VPS y B1 — 31/10/2026
+# Registro único de evidencias VPS y B1 — 31/10/2026 (anexo GitHub 02/11/2026)
 
 **Propósito:** evitar pedir otra vez comprobaciones ya realizadas. Fuente de verdad de qué está probado, cuándo, sobre qué entorno y qué NO demuestra. No repetir una prueba PASS mientras no cambien sus bytes, configuración, credenciales, dependencias o topología relevantes. Ningún hallazgo de inventario sustituye la aceptación funcional.
 
@@ -34,7 +34,7 @@
 | Compose efectivo en host | `/etc/dokploy/compose/cleanops360-f4fxmd/code/deploy/staging/compose.yaml` existe, root:root, modo 0644; **contenido/hash aún no inspeccionado** |
 | Traefik | `dokploy-traefik` running, v3.6.7 |
 
-**Hallazgo conjunto probado:** la web no tiene montajes y por ello no recibe el sink existente del Agent; la web observada no está instalada con el paquete privado B1 esperado. No crear un segundo Agent ni reemplazar Compose en bloque.
+**Hallazgo conjunto probado:** la web no tiene montajes Docker y no recibe el sink del Agent mediante dicho montaje. La presencia del paquete privado B1 dentro de la imagen no fue inspeccionada: no inferir su ausencia sin revisar imagen y arranque. No crear un segundo Agent ni sustituir Compose.
 
 ## Evidencia anterior documentada (NO repetir por rutina)
 
@@ -51,12 +51,14 @@ Las siguientes son evidencias registradas por propietario/historial, no reejecut
 
 ## Estado de GitHub y decisiones de B1
 
-- Rama de preparación: `prep/b1-persistence-recovered-20261031` (ver HEAD remoto actual al actuar).
+### Anexo GitHub — 02/11/2026 (no sustituye los inventarios VPS del 31/10)
+
+- Rama histórica: `prep/b1-persistence-recovered-20261031`. Candidato del PR #33 verificado: `prep/b1-final-closure-20261102`, commit `b81a602eec93fc7fac755d0b8a7bf0c3fe311039`, base `staging` `d3ea84b38fd1574db1610f03b59c8c4a5050ac72`. Los datos operativos INV-01/INV-02 conservan su fecha 31/10; las siguientes referencias de código son del candidato GitHub, no pruebas de despliegue.
 - Web overlay existente: `deploy/staging/compose.b1-web.yaml`; NO aplicarlo sin reconciliar con Compose efectivo de Dokploy.
 - Inicio del runtime: `instrumentation.ts` llama `startTrustedB1Server(installation)`, que arranca el listener mTLS a partir del bloque `ingress` del manifiesto v2.
 - Listener: `lib/b1/ingress-listener.ts` se arranca y se cierra desde `startTrustedB1Server`; no desplegado (faltan certificados reales, pin del proxy y ForwardAuth de Traefik).
 - `lib/b1/reviewed-site-installation.ts`: cambio `df3733e99ba115098d12fa1aaa4c6b1e13ab48dd` exige manifiesto v2 y binder persistente; no certificado con suite nueva.
-- SQL `db/migrations/0003_ingress_persistence.review.sql` (propuesta `proposed:true` en el manifiesto de migraciones, hash fijado, NO ejecutable ni instalado; S-1/S-2/S-3 resueltos en local el 02/11/2026, ver B1-INGRESS-SQL-HARDENING-20261102.md) permanece propuesta, no afirmar instalado. 02/11/2026: añade rol operador NOLOGIN, auditoría y referencia de autorización (D1); nuevo sha256 `40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca`; las pruebas PG16 desechables previas del archivo anterior ya no equivalen a este hash (reejecutadas, ver B1-INGRESS-SQL-HARDENING).
+- Actualización del 02/11/2026: SQL `db/migrations/0003_ingress_persistence.review.sql` (propuesta `proposed:true` en el manifiesto de migraciones, hash fijado, NO ejecutable ni instalado; S-1/S-2/S-3 resueltos en local el 02/11/2026, ver B1-INGRESS-SQL-HARDENING-20261102.md) permanece propuesta, no afirmar instalado. 02/11/2026: añade rol operador NOLOGIN, auditoría y referencia de autorización (D1); nuevo sha256 `40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca`; las pruebas PG16 desechables previas del archivo anterior ya no equivalen a este hash (reejecutadas, ver B1-INGRESS-SQL-HARDENING).
 - `AUTH-GATE-05`: **OPEN** hasta recepción de aprobación y aceptación funcional de staging.
 
 ## Regla anti-repetición para cualquier nuevo chat o agente

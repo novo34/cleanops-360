@@ -16,7 +16,7 @@ const migrations = [
     profile: "b1",
     proposed: true,
     file: "0002_first_actor.review.sql",
-    sha256: "44ae87c4ed37d2be2a2025293e60ad5135bf009caf0dc59264811f49c1a5e3d2",
+    sha256: "4868b8dcbfa473695179d61c2a451db53e83c0698f04b8409e87e4e12b18b5b6",
   },
   {
     id: "0003_ingress_persistence",

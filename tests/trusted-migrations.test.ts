@@ -17,6 +17,7 @@ it('FIRST-ACTOR incremental is hash-verified as a proposal and cannot enter the 
   expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
   expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
   expect(proposed[0].sql).toContain('CREATE TABLE identity_provision.first_actor_history')
+   expect(proposed[0].sql).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
   expect(proposed[0].sql).toContain("r.state<>'ABORTED'")
   expect(proposed[0].sql).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
   expect(proposed[0].sql).not.toMatch(/DELETE FROM identity_provision/)

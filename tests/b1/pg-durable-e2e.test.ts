@@ -76,7 +76,7 @@ test('PG16 durable B1: enrolled credential, shared replay, revocation and unavai
       await Promise.allSettled(pools.map(pool => pool.end()))
       try {
         if (created) await admin.query(`DROP DATABASE ${database} WITH (FORCE)`)
-        await admin.query('DROP ROLE IF EXISTS ingress_test_login, cleanops_identity_service, cleanops_ddl_owner')
+        await admin.query('DROP ROLE IF EXISTS ingress_test_login, cleanops_ingress_operator, cleanops_identity_service, cleanops_auth_maintenance, cleanops_auth_broker, cleanops_ddl_owner')
       } finally { await admin.end() }
     }
   })

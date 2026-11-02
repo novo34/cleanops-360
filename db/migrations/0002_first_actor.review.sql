@@ -144,7 +144,8 @@ BEGIN
     length(coalesce(p->>'ciphertext','')) NOT BETWEEN 90 AND 314 OR
     coalesce(p->>'ciphertext','') !~ '^[a-f0-9]+$' OR coalesce(jsonb_array_length(p->'recovery'),-1)<> (r.manifest->'policy'->>'recovery_count')::integer OR
     p->>'keyVersion' IS DISTINCT FROM r.manifest->'keyCatalog'->>'keyVersion' THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;
- PERFORM (p->>'methodId')::uuid;
+  IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;
+  PERFORM (p->>'methodId')::uuid;
  IF EXISTS(SELECT 1 FROM jsonb_array_elements_text(p->'recovery') x WHERE x !~ '^[a-f0-9]{64}$') OR
     (SELECT count(DISTINCT x) FROM jsonb_array_elements_text(p->'recovery') x)<>jsonb_array_length(p->'recovery') THEN RAISE EXCEPTION 'FIRST_ACTOR_RECOVERY'; END IF;
  UPDATE identity_provision.first_actor SET state='PREPARED',material=p,owner_backend=NULL,owner_xid=NULL WHERE singleton;

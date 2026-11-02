@@ -125,13 +125,15 @@ test('B1 server owns the reviewed mTLS ingress lifecycle from the private manife
     const completed: string[] = []
     const info = console.info
     console.info = (...args: unknown[]) => { completed.push(String(args[0])) }
-    try { handler('SIGTERM') } finally { setTimeout(() => { console.info = info }, 0) }
-    running = false
-    for (let i = 0; i < 50 && process.listenerCount('SIGTERM') !== before.term.length; i++) await new Promise(resolve => setTimeout(resolve, 20))
-    assert.equal(process.listenerCount('SIGTERM'), before.term.length)
-    // Observable completion marker (D4), emitted after drain, pool close and key zeroing.
-    for (let i = 0; i < 50 && !completed.includes('B1_SHUTDOWN_COMPLETE'); i++) await new Promise(resolve => setTimeout(resolve, 20))
-    assert.ok(completed.includes('B1_SHUTDOWN_COMPLETE'))
+    try {
+      handler('SIGTERM')
+      running = false
+      for (let i = 0; i < 50 && process.listenerCount('SIGTERM') !== before.term.length; i++) await new Promise(resolve => setTimeout(resolve, 20))
+      assert.equal(process.listenerCount('SIGTERM'), before.term.length)
+      // Observable completion marker (D4), emitted after drain, pool close and key zeroing.
+      for (let i = 0; i < 50 && !completed.includes('B1_SHUTDOWN_COMPLETE'); i++) await new Promise(resolve => setTimeout(resolve, 20))
+      assert.ok(completed.includes('B1_SHUTDOWN_COMPLETE'))
+    } finally { console.info = info }
     await assert.rejects(send('/forward-auth', proxy, cookie))
     await assert.rejects(stopTrustedB1Server(), /B1_SERVER_NOT_STARTED/)
     assert.equal((await handleAuth(new Request('https://fixture.invalid/auth/me'), 'getCurrentIdentity')).status, 503)

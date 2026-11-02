@@ -14,7 +14,7 @@ def container(*, live=True, healthy=False, mounts=()):
             "Mounts": list(mounts)}
 
 
-def fixture(web_sink=False, wrong_writer=False):
+def fixture(web_sink=False, wrong_writer=False, web_healthy=True):
     sink = mod.SINK
     mounts = [{"Destination": "/run/cleanops-agent", "Type": "volume",
                "Name": sink, "RW": False}] if web_sink else []
@@ -24,7 +24,7 @@ def fixture(web_sink=False, wrong_writer=False):
         "agent": container(mounts=[{"Destination": "/run/cleanops-agent",
                                     "Type": "volume", "Name": sink,
                                     "RW": not wrong_writer}]),
-        "web": container(mounts=mounts),
+        "web": container(healthy=web_healthy, mounts=mounts),
     }
 
 
@@ -40,6 +40,9 @@ class WebReadinessTest(unittest.TestCase):
 
     def test_current_web_without_sink_is_blocked(self):
         self.assertFalse(mod.evaluate(fixture(), volume()))
+
+    def test_unhealthy_web_is_blocked(self):
+        self.assertFalse(mod.evaluate(fixture(web_sink=True, web_healthy=False), volume()))
 
     def test_agent_must_have_rw_sink(self):
         self.assertFalse(mod.evaluate(fixture(web_sink=True, wrong_writer=True), volume()))
