@@ -42,10 +42,11 @@ http:
           X-Cleanops-B1-Assertion: ""     # an empty value removes any client-supplied assertion first
   routers:
     cleanops360-b1-guarded:
-      # Existing authenticated-resource routes (verified in app/ on this branch).
-      # Do NOT guard /auth/login or /mfa/* here: they are authentication bootstrap routes.
-      # Additional B1 operations require an explicit per-operation mapping before activation.
-      rule: Host(`cleanops.nuvurent.com`) && (Path(`/auth/me`) || PathPrefix(`/auth/access`) || PathPrefix(`/me/sessions`) || PathPrefix(`/me/trusted-devices`))
+      # All real B1 HTTP operations use handleAuth -> requestScope -> assertion verifier,
+      # including /auth/login and /mfa/* (not just post-login resources).
+      # Do not activate until the independent operator enrolled a valid device
+      # credential and the full private ingress/SQL package is accepted.
+      rule: Host(`cleanops.nuvurent.com`) && (PathPrefix(`/auth/`) || PathPrefix(`/mfa/`) || PathPrefix(`/me/`))
       entryPoints: [websecure]
       priority: 1000                    # above the existing websecure router; same service, same port 3000
       tls:
