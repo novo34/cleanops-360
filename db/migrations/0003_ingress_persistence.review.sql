@@ -1,8 +1,12 @@
--- PROPOSAL ONLY. Not installed, not part of SQL14 or trusted-migrations.
--- Requires independent review of schema/ACL, operator authorization and retention.
--- Proposed narrowly scoped claim/read grant only; no operator role, pool or cleanup.
--- Existing SQL14 schemas and cleanops_ddl_owner are prerequisites.
-BEGIN;
+-- PROPOSED B1 incremental, not authorized/applied. Uses MIGRATIONS-01 journal.
+-- No BEGIN/COMMIT: the canonical migration runner owns the transaction and writes
+-- the journal row after this file. A COMMIT here would commit a half-registered
+-- journal, and a role left switched would make the runner's own UPDATE fail.
+-- Requires SQL14 (roles, schemas) and an installer that may SET ROLE to
+-- cleanops_ddl_owner and ALTER FUNCTION ... OWNER TO cleanops_auth_broker, exactly
+-- like SQL14 itself. Requires independent review of schema/ACL and retention.
+-- Runtime receives only claim/read. Credential writes stay owner-only: no operator
+-- role, pool or channel is created here (pending approved contract).
 SET LOCAL ROLE cleanops_ddl_owner;
 CREATE TABLE identity_private.ingress_claims (
  issuer text NOT NULL CHECK(length(issuer) BETWEEN 1 AND 256),
@@ -11,8 +15,8 @@ CREATE TABLE identity_private.ingress_claims (
  expires_at bigint NOT NULL CHECK(expires_at > 0),
  PRIMARY KEY(issuer,audience,nonce)
 );
--- Claims are never deleted here, including expired ones. A later authorized
--- retention procedure may delete ONLY expired claims using trusted server time.
+-- Claims are never deleted by the runtime. auth_api.ingress_gc (cleanops_auth_maintenance
+-- only) deletes ONLY claims expired more than 60 s ago, in bounded batches, on server time.
 CREATE TABLE identity_private.ingress_credentials (
  issuer text NOT NULL CHECK(length(issuer) BETWEEN 1 AND 256),
  audience text NOT NULL CHECK(length(audience) BETWEEN 1 AND 256),
@@ -25,6 +29,10 @@ CREATE TABLE identity_private.ingress_credentials (
  PRIMARY KEY(issuer,audience,id)
 );
 REVOKE ALL ON identity_private.ingress_claims,identity_private.ingress_credentials FROM PUBLIC;
+-- SQL14 pattern: tables belong to cleanops_ddl_owner; definer functions belong to
+-- cleanops_auth_broker, which receives only the table privileges its functions use.
+GRANT SELECT,INSERT,DELETE ON identity_private.ingress_claims TO cleanops_auth_broker;
+GRANT SELECT,INSERT,UPDATE ON identity_private.ingress_credentials TO cleanops_auth_broker;
 
 CREATE FUNCTION auth_api.ingress_claim(i text,a text,n text,e bigint) RETURNS text
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -79,13 +87,39 @@ BEGIN
  PERFORM auth_api.ingress_enroll(i,a,new_id,t,e,r);
  -- One transaction: failed replacement rolls back revocation as well.
 END $$;
+-- Bounded retention. Safe against replay: ingress_claim itself refuses any expiry that is
+-- not in the future, so a purged claim can never be claimed again. No FOR UPDATE:
+-- it would need UPDATE on the table; the DELETE row-locks and the batch bounds lock time.
+CREATE FUNCTION auth_api.ingress_gc(max_rows integer) RETURNS bigint
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE purged bigint;
+BEGIN
+ IF max_rows IS NULL OR max_rows NOT BETWEEN 1 AND 10000 THEN RAISE EXCEPTION 'INGRESS_DENIED'; END IF;
+ DELETE FROM identity_private.ingress_claims c USING (
+   SELECT ctid AS row_id FROM identity_private.ingress_claims
+   WHERE expires_at < floor(extract(epoch FROM clock_timestamp())*1000) - 60000
+   LIMIT max_rows) expired
+ WHERE c.ctid = expired.row_id;
+ GET DIAGNOSTICS purged = ROW_COUNT;
+ RETURN purged;
+END $$;
+
+-- Leave cleanops_ddl_owner before changing ownership (it cannot SET ROLE to the new owner).
+RESET ROLE;
+ALTER FUNCTION auth_api.ingress_claim(text,text,text,bigint) OWNER TO cleanops_auth_broker;
+ALTER FUNCTION auth_api.ingress_credential_read(text,text,text) OWNER TO cleanops_auth_broker;
+ALTER FUNCTION auth_api.ingress_enroll(text,text,text,bigint,bigint,text) OWNER TO cleanops_auth_broker;
+ALTER FUNCTION auth_api.ingress_revoke(text,text,text,bigint) OWNER TO cleanops_auth_broker;
+ALTER FUNCTION auth_api.ingress_recover(text,text,text,bigint,text,bigint,bigint,text) OWNER TO cleanops_auth_broker;
+ALTER FUNCTION auth_api.ingress_gc(integer) OWNER TO cleanops_auth_broker;
 REVOKE ALL ON FUNCTION auth_api.ingress_claim(text,text,text,bigint),
  auth_api.ingress_credential_read(text,text,text),
  auth_api.ingress_enroll(text,text,text,bigint,bigint,text),
  auth_api.ingress_revoke(text,text,text,bigint),
- auth_api.ingress_recover(text,text,text,bigint,text,bigint,bigint,text) FROM PUBLIC;
--- PROPOSED ONLY: two read/claim entry points, never enrollment or recovery.
--- This file must not be installed until an independent ACL/security review approves it.
+ auth_api.ingress_recover(text,text,text,bigint,text,bigint,bigint,text),
+ auth_api.ingress_gc(integer) FROM PUBLIC;
+-- PROPOSED ONLY: two read/claim entry points for the runtime, never enrollment or recovery.
 GRANT EXECUTE ON FUNCTION auth_api.ingress_claim(text,text,text,bigint),
  auth_api.ingress_credential_read(text,text,text) TO cleanops_identity_service;
-COMMIT;
+-- Retention belongs to the existing SQL14 maintenance role, never to the runtime.
+GRANT EXECUTE ON FUNCTION auth_api.ingress_gc(integer) TO cleanops_auth_maintenance;

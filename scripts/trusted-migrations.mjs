@@ -18,6 +18,13 @@ const migrations = [
     file: "0002_first_actor.review.sql",
     sha256: "44ae87c4ed37d2be2a2025293e60ad5135bf009caf0dc59264811f49c1a5e3d2",
   },
+  {
+    id: "0003_ingress_persistence",
+    profile: "b1",
+    proposed: true,
+    file: "0003_ingress_persistence.review.sql",
+    sha256: "9b592b85ab263a8fcfdcf8695b304bae896410c3afa2522602659384647d9bca",
+  },
 ]
 
 export async function loadTrustedMigrations(directory = new URL("../db/migrations/", import.meta.url), profile = "foundation", proposalsOnly = false) {

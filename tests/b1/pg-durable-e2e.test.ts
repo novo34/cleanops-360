@@ -23,8 +23,8 @@ test('PG16 durable B1: enrolled credential, shared replay, revocation and unavai
       created = true
       const version = await owner.query('SHOW server_version_num')
       assert.equal(Math.floor(Number(version.rows[0].server_version_num) / 10000), 16)
-      await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service')
-      await owner.query(await readFile(new URL('../../docs/proposals/b1-ingress-persistence.review.sql', import.meta.url), 'utf8'))
+      await owner.query('CREATE ROLE cleanops_ddl_owner NOLOGIN; CREATE ROLE cleanops_auth_broker NOLOGIN; CREATE ROLE cleanops_auth_maintenance NOLOGIN; CREATE ROLE cleanops_identity_service NOLOGIN; CREATE ROLE ingress_test_login LOGIN IN ROLE cleanops_identity_service; CREATE SCHEMA identity_private AUTHORIZATION cleanops_ddl_owner; CREATE SCHEMA auth_api AUTHORIZATION cleanops_ddl_owner; REVOKE ALL ON SCHEMA identity_private,auth_api FROM PUBLIC; GRANT USAGE ON SCHEMA auth_api TO cleanops_identity_service,cleanops_auth_maintenance; GRANT USAGE ON SCHEMA identity_private TO cleanops_auth_broker; GRANT USAGE,CREATE ON SCHEMA auth_api TO cleanops_auth_broker')
+      await owner.query(await readFile(new URL('../../db/migrations/0003_ingress_persistence.review.sql', import.meta.url), 'utf8'))
       const p = new Pool({ ...config, user: 'ingress_test_login', database })
       const q = new Pool({ ...config, user: 'ingress_test_login', database })
       pools.push(p, q)

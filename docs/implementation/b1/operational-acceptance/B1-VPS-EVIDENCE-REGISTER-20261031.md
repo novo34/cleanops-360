@@ -56,7 +56,7 @@ Las siguientes son evidencias registradas por propietario/historial, no reejecut
 - Inicio del runtime: `instrumentation.ts` llama `startTrustedB1Server(installation)`, que arranca el listener mTLS a partir del bloque `ingress` del manifiesto v2.
 - Listener: `lib/b1/ingress-listener.ts` se arranca y se cierra desde `startTrustedB1Server`; no desplegado (faltan certificados reales, pin del proxy y ForwardAuth de Traefik).
 - `lib/b1/reviewed-site-installation.ts`: cambio `df3733e99ba115098d12fa1aaa4c6b1e13ab48dd` exige manifiesto v2 y binder persistente; no certificado con suite nueva.
-- SQL `docs/proposals/b1-ingress-persistence.review.sql` permanece propuesta, no afirmar instalado.
+- SQL `db/migrations/0003_ingress_persistence.review.sql` (propuesta `proposed:true` en el manifiesto de migraciones, hash fijado, NO ejecutable ni instalado; S-1/S-2/S-3 resueltos en local el 02/11/2026, ver B1-INGRESS-SQL-HARDENING-20261102.md) permanece propuesta, no afirmar instalado.
 - `AUTH-GATE-05`: **OPEN** hasta recepción de aprobación y aceptación funcional de staging.
 
 ## Regla anti-repetición para cualquier nuevo chat o agente

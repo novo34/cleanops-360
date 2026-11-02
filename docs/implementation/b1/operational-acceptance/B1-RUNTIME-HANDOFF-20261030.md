@@ -29,7 +29,7 @@ ceremony_idempotency tiene semántica de ceremonia/respuesta. No se reutilizan
 como nonce de ingreso o perfil prelogin. No cambian contratos aprobados SQL14,
 pool, backend, sesiones, loader, runtime pin ni handler ForwardAuth.
 
-Propuesta única de persistencia: `docs/proposals/b1-ingress-persistence.review.sql`.
+Propuesta única de persistencia: `db/migrations/0003_ingress_persistence.review.sql`.
 Tablas separadas para claims scope/nonce y perfiles prelogin scope/ID; PK única
 resuelve concurrencia global, no se borran/extienden claims existentes. Vigencia
 se contrasta también con reloj PG. Perfiles: emisión owner-only, lectura,
