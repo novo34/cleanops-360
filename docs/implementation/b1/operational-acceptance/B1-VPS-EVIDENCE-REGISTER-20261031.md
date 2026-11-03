@@ -69,3 +69,15 @@ Las siguientes son evidencias registradas por propietario/historial, no reejecut
 4. No inferir configuración instalada por código en GitHub; no declarar PASS operativo por un test sintético.
 5. Nunca mostrar, subir a GitHub o registrar secretos, claves privadas, tokens ni contenido personal.
 6. No cambiar VPS, SQL, certs, staging ni main sin autorización explícita específica. Conservar servicios y datos existentes.
+
+
+## Actualización operativa posterior — 03/11/2026
+
+**Consultar primero el [registro incremental de staging del 03/11/2026](./B1-STAGING-OPERATIONS-20261103.md).** Los datos del inventario de 31/10 y el anexo del 02/11 representan el estado de aquellos días; no eliminarlos ni tratarlos como estado actual si existe una evidencia posterior.
+
+- **SQL14, SQL0002 y SQL0003:** instalaciones en staging reportadas PASS por el propietario. SQL0002/0003 mediante runner oficial, con `B1_SQL0002_0003_APPLIED`, `B1_MIGRATIONS_COMPLETE_PASS`; **no repetir SQL**, no equiparar con merge de PR #34.
+- **Primer administrador B1:** generación 3 `PREPARED` → `CONFIRMED` (Aegis SHA-256) → **`COMMITTED`**, con `B1_FIRST_ADMINISTRATOR_COMMITTED_PASS` y recibo privado sellado; generaciones 1/2 terminadas por `ABORTED` y conservadas como historial. **No repetir prepare, confirm ni commit**.
+- **No cerrados por ese PASS:** login real web, despliegue Next/B1, Traefik ForwardAuth/mTLS, aceptación independiente PR006/PR007 y **AUTH-GATE-05 OPEN**.
+- **Custodia:** recibos y material de recuperación siguen en rutas privadas `/run`, no en GitHub. No publicar secretos ni hacer copias improvisadas.
+
+La evidencia procede de salidas de terminal del propietario, no de una nueva lectura independiente del VPS por este anexo.
