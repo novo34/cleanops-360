@@ -91,7 +91,7 @@ describe("trusted migration manifest", () => {
 const source = { sourceCommit: "a".repeat(40), runnerSha256: "b".repeat(64), approvalReference: "OFFLINE_TEST_ONLY" }
 const expectedColumns = [["id","text"],["checksum","text"],["profile","text"],["source_file","text"],["source_commit","text"],["runner_sha256","text"],["approval_reference","text"],["applied_by","text"],["applied_at","timestamp with time zone"]]
 type Entry = { id: string; checksum: string; profile: string; source_file: string; source_commit: string; runner_sha256: string; approval_reference: string; applied_by: string; applied_at: Date }
-function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; pause?: () => Promise<void> } = {}) {
+function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; databaseName?: string; pause?: () => Promise<void> } = {}) {
   let durable = { registry: false, rows: [] as Entry[], effects: 0 }
   let locked: symbol | null = null
   const calls: string[] = [], releases: boolean[] = []
@@ -102,6 +102,7 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
       async query(sql: string, values: unknown[] = []) {
         calls.push(sql)
         if (sql.startsWith("BEGIN")) { tx = structuredClone(durable); return { rows: [] } }
+        if (sql === "SELECT current_database() AS database") return { rows: [{ database: options.databaseName ?? "cleanops_staging" }] }
         if (sql === migrationLock) {
           if (locked) return { rows: [{ locked: false }] }
           locked = owner; return { rows: [{ locked: true }] }
@@ -270,6 +271,15 @@ describe("migration journal protocol (offline simulation)", () => {
     const again = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })
     expect(again.applied).toEqual([])
     expect(db.state().effects).toBe(2)
+  })
+  it("B1 application rejects a non-staging database before the advisory lock or any writes", async () => {
+    const db = database({ databaseName: "other_database" })
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source }))
+      .rejects.toThrow("B1_STAGING_DATABASE_REQUIRED")
+    expect(db.calls).toContain("ROLLBACK")
+    expect(db.calls).not.toContain(migrationLock)
+    expect(db.calls.some(q => /^(INSERT|CREATE|UPDATE|ALTER)/.test(q))).toBe(false)
+    expect(db.state().effects).toBe(0)
   })
   it("B1 defaults to read-only and rejects implicit or generic application approval", async () => {
     const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
