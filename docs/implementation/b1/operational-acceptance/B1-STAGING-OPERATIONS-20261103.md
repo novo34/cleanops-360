@@ -309,3 +309,20 @@ Comprobación local de solo lectura del manifiesto `/run/cleanops-b1-private/ins
 **Importante:** el formato observado es compatible con una representación textual de huella SHA-256, **pero no se ha demostrado que sea la huella del certificado cliente mTLS real de Traefik**, que es la identidad que debe pinnearse, y no la del certificado público Let's Encrypt. No modificar aún el manifiesto, no reemitir certificados ni fabricar una autorización. Primero comparar el valor canonizado (minúsculas, sin `:`) contra la huella calculada a partir del certificado cliente verdadero y los metadatos de custodia, sin imprimir huellas ni certificados; si coincide, preparar corrección privada revisada con respaldo/rollback.
 
 **Pendiente independiente:** `ingress.evidenceReference` aún vacío/no aprobado por la comprobación, por lo que sigue **STOP de arranque** incluso si se normaliza la huella. El último PASS acreditado continúa siendo `B1_PRIVATE_LOADER_PASS`, no el listener.
+
+
+## 19. Inventario de Traefik real y límites de conectividad — propietario, 03/11/2026
+
+**Comprobación de solo lectura aportada:** contenedor `dokploy-traefik`, estado `running`, imagen `traefik:v3.6.7`.
+
+| Atributo | Observación |
+| --- | --- |
+| Montaje Docker socket | bind `/var/run/docker.sock` |
+| Configuración dinámica | bind `/etc/dokploy/traefik/dynamic` |
+| Configuración principal | bind `/etc/traefik/traefik.yml` |
+| Redes Traefik | `dokploy-network`, `supabase-supabase-2bvnab` |
+| Red del OpenBao Agent | `cleanops360_staging_custody` (observación anterior) |
+
+**Interpretación:** Traefik no está unido directamente a la red de custodia de OpenBao Agent; esto no implica por sí mismo fallo, porque el listener mTLS B1 podría requerir una topología/segmento diferente. La existencia de un directorio dinámico no demuestra configuración ForwardAuth ni certificado cliente mTLS. No equiparar el certificado público de Let's Encrypt con el certificado cliente del proxy exigido por `ingress.proxyCertificateSha256`.
+
+**Pendiente:** inventariar sin revelar contenido sensible las referencias `http.services`/middlewares `forwardAuth`, `http.serversTransports` y `tls.certificates`/client TLS en la configuración efectiva, además de la accesibilidad de red propuesta. No editar Traefik, redes, claves, archivos privados ni el manifiesto B1 antes de evidencia de identidad y aprobación.
