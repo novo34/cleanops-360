@@ -25,17 +25,10 @@ services:
       # Exact Next listener URLs, not public origins and never inferred from headers.
       CLEANOPS_AUTH_INTERNAL_ORIGINS: '${CLEANOPS_AUTH_INTERNAL_ORIGINS:-["http://0.0.0.0:3000","https://0.0.0.0:3000","http://127.0.0.1:3000"]}'
       # B1 runtime intentionally remains closedBackend until approved integration.
-    volumes:
-      - type: volume
-        source: identity_agent_sink
-        target: /run/cleanops-agent
-        read_only: true
-        volume: {nocopy: true}
     expose:
       - "3000"
     networks:
       - private
-      - identity_bao
     security_opt:
       - no-new-privileges:true
     cap_drop:
