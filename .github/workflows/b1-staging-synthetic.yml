@@ -73,6 +73,9 @@ jobs:
           29414d738d3f560c78cc9ddbcd3e05f1432319336f00c777ccfaae83dddb34e6  scripts/test-staging-postgres.py
           c1ef9e6653c901fa5739b8f4b40eb3e2c83f318f0d084361c86fd098ba5d92eb  tests/static/test_staging_synthetic.py
           44ae87c4ed37d2be2a2025293e60ad5135bf009caf0dc59264811f49c1a5e3d2  db/migrations/0002_first_actor.review.sql
+          # This immutable historical attempt must not certify the currently reviewed SQL0002.
+          # A fresh authorized attempt with the trusted manifest is required.
+          test "$(sha256sum db/migrations/0002_first_actor.review.sql | cut -d' ' -f1)" = 4868b8dcbfa473695179d61c2a451db53e83c0698f04b8409e87e4e12b18b5b6 || { echo 'SQL0002 native evidence stale: new authorized attempt required' >&2; exit 1; }
           965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa  docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql
           HASHES
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
