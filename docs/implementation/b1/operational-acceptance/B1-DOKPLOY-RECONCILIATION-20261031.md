@@ -69,7 +69,7 @@ El manifiesto contiene `ingress.proxyCertificateSha256` con **95 caracteres hexa
 
 ### Corrección funcional de entrega, 03/11/2026 — sin activación
 
-La plantilla B1 ahora especifica `forwardAuth.preserveRequestMethod: true`. Traefik ForwardAuth reenvía `GET` por defecto cuando la opción es `false`; B1 vincula el método original al contexto firmado. Omitir este ajuste impediría la compatibilidad de operaciones `POST` como el login. Mantener `forwardBody: true` y `maxBodySize: 65536`; el límite del listener y los métodos se verificarán con pruebas positivas y negativas antes de activar. Referencia técnica: documentación de Traefik ForwardAuth v3.
+La plantilla B1 especifica `forwardAuth.preserveRequestMethod: true` (opción existente en Traefik v3.6.14, comprobada en su código fuente). **Corrección 03/11/2026:** el adaptador (`lib/b1/ingress-forward-auth.ts`) obtiene el método exclusivamente de `X-Forwarded-Method` único, que Traefik fija siempre con el método original, y no lee el método de la propia llamada ForwardAuth; por tanto la opción **no** es requisito para que funcionen los `POST` (la afirmación previa de que omitirla impediría el login era incorrecta). Se conserva solo para mantener alineado el método de la llamada; la sanitización y unicidad de `X-Forwarded-Method` deben seguir cubiertas por las pruebas negativas previas a la activación. Mantener `forwardBody: true` y `maxBodySize: 65536`; el límite del listener y los métodos se verificarán con pruebas positivas y negativas antes de activar. Referencia técnica: documentación de Traefik ForwardAuth v3.
 
 El overlay de web existente `deploy/staging/compose.b1-web.yaml` fija `stop_signal: SIGTERM` y `stop_grace_period: 40s` para dar margen al cierre B1 de hasta 30 s. **No se ha comprobado aún que Next complete el drenaje antes de terminar**: aceptar solo cuando se observe `B1_SHUTDOWN_COMPLETE` en la prueba controlada.
 
@@ -105,3 +105,26 @@ El overlay de web existente `deploy/staging/compose.b1-web.yaml` fija `stop_sign
 6. Después de parchear Traefik, y separadamente, activar B1 sólo con mTLS y evidencia aprobados; probar la ausencia de credential, header spoofing y POST real; cerrar AUTH-GATE-05 únicamente con evidencias PASS completas.
 
 **Nota de alcance del GHSA:** la vulnerabilidad requiere una topología upstream confiable y decisiones basadas en `X-Forwarded-Prefix`; el `authRequestHeaders` explícito de la plantilla B1 **no incluye esa cabecera**. Eso reduce exposición de este diseño concreto, pero no convierte a `v3.6.7` en versión mantenida ni acredita todas las demás rutas de Traefik.
+
+
+### Verificación local y bloqueos — 03/11/2026 (sin acceso a VPS, secretos ni staging)
+
+Base: `5d9f531` (configuración de permisos) + cherry-pick lineal de `prep/b1-dokploy-traefik-handoff-20261103` (8 commits, 3 archivos; revisados antes de integrar). Todo se ejecutó en un contenedor efímero con Node 24.22 (igual que CI) y sin credenciales.
+
+**Defectos verificados y corregidos**
+1. `tests/static/test_b1_web_compose.py` fallaba **ya en `cc51574`** (antes del handoff): el overlay `compose.b1-web.yaml` añade a propósito la red `identity_bao` y el montaje de solo lectura del sink del Agent, y el test los trataba como diferencias inesperadas. Ahora los afirma explícitamente (sink `identity_agent_sink` en `/run/cleanops-agent` read-only, red `identity_bao`) y cubre `stop_signal: SIGTERM` / `stop_grace_period: 40s`.
+2. `tests/b1/ingress-private-v2.test.ts` (solo se ejecuta como root; CI no-root lo omite): el fixture dejaba `installation.json` como 0600/uid actual y el renderizador exige `root:999 0440`, por lo que rechazaba antes de comprobar nada. El test ahora aplica esa propiedad real al manifiesto. No se modificó código de producción.
+3. La afirmación de que omitir `preserveRequestMethod` rompería los `POST` era **incorrecta**: `lib/b1/ingress-forward-auth.ts` toma el método de `X-Forwarded-Method` (único, fijado por Traefik con el método original). La opción se mantiene como alineación, no como requisito; plantilla y párrafo corregidos. Debe confirmarse en el sandbox con pruebas negativas de `X-Forwarded-Method` duplicado/ausente.
+
+**Confirmado**: GHSA-6384-m2mw-rf54 (CVE-2026-35051, alta): afectadas ≤ v3.6.13 y v3.7.0-ea.1…rc.1; corregidas v3.6.14 y v3.7.0-rc.2; condiciones de explotación según el aviso (requiere que `X-Forwarded-Prefix` llegue al servicio de auth y se use para decidir). La plantilla fija `authRequestHeaders` sin esa cabecera y `insecureSkipVerify: false`. `preserveRequestMethod` existe en el código de Traefik v3.6.14.
+
+**Resultados locales**: `npm run test:b1` 336 tests, 334 pass, 0 fail, 2 skipped; `python3 -m unittest discover -s tests/static` 146 tests OK (3 skipped); `npm run typecheck` sin errores; `npm run lint` 0 errores (1 aviso previo en `components/auth-panel.tsx`, no tocado). `docker compose config` (offline) valida el overlay combinado.
+
+**Preparación de la actualización de Traefik (sin ejecutar)**: la secuencia ya documentada arriba (inventario sanitizado, candidato 3.6.x ≥ 3.6.14 o 3.7.x fijado por digest, ensayo en sandbox, rollback por digest, ventana autorizada) sigue vigente. No se ejecutó nada contra el VPS.
+
+**Bloqueos que requieren intervención humana**
+- Inventario sanitizado del `dokploy-traefik` real (cmd, puertos, mounts, redes, versión de Dokploy y si es contenedor o servicio Swarm) y elección de versión objetivo (3.6.14+ de menor alcance vs. 3.7.x con soporte).
+- Ventana y autorización del propietario para actualizar Traefik; ensayo previo en sandbox con providers file/docker/swarm.
+- `ingress.evidenceReference` genuina, procedencia/huella del certificado cliente mTLS real de Traefik, CA/SAN y rutas de material TLS.
+- Revisión independiente del SHA y pruebas negativas de cabeceras con el proxy parcheado; `AUTH-GATE-05` sigue OPEN.
+- Red de la sesión: `doc.traefik.io` no es accesible (fuera de la lista de dominios permitidos); la documentación oficial de ForwardAuth se contrastó vía el código fuente en GitHub. Añadir ese dominio si se quiere citar la documentación oficial.

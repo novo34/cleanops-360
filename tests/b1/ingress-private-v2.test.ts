@@ -62,6 +62,12 @@ test('render script output loads through the real installation loader and verifi
   const fixture = await createInstallationFixture()
   try {
     const dir = dirname(fixture.manifestSource.path)
+    // The renderer (and the real loader) require the manifest to be really root:999 0440,
+    // exactly as in the deployed package; the fixture's default 0600/current-user file is
+    // only valid for non-root tests, which skip this one.
+    const manifestSource = { ...fixture.manifestSource, uid: 0, gid: 999, mode: 0o440 as const }
+    await fs.chown(manifestSource.path, 0, 999)
+    await fs.chmod(manifestSource.path, 0o440)
     const report = checkEmailCompatibility([{ id: 'fixture', emailNormalized: 'A@example.com' }])
     const owned = async (name: string, value: unknown) => {
       const path = join(dir, name)
@@ -76,7 +82,7 @@ test('render script output loads through the real installation loader and verifi
     const manifest = { ...fixture.manifest, integration: { source: integration, sha256: '0'.repeat(64), approval: 'SYNTHETIC TEST ONLY' } }
     await fixture.write(manifest)
     const factoryUrl = new URL('../../lib/b1/integration-candidate.ts', import.meta.url).href
-    const base = { packageDir: dir, manifestSource: fixture.manifestSource, report: reportSource, approval: approvalSource, factoryUrl }
+    const base = { packageDir: dir, manifestSource, report: reportSource, approval: approvalSource, factoryUrl }
     // Refuses mismatched approval, an existing target and anything inside the checkout; writes nothing then.
     await assert.rejects(renderB1Integration({ ...base, approval: await owned('bad.json', { reference: 'x', policyVersion: report.policyVersion, snapshotSha256: '1'.repeat(64), emptyInstallationApproved: false }) }), /B1_INTEGRATION_RENDER_REFUSED/)
     await assert.rejects(fs.stat(integration.path))
@@ -88,7 +94,7 @@ test('render script output loads through the real installation loader and verifi
     await assert.rejects(renderB1Integration(base), /B1_INTEGRATION_RENDER_REFUSED/) // never overwrites
 
     await fixture.write({ ...manifest, integration: { ...manifest.integration, sha256: rendered.sha256 } })
-    const spec = await loadReviewedB1Installation(fixture.manifestSource) // real loader: strict file + sha256 + exact exports
+    const spec = await loadReviewedB1Installation(manifestSource) // real loader: strict file + sha256 + exact exports
     assert.equal(spec.inputs.normalizeEmail('A@EXAMPLE.COM'), 'A@example.com')
     const records = new Map<string, IngressCredentialRecord>(), claimed = new Set<string>()
     const credentials = { read: async (s: { id: string }) => records.get(s.id) ?? null,

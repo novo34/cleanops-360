@@ -48,6 +48,14 @@ class WebCompose(unittest.TestCase):
             self.assertTrue(private[0]['read_only'])
             self.assertFalse(private[0].get('bind', {}).get('create_host_path', False))
             self.assertNotIn('ports', web)
+            # The Agent token sink is consumed read-only over the existing private Bao network;
+            # no Agent is defined here. Bounded shutdown lets the mTLS listener drain (<=30 s).
+            sink = [v for v in web['volumes'] if v['target'] == '/run/cleanops-agent']
+            self.assertEqual(len(sink), 1)
+            self.assertEqual(sink[0]['source'], 'identity_agent_sink')
+            self.assertTrue(sink[0]['read_only'])
+            self.assertIn('identity_bao', web['networks'])
+            self.assertEqual((web.pop('stop_signal'), web.pop('stop_grace_period')), ('SIGTERM', '40s'))
             self.assertEqual(web.pop('pull_policy'), 'never')
             self.assertEqual(web.pop('image'), env['CLEANOPS_STAGING_WEB_IMAGE'])
             # Compose JSON omits zero numeric values (and false booleans).
@@ -56,6 +64,10 @@ class WebCompose(unittest.TestCase):
             self.assertEqual(web['ulimits']['core'].get('soft', 0), 0)
             self.assertEqual(web['ulimits']['core'].get('hard', 0), 0)
             web['volumes'].remove(private[0])
+            web['volumes'].remove(sink[0])
+            if not web['volumes']:
+                del web['volumes']
+            del web['networks']['identity_bao']
             del web['ulimits']
             self.assertEqual(base['services']['web'], web)
 
@@ -66,7 +78,7 @@ class WebCompose(unittest.TestCase):
             del operative['networks']['identity_bao']
             del operative['volumes']['identity_agent_sink']
             operative['services']['web']['volumes'] = []
-            operative['services']['web']['networks'].pop('identity_bao')
+            operative['services']['web']['networks'].pop('identity_bao', None)  # absent before the overlay binds it
             operative['services']['web']['labels'] = {'traefik.local-preserved': 'fixture'}
             operative_path = Path(directory, 'operative.json')
             operative_path.write_text(json.dumps(operative))
