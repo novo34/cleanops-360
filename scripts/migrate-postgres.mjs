@@ -106,6 +106,11 @@ export async function runMigrations({ connect, mode, profile = "foundation", sou
     await client.query(mode === "plan" ? "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY" : "BEGIN")
     begun = true
     await client.query("SET LOCAL search_path=public,pg_catalog,pg_temp")
+    // An installation approval cannot authorize writing to another database.
+    if (profile === "b1" && mode === "apply") {
+      const scope = await client.query("SELECT current_database() AS database")
+      if (scope.rows[0]?.database !== "cleanops_staging") fail("B1_STAGING_DATABASE_REQUIRED")
+    }
     if (mode === "apply" && (await client.query(migrationLock)).rows[0]?.locked !== true) fail("MIGRATION_BUSY")
     const rows = await history(client)
     const seen = validateHistory(rows, profile, queue, baseline)
