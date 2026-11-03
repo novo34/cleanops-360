@@ -172,3 +172,22 @@ Inspección posterior de **solo lectura**. Resultados aportados por el propietar
 **Siguiente verificación admisible:** comprobar el nombre del volumen mediante metadatos y probar lectura con identidad 999 de un contenedor efímero, montando el **mismo volumen read-only**, sin imprimir, copiar ni exponer el token. No reiniciar Agent, no cambiar permisos ni activar la web hasta resolver este control.
 
 **Condición de seguridad:** que uid/gid sean iguales permite potencialmente lectura, pero es necesario revisar controles del lector, montaje, aislamiento de redes y exposición de credenciales antes de integrar con la web.
+
+
+## 11. Verificación aislada del volumen compartido de OpenBao Agent — propietario, 03/11/2026
+
+**Prueba ejecutada:** lectura de metadatos del montaje del Agent y contenedor de comprobación efímero basado en imagen existente `cleanops360-f4fxmd-web`, con `--network none`, `--read-only`, `--user 999:999`, `--cap-drop ALL`, `--security-opt no-new-privileges` y montaje read-only del volumen existente. No se imprimió ni se copió el contenido del token.
+
+| Control | Resultado |
+| --- | --- |
+| Volumen identificado por Docker | `cleanops360-f4fxmd_identity_agent_sink` |
+| Presencia y legibilidad del token como usuario `999:999` | **PASS — `TOKEN_COMPARTIDO=ACCESIBLE`** |
+| Red del contenedor de prueba | Ninguna (`--network none`) |
+| Rootfs y montaje del sink | Solo lectura |
+| Creación de Agent adicional, credenciales, cambios de permisos | **NO** |
+| Validación de conexión OpenBao desde la web final | **NO REALIZADA** |
+| Validación de acceso del lector B1 a rutas y políticas | **NO REALIZADA** |
+
+**Conclusión:** el volumen Docker que usa Agent es legible desde un contenedor distinto cuando se monta read-only con identidad `999:999`. Descartar la hipótesis de que sea imprescindible copiar el token o crear otro Agent. Este PASS no demuestra una integración productiva, ni una autorización para montar el volumen en la web sin revisión del alcance.
+
+**Siguiente acción:** preparar y revisar **fuera del despliegue activo** un overlay mínimo del Compose operativo que reutilice el volumen existente y preserve routers/servicios; construir y ensayar la imagen B1 de SHA fijado de forma aislada, con revisión independiente y rollback antes de aplicar. No repetir esta prueba si no cambian volumen, identidad ni permisos.
