@@ -15,6 +15,20 @@
 # are enforced exactly as before: another container on the overlay can open a TCP connection but
 # cannot pass the client-certificate check (denied before any database access).
 #
+# SECURITY HOLD (verified 03/11/2026):
+# - Running Dokploy proxy is traefik:v3.6.7, AFFECTED by GHSA-6384-m2mw-rf54
+#   (ForwardAuth X-Forwarded-Prefix spoofing with trustForwardHeader=false
+#   in certain upstream proxy topologies). Upstream fix for v3.6 is v3.6.14.
+#   Source: https://github.com/traefik/traefik/security/advisories/GHSA-6384-m2mw-rf54
+# - Never enable THIS example with affected Traefik version. Independently plan
+#   and validate a Dokploy-compatible patched version, controlled restart,
+#   service-by-service regression checks, and exact rollback before B1 activation.
+# - Our B1 adapter strips x-forwarded-* before minting an assertion, which limits
+#   direct transfer of X-Forwarded-Prefix into the issuer, but cannot prove
+#   provider-side sanitization or exclude all relevant bypasses.
+# - Require negative tests for spoofed X-Forwarded-Prefix, For/Host/Proto/Uri,
+#   duplicate header handling, assertion injection and malformed/oversized bodies.
+#
 # 03/11/2026 operational reconciliation (PREPARATION ONLY):
 # - The deployed Dokploy Compose is exactly staging SHA d3ea84b38fd1574db1610f03b59c8c4a5050ac72;
 #   sha256 of the effective compose.yaml = 03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c.
