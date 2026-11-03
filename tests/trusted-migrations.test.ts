@@ -126,6 +126,12 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
           if (options.failSql) throw Error("private server diagnostic")
           return { rows: [] }
         }
+        if (sql.includes("CREATE SCHEMA identity_provision AUTHORIZATION cleanops_first_actor_owner;") ||
+            sql.includes("CREATE TABLE identity_private.ingress_claims (")) {
+          tx.effects++
+          if (options.failSql) throw Error("private server diagnostic")
+          return { rows: [] }
+        }
         if (sql.startsWith("UPDATE public._migrations") || sql.startsWith("ALTER TABLE public._migrations")) return { rows: [] }
         if (sql === "COMMIT") {
           if (options.failCommit) throw Error("commit failed")
@@ -250,6 +256,20 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(result.applied).toEqual([])
     expect(db.state().effects).toBe(0)
     await expect(runMigrations({ connect: db.connect, source })).rejects.toThrow("UNEXPECTED_MIGRATION_HISTORY")
+  })
+  it("applies promoted SQL0002/0003 once after recorded SQL14 with immutable journal provenance", async () => {
+    const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
+    const db = database()
+    db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
+    const first = await runMigrations({ connect: db.connect, profile: "b1", source })
+    expect(first.applied).toEqual(["0002_first_actor", "0003_ingress_persistence"])
+    expect(first.baseline?.applied).toBe(true)
+    expect(db.state().effects).toBe(2)
+    expect(db.state().rows.map(r => r.id)).toEqual(["b1_sql14", "0002_first_actor", "0003_ingress_persistence"])
+    expect(db.state().rows.slice(1).every(r => r.approval_reference === source.approvalReference && r.source_commit === source.sourceCommit)).toBe(true)
+    const again = await runMigrations({ connect: db.connect, profile: "b1", source })
+    expect(again.applied).toEqual([])
+    expect(db.state().effects).toBe(2)
   })
   it("offline plan verifies artifacts without requiring or connecting a database", async () => {
     const connect = vi.fn()
