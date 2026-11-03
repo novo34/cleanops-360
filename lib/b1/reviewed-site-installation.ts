@@ -80,9 +80,9 @@ export async function loadReviewedB1Installation(source: PrivateFileSource, runt
     // *before* importing private executable code. Tests can inspect synthetic files
     // without running as the deployed non-root UID.
     const sinkUid = m.sink?.uid, sinkGid = m.sink?.gid
-    if (!Number.isSafeInteger(sinkUid) || sinkUid <= 0 ||
-        !Number.isSafeInteger(sinkGid) || sinkGid <= 0 ||
-        (runtimeIdentity && (sinkUid !== runtimeIdentity.uid || sinkGid !== runtimeIdentity.gid || source.gid !== runtimeIdentity.gid))) throw invalid()
+    if (typeof sinkUid !== 'number' || !Number.isSafeInteger(sinkUid) || sinkUid <= 0 ||
+        typeof sinkGid !== 'number' || !Number.isSafeInteger(sinkGid) || sinkGid <= 0 ||
+        (runtimeIdentity && (sinkUid !== runtimeIdentity.uid || sinkGid !== runtimeIdentity.gid))) throw invalid()
     if (!rootGroupReadOnly(m.integration.source, sinkGid)) throw invalid()
     // Data only: semantics (bind address, pin, scope, lifetimes) are validated once by
     // prepareB1IngressListenerPlan and the issuer at startup; here only the shape and
@@ -122,7 +122,8 @@ export async function reviewedB1Installation(): Promise<InstallationBootstrapInp
   // HTTP headers. The Agent sink, web and every root-group private file must
   // agree with this same reviewed UID/GID or the installation remains closed.
   const uid = process.getuid?.(), gid = process.getgid?.()
-  if (!Number.isSafeInteger(uid) || uid <= 0 || !Number.isSafeInteger(gid) || gid <= 0) return undefined
+  if (typeof uid !== 'number' || !Number.isSafeInteger(uid) || uid <= 0 ||
+      typeof gid !== 'number' || !Number.isSafeInteger(gid) || gid <= 0) return undefined
   try { return await loadReviewedB1Installation(Object.freeze({ ...manifestSource, gid }), { uid, gid }) }
   catch { return undefined }
 }
