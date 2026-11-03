@@ -175,6 +175,8 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(foundation.freshnessCalls[0].sql).toContain("NOT $1::boolean OR NOT EXISTS")
     expect(foundation.freshnessCalls[0].values).toEqual([false])
     expect(b1.freshnessCalls[0].values).toEqual([true])
+    expect(foundation.calls).toContain("SET LOCAL search_path=public,pg_catalog,pg_temp")
+    expect(b1.calls).toContain("SET LOCAL search_path=pg_catalog,public,pg_temp")
   })
   it("plans an absent registry without DDL, writes or creating history", async () => {
     const db = database()
@@ -350,7 +352,7 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(batch).toContain("pg_catalog.pg_try_advisory_xact_lock(1869764913,1)")
     expect(batch).toContain(baseline.sha256)
     expect(batch).toContain("pg_catalog.current_database()<>'cleanops_staging'")
-    expect(batch).toContain("SET LOCAL search_path=pg_catalog,public,pg_temp;")
+    expect(batch).toContain("SET LOCAL search_path=public,pg_catalog,pg_temp;")
     expect(batch).toContain("pg_catalog.to_regclass('public._migrations')")
     record.STAGING_SYNTHETIC.composeProject = "other"
     await expect(sql14InstallBatch(record, source)).rejects.toThrow("AUTHORIZATION_REQUIRED")
