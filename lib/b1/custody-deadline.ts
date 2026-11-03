@@ -31,10 +31,15 @@ export function createCustodyDeadlinePool(pool: IdentityPool, lease: PrivateKeyL
         async query(sql: string, values?: unknown[]) {
           // Cleanup remains possible after the lease expires or the transaction
           // is aborted. No data/key access is needed to roll back.
-          if (sql === 'ROLLBACK' || /^ROLLBACK TO SAVEPOINT [a-z][a-z0-9_]*$/.test(sql) ||
-              /^RELEASE SAVEPOINT [a-z][a-z0-9_]*$/.test(sql)) {
+          if (sql === 'ROLLBACK') {
             try { return await connection.query(sql, values) }
             finally { begun = false }
+          }
+          // PostgreSQL rejects SET LOCAL while a transaction is aborted.
+          // Permit only savepoint cleanup without changing the transaction state.
+          if (/^(?:ROLLBACK TO SAVEPOINT|RELEASE SAVEPOINT) [a-z][a-z0-9_]*$/.test(sql)) {
+            if (!begun) throw unavailable()
+            return connection.query(sql, values)
           }
           budget()
           if (sql === 'BEGIN ISOLATION LEVEL READ COMMITTED') {
