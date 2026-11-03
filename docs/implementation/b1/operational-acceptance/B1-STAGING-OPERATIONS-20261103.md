@@ -102,3 +102,30 @@
 **Conclusión:** la web que responde en staging es una imagen antigua sin archivos privados ni montajes B1. El primer administrador está **COMMITTED en PostgreSQL**, pero el login B1 de la web en ejecución **no está integrado ni probado**. No marcar AUTH-GATE-05 como PASS.
 
 **Próximo paso sin cambios:** capturar por metadatos la fuente/identidad del Compose operativo Dokploy, labels/router Traefik y configuración de la imagen web; comparar con `deploy/staging/compose.yaml`, `compose.b1-web.yaml` y el SHA revisado. Preparar delta mínimo reversible con tratamiento específico del Agent `tmpfs` y sus controles de token. No modificar web, Traefik, redes, SQL, OpenBao ni imágenes antes de reconciliar, revisar y autorizar la intervención.
+
+
+## 8. Procedencia efectiva del despliegue web y routers — propietario, 03/11/2026
+
+**Fuente:** segunda inspección Docker/Git de solo lectura aportada por el propietario. Complementa, **no reemplaza**, el inventario de la sección 7.
+
+| Atributo | Valor observado |
+| --- | --- |
+| Compose project | `cleanops360-f4fxmd` |
+| Compose service | `web` |
+| Compose efectivo señalado por Docker | `/etc/dokploy/compose/cleanops360-f4fxmd/code/deploy/staging/compose.yaml` |
+| Directorio de trabajo Compose | `/etc/dokploy/compose/cleanops360-f4fxmd/code/deploy/staging` |
+| SHA de checkout Dokploy local | `d3ea84b38fd1574db1610f03b59c8c4a5050ac72` |
+| Imagen web efectiva | `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290` |
+| Imagen construida | `2026-10-20T14:29:38.383721771Z` |
+| Tag local | `cleanops360-f4fxmd-web:latest` |
+| Routers existentes | `cleanops360-f4fxmd-15-web`, `cleanops360-f4fxmd-15-websecure` |
+| Servicios Traefik existentes | `cleanops360-f4fxmd-15-web`, `cleanops360-f4fxmd-15-websecure` |
+| Label de red Docker Traefik | `traefik.docker.network` presente |
+| TLS de router seguro | `tls.certresolver` presente; **valor no inspeccionado** |
+| Middleware router HTTP | `middlewares` presente; **valor no inspeccionado** |
+
+**Separación crítica:** la etiqueta de Docker prueba qué ruta de Compose fue utilizada, pero **no prueba que el contenido actual de ese archivo sea idéntico al que originó el contenedor**. El checkout `d3ea84b...` y la imagen de octubre no incluyen el módulo B1 revisado `cc51574...`; no aplicar `git pull` ni `docker compose up` para “sincronizar” sin reconciliación y rollback.
+
+**Siguiente evidencia faltante:** hash y estructura sanitizada del Compose operativo, rutas y middleware efectivos (sin datos privados), contraste contra el overlay `deploy/staging/compose.b1-web.yaml` y topología/identidad runtime. El estado de Traefik ForwardAuth/mTLS sigue no comprobado y la validación del agente no debe darse por resuelta por el operador temporal.
+
+**Acción permitida aquí:** solo lectura y documentación. No recreación, merge, despliegue, ni modificación de redes o certificados.
