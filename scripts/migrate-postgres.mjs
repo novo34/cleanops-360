@@ -122,7 +122,9 @@ export async function runMigrations({ connect, mode, profile = "foundation", sou
     if (profile === "b1" && mode === "apply") verifyB1MigrationServer(client, approvedServerSha256)
     await client.query(mode === "plan" ? "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY" : "BEGIN")
     begun = true
-    await client.query("SET LOCAL search_path=pg_catalog,public,pg_temp")
+    await client.query(profile === "b1"
+      ? "SET LOCAL search_path=pg_catalog,public,pg_temp"
+      : "SET LOCAL search_path=public,pg_catalog,pg_temp")
     // An installation approval cannot authorize writing to another database.
     if (profile === "b1" && mode === "apply") {
       const scope = await client.query("SELECT pg_catalog.current_database() AS database")
@@ -174,7 +176,7 @@ export async function sql14InstallBatch(record, source) {
   // Original SQL bytes, including both boundary statements, remain intact.
   return `BEGIN;
 SET LOCAL standard_conforming_strings=on;
-SET LOCAL search_path=pg_catalog,public,pg_temp;
+SET LOCAL search_path=public,pg_catalog,pg_temp;
 DO $migration_guard$ BEGIN
  IF NOT pg_catalog.pg_try_advisory_xact_lock(1869764913,1) THEN RAISE EXCEPTION 'MIGRATION_BUSY'; END IF;
  IF pg_catalog.current_database()<>${literal(canonical.databaseName)} THEN RAISE EXCEPTION 'DATABASE_MISMATCH'; END IF;
