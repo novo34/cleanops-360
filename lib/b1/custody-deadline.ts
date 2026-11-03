@@ -31,7 +31,8 @@ export function createCustodyDeadlinePool(pool: IdentityPool, lease: PrivateKeyL
         async query(sql: string, values?: unknown[]) {
           // Cleanup remains possible after the lease expires or the transaction
           // is aborted. No data/key access is needed to roll back.
-          if (sql === 'ROLLBACK') {
+          if (sql === 'ROLLBACK' || /^ROLLBACK TO SAVEPOINT [a-z][a-z0-9_]*$/.test(sql) ||
+              /^RELEASE SAVEPOINT [a-z][a-z0-9_]*$/.test(sql)) {
             try { return await connection.query(sql, values) }
             finally { begun = false }
           }
