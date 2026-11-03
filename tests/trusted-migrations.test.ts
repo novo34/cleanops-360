@@ -10,24 +10,25 @@ import { readFile } from "node:fs/promises"
 
 const temporaryDirectories: string[] = []
 
-it('FIRST-ACTOR incremental is hash-verified as a proposal and cannot enter the B1 apply queue', async () => {
-  expect(await loadTrustedMigrations(undefined,'b1')).toEqual([])
-  const proposed=await loadTrustedMigrations(undefined,'b1',true)
-  expect(proposed.map(p=>p.id)).toEqual(['0002_first_actor','0003_ingress_persistence'])
-  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
-  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
-  expect(proposed[0].sql).toContain('CREATE TABLE identity_provision.first_actor_history')
-   expect(proposed[0].sql).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
-  expect(proposed[0].sql).toContain("r.state<>'ABORTED'")
-  expect(proposed[0].sql).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
-  expect(proposed[0].sql).not.toMatch(/DELETE FROM identity_provision/)
-  expect(proposed[0].sql).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
-  const plan=await runMigrations({mode:'offline-plan',profile:'b1'})
-  expect(plan.migrations).toEqual([])
-  expect(plan.proposed[0]).toMatchObject({id:'0002_first_actor',executable:false})
-  expect(plan.proposed[1]).toMatchObject({id:'0003_ingress_persistence',executable:false})
+it('B1 incremental SQL0002/0003 is hash-verified and enabled only in the reviewed B1 queue', async () => {
+  const enabled = await loadTrustedMigrations(undefined, 'b1')
+  expect(enabled.map(m => m.id)).toEqual(['0002_first_actor', '0003_ingress_persistence'])
+  expect(await loadTrustedMigrations(undefined, 'b1', true)).toEqual([])
+  const first = enabled[0].sql
+  expect(first).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
+  expect(first).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
+  expect(first).toContain('CREATE TABLE identity_provision.first_actor_history')
+  expect(first).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
+  expect(first).toContain("r.state<>'ABORTED'")
+  expect(first).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
+  expect(first).not.toMatch(/DELETE FROM identity_provision/)
+  expect(first).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
+  const plan = await runMigrations({mode:'offline-plan',profile:'b1'})
+  expect(plan.migrations.map(m => m.id)).toEqual(['0002_first_actor', '0003_ingress_persistence'])
+  expect(plan.proposed).toEqual([])
+  expect(plan.baseline).toMatchObject({id:'b1_sql14', automatic:false})
   // S-3: the canonical runner owns the transaction; the incremental must not nest one.
-  const ingress=proposed[1].sql
+  const ingress=enabled[1].sql
   expect(ingress.replace(/--.*$/gm,'')).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\s*;/)
   expect(ingress).toContain('RESET ROLE;')
   expect(ingress.indexOf('RESET ROLE;')).toBeLessThan(ingress.indexOf('ALTER FUNCTION auth_api.ingress_claim'))
@@ -243,8 +244,9 @@ describe("migration journal protocol (offline simulation)", () => {
   it("accepts the exact recorded B1 baseline without rerunning it or mixing foundation", async () => {
     const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
     const db = database(); db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
-    const result = await runMigrations({ connect: db.connect, profile: "b1", source })
+    const result = await runMigrations({ connect: db.connect, mode: "plan", profile: "b1" })
     expect(result.baseline?.applied).toBe(true)
+    expect(result.pending).toEqual(["0002_first_actor", "0003_ingress_persistence"])
     expect(result.applied).toEqual([])
     expect(db.state().effects).toBe(0)
     await expect(runMigrations({ connect: db.connect, source })).rejects.toThrow("UNEXPECTED_MIGRATION_HISTORY")
