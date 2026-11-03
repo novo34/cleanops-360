@@ -300,3 +300,12 @@ Comprobación local de solo lectura del manifiesto `/run/cleanops-b1-private/ins
 **STOP del arranque mTLS:** no iniciar el listener, no modificar el manifiesto ni inventar un pin/referencia. Determinar de forma segura si la huella está ausente, tiene formato incorrecto o procede de un certificado distinto del proxy Traefik. La identidad que se pinnea es el **certificado cliente del proxy que se conecta por mTLS al listener interno**, no el certificado público Let's Encrypt del router HTTPS. Un nombre de resolver `letsencrypt` no acredita ese material. Confirmar la procedencia de la referencia de evidencia con revisión independiente antes de alterar el paquete privado.
 
 **No repetir:** SQL14/SQL0002/0003, alta administrador `COMMITTED`, build/inspección imagen, comprobación de volumen, montajes y cargador privado `B1_PRIVATE_LOADER_PASS`.
+
+
+## 18. Diagnóstico del formato del pin cliente mTLS — propietario, 03/11/2026
+
+**Comprobación de solo lectura:** `ingress.proxyCertificateSha256` tiene tipo `str`, longitud **95** y formato `HEX_CON_DOS_PUNTOS` (32 octetos hexadecimales separados por `:`). Esto explica el `PIN_PROXY=REVISAR` del preflight anterior, que esperaba 64 caracteres `[a-f0-9]` sin separadores.
+
+**Importante:** el formato observado es compatible con una representación textual de huella SHA-256, **pero no se ha demostrado que sea la huella del certificado cliente mTLS real de Traefik**, que es la identidad que debe pinnearse, y no la del certificado público Let's Encrypt. No modificar aún el manifiesto, no reemitir certificados ni fabricar una autorización. Primero comparar el valor canonizado (minúsculas, sin `:`) contra la huella calculada a partir del certificado cliente verdadero y los metadatos de custodia, sin imprimir huellas ni certificados; si coincide, preparar corrección privada revisada con respaldo/rollback.
+
+**Pendiente independiente:** `ingress.evidenceReference` aún vacío/no aprobado por la comprobación, por lo que sigue **STOP de arranque** incluso si se normaliza la huella. El último PASS acreditado continúa siendo `B1_PRIVATE_LOADER_PASS`, no el listener.
