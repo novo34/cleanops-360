@@ -80,3 +80,25 @@
 - No escribir ninguna credencial, `request.json`, `result.json`, token, URI `otpauth`, QR, clave ni código de recuperación en GitHub, PRs, logs o chats.
 - Mantener `main` y `staging` intactos; no activar Traefik, ForwardAuth ni desplegar la imagen desde una rama documental.
 - Estado formal: **primer actor COMMITTED**, **B1/AUTH-GATE-05 OPEN**; toda aceptación adicional exige evidencias operativas nuevas.
+
+
+## 7. Inventario web efectivo posterior al COMMITTED — propietario, 03/11/2026
+
+**Fuente:** ejecución SSH de solo lectura aportada por el propietario sobre `cleanops360-f4fxmd-web-1`; los resultados se refieren al contenedor ejecutándose, **no** al árbol Git ni al contenedor operador B1.
+
+| Verificación | Resultado observado |
+| --- | --- |
+| Estado web | `running`, Docker health `healthy` |
+| Imagen en ejecución | `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290` |
+| Usuario del proceso configurado | `cleanops` |
+| Montajes Docker | **NINGUNO** |
+| Redes | `cleanops360-f4fxmd_default`, `cleanops360_staging_private`, `dokploy-network` |
+| `/app/lib/b1/first-actor.ts` | **AUSENTE** |
+| `/app/lib/b1/private-runtime.ts` | **AUSENTE** |
+| `/run/cleanops-b1-private/installation.json` | **AUSENTE** |
+| `/run/cleanops-agent/token` | **AUSENTE** |
+| HTTP interno `http://127.0.0.1:3000/login` | **200** (página disponible, **no** autentificación comprobada) |
+
+**Conclusión:** la web que responde en staging es una imagen antigua sin archivos privados ni montajes B1. El primer administrador está **COMMITTED en PostgreSQL**, pero el login B1 de la web en ejecución **no está integrado ni probado**. No marcar AUTH-GATE-05 como PASS.
+
+**Próximo paso sin cambios:** capturar por metadatos la fuente/identidad del Compose operativo Dokploy, labels/router Traefik y configuración de la imagen web; comparar con `deploy/staging/compose.yaml`, `compose.b1-web.yaml` y el SHA revisado. Preparar delta mínimo reversible con tratamiento específico del Agent `tmpfs` y sus controles de token. No modificar web, Traefik, redes, SQL, OpenBao ni imágenes antes de reconciliar, revisar y autorizar la intervención.
