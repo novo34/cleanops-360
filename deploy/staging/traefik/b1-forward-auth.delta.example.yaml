@@ -53,6 +53,9 @@ http:
         address: "https://cleanops-b1-ingress:<ingress.port>/forward-auth"
         # Original client-supplied forwarding headers are discarded by Traefik and rebuilt once.
         trustForwardHeader: false
+        # B1 binds the exact original request method into its signed assertion.
+        # Traefik ForwardAuth otherwise forwards GET by default even for POSTs.
+        preserveRequestMethod: true
         tls:
           ca: <path of the CA that signed the listener certificate, read-only in Traefik>
           cert: <path of the pinned Traefik client certificate (SHA-256 = manifest proxyCertificateSha256)>
