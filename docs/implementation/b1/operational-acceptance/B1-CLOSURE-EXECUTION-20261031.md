@@ -1,5 +1,8 @@
 # B1 — Consolidated closure execution, 2026-10-31
 
+> **Actualización operativa 03/11/2026:** Este runbook se conserva como historia de preparación, pero SQL0002/0003 ya figuran como aplicados en staging y el primer actor ha alcanzado `COMMITTED` según evidencias de terminal. Leer primero [registro operativo 03/11](./B1-STAGING-OPERATIONS-20261103.md). **No repetir los pasos PASS.** Login real, ForwardAuth/mTLS, despliegue y aceptación formal continúan pendientes. AUTH-GATE-05 OPEN.
+
+
 State: **PREPARED FOR CONTROLLED ACCEPTANCE; AUTH-GATE-05 OPEN**.
 This is an execution handoff, NOT a deployment authorization or an acceptance certificate.
 
