@@ -150,3 +150,25 @@ Inspección posterior de **solo lectura**. Resultados aportados por el propietar
 **Implicaciones:** preservar routers actuales, HTTPS y middleware redirect, redes y web existente. UID/GID coincide con contrato de B1 pero **no prueba** que el token OpenBao sea accesible por el contenedor web: actualmente carece de montajes y el Agent usa un `tmpfs` propio. Hace falta diseño de custodia revisado, no un montaje improvisado del volumen.
 
 **Pendiente previo al cambio:** contrastar contenido efectivo del Compose existente con el árbol versionado de `d3ea84b...`, metadatos de montajes y topología del Agent; producir un delta reversible exacto y autorización específica. Ningún cambio operativo autorizado por esta documentación.
+
+
+## 10. Agent: montaje real y custodia — propietario, 03/11/2026
+
+**Última observación (solo lectura):**
+
+| Atributo | Resultado |
+| --- | --- |
+| Agent | `cleanops360-f4fxmd-openbao-agent-1`, `running`, `USER=999:999` |
+| Red Agent | `cleanops360_staging_custody` |
+| Montaje `/run/cleanops-agent` | **Volumen Docker RW**, no `tmpfs` según `.Mounts` |
+| Otros montajes | `/etc/cleanops-agent/agent.hcl` bind RO; `/run/cleanops-agent-tls` bind RO |
+| `HostConfig.Tmpfs` | Solo `/tmp` |
+| Directorio `/run/cleanops-agent` | UID/GID `999:999`, modo `0700` |
+| Archivo `/run/cleanops-agent/token` | UID/GID `999:999`, modo `0600`; contenido nunca inspeccionado/publicado |
+| Compose en disco vs `HEAD` Git | Ambos SHA256 `03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c` |
+
+**Corrección de interpretación anterior:** el Agent **no** tiene `tmpfs` superpuesto a `/run/cleanops-agent` según las configuraciones observadas. La discrepancia del contenedor temporal de primer actor podría obedecer a una topología, opciones o accesos distintos, y **no debe tratarse como causa raíz demostrada**. El archivo es visible dentro del Agent, pero falta verificar que un segundo consumidor autorizado vea exactamente el mismo volumen y token sin exponer su contenido.
+
+**Siguiente verificación admisible:** comprobar el nombre del volumen mediante metadatos y probar lectura con identidad 999 de un contenedor efímero, montando el **mismo volumen read-only**, sin imprimir, copiar ni exponer el token. No reiniciar Agent, no cambiar permisos ni activar la web hasta resolver este control.
+
+**Condición de seguridad:** que uid/gid sean iguales permite potencialmente lectura, pero es necesario revisar controles del lector, montaje, aislamiento de redes y exposición de credenciales antes de integrar con la web.
