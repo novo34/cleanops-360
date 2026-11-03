@@ -326,3 +326,21 @@ Comprobación local de solo lectura del manifiesto `/run/cleanops-b1-private/ins
 **Interpretación:** Traefik no está unido directamente a la red de custodia de OpenBao Agent; esto no implica por sí mismo fallo, porque el listener mTLS B1 podría requerir una topología/segmento diferente. La existencia de un directorio dinámico no demuestra configuración ForwardAuth ni certificado cliente mTLS. No equiparar el certificado público de Let's Encrypt con el certificado cliente del proxy exigido por `ingress.proxyCertificateSha256`.
 
 **Pendiente:** inventariar sin revelar contenido sensible las referencias `http.services`/middlewares `forwardAuth`, `http.serversTransports` y `tls.certificates`/client TLS en la configuración efectiva, además de la accesibilidad de red propuesta. No editar Traefik, redes, claves, archivos privados ni el manifiesto B1 antes de evidencia de identidad y aprobación.
+
+
+## 20. Búsqueda limitada de ForwardAuth y material mTLS en Traefik — propietario, 03/11/2026
+
+**Evidencia de terminal:** inspección de texto sobre cinco archivos regulares `.yml/.yaml/.toml/.json` de la ruta dinámica montada en `dokploy-traefik`. Sin mostrar contenido, dominios ni certificados.
+
+| Contador textual | Resultado |
+| --- | --- |
+| `ARCHIVOS_CONFIGURACION` | 5 |
+| `FORWARD_AUTH_ARCHIVOS` | **0** |
+| `SERVERS_TRANSPORT_ARCHIVOS` | **0** |
+| `CLIENT_CERTIFICATES_ARCHIVOS` | **0** |
+| `ROOT_CAS_ARCHIVOS` | **0** |
+| `TLS_ARCHIVOS` | **3** |
+
+**Lectura correcta:** no se encontraron referencias textuales conocidas de ForwardAuth, serversTransport, clientCertificates ni rootCAs en ese conjunto de archivos. Los tres hallazgos TLS **no** acreditan autenticación mutua ni identidad de certificado cliente. La búsqueda no interpreta semánticamente Traefik, no inspeccionó toda la configuración principal, flags o providers, y no demuestra ausencia global de capacidades. **El enlace B1 ForwardAuth/mTLS real sigue NO ACREDITADO.**
+
+**Plan secuencial:** conservar el Compose operativo exacto, labels/rutas, web existente y TLS público; reconciliar `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` con el provider real, verificar certificado cliente/CA y fingerprint, resolver `ingress.evidenceReference` mediante revisión con procedencia, y preparar pruebas reversibles/negativas antes de autorizar cualquier modificación. No crear certificados o cambiar el pin por conjetura, no ejecutar SQL ni reabrir `COMMITTED`.
