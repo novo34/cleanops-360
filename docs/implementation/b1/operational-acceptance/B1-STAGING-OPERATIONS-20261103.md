@@ -263,3 +263,21 @@ SALUD=healthy
 **PASS demostrado:** la imagen candidata puede leer ambos montajes en su espacio de nombres con la identidad de servicio `999:999`. La web vigente continúa `running/healthy`. No hubo arranque de Next ni acceso a red.
 
 **No probado:** lectura/validación integral del manifiesto por el cargador B1, validez del módulo de integración y de sus digest, conexión real a OpenBao/PG, listener mTLS, ForwardAuth, login, sesión o acceptance. La siguiente comprobación debe preferir el cargador canónico `reviewedB1Installation()` sin iniciar Next ni aceptar un manifest incompleto; no crear otro validador de producción.
+
+
+## 16. Validación del cargador canónico de instalación B1 — propietario, 03/11/2026
+
+**Ejecución reportada en VPS:** imagen `cleanops360-b1-candidate:cc51574a` con UID/GID `999:999`, sistema de archivos read-only, `--network none`, volumen Agent y paquete privado montados read-only. El proceso Node llamó directamente a `reviewedB1Installation()` desde `lib/b1/reviewed-site-installation.ts` del SHA `cc51574ad85485728d877efbbb69bcb345469596`, sin iniciar el servidor web.
+
+```text
+B1_INSTALLATION_VALIDATION=PASS
+B1_PRIVATE_LOADER_PASS
+ESTADO=running
+SALUD=healthy
+```
+
+**Resultado:** el cargador oficial devolvió una instalación definida. Eso acredita las verificaciones que realmente ejecuta el cargador (estructura del manifiesto, identidad/permisos, corpus, contraseña dummy e integración privada) con la imagen y montajes probados. La web vigente continuó `running/healthy`.
+
+**Límites:** esta prueba no establece conexiones de red, no verifica políticas OpenBao ni conectividad PostgreSQL, no arranca Next/ingress mTLS, no prueba inicio de sesión, cookies, sesiones, Traefik ForwardAuth ni cierre de AUTH-GATE-05. **No presentar el PASS de carga como autorización de despliegue.**
+
+**Siguiente trabajo:** examinar requisitos y metadatos de arranque del listener, proxy y DB, fijar la configuración de red y rollback y preparar una prueba aislada autorizada de composición B1. No modificar staging o Traefik por inferencia.
