@@ -281,3 +281,22 @@ SALUD=healthy
 **Límites:** esta prueba no establece conexiones de red, no verifica políticas OpenBao ni conectividad PostgreSQL, no arranca Next/ingress mTLS, no prueba inicio de sesión, cookies, sesiones, Traefik ForwardAuth ni cierre de AUTH-GATE-05. **No presentar el PASS de carga como autorización de despliegue.**
 
 **Siguiente trabajo:** examinar requisitos y metadatos de arranque del listener, proxy y DB, fijar la configuración de red y rollback y preparar una prueba aislada autorizada de composición B1. No modificar staging o Traefik por inferencia.
+
+
+## 17. Preflight de parámetros del listener mTLS — propietario, 03/11/2026
+
+Comprobación local de solo lectura del manifiesto `/run/cleanops-b1-private/installation.json` aportada por el propietario. El preflight realizó comprobaciones **de presencia y formato**, no validación criptográfica ni conexión al proxy.
+
+| Campo | Resultado observado | Interpretación |
+| --- | --- | --- |
+| `ingress.evidenceReference` | `PENDIENTE` | Sin referencia de evidencia de despliegue reconocible por esta comprobación |
+| `ingress.tlsAuthorizationReference` | `PRESENTE` | Solo presencia, no aprobación independiente demostrada |
+| `ingress.issuer` | `PRESENTE` | Solo presencia |
+| `ingress.binding` | `VALIDO` | Comprobación local de formato, no unicidad real de interfaz Docker |
+| `ingress.port` | `CONFIGURADO` | Rango válido, no disponibilidad del socket |
+| `ingress.allowedPaths` | `CONFIGURADAS` | Lista presente, sin revisión integral de reglas o ForwardAuth |
+| `ingress.proxyCertificateSha256` | `REVISAR` | No cumple el filtro de longitud 64 y hex minúscula, o está ausente; causa exacta pendiente |
+
+**STOP del arranque mTLS:** no iniciar el listener, no modificar el manifiesto ni inventar un pin/referencia. Determinar de forma segura si la huella está ausente, tiene formato incorrecto o procede de un certificado distinto del proxy Traefik. La identidad que se pinnea es el **certificado cliente del proxy que se conecta por mTLS al listener interno**, no el certificado público Let's Encrypt del router HTTPS. Un nombre de resolver `letsencrypt` no acredita ese material. Confirmar la procedencia de la referencia de evidencia con revisión independiente antes de alterar el paquete privado.
+
+**No repetir:** SQL14/SQL0002/0003, alta administrador `COMMITTED`, build/inspección imagen, comprobación de volumen, montajes y cargador privado `B1_PRIVATE_LOADER_PASS`.
