@@ -208,3 +208,23 @@ Inspección posterior de **solo lectura**. Resultados aportados por el propietar
 | Integración privada B1, login web, mTLS | **PENDIENTE DE PRUEBA** |
 
 **Siguiente control:** verificar digest, identidad efectiva y módulos B1 de la imagen candidata con `docker image inspect` y un contenedor desechable **sin red y sin montajes privados**, comparando con el contenedor web vigente. No iniciar el servidor ni conectar secretos antes del plan revisado y reversible.
+
+
+## 13. Inspección aislada de imagen B1 — propietario, 03/11/2026
+
+**Evidencia aportada:** `B1_IMAGE_INSPECTION_PASS` tras la ejecución de una comprobación que inspecciona la imagen `cleanops360-b1-candidate:cc51574a`, crea un contenedor desechable sin red ni montajes privados y verifica legibilidad de los archivos B1 y `.next/BUILD_ID` con identidad `999:999`; al final verifica el estado de la web activa.
+
+| Control | Resultado |
+| --- | --- |
+| Imagen local del commit fijado | **PASS reportado** |
+| UID/GID 999:999 en contenedor efímero | **PASS reportado** |
+| `/app/lib/b1/first-actor.ts` | **PASS reportado** |
+| `/app/lib/b1/private-runtime.ts` | **PASS reportado** |
+| `/app/lib/b1/reviewed-site-installation.ts` | **PASS reportado** |
+| `/app/scripts/b1-private-operator.mjs` | **PASS reportado** |
+| `/app/.next/BUILD_ID` | **PASS reportado** |
+| Arranque web B1 / login / conexiones reales / TLS | **NO PROBADOS** |
+
+La comprobación fue de solo lectura sobre la imagen y no inició el servidor Next ni montó el paquete privado. El PASS del wrapper fue comunicado por el propietario, no se aportaron los IDs/digest y health individuales impresos durante su ejecución. **No asumir que esta prueba acredita login ni un despliegue operativo.**
+
+**Siguiente control:** auditar únicamente los metadatos de propietarios/permisos y las rutas privadas obligatorias del manifiesto de instalación (sin imprimir contenido de secretos), comparándolos con el contrato de `lib/b1/reviewed-site-installation.ts`. Si falta cualquier prerequisito, STOP y preparar solución reversible; no recrear credenciales ni SQL.
