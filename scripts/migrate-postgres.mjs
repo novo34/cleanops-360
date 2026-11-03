@@ -10,6 +10,7 @@ import { loadTrustedMigrations, loadTrustedB1Baseline } from "./trusted-migratio
 const root = fileURLToPath(new URL("../", import.meta.url))
 class MigrationFault extends Error {}
 const fail = code => { throw new MigrationFault(code) }
+const hasExplicitB1Approval = value => typeof value === "string" && !!value.trim() && value.trim() !== "local-cli"
 const hash = value => createHash("sha256").update(value).digest("hex")
 // Stable across both profiles and the SQL14 installer; transaction-scoped, fail-fast.
 export const migrationLock = "SELECT pg_try_advisory_xact_lock(1869764913, 1) AS locked"
@@ -89,11 +90,16 @@ function validateHistory(rows, profile, queue, baseline) {
 }
 
 /** One runner, one transaction. connect is injectable for offline protocol tests only. */
-export async function runMigrations({ connect, mode = "apply", profile = "foundation", source } = {}) {
+export async function runMigrations({ connect, mode, profile = "foundation", source } = {}) {
+  // B1 is read-only by default; only an explicit mode can authorize writes.
+  mode ??= profile === "b1" ? "plan" : "apply"
   if (!["apply", "plan", "offline-plan"].includes(mode)) fail("UNKNOWN_MIGRATION_MODE")
   const { queue, baseline } = await artifacts(profile) // ALL hashes before any connect.
   if (mode === "offline-plan") return { profile, registry: "UNKNOWN_NOT_CONNECTED", migrations: queue.map(({ id, sha256 }) => ({ id, sha256 })), proposed: (await loadTrustedMigrations(undefined, profile, true)).map(({id,sha256,sourceFile}) => ({id,sha256,sourceFile,executable:false})), baseline: baseline ? { id: baseline.id, sha256: baseline.sha256, sourceFile: baseline.sourceFile, automatic: false } : null }
-  if (mode === "apply") validateSource(source)
+  if (mode === "apply") {
+    validateSource(source)
+    if (profile === "b1" && !hasExplicitB1Approval(source.approvalReference)) fail("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+  }
   const client = await connect()
   let begun = false, committed = false
   try {
@@ -163,8 +169,10 @@ export async function main(argv = process.argv.slice(2)) {
   const allowed = ["--apply", "--plan", "--offline-plan", "--emit-sql14-batch", "--profile=foundation", "--profile=b1"]
   if (argv.some(a => !allowed.includes(a)) || new Set(argv).size !== argv.length || argv.filter(a => !a.startsWith("--profile=")).length > 1 || argv.filter(a => a.startsWith("--profile=")).length > 1) fail("MIGRATION_ARGUMENTS_INVALID")
   const profile = argv.includes("--profile=b1") ? "b1" : "foundation"
+  const modes = ["--apply", "--plan", "--offline-plan"].filter(flag => argv.includes(flag))
+  if (modes.length > 1) fail("MIGRATION_ARGUMENTS_INVALID")
   if (argv.includes("--emit-sql14-batch")) {
-    if (argv.some(a => a.startsWith("--profile="))) fail("MIGRATION_ARGUMENTS_INVALID")
+    if (argv.some(a => a.startsWith("--profile=")) || modes.length) fail("MIGRATION_ARGUMENTS_INVALID")
     let input = ""
     for await (const chunk of process.stdin) { input += chunk; if (input.length > 65536) fail("MIGRATION_RECORD_TOO_LARGE") }
     const record = JSON.parse(input)
@@ -172,7 +180,11 @@ export async function main(argv = process.argv.slice(2)) {
     process.stdout.write(await sql14InstallBatch(record, await migrationProvenance([baseline], record.STAGING_SYNTHETIC?.deploymentApprovalReference)))
     return
   }
-  const mode = argv.includes("--plan") ? "plan" : argv.includes("--offline-plan") ? "offline-plan" : "apply"
+  const mode = argv.includes("--plan") ? "plan" : argv.includes("--offline-plan") ? "offline-plan" :
+    (argv.includes("--apply") || profile === "foundation") ? "apply" : "plan"
+  if (profile === "b1" && mode === "apply" && !hasExplicitB1Approval(process.env.MIGRATION_APPROVAL_REFERENCE)) {
+    fail("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+  }
   const entries = await artifacts(profile)
   const source = mode === "apply" ? await migrationProvenance([...entries.queue, ...(entries.baseline ? [entries.baseline] : [])]) : undefined
   let pool
