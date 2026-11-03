@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { loadTrustedMigrations, loadTrustedB1Baseline } from "../scripts/trusted-migrations.mjs"
 import * as trusted from "../scripts/trusted-migrations.mjs"
-import { runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migrate-postgres.mjs"
+import { main, runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migrate-postgres.mjs"
 import { readFile } from "node:fs/promises"
 
 const temporaryDirectories: string[] = []
@@ -244,7 +244,7 @@ describe("migration journal protocol (offline simulation)", () => {
     const db = database()
     const plan = await runMigrations({ connect: db.connect, mode: "plan", profile: "b1" })
     expect(plan.baseline).toMatchObject({ id: "b1_sql14", applied: false, automatic: false })
-    await expect(runMigrations({ connect: db.connect, profile: "b1", source })).rejects.toThrow("EXPLICIT_INSTALLER")
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })).rejects.toThrow("EXPLICIT_INSTALLER")
     expect(db.calls.some(q => q.includes("CREATE ROLE"))).toBe(false)
   })
   it("accepts the exact recorded B1 baseline without rerunning it or mixing foundation", async () => {
@@ -261,15 +261,41 @@ describe("migration journal protocol (offline simulation)", () => {
     const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
     const db = database()
     db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
-    const first = await runMigrations({ connect: db.connect, profile: "b1", source })
+    const first = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })
     expect(first.applied).toEqual(["0002_first_actor", "0003_ingress_persistence"])
     expect(first.baseline?.applied).toBe(true)
     expect(db.state().effects).toBe(2)
     expect(db.state().rows.map(r => r.id)).toEqual(["b1_sql14", "0002_first_actor", "0003_ingress_persistence"])
     expect(db.state().rows.slice(1).every(r => r.approval_reference === source.approvalReference && r.source_commit === source.sourceCommit)).toBe(true)
-    const again = await runMigrations({ connect: db.connect, profile: "b1", source })
+    const again = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })
     expect(again.applied).toEqual([])
     expect(db.state().effects).toBe(2)
+  })
+  it("B1 defaults to read-only and rejects implicit or generic application approval", async () => {
+    const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
+    const db = database()
+    db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
+    const result = await runMigrations({ connect: db.connect, profile: "b1", source })
+    expect(result.applied).toEqual([])
+    expect(result.pending).toEqual(["0002_first_actor", "0003_ingress_persistence"])
+    expect(db.state().effects).toBe(0)
+    expect(db.calls[0]).toContain("READ ONLY")
+
+    const refusedConnect = vi.fn()
+    await expect(runMigrations({ connect: refusedConnect, mode: "apply", profile: "b1",
+      source: { ...source, approvalReference: "local-cli" } }))
+      .rejects.toThrow("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+    expect(refusedConnect).not.toHaveBeenCalled()
+
+    const previous = process.env.MIGRATION_APPROVAL_REFERENCE
+    try {
+      delete process.env.MIGRATION_APPROVAL_REFERENCE
+      await expect(main(["--apply", "--profile=b1"])).rejects.toThrow("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+      await expect(main(["--apply", "--plan", "--profile=b1"])).rejects.toThrow("MIGRATION_ARGUMENTS_INVALID")
+    } finally {
+      if (previous === undefined) delete process.env.MIGRATION_APPROVAL_REFERENCE
+      else process.env.MIGRATION_APPROVAL_REFERENCE = previous
+    }
   })
   it("offline plan verifies artifacts without requiring or connecting a database", async () => {
     const connect = vi.fn()
