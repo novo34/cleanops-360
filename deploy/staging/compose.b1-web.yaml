@@ -5,6 +5,10 @@ services:
   web:
     image: ${CLEANOPS_STAGING_WEB_IMAGE:?Verified prebuilt web image with digest required}
     pull_policy: never
+    # D4: give the private mTLS listener (<=30s) time to drain before Compose
+    # forcibly terminates the web; observe B1_SHUTDOWN_COMPLETE during acceptance.
+    stop_signal: SIGTERM
+    stop_grace_period: 40s
     volumes:
       - type: volume
         source: identity_agent_sink
