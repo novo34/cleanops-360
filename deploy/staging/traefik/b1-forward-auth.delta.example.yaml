@@ -15,6 +15,32 @@
 # are enforced exactly as before: another container on the overlay can open a TCP connection but
 # cannot pass the client-certificate check (denied before any database access).
 #
+# 03/11/2026 operational reconciliation (PREPARATION ONLY):
+# - The deployed Dokploy Compose is exactly staging SHA d3ea84b38fd1574db1610f03b59c8c4a5050ac72;
+#   sha256 of the effective compose.yaml = 03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c.
+# - Existing image sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290
+#   is still serving /login. Never merge into auto-deployed staging to test this example.
+# - The B1 candidate image cleanops360-b1-candidate:cc51574a has built and passed private loader
+#   checks separately; the first administrator is already COMMITTED in PostgreSQL. Do not re-enroll.
+# - The reviewed install-config validator currently REQUIRES uppercase colon-delimited
+#   SHA-256 (32 octets, 95 characters). The manifest has that shape already. Do NOT normalize
+#   it to lower-case unseparated hex; identify and compare the actual Traefik mTLS client
+#   certificate fingerprint before activation.
+# - ingress.evidenceReference is unfilled; an actual independently reviewed and attributable
+#   network/TLS configuration evidence reference is required. Do NOT invent it.
+# - No ForwardAuth, serversTransport, clientCertificates or rootCAs token was found in
+#   five inspected dynamic configuration files. This is not proof of global absence.
+# - The existing Agent sink is volume cleanops360-f4fxmd_identity_agent_sink. A separate
+#   UID/GID 999:999 read-only container confirmed access. No replacement Agent or new token.
+# - Traefik and web share dokploy-network, but verify the manifest ingress.binding CIDR
+#   resolves uniquely to the web interface on THAT network; do not use the Bao custody network
+#   as a guessed ingress transport.
+# - No actual Traefik CLIENT certificate/key/CA locations have been approved or inspected.
+#   TLS placeholders below are deliberate deployment STOPs, not values to fill from LE certs.
+# - Do not copy this example into /etc/dokploy/traefik/dynamic until configuration parser,
+#   certificate SAN, header sanitization, routing, prelogin device enrollment and rollback
+#   have passed independent review and owner authorization.
+#
 # Placeholders in <...> must come from the read-only evidence bundle (step A). The TLS server
 # certificate of the listener MUST carry DNS:cleanops-b1-ingress in its SAN (Traefik verifies the
 # address host name; insecureSkipVerify stays false).
