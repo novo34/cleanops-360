@@ -74,7 +74,11 @@ function device(token: string, key: KeyObject, c: IngressProtocolOptions) {
 /** Bounded streaming digest. Original Request remains available to the B1 handler. */
 export async function requestBinding(request: Request, c: IngressProtocolOptions): Promise<string> {
   const u = new URL(request.url)
-  if (u.origin !== c.audience || u.hash || !/^[A-Z]+$/.test(request.method)) throw denied()
+  // Next may expose its private listener origin behind Traefik. The trusted mTLS
+  // adapter reconstructs the public origin; the signed binding instead binds the
+  // configured public audience, path/query, method, body and exact Host/header set.
+  // Never compare request.url.origin with the public audience here.
+  if (u.hash || !/^[A-Z]+$/.test(request.method)) throw denied()
   const body = createHash('sha256'), reader = request.clone().body?.getReader()
   const deadline = performance.now() + c.bodyTimeoutMs
   let size = 0

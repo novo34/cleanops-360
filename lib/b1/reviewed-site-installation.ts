@@ -32,7 +32,7 @@ export type ReviewedInstallationManifest = Readonly<{
 const invalid = () => new Error('INSTALLATION_CONFIG_INVALID')
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 const approved = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0 && value.length <= 512 && !/[\p{Cc}\p{Cf}]/u.test(value)
-const rootGroupReadOnly = (source: PrivateFileSource) => source?.uid === 0 && source.gid === 999 && source.mode === 0o440
+const rootGroupReadOnly = (source: PrivateFileSource, runtimeGid: number) => source?.uid === 0 && source.gid === runtimeGid && source.mode === 0o440
 const exact = (value: unknown, keys: string) => !!value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).sort().join(',') === keys
 
 /** Import the exact reviewed bytes, avoiding a second path lookup or symlink race.
@@ -58,7 +58,7 @@ async function loadIntegration(spec: ReviewedInstallationManifest['integration']
 }
 
 /** Reuses the canonical bootstrap, corpus, policy and custody contracts. No sockets. */
-export async function loadReviewedB1Installation(source: PrivateFileSource): Promise<InstallationBootstrapInputs> {
+export async function loadReviewedB1Installation(source: PrivateFileSource, runtimeIdentity?: Readonly<{ uid: number; gid: number }>): Promise<InstallationBootstrapInputs> {
   const raw = await readTrustedPrivateFile(source)
   let content: Buffer | undefined, dummy: Buffer | undefined
   try {
@@ -75,15 +75,24 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
         !Number.isSafeInteger(m.maximumCorpusBytes) || m.maximumCorpusBytes < 65 || m.maximumCorpusBytes > 65536) throw invalid()
     validateInstallationKeys(m.catalog)
     validateTotpMethodLimit(m.maxEligibleTotpMethods)
-    if (!rootGroupReadOnly(m.integration.source)) throw invalid()
+    // The reviewed sink owner selects the single reader identity for this manifest.
+    // Production additionally compares it with the actual numeric process identity
+    // *before* importing private executable code. Tests can inspect synthetic files
+    // without running as the deployed non-root UID.
+    const sinkUid = m.sink?.uid, sinkGid = m.sink?.gid
+    if (!Number.isSafeInteger(sinkUid) || sinkUid <= 0 ||
+        !Number.isSafeInteger(sinkGid) || sinkGid <= 0 ||
+        (runtimeIdentity && (sinkUid !== runtimeIdentity.uid || sinkGid !== runtimeIdentity.gid || source.gid !== runtimeIdentity.gid))) throw invalid()
+    if (!rootGroupReadOnly(m.integration.source, sinkGid)) throw invalid()
     // Data only: semantics (bind address, pin, scope, lifetimes) are validated once by
     // prepareB1IngressListenerPlan and the issuer at startup; here only the shape and
     // the strict ownership contract of every private file are enforced.
     if (!exact(m.ingress, 'allowedPaths,binding,contextLifetimeMs,drainTimeoutMs,evidenceReference,issuer,maximumBodyBytes,maximumDeviceLifetimeMs,port,proxyCertificateSha256,sources,timeoutMs,tlsAuthorizationReference') ||
         !exact(m.ingress.sources, 'clientCa,pseudonymKey,signingKey,tlsCert,tlsKey') ||
-        !Object.values(m.ingress.sources).every(rootGroupReadOnly)) throw invalid()
-    if (m.sink.path !== '/run/cleanops-agent/token' || m.sink.uid !== 999 || m.sink.gid !== 999 ||
-        m.sink.directoryUid !== 999 || m.sink.directoryGid !== 999 || m.sink.mode !== 0o600 || m.sink.directoryMode !== 0o700) throw invalid()
+        !Object.values(m.ingress.sources).every(value => rootGroupReadOnly(value, sinkGid))) throw invalid()
+    if (m.sink.path !== '/run/cleanops-agent/token' ||
+        m.sink.directoryUid !== sinkUid || m.sink.directoryGid !== sinkGid ||
+        m.sink.mode !== 0o600 || m.sink.directoryMode !== 0o700) throw invalid()
     content = await readTrustedPrivateFile(m.corpus.source)
     const corpus = { version: m.corpus.version, sha256: m.corpus.sha256, content }
     const passwordPolicy = { minimumCodePoints: numeric('password_min'), maximumCodePoints: numeric('password_max'), maximumCorpusBytes: m.maximumCorpusBytes }
@@ -109,9 +118,11 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
 
 /** Absence, wrong metadata or incomplete installation keeps B1 admission closed. */
 export async function reviewedB1Installation(): Promise<InstallationBootstrapInputs | undefined> {
-  // The reviewed Agent sink and private package are accessible only to UID/GID 999.
-  // Refuse a mismatched container identity before loading any privileged module.
-  if (process.getuid?.() !== 999 || process.getgid?.() !== 999) return undefined
-  try { return await loadReviewedB1Installation(manifestSource) }
+  // Trust the process' kernel numeric identity, not environment variables or
+  // HTTP headers. The Agent sink, web and every root-group private file must
+  // agree with this same reviewed UID/GID or the installation remains closed.
+  const uid = process.getuid?.(), gid = process.getgid?.()
+  if (!Number.isSafeInteger(uid) || uid <= 0 || !Number.isSafeInteger(gid) || gid <= 0) return undefined
+  try { return await loadReviewedB1Installation(Object.freeze({ ...manifestSource, gid }), { uid, gid }) }
   catch { return undefined }
 }

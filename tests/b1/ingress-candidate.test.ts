@@ -106,6 +106,25 @@ test('tampering with method, path, query, body, bound headers or signed bytes is
   }
 })
 
+test('signed public ForwardAuth request verifies at a private Next listener URL without weakening binding', async () => {
+  const f = fixture()
+  const signed = await f.signed()
+  const privateUrl = 'http://127.0.0.1:3000/api/auth/login?q=1'
+  const forged = new Headers(signed.headers)
+  forged.set('host', 'attacker.invalid')
+  await assert.rejects(f.verifier.resolveRequestContext(new Request(privateUrl, {
+    method: 'POST', headers: forged, body: 'hello',
+  })))
+  const actual = await f.verifier.resolveRequestContext(new Request(privateUrl, {
+    method: 'POST', headers: new Headers(signed.headers), body: 'hello',
+  }))
+  assert.equal(actual.network.length, 32)
+  assert.equal(actual.device.length, 32)
+  await assert.rejects(f.verifier.resolveRequestContext(new Request(privateUrl, {
+    method: 'POST', headers: new Headers(signed.headers), body: 'different',
+  })))
+})
+
 test('concurrent replay has exactly one winner; capacity fails closed without evicting live nonces', async () => {
   const f = fixture(1), request = await f.signed()
   const results = await Promise.allSettled(Array.from({ length: 20 }, () => f.verifier.resolveRequestContext(request.clone())))

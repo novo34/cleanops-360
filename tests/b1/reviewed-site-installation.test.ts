@@ -13,6 +13,13 @@ test('reviewed private package loads real files and composes canonical runtime w
   try {
     const spec = await loadReviewedB1Installation(m)
     assert.equal(spec.inputs.normalizeEmail('USER@example.invalid'), 'user@example.invalid')
+    // A numeric non-default UID with the same reviewed GID remains readable.
+    // A different GID requires all root-group file descriptors to be updated.
+    await f.write({ ...manifest, sink: { ...manifest.sink, uid: 1000, directoryUid: 1000 } })
+    const alternateIdentity = await loadReviewedB1Installation(m, { uid: 1000, gid: 999 })
+    assert.deepEqual([alternateIdentity.inputs.sink.uid, alternateIdentity.inputs.sink.gid], [1000, 999])
+    await assert.rejects(loadReviewedB1Installation(m, { uid: 1000, gid: 1000 }), /INSTALLATION_CONFIG_INVALID/)
+    await f.write(manifest)
     assert.throws(spec.inputs.transport, /AUTH_DEPENDENCY_UNAVAILABLE/)
     assert.equal(spec.ingress.binding, '127.0.0.1')
     const prepared = await assembleInstallationPrivateInputs(spec)
