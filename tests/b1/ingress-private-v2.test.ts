@@ -5,11 +5,17 @@ import fs from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { createDurableCandidateIssuer, credentialCookie, assertionHeader } from '../../lib/b1/ingress-assertion.ts'
 import type { IngressCredentialRecord } from '../../lib/b1/installation-config.ts'
-import { loadReviewedB1Installation } from '../../lib/b1/reviewed-site-installation.ts'
+import { loadReviewedB1Installation, reviewedB1Installation } from '../../lib/b1/reviewed-site-installation.ts'
 import { renderB1Integration } from '../../scripts/render-b1-integration.mjs'
 import { createInstallationFixture } from './helpers/installation-fixture.ts'
 import { checkEmailCompatibility } from '../../lib/b1/email-normalization.ts'
 import { renderDurablePrivateIntegration } from '../../lib/b1/integration-candidate.ts'
+
+test('private B1 installation stays closed for a runtime identity other than 999:999', async () => {
+  if (process.getuid?.() !== 999 || process.getgid?.() !== 999) {
+    assert.equal(await reviewedB1Installation(), undefined)
+  }
+})
 
 test('reviewed v2 module is closed before binding, binds once and stays closed on rejected binding', async () => {
   const { publicKey } = generateKeyPairSync('ed25519')
