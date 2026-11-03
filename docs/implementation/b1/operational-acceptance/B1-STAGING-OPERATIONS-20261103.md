@@ -129,3 +129,24 @@
 **Siguiente evidencia faltante:** hash y estructura sanitizada del Compose operativo, rutas y middleware efectivos (sin datos privados), contraste contra el overlay `deploy/staging/compose.b1-web.yaml` y topología/identidad runtime. El estado de Traefik ForwardAuth/mTLS sigue no comprobado y la validación del agente no debe darse por resuelta por el operador temporal.
 
 **Acción permitida aquí:** solo lectura y documentación. No recreación, merge, despliegue, ni modificación de redes o certificados.
+
+
+## 9. Integridad de Compose, etiquetas Traefik e identidad efectiva — propietario, 03/11/2026
+
+Inspección posterior de **solo lectura**. Resultados aportados por el propietario, sin intervención del agente documental sobre el VPS.
+
+| Atributo | Resultado |
+| --- | --- |
+| SHA-256 Compose operativo | `03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c` |
+| Ruta | `/etc/dokploy/compose/cleanops360-f4fxmd/code/deploy/staging/compose.yaml` |
+| Tamaño/permisos/propietario | `4020` bytes, `0644`, `root:root` |
+| `traefik.docker.network` | `dokploy-network` |
+| Router HTTP `cleanops360-f4fxmd-15-web` | `web`, middleware `redirect-to-https@file`, servicio `cleanops360-f4fxmd-15-web` |
+| Router HTTPS `cleanops360-f4fxmd-15-websecure` | `websecure`, servicio `cleanops360-f4fxmd-15-websecure`, resolver `letsencrypt` |
+| Reglas de ambos routers | Presentes y de hash idéntico: `4e4556685ce29d2dfa8985e5bb3e525d9bb75ffd14aca90d35b7a4e3f6ebfca1` (contenido privado de dominio no revelado) |
+| Identidad efectiva del proceso web | `uid=999(cleanops) gid=999(cleanops) groups=999(cleanops)` |
+| Git checkout local | `git status --porcelain`: vacío, árbol limpio |
+
+**Implicaciones:** preservar routers actuales, HTTPS y middleware redirect, redes y web existente. UID/GID coincide con contrato de B1 pero **no prueba** que el token OpenBao sea accesible por el contenedor web: actualmente carece de montajes y el Agent usa un `tmpfs` propio. Hace falta diseño de custodia revisado, no un montaje improvisado del volumen.
+
+**Pendiente previo al cambio:** contrastar contenido efectivo del Compose existente con el árbol versionado de `d3ea84b...`, metadatos de montajes y topología del Agent; producir un delta reversible exacto y autorización específica. Ningún cambio operativo autorizado por esta documentación.
