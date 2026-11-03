@@ -6,7 +6,7 @@
  *
  *   node --experimental-strip-types scripts/complete-b1-installation.mjs <package-dir>            # report only
  *   node --experimental-strip-types scripts/complete-b1-installation.mjs <package-dir> --apply --backup-dir <abs-dir>
- * --apply needs root: backs up installation.json (0400, exclusive) then replaces it atomically (root:999 0440).
+ * --apply needs root: backs up installation.json (0400, exclusive) then replaces it atomically (root:reviewed sink GID 0440).
  */
 import fs from 'node:fs/promises'
 import { constants } from 'node:fs'
@@ -150,9 +150,15 @@ export async function completeB1Installation({ packageDir, apply = false, backup
   if (present('baoClientIdentity.certificateSha256')) check('baoClientIdentity.certificateSha256: 64 lowercase hex', () => { if (!/^[a-f0-9]{64}$/.test(merged.baoClientIdentity.certificateSha256)) throw 0 })
   if (present('ingress.proxyCertificateSha256')) check('ingress.proxyCertificateSha256: AA:BB:… (32 bytes)', () => { if (!/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(merged.ingress.proxyCertificateSha256)) throw 0 })
   if (present('integration.sha256')) check('integration.sha256: 64 lowercase hex', () => { if (!/^[a-f0-9]{64}$/.test(merged.integration.sha256)) throw 0 })
-  const metadataNeedsRepair = manifestMeta.uid !== 0 || manifestMeta.gid !== 999 || manifestMeta.mode !== 0o440
+  const sinkUid = merged.sink?.uid, sinkGid = merged.sink?.gid
+  const validReader = Number.isSafeInteger(sinkUid) && sinkUid > 0 &&
+    Number.isSafeInteger(sinkGid) && sinkGid > 0 &&
+    merged.sink.directoryUid === sinkUid && merged.sink.directoryGid === sinkGid
+  if (!validReader) out.invalid.push('sink numeric UID/GID and directory owners must match the reviewed web/Agent identity')
+  const metadataNeedsRepair = validReader && (manifestMeta.uid !== 0 || manifestMeta.gid !== sinkGid || manifestMeta.mode !== 0o440)
   if (metadataNeedsRepair)
-    out.invalid.push(`installation.json metadata ${manifestMeta.uid}:${manifestMeta.gid} ${manifestMeta.mode.toString(8)} (loader requires 0:999 440; --apply sets it)`)
+    out.invalid.push(`installation.json metadata ${manifestMeta.uid}:${manifestMeta.gid} ${manifestMeta.mode.toString(8)} (loader requires 0:${sinkGid} 440; --apply sets it)`)
+  if (apply && !validReader) throw refuse()
 
   const files = [...fileState.values()]
   let backup
@@ -165,11 +171,11 @@ export async function completeB1Installation({ packageDir, apply = false, backup
     const temp = join(packageDir, `.installation.json.${process.pid}.tmp`)
     const t = await fs.open(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o400)
     try {
-      await t.chown(0, 999); await t.chmod(0o440)
+      await t.chown(0, sinkGid); await t.chmod(0o440)
       await t.writeFile(JSON.stringify(merged, null, 2) + '\n'); await t.sync()
     } catch (e) { await fs.unlink(temp).catch(() => {}); throw e } finally { await t.close() }
     await fs.rename(temp, manifestPath)
-  } else if (apply && metadataNeedsRepair) { await fs.chown(manifestPath, 0, 999); await fs.chmod(manifestPath, 0o440) }
+  } else if (apply && metadataNeedsRepair) { await fs.chown(manifestPath, 0, sinkGid); await fs.chmod(manifestPath, 0o440) }
   const stillInvalid = out.invalid.filter(x => !(apply && x.startsWith('installation.json metadata')))
   const badFiles = files.filter(f => !f.status.startsWith('OK'))
   return {

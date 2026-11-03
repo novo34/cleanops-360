@@ -21,7 +21,7 @@ function fixture(capacity = 100) {
   const common = { issuer: 'test-only-ingress', audience: 'https://fixture.invalid', maximumDeviceLifetimeMs: 60000,
     contextLifetimeMs: 1000, maximumBodyBytes: 1024, bodyTimeoutMs: 50, clock: () => time }
   const issuer = createCandidateIssuer({ ...common, privateKey: keys.privateKey, pseudonymKey: randomBytes(32) })
-  const verifierOptions = { ...common, publicKey: keys.publicKey, replayCapacity: capacity, topology: 'single-process-single-consumer' as const }
+  const verifierOptions = { ...common, internalOrigins: ['http://127.0.0.1:3000'], publicKey: keys.publicKey, replayCapacity: capacity, topology: 'single-process-single-consumer' as const }
   const verifier = createCandidateVerifier(verifierOptions)
   time++
   const credential = issuer.issueDeviceCredential({ device: 'Enrolled profile', browser: 'Verified enrolment label' }, 30000)
@@ -110,6 +110,10 @@ test('signed public ForwardAuth request verifies at a private Next listener URL 
   const f = fixture()
   const signed = await f.signed()
   const privateUrl = 'http://127.0.0.1:3000/api/auth/login?q=1'
+  const externalUrl = 'http://attacker.invalid/api/auth/login?q=1'
+  await assert.rejects(f.verifier.resolveRequestContext(new Request(externalUrl, {
+    method: 'POST', headers: new Headers(signed.headers), body: 'hello',
+  })))
   const forged = new Headers(signed.headers)
   forged.set('host', 'attacker.invalid')
   await assert.rejects(f.verifier.resolveRequestContext(new Request(privateUrl, {

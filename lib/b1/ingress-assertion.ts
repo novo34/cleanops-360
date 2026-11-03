@@ -23,6 +23,8 @@ const bytes32 = (x: unknown): x is string => typeof x === 'string' && /^[A-Za-z0
 export type IngressProtocolOptions = Readonly<{
   issuer: string; audience: string; maximumDeviceLifetimeMs: number; contextLifetimeMs: number
   maximumBodyBytes: number; bodyTimeoutMs: number; clock: () => number
+  /** Reviewed listener-local URL origins; absent means only the public audience. */
+  internalOrigins?: readonly string[]
 }>
 function validate(c: IngressProtocolOptions) {
   if (!c || !text(c.issuer) || !text(c.audience) || !integer(c.maximumDeviceLifetimeMs) ||
@@ -31,6 +33,17 @@ function validate(c: IngressProtocolOptions) {
       !integer(c.bodyTimeoutMs) || c.bodyTimeoutMs > 5000 || typeof c.clock !== 'function') throw denied()
   const u = new URL(c.audience)
   if (u.protocol !== 'https:' || u.origin !== c.audience || u.username || u.password) throw denied()
+  const internal = c.internalOrigins ?? []
+  if (!Array.isArray(internal) || internal.length > 8 || new Set(internal).size !== internal.length ||
+      internal.some(origin => {
+        if (typeof origin !== 'string') return true
+        try {
+          const value = new URL(origin)
+          return (value.protocol !== 'http:' && value.protocol !== 'https:') ||
+            value.origin !== origin || !!value.username || !!value.password ||
+            !!value.search || !!value.hash || value.pathname !== '/'
+        } catch { return true }
+      })) throw denied()
 }
 function now(c: IngressProtocolOptions) { const n = c.clock(); if (!integer(n)) throw denied(); return n }
 function ed25519(key: KeyObject, kind: 'private' | 'public') {
@@ -74,11 +87,12 @@ function device(token: string, key: KeyObject, c: IngressProtocolOptions) {
 /** Bounded streaming digest. Original Request remains available to the B1 handler. */
 export async function requestBinding(request: Request, c: IngressProtocolOptions): Promise<string> {
   const u = new URL(request.url)
-  // Next may expose its private listener origin behind Traefik. The trusted mTLS
-  // adapter reconstructs the public origin; the signed binding instead binds the
-  // configured public audience, path/query, method, body and exact Host/header set.
-  // Never compare request.url.origin with the public audience here.
-  if (u.hash || !/^[A-Z]+$/.test(request.method)) throw denied()
+  // Traefik's mTLS adapter signs the public URL, while Next may supply a
+  // listener-local URL. Accept only exact origins from the reviewed private
+  // configuration, never arbitrary request headers or an unchecked host.
+  // The binding still signs the public audience, Host, path/query and body.
+  if ((u.origin !== c.audience && !(c.internalOrigins ?? []).includes(u.origin)) ||
+      u.hash || !/^[A-Z]+$/.test(request.method)) throw denied()
   const body = createHash('sha256'), reader = request.clone().body?.getReader()
   const deadline = performance.now() + c.bodyTimeoutMs
   let size = 0

@@ -42,7 +42,12 @@ export async function renderB1Integration({ packageDir, manifestSource, report, 
     const m = json(await read(manifestSource))
     if (m?.version !== 2 || !m.ingress || !m.integration?.source || typeof m.origin !== 'string') throw fail()
     const source = m.integration.source
-    if (source.uid !== 0 || source.gid !== 999 || source.mode !== 0o440) throw fail()
+    // One numeric, owner-reviewed identity for the Agent sink, web and module.
+    const sinkGid = m.sink?.gid
+    if (!Number.isSafeInteger(sinkGid) || sinkGid <= 0 ||
+        !Number.isSafeInteger(m.sink?.uid) || m.sink.uid <= 0 ||
+        m.sink.directoryGid !== sinkGid || m.sink.directoryUid !== m.sink.uid ||
+        source.uid !== 0 || source.gid !== sinkGid || source.mode !== 0o440) throw fail()
     const audience = new URL(m.origin).origin
     if (audience !== m.origin || !audience.startsWith('https://')) throw fail()
     // Only the public half is derived; the private key never leaves this process.
@@ -53,7 +58,8 @@ export async function renderB1Integration({ packageDir, manifestSource, report, 
     // The same values the listener signs with (server-startup.ts), never retyped here.
     const verifier = { issuer: m.ingress.issuer, audience, maximumDeviceLifetimeMs: m.ingress.maximumDeviceLifetimeMs,
       contextLifetimeMs: m.ingress.contextLifetimeMs, maximumBodyBytes: m.ingress.maximumBodyBytes,
-      bodyTimeoutMs: m.ingress.timeoutMs, clock: Date.now, publicKey, topology: 'shared-atomic-all-consumers' }
+      bodyTimeoutMs: m.ingress.timeoutMs, internalOrigins: m.internalOrigins,
+      clock: Date.now, publicKey, topology: 'shared-atomic-all-consumers' }
     // Canonical bounds validation (lifetimes, body size, timeout); builds no durable state.
     createCandidateVerifier({ ...verifier, topology: 'single-process-single-consumer', replayCapacity: 1 })
     const code = renderDurablePrivateIntegration(factoryUrl, {
@@ -65,7 +71,7 @@ export async function renderB1Integration({ packageDir, manifestSource, report, 
     const handle = await fs.open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o400)
     written = target
     try {
-      await handle.chown(0, 999); await handle.chmod(0o440)
+      await handle.chown(0, sinkGid); await handle.chmod(0o440)
       await handle.writeFile(bytes); await handle.sync()
     } finally { await handle.close() }
     // Read back through the same strict reader the real loader uses.
@@ -85,7 +91,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (extra.length || !/^\d+$/.test(uid ?? '') || !/^\d+$/.test(gid ?? '') || !['0400', '0440', '0600'].includes(mode)) throw fail()
     const owner = { uid: Number(uid), gid: Number(gid), mode: Number.parseInt(mode, 8), maxBytes: 65536 }
     const result = await renderB1Integration({ packageDir: dir,
-      manifestSource: { path: join(dir, 'installation.json'), uid: 0, gid: 999, mode: 0o440, maxBytes: 65536 },
+      manifestSource: { path: join(dir, 'installation.json'), uid: 0, gid: Number(gid), mode: 0o440, maxBytes: 65536 },
       report: { ...owner, path: reportPath }, approval: { ...owner, path: approvalPath } })
     console.log(JSON.stringify(result, null, 2))
     if (!result.manifestMatches) console.error('Set integration.sha256 in installation.json to the digest above before activation.')
