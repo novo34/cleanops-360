@@ -63,7 +63,7 @@ jobs:
         with:
           ref: ff7dddb92cb707ab174cf7d37c78e745b5527be6
           persist-credentials: false
-      - name: Verify approved source and artifact hashes
+      - name: Verify historical source and artifact hashes (not current SQL0002 approval)
         shell: bash
         run: |
           set -euo pipefail
