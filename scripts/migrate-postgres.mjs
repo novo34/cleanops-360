@@ -1,6 +1,7 @@
 import process from "node:process"
 import { createRequire } from "node:module"
 import { createHash } from "node:crypto"
+import { checkServerIdentity } from "node:tls"
 import { readFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { fileURLToPath, pathToFileURL } from "node:url"
@@ -22,6 +23,23 @@ function verifyB1MigrationServer(client, approvedSha256) {
   const raw = stream.getPeerCertificate()?.raw
   if (!Buffer.isBuffer(raw) || raw.length === 0 ||
       hash(raw) !== approvedSha256) fail("B1_STAGING_SERVER_PIN_MISMATCH")
+}
+/** The B1 apply transport must authenticate the server before sending credentials.
+ * Reject libpq-style URL TLS overrides instead of letting pg parse them over ssl.
+ */
+export function b1MigrationPoolConfiguration(connectionString, ca) {
+  let parsed
+  try { parsed = new URL(connectionString) } catch { fail("B1_STAGING_DATABASE_URL_INVALID") }
+  if (!["postgres:", "postgresql:"].includes(parsed.protocol) || !parsed.hostname ||
+      [...parsed.searchParams.keys()].some(key => /^(ssl|sslmode|sslrootcert|sslcert|sslkey|sslnegotiation)$/i.test(key))) {
+    fail("B1_STAGING_DATABASE_URL_TLS_OVERRIDE")
+  }
+  if (!Buffer.isBuffer(ca) || ca.length === 0 || ca.length > 65536 ||
+      !ca.toString("utf8").includes("-----BEGIN CERTIFICATE-----")) fail("B1_STAGING_CA_INVALID")
+  const hostname = parsed.hostname.replace(/^\\[|\\]$/g, "")
+  return { connectionString,
+    ssl: { ca: Buffer.from(ca), rejectUnauthorized: true,
+      checkServerIdentity: (_hostname, cert) => checkServerIdentity(hostname, cert) } }
 }
 const hash = value => createHash("sha256").update(value).digest("hex")
 // Stable across both profiles and the SQL14 installer; transaction-scoped, fail-fast.
@@ -224,7 +242,15 @@ export async function main(argv = process.argv.slice(2)) {
       if (!process.env.DATABASE_URL) fail("MIGRATION_DATABASE_URL_REQUIRED")
       const require = createRequire(import.meta.url)
       const pg = require("pg")
-      pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+      let configuration = { connectionString: process.env.DATABASE_URL }
+      if (profile === "b1" && mode === "apply") {
+        const caPath = process.env.MIGRATION_STAGING_CA_CERT_PATH
+        if (!caPath || !caPath.startsWith("/") || caPath.includes("\\0")) fail("B1_STAGING_CA_REQUIRED")
+        let ca
+        try { ca = await readFile(caPath) } catch { fail("B1_STAGING_CA_UNAVAILABLE") }
+        configuration = b1MigrationPoolConfiguration(process.env.DATABASE_URL, ca)
+      }
+      pool = new pg.Pool(configuration)
       return pool.connect()
     } })
     console.log(JSON.stringify(result))
