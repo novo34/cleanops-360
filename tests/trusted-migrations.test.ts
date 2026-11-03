@@ -7,8 +7,12 @@ import { loadTrustedMigrations, loadTrustedB1Baseline } from "../scripts/trusted
 import * as trusted from "../scripts/trusted-migrations.mjs"
 import { main, runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migrate-postgres.mjs"
 import { readFile } from "node:fs/promises"
+import { createHash } from "node:crypto"
 
 const temporaryDirectories: string[] = []
+// Synthetic test bytes only: no certificate, private key, or real staging trust.
+const syntheticServerCert = Buffer.from("CLEANOPS_B1_STAGING_TEST_PEER_ONLY")
+const syntheticServerSha256 = createHash("sha256").update(syntheticServerCert).digest("hex")
 
 it('B1 incremental SQL0002/0003 is hash-verified and enabled only in the reviewed B1 queue', async () => {
   const enabled = await loadTrustedMigrations(undefined, 'b1')
@@ -91,7 +95,7 @@ describe("trusted migration manifest", () => {
 const source = { sourceCommit: "a".repeat(40), runnerSha256: "b".repeat(64), approvalReference: "OFFLINE_TEST_ONLY" }
 const expectedColumns = [["id","text"],["checksum","text"],["profile","text"],["source_file","text"],["source_commit","text"],["runner_sha256","text"],["approval_reference","text"],["applied_by","text"],["applied_at","timestamp with time zone"]]
 type Entry = { id: string; checksum: string; profile: string; source_file: string; source_commit: string; runner_sha256: string; approval_reference: string; applied_by: string; applied_at: Date }
-function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; databaseName?: string; pause?: () => Promise<void> } = {}) {
+function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; databaseName?: string; tls?: 'missing' | 'unauthorized' | 'wrong-pin'; pause?: () => Promise<void> } = {}) {
   let durable = { registry: false, rows: [] as Entry[], effects: 0 }
   let locked: symbol | null = null
   const calls: string[] = [], releases: boolean[] = []
@@ -99,10 +103,17 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
   const connect = vi.fn(async () => {
     const owner = Symbol(); let tx = structuredClone(durable)
     return {
+      connection: { stream: options.tls === 'missing' ? {} : {
+        encrypted: true,
+        authorized: options.tls !== 'unauthorized',
+        getPeerCertificate: () => ({
+          raw: options.tls === 'wrong-pin' ? Buffer.from('OTHER_SYNTHETIC_PEER') : syntheticServerCert,
+        }),
+      } },
       async query(sql: string, values: unknown[] = []) {
         calls.push(sql)
         if (sql.startsWith("BEGIN")) { tx = structuredClone(durable); return { rows: [] } }
-        if (sql === "SELECT current_database() AS database") return { rows: [{ database: options.databaseName ?? "cleanops_staging" }] }
+        if (sql === "SELECT pg_catalog.current_database() AS database") return { rows: [{ database: options.databaseName ?? "cleanops_staging" }] }
         if (sql === migrationLock) {
           if (locked) return { rows: [{ locked: false }] }
           locked = owner; return { rows: [{ locked: true }] }
@@ -245,7 +256,7 @@ describe("migration journal protocol (offline simulation)", () => {
     const db = database()
     const plan = await runMigrations({ connect: db.connect, mode: "plan", profile: "b1" })
     expect(plan.baseline).toMatchObject({ id: "b1_sql14", applied: false, automatic: false })
-    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })).rejects.toThrow("EXPLICIT_INSTALLER")
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })).rejects.toThrow("EXPLICIT_INSTALLER")
     expect(db.calls.some(q => q.includes("CREATE ROLE"))).toBe(false)
   })
   it("accepts the exact recorded B1 baseline without rerunning it or mixing foundation", async () => {
@@ -262,19 +273,36 @@ describe("migration journal protocol (offline simulation)", () => {
     const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
     const db = database()
     db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
-    const first = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })
+    const first = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })
     expect(first.applied).toEqual(["0002_first_actor", "0003_ingress_persistence"])
     expect(first.baseline?.applied).toBe(true)
     expect(db.state().effects).toBe(2)
     expect(db.state().rows.map(r => r.id)).toEqual(["b1_sql14", "0002_first_actor", "0003_ingress_persistence"])
     expect(db.state().rows.slice(1).every(r => r.approval_reference === source.approvalReference && r.source_commit === source.sourceCommit)).toBe(true)
-    const again = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source })
+    const again = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })
     expect(again.applied).toEqual([])
     expect(db.state().effects).toBe(2)
   })
+  it("B1 apply requires a pinned and authenticated TLS server before BEGIN", async () => {
+    const noPin = database()
+    await expect(runMigrations({ connect: noPin.connect, mode: "apply", profile: "b1", source }))
+      .rejects.toThrow("B1_STAGING_SERVER_PIN_REQUIRED")
+    expect(noPin.connect).not.toHaveBeenCalled()
+
+    for (const tls of ['missing', 'unauthorized', 'wrong-pin'] as const) {
+      const db = database({ tls })
+      await expect(runMigrations({
+        connect: db.connect, mode: "apply", profile: "b1", source,
+        approvedServerSha256: syntheticServerSha256,
+      })).rejects.toThrow(tls === 'wrong-pin' ? "B1_STAGING_SERVER_PIN_MISMATCH" : "B1_STAGING_TLS_IDENTITY_REQUIRED")
+      expect(db.calls).toEqual([])
+      expect(db.state().effects).toBe(0)
+    }
+  })
+
   it("B1 application rejects a non-staging database before the advisory lock or any writes", async () => {
     const db = database({ databaseName: "other_database" })
-    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source }))
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 }))
       .rejects.toThrow("B1_STAGING_DATABASE_REQUIRED")
     expect(db.calls).toContain("ROLLBACK")
     expect(db.calls).not.toContain(migrationLock)
@@ -321,7 +349,9 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(batch.indexOf("INSERT INTO public._migrations")).toBeLessThan(batch.indexOf(baseline.sql))
     expect(batch).toContain("pg_catalog.pg_try_advisory_xact_lock(1869764913,1)")
     expect(batch).toContain(baseline.sha256)
-    expect(batch).toContain("current_database()<>'cleanops_staging'")
+    expect(batch).toContain("pg_catalog.current_database()<>'cleanops_staging'")
+    expect(batch).toContain("SET LOCAL search_path=pg_catalog,public,pg_temp;")
+    expect(batch).toContain("pg_catalog.to_regclass('public._migrations')")
     record.STAGING_SYNTHETIC.composeProject = "other"
     await expect(sql14InstallBatch(record, source)).rejects.toThrow("AUTHORIZATION_REQUIRED")
   })
