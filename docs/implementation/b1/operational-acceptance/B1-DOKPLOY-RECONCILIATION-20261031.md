@@ -65,3 +65,14 @@ El manifiesto contiene `ingress.proxyCertificateSha256` con **95 caracteres hexa
 5. **Entrega:** solo después de los gates, aplicar mediante procedimiento controlado de Dokploy, preservar `staging` hasta decisión explícita, comprobar `/login`, auth y rutas de rechazo; si hay error, retirar la configuración nueva y restaurar **exactamente** Compose+imagen+routers anteriores. No tocar PG/OpenBao volúmenes, SQL14 ni los usuarios creados.
 
 **Estado actual:** `B1_PRIVATE_LOADER_PASS`, administrador `COMMITTED`, **listener mTLS / ForwardAuth / login web NO VALIDADOS**, `AUTH-GATE-05 OPEN`. No autoriza despliegue.
+
+
+### Corrección funcional de entrega, 03/11/2026 — sin activación
+
+La plantilla B1 ahora especifica `forwardAuth.preserveRequestMethod: true`. Traefik ForwardAuth reenvía `GET` por defecto cuando la opción es `false`; B1 vincula el método original al contexto firmado. Omitir este ajuste impediría la compatibilidad de operaciones `POST` como el login. Mantener `forwardBody: true` y `maxBodySize: 65536`; el límite del listener y los métodos se verificarán con pruebas positivas y negativas antes de activar. Referencia técnica: documentación de Traefik ForwardAuth v3.
+
+El overlay de web existente `deploy/staging/compose.b1-web.yaml` fija `stop_signal: SIGTERM` y `stop_grace_period: 40s` para dar margen al cierre B1 de hasta 30 s. **No se ha comprobado aún que Next complete el drenaje antes de terminar**: aceptar solo cuando se observe `B1_SHUTDOWN_COMPLETE` en la prueba controlada.
+
+**Estado del cambio Git:** rama `prep/b1-dokploy-traefik-handoff-20261103`; no fusionada y sin despliegue. **No es un Compose autosuficiente**: requiere el Compose operativo de Dokploy, red/alias de ingress aprobados, imagen fijada por digest, rutas y material TLS reales y una aplicación controlada. La plantilla Traefik conserva placeholders intencionales que prohíben activarla accidentalmente. El archivo operativo de staging y el contenedor actual no se modifican.
+
+**Gates pendientes que no se sustituyen por estos commits:** análisis de seguridad de headers y ForwardAuth por reviewer independiente, procedencia del certificado cliente mTLS real del proxy, revisión de CA y SAN, acceso privado de Traefik al material, comparativa de fingerprint, `ingress.evidenceReference` genuina, plan de rollback completo, pruebas controladas y autorización explícita para activar.
