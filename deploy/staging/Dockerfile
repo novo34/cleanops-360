@@ -16,7 +16,8 @@ ARG CLEANOPS_WEB_GID=999
 RUN set -eu; \
     case "$CLEANOPS_WEB_UID" in ''|*[!0-9]*) exit 1;; esac; \
     case "$CLEANOPS_WEB_GID" in ''|*[!0-9]*) exit 1;; esac; \
-    test "$CLEANOPS_WEB_UID" -gt 0 && test "$CLEANOPS_WEB_GID" -gt 0; \
+    test "$CLEANOPS_WEB_UID" -gt 0; \
+    test "$CLEANOPS_WEB_GID" -gt 0; \
     getent group "$CLEANOPS_WEB_GID" >/dev/null || groupadd --gid "$CLEANOPS_WEB_GID" cleanops; \
     getent passwd "$CLEANOPS_WEB_UID" >/dev/null || useradd --uid "$CLEANOPS_WEB_UID" --gid "$CLEANOPS_WEB_GID" --no-create-home --home-dir /app cleanops
 COPY --from=build --chown=${CLEANOPS_WEB_UID}:${CLEANOPS_WEB_GID} /app /app
