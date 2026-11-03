@@ -228,3 +228,21 @@ Inspección posterior de **solo lectura**. Resultados aportados por el propietar
 La comprobación fue de solo lectura sobre la imagen y no inició el servidor Next ni montó el paquete privado. El PASS del wrapper fue comunicado por el propietario, no se aportaron los IDs/digest y health individuales impresos durante su ejecución. **No asumir que esta prueba acredita login ni un despliegue operativo.**
 
 **Siguiente control:** auditar únicamente los metadatos de propietarios/permisos y las rutas privadas obligatorias del manifiesto de instalación (sin imprimir contenido de secretos), comparándolos con el contrato de `lib/b1/reviewed-site-installation.ts`. Si falta cualquier prerequisito, STOP y preparar solución reversible; no recrear credenciales ni SQL.
+
+
+## 14. Auditoría de fuentes privadas del manifiesto: interpretación correcta del sink — propietario, 03/11/2026
+
+**Resultado reportado:** `B1_PRIVATE_PACKAGE_CHECK_INCOMPLETE`, con `MANIFIESTO=PASS`, `VERSION=2`, 14 referencias inspeccionadas, 13 `PASS`, una `AUSENTE` en el control realizado **sobre el host**. Una inspección posterior identificó inequívocamente la referencia n.º 6: `REFERENCIA_LOGICA=sink`, `NOMBRE_ARCHIVO=token`, `DIRECTORIO=/run/cleanops-agent`, `EXISTE=False`, `DIRECTORIO_EXISTE=False` **en el host**.
+
+**No es un fallo demostrado del Agent ni una pérdida del token:** las secciones 10 y 11 acreditan que `/run/cleanops-agent/token` existe en el contenedor Agent con `uid/gid=999:999`, modo `0600`, y que un contenedor de comprobación separado con UID/GID 999 y volumen Docker `cleanops360-f4fxmd_identity_agent_sink` montado read-only puede leerlo (`TOKEN_COMPARTIDO=ACCESIBLE`).
+
+El script de inventario unió indebidamente dos dominios de ruta: fuentes privadas del **host** (`/run/cleanops-b1-private` y sus referencias) y **sink del contenedor** (`/run/cleanops-agent/token`). No crear el archivo en el host, no copiar credenciales, no cambiar permisos y **no reejecutar** el chequeo global de 14 rutas esperando que exista en el host.
+
+**Estado correctamente separado:**
+- Manifiesto v2: PASS (metadatos).
+- Trece referencias host de archivos privados: PASS (metadatos según inspección reportada; no prueba semántica ni contenido).
+- Referencia `sink`: AUSENTE en host **esperado por topología**, presente y legible con volumen en un contenedor UID/GID 999: PASS de legibilidad aislada anterior.
+- Validación integral de carga del paquete privado por runtime Next B1: **PENDIENTE**, no asumir PASS.
+- Activación del servicio web B1 y login real: **PENDIENTES**.
+
+**Próximo control:** verificar bajo la imagen candidata y montajes de solo lectura del volumen Agent y del directorio privado, con política de red y arranque/revisión explícitos, sin imprimir secretos; antes de cualquier inicio de Next o despliegue debe existir rollback y autorización del cambio. Evitar un nuevo harness duplicado si el loader oficial puede validarse.
