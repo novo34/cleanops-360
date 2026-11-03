@@ -13,6 +13,12 @@ def name(v):
 def positive(v):
  if type(v) is not int or v<=0:raise ValueError('EXPLICIT_POSITIVE_INTEGER_REQUIRED')
  return v
+def private_path(raw):
+ # Reject lexical aliases BEFORE pathlib can normalize dots and separators.
+ if not isinstance(raw,str) or not raw.startswith('/') or raw.startswith('//'):raise ValueError('ABSOLUTE_PRIVATE_PATH_REQUIRED')
+ p=Path(raw)
+ if not p.is_absolute() or '..' in p.parts or raw!=str(p) or not re.fullmatch(r'[A-Za-z0-9_./-]+',raw):raise ValueError('ABSOLUTE_PRIVATE_PATH_REQUIRED')
+ return raw
 def prepare(d, agent_only=False):
  env=name(d['environment'])
  if env in {'prod','production'} and not agent_only:raise ValueError('PRODUCTION_OUT_OF_SCOPE')
@@ -72,12 +78,7 @@ def prepare(d, agent_only=False):
   if address.scheme!='https' or not address.hostname or address.username or address.password or address.path not in ('','/') or address.query or address.fragment:raise ValueError('VERIFIED_TLS_ORIGIN_REQUIRED')
   if len(address.hostname)>253 or not all(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?',p) for p in address.hostname.split('.')) or (address.port is not None and not 1<=address.port<=65535):raise ValueError('VERIFIED_TLS_ORIGIN_REQUIRED')
   for k in ['ca_file','client_cert_file','client_key_file','sink_file']:
-   raw=a[k]
-   if not isinstance(raw,str) or not raw.startswith('/') or raw.startswith('//'):raise ValueError('ABSOLUTE_PRIVATE_PATH_REQUIRED')
-   p=Path(raw)
-   # Path(...) normalizes /./, // and trailing /; do not accept the
-   # unnormalized string that would later be embedded into agent.hcl.
-   if not p.is_absolute() or '..' in p.parts or raw!=str(p) or not re.fullmatch(r'[A-Za-z0-9_./-]+',raw):raise ValueError('ABSOLUTE_PRIVATE_PATH_REQUIRED')
+   private_path(a[k])
   mount=name(a['cert_mount']);role=name(a['cert_name']);cn=name(a['certificate_common_name'])
   if a['sink_mode'] not in ['0600','0640'] or any(type(a[k]) is not int or a[k]<0 for k in ['sink_uid','sink_gid']):raise ValueError('EXPLICIT_SINK_OWNERSHIP_REQUIRED')
   if a['directory_mode'] not in ['0700','0750'] or any(type(a[k]) is not int or a[k]<0 for k in ['directory_uid','directory_gid']) or type(a['read_timeout_ms']) is not int or not 1<=a['read_timeout_ms']<=5000:raise ValueError('EXPLICIT_SINK_DIRECTORY_REQUIRED')

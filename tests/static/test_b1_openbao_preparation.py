@@ -9,16 +9,13 @@ class Preparation(unittest.TestCase):
  def test_agent_private_paths_do_not_accept_normalized_spellings(self):
   # The same lexical contract is applied before any configuration is rendered.
   # Test only the canonical path predicate, with no OpenBao or TLS operations.
-  from pathlib import Path
-  import re
   accepted='/run/cleanops-agent/token'
   rejected=['/run//cleanops-agent/token','/run/./cleanops-agent/token',
             '/run/cleanops-agent/token/','//run/cleanops-agent/token',
             '/run/cleanops-agent/../token']
-  valid=lambda raw: isinstance(raw,str) and raw.startswith('/') and not raw.startswith('//') and Path(raw).is_absolute() and '..' not in Path(raw).parts and raw==str(Path(raw)) and bool(re.fullmatch(r'[A-Za-z0-9_./-]+',raw))
-  self.assertTrue(valid(accepted))
+  self.assertEqual(m.private_path(accepted),accepted)
   for raw in rejected:
-   with self.subTest(path=raw):self.assertFalse(valid(raw))
+   with self.subTest(path=raw),self.assertRaises(ValueError):m.private_path(raw)
 
  def test_reproducible_private_tls_and_no_unreviewed_services(self):
   a=m.prepare(fixture());self.assertEqual(a,m.prepare(fixture()));c=a['server.json'];l=c['listener'][0]['tcp']
