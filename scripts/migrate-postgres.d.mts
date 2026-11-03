@@ -4,7 +4,7 @@ export type MigrationConnection = {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>
   release(discard?: boolean): void
 }
-export type RunOptions = { connect?: () => Promise<MigrationConnection>; profile?: MigrationProfile; source?: MigrationSource }
+export type RunOptions = { connect?: () => Promise<MigrationConnection>; profile?: MigrationProfile; source?: MigrationSource; approvedServerSha256?: string }
 export type RunResult = { profile: MigrationProfile; registry: string; applied: string[]; pending: string[]; history?: Record<string, unknown>[]; baseline: { id: string; sha256: string; applied: boolean; automatic: boolean } | null }
 export type OfflinePlan = { profile: MigrationProfile; registry: "UNKNOWN_NOT_CONNECTED"; migrations: { id: string; sha256: string }[]; proposed: { id: string; sha256: string; sourceFile: string; executable: false }[]; baseline: { id: string; sha256: string; sourceFile: string; automatic: boolean } | null }
 export const migrationLock: string
