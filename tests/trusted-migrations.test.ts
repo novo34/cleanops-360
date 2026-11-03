@@ -5,9 +5,21 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { loadTrustedMigrations, loadTrustedB1Baseline } from "../scripts/trusted-migrations.mjs"
 import * as trusted from "../scripts/trusted-migrations.mjs"
-import { main, runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migrate-postgres.mjs"
+import { main, runMigrations, migrationLock, sql14InstallBatch, b1MigrationPoolConfiguration } from "../scripts/migrate-postgres.mjs"
 import { readFile } from "node:fs/promises"
 import { createHash } from "node:crypto"
+
+it("B1 migration transport enforces a trusted CA and refuses URL TLS overrides", () => {
+  const ca = Buffer.from("-----BEGIN CERTIFICATE-----\\nTEST ONLY\\n-----END CERTIFICATE-----\\n")
+  const configured = b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal:5432/cleanops_staging", ca)
+  expect(configured.ssl.rejectUnauthorized).toBe(true)
+  expect(configured.ssl.ca).toEqual(ca)
+  expect(configured.ssl.checkServerIdentity).toBeTypeOf("function")
+  for (const parameter of ["sslmode=disable", "sslmode=no-verify", "sslrootcert=%2Ftmp%2Ffake", "sslcert=%2Ftmp%2Ffake", "sslkey=%2Ftmp%2Ffake", "sslnegotiation=direct", "ssl=true"]) {
+    expect(() => b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal/cleanops_staging?" + parameter, ca)).toThrow("B1_STAGING_DATABASE_URL_TLS_OVERRIDE")
+  }
+  expect(() => b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal/cleanops_staging", Buffer.alloc(0))).toThrow("B1_STAGING_CA_INVALID")
+})
 
 const temporaryDirectories: string[] = []
 // Synthetic test bytes only: no certificate, private key, or real staging trust.
