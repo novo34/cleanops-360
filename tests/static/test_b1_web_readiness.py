@@ -2,6 +2,10 @@
 import importlib.util
 import pathlib
 import unittest
+import subprocess
+from contextlib import redirect_stdout
+from io import StringIO
+from unittest.mock import patch
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "check-b1-web-readiness.py"
 spec = importlib.util.spec_from_file_location("b1_web_readiness", SCRIPT)
@@ -51,6 +55,21 @@ class WebReadinessTest(unittest.TestCase):
         v = volume()
         v["Options"]["o"] = "nodev,nosuid,noexec,size=1m,mode=0755,uid=999,gid=999"
         self.assertFalse(mod.evaluate(fixture(web_sink=True), v))
+
+
+    def test_docker_inspect_has_bounded_timeout(self):
+        with patch.object(mod.subprocess, "check_output", return_value='[{}]') as call:
+            self.assertEqual(mod.inspect("inspect", "test"), {})
+        call.assert_called_once_with(["docker", "inspect", "test"],
+                                     text=True, stderr=subprocess.DEVNULL, timeout=30)
+
+    def test_docker_timeout_is_blocked_not_traceback(self):
+        with patch.object(mod, "inspect",
+                          side_effect=subprocess.TimeoutExpired(cmd=["docker", "inspect"], timeout=30)):
+            output = StringIO()
+            with redirect_stdout(output):
+                self.assertEqual(mod.main(), 2)
+        self.assertIn("BLOCKED | required Docker object unavailable", output.getvalue())
 
 
 if __name__ == "__main__":
