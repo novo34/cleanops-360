@@ -19,6 +19,8 @@ test('dedicated PG pool validates explicit environment configuration without con
     assert.equal(pool.options.host, config.host)
     assert.equal(pool.options.user, config.loginRole)
     assert.equal(pool.options.options, '')
+    assert.equal(pool.options.statement_timeout, 5000)
+    assert.equal(pool.options.keepAlive, true)
     const ssl = pool.options.ssl
     assert.ok(ssl && typeof ssl === 'object')
     assert.equal(ssl.rejectUnauthorized, true)

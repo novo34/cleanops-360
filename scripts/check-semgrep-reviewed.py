@@ -23,12 +23,15 @@ B1_APPROVED_BACKEND_BLOB = '1170521306efff0ecd561396c8096c29818b31b5'
 B1_RETIRED_FINDING = 'FP-09'
 B1_RUNTIME_BLOB = '0b57b08a9976d349e20e6f7e4dd452d940ff8ddd'
 
-# Independent Claude finding supplied by the owner, 2026-10-31, on this exact HEAD.
-# Accepted privileged execution is NOT a false positive and approves no future module.
-B1_IMPORT_REVIEWED_COMMIT = '6a558c39e7abf6f3884243ed4eb6367d8fa9b80b'
+# 2026-11-03: owner-directed, SCOPED acceptance of the exact loader bytes
+# independently examined by Claude at this commit. Claude's report was BLOCKED
+# on the stale pin/owner risk decisions; this pins only the unchanged reviewed
+# privileged mechanism, not any future private integration or runtime activation.
+# F2/F3/F4/F5/F6 residual design risks remain explicit in the review record.
+B1_IMPORT_REVIEWED_COMMIT = 'cba20d8f1620cb9f9205cef904767ca4ff755c26'
 B1_IMPORT_CLASSIFICATION = 'accepted_privileged_dynamic_import'
 B1_IMPORT_CONTEXT = {
-    'lib/b1/reviewed-site-installation.ts': 'cc2605c433e3ea7b9e5e1ead67b609da7bd2d9eaf53130425e228fde73c7b2cf',
+    'lib/b1/reviewed-site-installation.ts': '50b0c3740cb744905c98c2d49b377a5672c4e693745332a63aec41c121199557',
     'lib/b1/private-file.ts': '55e97cf4cd22e8e6e977caf4f176f09f0f6457b502894c66f137717ef764c4ca',
     'instrumentation.ts': '50cafe09b0d48d5956824f1ec55c4f0c1faf289ed54b1c44b9763e9466063403',
 }
@@ -40,9 +43,11 @@ B1_IMPORT_ENTRY = {
     'end': {'line': 50, 'col': 91},
     'source_sha256': 'cd1691f3d4074fa53f3fc2124bc332d694e86867630045396a01d5805a9360d1',
     'classification': B1_IMPORT_CLASSIFICATION,
-    'justification': 'Owner-authorized independent Claude review of the exact loader mechanism. '
-                     'Privileged code loading after strict private-file and checksum validation; '
-                     'NOT approval of any future integration.mjs content.',
+    'justification': '2026-11-03 owner-directed technical acceptance of exact loader bytes examined by '
+                     'independent Claude read-only audit; audit was BLOCKED on stale pin/owner risk '
+                     'decision, not a human production approval. Root operator and dedicated GID '
+                     'restrictions remain deployment prerequisites. This accepts only the pinned '
+                     'privileged loader mechanism, NOT any future integration.mjs content.',
 }
 
 

@@ -143,3 +143,58 @@ Evidencia local conservada fuera de Git (logs completos, sin material VPS):
 - `/tmp/b1-claude-semgrep-reviewed.json` — SHA-256 `bea80838b2c4791496c6d05204a7fe26ecd1817a4f676707b2fbcb3c9f6e571f`.
 - `/tmp/b1-claude-webpack.log` — SHA-256 `d83a385204c88c982958e6611def446e4735821685886eb2fc7929c9ffefec79`.
 - `/tmp/b1-claude-route-smoke.log` — SHA-256 `b8c3757ed2278fb24b049ce578684ec2c53eadb7acd8a2c8448d5f13fab94d77`.
+
+
+## B1-PI-01 — reconciliación técnica acotada solicitada por el propietario, 03-11-2026
+
+Esta sección **no modifica ni sustituye el dictamen histórico de 31-10-2026**.
+Ese dictamen cubre el archivo original `867ea66d...` en línea 44. La versión
+actual recibió una auditoría independiente de solo lectura de Claude sobre
+`cba20d8f1620cb9f9205cef904767ca4ff755c26`, cuyo resultado fue **BLOCKED**
+por la caducidad del pin y decisiones pendientes del propietario. **No se
+reescribe BLOCKED como PASS ni se atribuye una autorización humana anterior.**
+El propietario ha solicitado cerrar el bloqueo técnico de B1 sin convertir
+las mejoras futuras en requisitos de entrega.
+
+Datos identificadores de los bytes auditados y fijados:
+
+- Archivo: `lib/b1/reviewed-site-installation.ts` (9253 bytes).
+- Commit: `cba20d8f1620cb9f9205cef904767ca4ff755c26`.
+- Git blob: `f8978653daf54335146dac2b82c76538fa6c05b8`.
+- SHA-256 completo: `50b0c3740cb744905c98c2d49b377a5672c4e693745332a63aec41c121199557`.
+- Import privilegiado: línea 50, columnas 26–91 (fin exclusivo).
+- SHA-256 de línea completa con salto: `cd1691f3d4074fa53f3fc2124bc332d694e86867630045396a01d5805a9360d1`.
+- Los pines de `lib/b1/private-file.ts` e `instrumentation.ts`
+  siguen sin cambiar; la excepción NO cubre contenidos de `integration.mjs`.
+
+Resultados de la auditoría independiente: SHA-256 del módulo verificado antes
+de importar, exports exactos, denegación ante módulo que falla, symlinks y
+metadatos rechazados, identidad incorrecta antes del import y `bindIngress`
+con binding único; sondas P1–P6 efímeras. Las pruebas estándar asociadas al
+cargador pasaron en el alcance declarado. Riesgos y límites **no ocultos**:
+
+- **F2:** el GID numérico puede variar; el despliegue debe usar un grupo
+  dedicado, privado y auditado, sin miembros ajenos. No se aprueba un grupo
+  compartido por ser 999 o 1000.
+- **F3:** el operador root también puede importar el módulo, por diseño y
+  desde la ruta privada custodiada. El proceso web sigue exigiendo UID/GID
+  no-root efectivos. La ejecución del operador requiere autorización y
+  custodia separadas; no se declara sandbox del módulo.
+- **F4:** el código importado tiene permisos del proceso: NO existe aislamiento
+  de sandbox. Solo se admite el ejecutable root-owned, mode 0440,
+  comprobado por SHA-256 y sometido a revisión por contenido en cada versión.
+- **F5:** corpus y otras fuentes son comprobadas mediante metadatos declarados
+  en un manifiesto root-owned; no se asegura que *todas* las fuentes compartan
+  automáticamente root:grupo, a diferencia de la clave de integración/ingress.
+- **F6:** el campo `approval` es referencia declarativa, no verificación
+  criptográfica de firma externa. La autoridad operativa sigue siendo externa.
+- Las sondas independientes aún no reemplazan una suite versionada completa;
+  la aceptación operativa de SQL0002, `AUTH-GATE-05`, ingreso a VPS, claves,
+  identidad/custodia y el módulo privado específico siguen **pendientes**.
+
+Este ajuste **solo reconcilia el hallazgo `B1-PI-01` en Semgrep para los bytes
+anteriores**. No modifica reglas, severidades, exclusiones ni el manifiesto
+histórico y no activa autenticación, SQL, OpenBao, listeners, acceso al VPS,
+merge a `staging` o despliegue. Una edición del cargador o del contexto
+de seguridad deberá volver a bloquear automáticamente el pin. La aceptación
+de cierre de implementación NO se presenta como habilitación productiva.

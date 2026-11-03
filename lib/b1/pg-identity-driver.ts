@@ -53,6 +53,9 @@ export function createPgIdentityPool(input: PgIdentityConfiguration): Pool {
     ssl: { ca: Buffer.from(input.ca), rejectUnauthorized: true,
       checkServerIdentity: (_name, certificate) => checkServerIdentity(host, certificate) },
     max: input.maxConnections, connectionTimeoutMillis: input.connectionTimeoutMs,
+    // Bound each server-side statement, including durable ingress/replay queries.
+    // Does not grant access or change database settings; custody may tighten it.
+    statement_timeout: 5000, keepAlive: true,
     options: '', application_name: `cleanops-identity-${input.environment}`,
   })
 }
