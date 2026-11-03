@@ -92,7 +92,8 @@ class Synthetic(unittest.TestCase):
             self.assertIs(agent['read_only'], True)
             self.assertIn('rm -f /run/cleanops-agent/token; exec /usr/local/bin/bao agent ', agent['command'][0])
             self.assertEqual(agent['labels']['traefik.enable'], 'false')
-            for service, readonly in [('web', True), ('openbao-agent', False)]:
+            self.assertNotIn('volumes', agent_config['services']['web'])
+            for service, readonly in [('openbao-agent', False)]:
                 sink = next(v for v in agent_config['services'][service]['volumes'] if v['target']=='/run/cleanops-agent')
                 self.assertEqual(sink['source'], 'identity_agent_sink')
                 self.assertEqual(sink.get('read_only', False), readonly)
@@ -481,14 +482,13 @@ registerHooks({ resolve(specifier, context, next) {
         current = yaml.safe_load((ROOT / 'deploy/staging/compose.yaml').read_text())
         # Preserve the published PG/TLS fingerprint after the independently checked Agent additions.
         self.assertEqual(current['include'].pop(), '../openbao/compose.agent.yaml')
-        self.assertEqual(current['services']['web'].pop('volumes'), [dict(type='volume', source='identity_agent_sink', target='/run/cleanops-agent', read_only=True, volume=dict(nocopy=True))])
+        self.assertNotIn('volumes', current['services']['web'])
         # New web build identity must be exactly bound to the Agent sink owner.
         self.assertEqual(current['services']['web']['build'].pop('args'), {
             'CLEANOPS_WEB_UID': '${CLEANOPS_IDENTITY_UID:?Verified nonroot consumer UID required}',
             'CLEANOPS_WEB_GID': '${CLEANOPS_IDENTITY_GID:?Verified consumer GID required}',
         })
-        self.assertEqual(current['services']['web']['networks'], ['private', 'identity_bao'])
-        current['services']['web']['networks'] = ['private']
+        self.assertEqual(current['services']['web']['networks'], ['private'])
         # Fingerprint of the parsed Compose at staging 198b4e41, independent of Git checkout depth.
         original_sha256 = 'c958b5a9ebfb11da7dd120a1fd06e40ccf3f7a20937a103dfc81795ce5fdf934'
         for path, variable, original in [
@@ -810,7 +810,7 @@ process.stdout.write(JSON.stringify(reports))
             for name, service in config["services"].items():
                 self.assertFalse(service.get("ports"), name)
                 self.assertFalse(service.get("privileged", False), name)
-            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "identity_bao", "ingress"})
+            self.assertEqual(set(config["services"]["web"]["networks"]), {"private", "ingress"})
             self.assertEqual(set(config["services"]["postgres"]["networks"]), {"private"})
             self.assertEqual(config["services"]["postgres"]["user"], "postgres")
             self.assertEqual(config["services"]["postgres"]["healthcheck"]["test"][0], "CMD-SHELL")
