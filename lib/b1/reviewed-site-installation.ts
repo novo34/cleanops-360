@@ -109,6 +109,9 @@ export async function loadReviewedB1Installation(source: PrivateFileSource): Pro
 
 /** Absence, wrong metadata or incomplete installation keeps B1 admission closed. */
 export async function reviewedB1Installation(): Promise<InstallationBootstrapInputs | undefined> {
+  // The reviewed Agent sink and private package are accessible only to UID/GID 999.
+  // Refuse a mismatched container identity before loading any privileged module.
+  if (process.getuid?.() !== 999 || process.getgid?.() !== 999) return undefined
   try { return await loadReviewedB1Installation(manifestSource) }
   catch { return undefined }
 }
