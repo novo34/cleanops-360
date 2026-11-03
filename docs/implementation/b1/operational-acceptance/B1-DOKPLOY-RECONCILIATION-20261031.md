@@ -35,3 +35,33 @@ Separately prepared `deploy/staging/compose.b1-web.yaml` is a review overlay, no
 ## Gate
 
 Until effective runtime bytes and approvals are observed, `AUTH-GATE-05` stays OPEN. No changes to staging/main, VPS, Dokploy or SQL are approved by this review. Avoid repeated synthetic code changes or automatic merging of 128 commits.
+
+
+## Handoff operativo validado — 03/11/2026 (sin activación)
+
+Este anexo actualiza las observaciones de 31/10 y **no** sustituye el registro histórico. Fuente: comandos de solo lectura y pruebas aisladas ejecutados por el propietario en `srv1155120` y comunicados en la sesión del 03/11; no es revisión de un auditor independiente.
+
+### Estado verificado sin repetir operaciones
+
+- Web activa: `cleanops360-f4fxmd-web-1` `running/healthy`; imagen `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290`; Docker Compose file `/etc/dokploy/compose/cleanops360-f4fxmd/code/deploy/staging/compose.yaml`; Git `d3ea84b38fd1574db1610f03b59c8c4a5050ac72`; Compose sha256 `03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c` idéntico a Git HEAD. No montajes B1 ni código B1 en la imagen actual.
+- Routers a preservar: `cleanops360-f4fxmd-15-web` (entrypoint `web`, middleware `redirect-to-https@file`) y `cleanops360-f4fxmd-15-websecure` (`websecure`, certresolver `letsencrypt`); red `dokploy-network`. SHA256 de sus reglas idénticas: `4e4556685ce29d2dfa8985e5bb3e525d9bb75ffd14aca90d35b7a4e3f6ebfca1`. Ruta `/login` HTTP 200.
+- Primer administrador: `B1_FIRST_ADMINISTRATOR_COMMITTED_PASS`, con Aegis SHA-256; migraciones SQL0002/0003 instaladas según recibos oficiales. **No reejecutar ni resetear**.
+- Imagen candidata construida con SHA `cc51574ad85485728d877efbbb69bcb345469596`: `cleanops360-b1-candidate:cc51574a`, `B1_ISOLATED_IMAGE_BUILD_PASS`, `B1_IMAGE_INSPECTION_PASS`. Montajes privados read-only en contenedor UID/GID 999:999: `B1_PRIVATE_MOUNTS_PASS`; cargador oficial `reviewedB1Installation()`: `B1_PRIVATE_LOADER_PASS`. No inicia el servidor ni prueba credenciales.
+- OpenBao Agent existente: `cleanops360-f4fxmd-openbao-agent-1` UID 999, red `cleanops360_staging_custody`; volumen `cleanops360-f4fxmd_identity_agent_sink`, token modo 0600 en dir 0700, legible desde un segundo contenedor no-root con volumen de solo lectura: `TOKEN_COMPARTIDO=ACCESIBLE`. No duplicar Agent ni copiar token.
+- Traefik: `dokploy-traefik` `traefik:v3.6.7` `running`; redes `dokploy-network`, `supabase-supabase-2bvnab`. Providers file/docker/swarm referenciados, directorio dinámico montado. Búsqueda en cinco archivos dinámicos: no identificó ForwardAuth, serversTransport, clientCertificates ni rootCAs; no demuestra ausencia universal.
+
+### Corrección de auditoría criptográfica (revisión directa del contrato)
+
+El manifiesto contiene `ingress.proxyCertificateSha256` con **95 caracteres hexadecimales separados por dos puntos**. Un preflight improvisado lo marcó `REVISAR` por exigir minúsculas sin separadores. **ESE PREFLIGHT ERA INCORRECTO PARA EL CÓDIGO REVISADO**: en `lib/b1/installation-config.ts`, `prepareB1IngressListenerPlan()` exige el patrón `/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/`. Por tanto, **NO NORMALIZAR NI CAMBIAR el pin de 95 caracteres**. El formato es compatible con el contrato; resta verificar la correspondencia real con el **certificado cliente mTLS de Traefik**, nunca con el certificado público Let's Encrypt. No mostrar claves ni huellas en logs/PR.
+
+`ingress.evidenceReference` sigue pendiente: no inventar valor ni forzar un START. `tlsAuthorizationReference` presente no equivale a aceptación independiente documentada.
+
+### Diseño de entrega versionada (sin configuración lateral permanente)
+
+1. **Fuente de verdad:** rama de preparación Git para código, `deploy/staging/compose.b1-web.yaml` y `deploy/staging/traefik/b1-forward-auth.delta.example.yaml`. Este último es ejemplo **inactivo**, no fichero a copiar tal cual: contiene placeholders de certificado/servicio/puerto. No reemplazar `deploy/staging/compose.yaml` operativo ni integrar en `staging` con autodeploy activo.
+2. **Overlay web:** reutilizar imagen candidata inmovilizada **por digest** después de verificarlo, preservar el Compose original/servicio/routers, añadir exclusivamente binds privados read-only y volumen `cleanops360-f4fxmd_identity_agent_sink` read-only, preservar redes web existentes y red de custodia requerida, sin servicio Agent duplicado. Evaluar explícitamente el acceso de la web a OpenBao, CA, PG TLS y los permisos de montaje; `B1_PRIVATE_LOADER_PASS` no prueba el arranque.
+3. **ForwardAuth:** usar el provider file realmente habilitado por Traefik con YAML **versionado** y procedimiento de publicación atómico, con pre-validación y rollback. Reutilizar el router HTTPS original para `/login` y estáticos; router de prioridad superior únicamente para rutas B1. Verificar DNS alias de ingress y CIDR de interfaz única en `dokploy-network`; puerto interno sin publicar; certificado cliente Traefik válido y pin idéntico; certificado listener con SAN del alias; `trustForwardHeader: false` y sanitización de assertion con pruebas negativas, sin `insecureSkipVerify`.
+4. **Gates antes de activación:** (a) paths reales de CA/certificado/key y permisos en el contenedor Traefik, (b) pin/propósito/SAN/CA comprobados sin exponer bytes, (c) referencia `evidenceReference` de aprobación verificable, (d) configuración Compose efectiva con etiquetas y redes preservadas, (e) revisión independiente del SHA exacto y pruebas de cabeceras/cuerpo/CSRF/sesiones/replay y revocación, (f) respaldo real y rollback, (g) autorización explícita del propietario para la ventana. La existencia de la cuenta inicial COMMITTED **no prueba** credencial de dispositivo de ingreso de Traefik; verificar su enrolamiento por canal autorizado.
+5. **Entrega:** solo después de los gates, aplicar mediante procedimiento controlado de Dokploy, preservar `staging` hasta decisión explícita, comprobar `/login`, auth y rutas de rechazo; si hay error, retirar la configuración nueva y restaurar **exactamente** Compose+imagen+routers anteriores. No tocar PG/OpenBao volúmenes, SQL14 ni los usuarios creados.
+
+**Estado actual:** `B1_PRIVATE_LOADER_PASS`, administrador `COMMITTED`, **listener mTLS / ForwardAuth / login web NO VALIDADOS**, `AUTH-GATE-05 OPEN`. No autoriza despliegue.
