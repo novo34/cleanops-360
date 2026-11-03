@@ -246,3 +246,20 @@ El script de inventario unió indebidamente dos dominios de ruta: fuentes privad
 - Activación del servicio web B1 y login real: **PENDIENTES**.
 
 **Próximo control:** verificar bajo la imagen candidata y montajes de solo lectura del volumen Agent y del directorio privado, con política de red y arranque/revisión explícitos, sin imprimir secretos; antes de cualquier inicio de Next o despliegue debe existir rollback y autorización del cambio. Evitar un nuevo harness duplicado si el loader oficial puede validarse.
+
+
+## 15. Montajes conjuntos de imagen B1 — propietario, 03/11/2026
+
+**Resultado observado:** prueba de contenedor efímero de solo lectura con `--network none`, UID/GID `999:999`, `--cap-drop ALL`, volumen `cleanops360-f4fxmd_identity_agent_sink` RO montado en `/run/cleanops-agent` y bind RO `/run/cleanops-b1-private` en igual ruta interna, sobre imagen `cleanops360-b1-candidate:cc51574a`.
+
+```text
+MANIFIESTO_B1=ACCESIBLE
+TOKEN_OPENBAO=ACCESIBLE
+B1_PRIVATE_MOUNTS_PASS
+ESTADO=running
+SALUD=healthy
+```
+
+**PASS demostrado:** la imagen candidata puede leer ambos montajes en su espacio de nombres con la identidad de servicio `999:999`. La web vigente continúa `running/healthy`. No hubo arranque de Next ni acceso a red.
+
+**No probado:** lectura/validación integral del manifiesto por el cargador B1, validez del módulo de integración y de sus digest, conexión real a OpenBao/PG, listener mTLS, ForwardAuth, login, sesión o acceptance. La siguiente comprobación debe preferir el cargador canónico `reviewedB1Installation()` sin iniciar Next ni aceptar un manifest incompleto; no crear otro validador de producción.
