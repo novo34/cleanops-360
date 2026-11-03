@@ -98,7 +98,7 @@ python3 - "$B1_PROXY_ID" "$B1_WEB_ID" <<'PY'
 import json, re, subprocess, sys
 
 def docker(*args):
-    return subprocess.check_output(['docker', *args], stderr=subprocess.DEVNULL, text=True)
+    return subprocess.check_output(['docker', *args], stderr=subprocess.DEVNULL, text=True, timeout=10)
 
 def inspect(cid):
     return json.loads(docker('inspect', cid))[0]
@@ -141,7 +141,9 @@ except Exception:
     print('inspection', 'UNKNOWN; no raw output or exception disclosed')
     sys.exit(2)
 PY
-docker exec "$B1_PROXY_ID" traefik version
+if ! timeout 10s docker exec "$B1_PROXY_ID" traefik version; then
+  printf "%s\n" "Traefik version: UNKNOWN (consulta fallida o agotó el tiempo)"
+fi
 ```
 
 `traefik version` ejecuta solo la consulta de versión del binario existente. Si el binario no está disponible con ese nombre, no adivinar rutas/comandos: usar imagen/digest y evidencia privada del operador. No compartir IDs, red o topología en canales públicos innecesariamente. El conteo de procesos es orientativo: npm/helpers pueden sumar procesos y no revela quién consume B1. No acredita unicidad por sí solo; el conteo Compose es solo del host y no cubre otros proyectos/hosts ni versiones con labels distintas.
