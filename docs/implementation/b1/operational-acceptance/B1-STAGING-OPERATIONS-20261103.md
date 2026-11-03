@@ -191,3 +191,20 @@ Inspección posterior de **solo lectura**. Resultados aportados por el propietar
 **Conclusión:** el volumen Docker que usa Agent es legible desde un contenedor distinto cuando se monta read-only con identidad `999:999`. Descartar la hipótesis de que sea imprescindible copiar el token o crear otro Agent. Este PASS no demuestra una integración productiva, ni una autorización para montar el volumen en la web sin revisión del alcance.
 
 **Siguiente acción:** preparar y revisar **fuera del despliegue activo** un overlay mínimo del Compose operativo que reutilice el volumen existente y preserve routers/servicios; construir y ensayar la imagen B1 de SHA fijado de forma aislada, con revisión independiente y rollback antes de aplicar. No repetir esta prueba si no cambian volumen, identidad ni permisos.
+
+
+## 12. Construcción aislada de imagen B1 — propietario, 03/11/2026
+
+**Evidencia aportada:** `B1_ISOLATED_IMAGE_BUILD_PASS`, reportado tras ejecutar el bloque de construcción controlada. El bloque verifica disponibilidad del SHA, árbol Git limpio, espacio libre, archivado de commit exacto y `docker buildx build --load --pull=false` con UID/GID `999`. Inspecciona imagen resultante y web actual; la salida detallada (IDs y estados) no fue aportada, por lo que **no se inventan digests ni se acredita una prueba funcional del runtime**.
+
+| Atributo | Resultado reportado |
+| --- | --- |
+| Fuente exacta | `cc51574ad85485728d877efbbb69bcb345469596` (PR #33) |
+| Tag nuevo | `cleanops360-b1-candidate:cc51574a` |
+| Dockerfile | `deploy/staging/Dockerfile` del archivo de código fijado |
+| Build args | `CLEANOPS_WEB_UID=999`, `CLEANOPS_WEB_GID=999` |
+| Resultado | **`B1_ISOLATED_IMAGE_BUILD_PASS`** |
+| Cambio de imagen vigente, Compose o Traefik | **NO solicitado** |
+| Integración privada B1, login web, mTLS | **PENDIENTE DE PRUEBA** |
+
+**Siguiente control:** verificar digest, identidad efectiva y módulos B1 de la imagen candidata con `docker image inspect` y un contenedor desechable **sin red y sin montajes privados**, comparando con el contenedor web vigente. No iniciar el servidor ni conectar secretos antes del plan revisado y reversible.
