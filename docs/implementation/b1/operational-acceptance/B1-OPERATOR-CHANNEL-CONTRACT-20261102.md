@@ -1,5 +1,8 @@
 # B1 operator channel (D1): implemented in the repository, NOT applied, NOT activated
 
+> **Actualización operativa 03/11/2026:** El encabezado histórico «NOT applied» refleja el momento de redacción, no el estado posterior. El propietario reportó SQL0002/0003 instalados y primer actor `COMMITTED`; consultar [registro operativo 03/11](./B1-STAGING-OPERATIONS-20261103.md). La funcionalidad de enrolamiento de dispositivos/ingress **no** está probada en producción ni en la web desplegada. AUTH-GATE-05 sigue OPEN.
+
+
 Status: code and SQL are in `db/migrations/0003_ingress_persistence.review.sql` (still `proposed:true`, hash re-pinned in `scripts/trusted-migrations.mjs`) and `lib/b1/pg-ingress-repositories.ts` (`createPgIngressOperator`), exposed beside `firstActor` as `selectAuthBackend(...).ingressOperator(operatorPool)`. The runtime pool still gets 503 for enroll/revoke/recover from `createPgIngressRepositories`. AUTH-GATE-05 stays OPEN.
 
 Design (reuses the first-actor pattern of 0002 and `session_user` auditing):
