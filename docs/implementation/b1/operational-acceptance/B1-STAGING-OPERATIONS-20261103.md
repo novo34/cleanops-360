@@ -344,3 +344,16 @@ Comprobación local de solo lectura del manifiesto `/run/cleanops-b1-private/ins
 **Lectura correcta:** no se encontraron referencias textuales conocidas de ForwardAuth, serversTransport, clientCertificates ni rootCAs en ese conjunto de archivos. Los tres hallazgos TLS **no** acreditan autenticación mutua ni identidad de certificado cliente. La búsqueda no interpreta semánticamente Traefik, no inspeccionó toda la configuración principal, flags o providers, y no demuestra ausencia global de capacidades. **El enlace B1 ForwardAuth/mTLS real sigue NO ACREDITADO.**
 
 **Plan secuencial:** conservar el Compose operativo exacto, labels/rutas, web existente y TLS público; reconciliar `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` con el provider real, verificar certificado cliente/CA y fingerprint, resolver `ingress.evidenceReference` mediante revisión con procedencia, y preparar pruebas reversibles/negativas antes de autorizar cualquier modificación. No crear certificados o cambiar el pin por conjetura, no ejecutar SQL ni reabrir `COMMITTED`.
+
+
+## 21. Corrección prevalente y paso a flujo Git/Dokploy — 03/11/2026
+
+**Esta sección CORRIGE explícitamente los diagnósticos erróneos de §17 y §18:** el preflight ad hoc que marcó `ingress.proxyCertificateSha256` como `REVISAR` por ser una huella de 95 caracteres con dos puntos usó un formato equivocado para el código B1. El contrato real de `lib/b1/installation-config.ts` (`prepareB1IngressListenerPlan()`, SHA `cc51574ad85485728d877efbbb69bcb345469596`) exige `/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/`: 32 octetos, mayúsculas, separados por dos puntos, longitud 95. El manifiesto reportado tiene ese **formato correcto**. **No quitar dos puntos, no normalizar a minúscula, no modificar el valor.**
+
+No se ha comparado la huella con el certificado **cliente mTLS real de Traefik** ni acreditado su propósito, vigencia, SAN/CA o aprobación; por ello sigue el bloqueo de la activación. `ingress.evidenceReference` continúa pendiente.
+
+**Resultado de la nueva auditoría Traefik:** provider `file`, `docker` y `swarm` referenciados y directorio dinámico montado; no se detectaron referencias ForwardAuth/mTLS en los cinco archivos inspeccionados. Esto no equivale a un parseo completo del provider.
+
+**Decisión de procedimiento:** a partir de ahora, el despliegue se prepara en **GitHub** y se entrega mediante **Dokploy** con revisión; SSH solo para verificaciones específicas, no para mantener un YAML lateral sin control de versiones. Rama de trabajo no desplegable `prep/b1-dokploy-traefik-handoff-20261103` basada en `cc51574ad85485728d877efbbb69bcb345469596`. Se actualizó la plantilla `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` y el runbook existente `B1-DOKPLOY-RECONCILIATION-20261031.md`, **sin activar configuración ni alterar `staging`**.
+
+**Pendientes antes de cualquier cambio real:** demostrar certificado cliente mTLS / CA y pin reales y su acceso seguro desde Traefik; identificar ruta/alias/puerto y cert SAN; completar referencia de evidencia con aprobación independiente; preservar el Compose y routers previos; verificar la operabilidad de ForwardAuth y la credencial de ingreso prelogin, y autorizar ejecución reversible. No repetir SQL ni la ceremonia de primer actor `COMMITTED`.
