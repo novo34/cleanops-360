@@ -28,3 +28,21 @@ test('issuer uses the actual reviewed installer inputs.origin, never an absent t
   assert.throws(() => operatorIngressScope({ ingress: { issuer: 'staging' }, origin: 'https://cleanops.nuvurent.com' }), /B1_OPERATOR_UNAVAILABLE/)
   assert.throws(() => operatorIngressScope({ ingress: { issuer: 'staging' }, inputs: { origin: 'http://localhost' } }), /B1_OPERATOR_UNAVAILABLE/)
 })
+
+test('operator manifest source is derived from root-owned file metadata, never a fixed GID', { skip: process.getuid?.() !== 0 && 'root required for chown' }, async () => {
+  const fs = await import('node:fs/promises')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { readOperatorManifestSource } = await import('../../scripts/b1-private-operator.mjs')
+  const folder = await fs.mkdtemp(join(tmpdir(), 'b1-operator-manifest-'))
+  const path = join(folder, 'installation.json')
+  try {
+    const input = { sink: { uid: 1000, gid: 1000, directoryUid: 1000, directoryGid: 1000 } }
+    await fs.writeFile(path, JSON.stringify(input))
+    await fs.chown(path, 0, 1000)
+    await fs.chmod(path, 0o440)
+    assert.deepEqual((await readOperatorManifestSource(path)).gid, 1000)
+    await fs.writeFile(path, JSON.stringify({ ...input, sink: { ...input.sink, gid: 999 } }))
+    await assert.rejects(readOperatorManifestSource(path), /B1_OPERATOR_UNAVAILABLE/)
+  } finally { await fs.rm(folder, { recursive: true, force: true }) }
+})

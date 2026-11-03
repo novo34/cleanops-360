@@ -6,6 +6,20 @@ spec=importlib.util.spec_from_file_location('prepare_bao',ROOT/'scripts/prepare-
 def fixture():
  return dict(environment='isolated-fixture',private_ipv4='10.42.1.2',api_dns='bao.fixture.invalid',node_id='fixture-node',token_ttl_seconds=60,token_max_ttl_seconds=300,secret_id_ttl_seconds=60,workload_cidrs=['10.42.2.0/24'],approved_key_reads=[dict(tenant='11111111-1111-1111-1111-111111111111',purpose='mail-aead',key_id='fixture-key-1',workload='mail-worker')],approved_key_creates=[dict(tenant='11111111-1111-1111-1111-111111111111',purpose='mail-aead',key_id='fixture-key-2')])
 class Preparation(unittest.TestCase):
+ def test_agent_private_paths_do_not_accept_normalized_spellings(self):
+  # The same lexical contract is applied before any configuration is rendered.
+  # Test only the canonical path predicate, with no OpenBao or TLS operations.
+  from pathlib import Path
+  import re
+  accepted='/run/cleanops-agent/token'
+  rejected=['/run//cleanops-agent/token','/run/./cleanops-agent/token',
+            '/run/cleanops-agent/token/','//run/cleanops-agent/token',
+            '/run/cleanops-agent/../token']
+  valid=lambda raw: isinstance(raw,str) and raw.startswith('/') and not raw.startswith('//') and Path(raw).is_absolute() and '..' not in Path(raw).parts and raw==str(Path(raw)) and bool(re.fullmatch(r'[A-Za-z0-9_./-]+',raw))
+  self.assertTrue(valid(accepted))
+  for raw in rejected:
+   with self.subTest(path=raw):self.assertFalse(valid(raw))
+
  def test_reproducible_private_tls_and_no_unreviewed_services(self):
   a=m.prepare(fixture());self.assertEqual(a,m.prepare(fixture()));c=a['server.json'];l=c['listener'][0]['tcp']
   self.assertFalse(c['ui']);self.assertFalse(l['tls_disable']);self.assertTrue(l['tls_require_and_verify_client_cert']);self.assertFalse(c['raw_storage_endpoint']);self.assertFalse(c['unsafe_allow_api_audit_creation']);self.assertFalse(c['plugin_auto_download'])

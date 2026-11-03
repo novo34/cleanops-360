@@ -47,6 +47,7 @@ export async function renderB1Integration({ packageDir, manifestSource, report, 
     if (!Number.isSafeInteger(sinkGid) || sinkGid <= 0 ||
         !Number.isSafeInteger(m.sink?.uid) || m.sink.uid <= 0 ||
         m.sink.directoryGid !== sinkGid || m.sink.directoryUid !== m.sink.uid ||
+        manifestSource.uid !== 0 || manifestSource.gid !== sinkGid || manifestSource.mode !== 0o440 ||
         source.uid !== 0 || source.gid !== sinkGid || source.mode !== 0o440) throw fail()
     const audience = new URL(m.origin).origin
     if (audience !== m.origin || !audience.startsWith('https://')) throw fail()
@@ -90,8 +91,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const [dir, reportPath, approvalPath, uid, gid, mode, ...extra] = process.argv.slice(2)
     if (extra.length || !/^\d+$/.test(uid ?? '') || !/^\d+$/.test(gid ?? '') || !['0400', '0440', '0600'].includes(mode)) throw fail()
     const owner = { uid: Number(uid), gid: Number(gid), mode: Number.parseInt(mode, 8), maxBytes: 65536 }
+    // The report/approval owner is supplied by the operator. The manifest
+    // belongs to root:<reviewed sink group>, which may be different.
+    const manifestPath = join(dir, 'installation.json')
+    const stat = await fs.lstat(manifestPath)
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.uid !== 0 ||
+        !Number.isSafeInteger(stat.gid) || stat.gid <= 0 || (stat.mode & 0o7777) !== 0o440) throw fail()
     const result = await renderB1Integration({ packageDir: dir,
-      manifestSource: { path: join(dir, 'installation.json'), uid: 0, gid: Number(gid), mode: 0o440, maxBytes: 65536 },
+      manifestSource: { path: manifestPath, uid: 0, gid: stat.gid, mode: 0o440, maxBytes: 65536 },
       report: { ...owner, path: reportPath }, approval: { ...owner, path: approvalPath } })
     console.log(JSON.stringify(result, null, 2))
     if (!result.manifestMatches) console.error('Set integration.sha256 in installation.json to the digest above before activation.')

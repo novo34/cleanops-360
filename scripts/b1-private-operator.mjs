@@ -22,7 +22,26 @@ import { createDurableCandidateIssuer, credentialCookie } from '../lib/b1/ingres
 
 const refused = () => new Error('B1_OPERATOR_UNAVAILABLE')
 
-const manifestSource = Object.freeze({ path: '/run/cleanops-b1-private/installation.json', uid: 0, gid: 999, mode: 0o440, maxBytes: 65536 })
+const operatorManifestPath = '/run/cleanops-b1-private/installation.json'
+/** Root operator may read root:group manifest regardless of its *reviewed* non-root
+ * consumer group. The candidate GID comes from filesystem metadata, never
+ * request.json, environment or a caller-supplied value.
+ */
+export async function readOperatorManifestSource(path = operatorManifestPath) {
+  const stat = await fs.lstat(path)
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.uid !== 0 ||
+      !Number.isSafeInteger(stat.gid) || stat.gid <= 0 || (stat.mode & 0o7777) !== 0o440 ||
+      stat.size < 1 || stat.size > 65536) throw refused()
+  const source = Object.freeze({ path, uid: 0, gid: stat.gid, mode: 0o440, maxBytes: 65536 })
+  const raw = await readTrustedPrivateFile(source)
+  try {
+    const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw))
+    if (manifest?.sink?.gid !== stat.gid || manifest.sink.directoryGid !== stat.gid ||
+        !Number.isSafeInteger(manifest.sink.uid) || manifest.sink.uid <= 0 ||
+        manifest.sink.directoryUid !== manifest.sink.uid) throw refused()
+  } finally { raw.fill(0) }
+  return source
+}
 export async function dispatchPrivateOperator(request, installation, prepared, operatorPool, operatorSigningKey, makeRuntime = selectAuthBackend) {
   let runtime
   let issuer
@@ -105,7 +124,11 @@ export async function runPrivateOperator(directory) {
   try {
     await resultFile.chown(0, 0)
     await resultFile.chmod(0o600)
+    const manifestSource = await readOperatorManifestSource()
     installation = await loadReviewedB1Installation(manifestSource)
+    // The reviewed reader GID is also verified on disk before any operator
+    // database activity. No fallback to another private package is allowed.
+    if (installation.inputs.sink.gid !== manifestSource.gid) throw refused()
     prepared = await assembleInstallationPrivateInputs(installation)
     const operatorConfig = { ...prepared.configuration.postgres, loginRole: request.operatorLoginRole,
       password: createPrivatePgPassword({ path: password, uid: 0, gid: 0, mode: 0o400, maxBytes: 4096 }),

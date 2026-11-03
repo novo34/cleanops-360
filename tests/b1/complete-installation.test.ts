@@ -86,11 +86,14 @@ test('completion fills only verifiable null fields, never overwrites, backs up, 
     assert.match((await completeB1Installation({ packageDir: dir })).files.find(f => f.label === 'sources.postgresPassword')!.status, /INVALID_CONTENT/)
 
     // An existing primitive subtree must survive --apply, even if other fields are fillable.
-    await fs.writeFile(manifest, JSON.stringify({ ...original, sink: 5 }))
+    const malformed = JSON.stringify({ ...original, sink: 5 })
+    await fs.writeFile(manifest, malformed)
     const conflict = await completeB1Installation({ packageDir: dir })
     assert.ok(conflict.differsFromContract.includes('sink'))
     assert.ok(!conflict.filled.some(f => f.path === 'sink' || f.path.startsWith('sink.')))
-    await completeB1Installation({ packageDir: dir, apply: true, backupDir: backups })
-    assert.equal(JSON.parse(await fs.readFile(manifest, 'utf8')).sink, 5)
+    await assert.rejects(completeB1Installation({ packageDir: dir, apply: true, backupDir: backups }),
+      /B1_INSTALLATION_COMPLETION_REFUSED/)
+    assert.equal(await fs.readFile(manifest, 'utf8'), malformed)
+    assert.equal((await fs.readdir(backups)).length, 1)
   } finally { await fs.rm(dir, { recursive: true, force: true }); await fs.rm(backups, { recursive: true, force: true }) }
 })
