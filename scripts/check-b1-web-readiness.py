@@ -21,7 +21,7 @@ SINK = f"{PREFIX}_identity_agent_sink"
 
 
 def inspect(*args: str) -> dict:
-    result = subprocess.check_output(["docker", *args], text=True, stderr=subprocess.DEVNULL)
+    result = subprocess.check_output(["docker", *args], text=True, stderr=subprocess.DEVNULL, timeout=30)
     objects = json.loads(result)
     if not isinstance(objects, list) or len(objects) != 1:
         raise ValueError("unexpected Docker inspect result")
@@ -83,7 +83,7 @@ def main() -> int:
     try:
         containers = {key: inspect("inspect", name) for key, name in NAMES.items()}
         volume = inspect("volume", "inspect", SINK)
-    except (subprocess.CalledProcessError, OSError, IndexError, ValueError, KeyError):
+    except (subprocess.SubprocessError, OSError, IndexError, ValueError, KeyError):
         print("BLOCKED | required Docker object unavailable")
         return 2
     return 0 if evaluate(containers, volume) else 1
