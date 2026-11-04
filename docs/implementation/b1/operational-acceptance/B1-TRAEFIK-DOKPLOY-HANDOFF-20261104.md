@@ -227,3 +227,7 @@ Referencia historica de imagen candidata: commit cc51574ad85485728d877efbbb69bcb
 ## BuildKit sin cache disponible
 
 El propietario informo builder default v0.27.1 operativo, cache BuildKit 0 B, checkout de produccion en d3ea84b38fd1574db1610f03b59c8c4a5050ac72 y arbol sin cambios. Imagen candidata B1 no disponible en inventario local. Proxima accion: preparar compilacion aislada desde el SHA revisado sin alterar el checkout. Activacion pendiente; AUTH-GATE-05 OPEN.
+
+## Metadatos del paquete privado B1 comprobados
+
+Resultado del propietario en VPS: directorio privado presente, UID 0, GID 999, modo 750; 20 archivos regulares encontrados a profundidad dos; installation.json UID 0, GID 999, modo 440, tamano 5243 bytes. Commit candidato cc51574ad85485728d877efbbb69bcb345469596 disponible en checkout local. Solo se consultaron metadatos; contenido e integridad del manifiesto, material mTLS y autorizaciones no acreditados por ello. Imagen B1 no encontrada y cache Docker 0 B segun inventarios previos. No repetir generacion de secretos ni pruebas PASS historicas. AUTH-GATE-05 OPEN.
