@@ -1,16 +1,18 @@
 # B1 ingress DELTA — PREPARED, NOT ACTIVE. Nothing here is read by Dokploy, Traefik or CI.
 # Applying it is a separately authorized staging operation (see the B1 closure execution runbook).
 #
-# Part 1 (Traefik file-provider, dynamic config) and part 2 (Compose overlay on the web service)
-# are applied together. The existing routers (cleanops360-f4fxmd-15-web / -websecure on port 3000),
-# /login, static assets and redirect-to-https@file are NOT edited; only a NEW higher-priority
-# router for the narrow B1 paths is added, so removing the file restores today's behaviour.
+# This example assumes the separately prepared B1 shadow container:
+# cleanops360-b1-shadow-cc51574a on dokploy-network, with the unique DNS alias
+# cleanops-b1-ingress. It must be started only under an approved runtime and
+# rollback procedure. The old web remains untouched on its existing routers.
+# A NEW higher-priority router handles ONLY B1 paths and forwards to the new
+# file-provider service cleanops-b1-shadow (NOT the OLD @docker web service).
+# Removing the dynamic file restores the original path routing.
 #
-# D3 — why no IP is configured: web and Traefik share the Overlay network dokploy-network, where
-# a container address changes at every re-creation. Traefik therefore reaches the listener by a
-# STABLE DNS ALIAS on that network (part 2) and the web process picks its own overlay address at
-# startup from the reviewed manifest `ingress.binding` given as a private CIDR (the dokploy-network
-# subnet, e.g. "10.0.X.0/24"; resolveIngressBinding, fail-closed on 0 or >1 match). The listener is
+# D3 — why no IP is configured: B1 shadow and Traefik share the existing overlay
+# dokploy-network. The B1 shadow alone owns the alias cleanops-b1-ingress.
+# Its listener resolves the reviewed manifest ingress.binding CIDR against the
+# container interface. Never assign this alias to the OLD web. The listener is
 # never published (no `ports:`), never bound to a wildcard, and mTLS + the pinned proxy certificate
 # are enforced exactly as before: another container on the overlay can open a TCP connection but
 # cannot pass the client-certificate check (denied before any database access).
@@ -54,8 +56,10 @@
 #   five inspected dynamic configuration files. This is not proof of global absence.
 # - The existing Agent sink is volume cleanops360-f4fxmd_identity_agent_sink. A separate
 #   UID/GID 999:999 read-only container confirmed access. No replacement Agent or new token.
-# - 04/11: owner verified manifest ingress.binding CIDR resolves to exactly the web
-#   dokploy-network interface (BINDING_CIDR=PASS). Do not repeat without topology change.
+# - 04/11: owner verified manifest CIDR matches exactly the OLD web's
+#   dokploy-network interface (BINDING_CIDR=PASS). B1 shadow has been staged
+#   with the same network and unique alias, but is not started or accepted.
+#   The shadow process's own CIDR resolution is therefore not yet observed.
 # - 04/11: existing /etc/cleanops360-staging/b1-ingress-pki/traefik-client.crt/key
 #   passed public-key match, root-only key permissions and sslclient chain against
 #   manifest clientCa; prior SHA-256 pin match PASS. No new CA or certificate.
@@ -65,7 +69,7 @@
 #   certificate SAN, header sanitization, routing, prelogin device enrollment and rollback
 #   have passed independent review and owner authorization.
 #
-# Placeholders in <...> must come from the read-only evidence bundle (step A). The TLS server
+# Remaining <...> placeholders must be substituted from the protected operator evidence before any activation. The TLS server
 # certificate of the listener MUST carry DNS:cleanops-b1-ingress in its SAN (Traefik verifies the
 # address host name; insecureSkipVerify stays false).
 
@@ -110,26 +114,29 @@ http:
       # credential and the full private ingress/SQL package is accepted.
       rule: Host(`cleanops.nuvurent.com`) && (PathPrefix(`/auth/`) || PathPrefix(`/mfa/`) || PathPrefix(`/me/`))
       entryPoints: [websecure]
-      priority: 1000                    # above the existing websecure router; same service, same port 3000
+      priority: 1000                    # above the existing websecure router; separate B1 shadow on port 3000
       tls:
         certResolver: letsencrypt
       middlewares: [cleanops-b1-strip-assertion, cleanops-b1-forward-auth]
-      service: cleanops360-f4fxmd-15-websecure@docker   # label confirmed on running web, 04/11; no new upstream
+      service: cleanops-b1-shadow  # FILE provider below; NEVER route B1 to the old @docker web
+  services:
+    cleanops-b1-shadow:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://cleanops-b1-ingress:3000"  # B1 shadow's private Next.js listener
 
-# ---- Part 2: Compose overlay on the web service (separate file at apply time) ------------------
-# services:
-#   web:
-#     stop_grace_period: 40s            # D4: > ingress.drainTimeoutMs (max 30 s) + Next.js own close
-#     stop_signal: SIGTERM
-#     networks:
-#       <key of dokploy-network in the EFFECTIVE Compose>:
-#         aliases: [cleanops-b1-ingress]
+# ---- Part 2: Already-staged isolated B1 shadow (NOT an overlay on the old web) -------------
+# scripts/b1-stage-shadow.py created a new, STOPPED Compose-owned container:
+#   cleanops360-b1-shadow-cc51574a
+# with a private readonly installation mount and Agent sink volume.
+# Its dokploy-network alias is cleanops-b1-ingress.
+# No additional Dokploy Compose web edits/aliases are necessary for this topology.
+# Do NOT add the same alias to the original cleanops360-f4fxmd-web-1.
+# Ensure the shadow is RUNNING, its trusted runtime and internal listener are READY,
+# and AUTH-GATE-05/security/owner approval is complete before this YAML is installed.
 #
-# Optional extra isolation (NOT required for the control above; do not apply without a decision):
-# a dedicated attachable overlay `cleanops-b1-forwardauth` with only {web, dokploy-traefik}, the
-# alias moved onto it, and `docker network connect cleanops-b1-forwardauth dokploy-traefik`.
-# That touches the Dokploy-managed Traefik container, so it is a separate owner decision; the
-# rollback is `docker network disconnect` + removing the alias.
-#
-# Rollback of parts 1+2: delete this dynamic-config file (Traefik reloads it; original routers are
-# untouched), then redeploy the previous web Compose revision (no alias, default stop grace).
+# Rollback: REMOVE/rename only the new B1 dynamic YAML, verify original B1 paths
+# return to the previous web router, then stop the B1 shadow without destroying
+# any persisted credentials, identity tables or audit evidence. Do not restart
+# Traefik, Dokploy, OpenBao, PostgreSQL or the old web as part of this rollback.
