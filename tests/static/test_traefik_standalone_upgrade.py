@@ -11,6 +11,9 @@ TOOL = ROOT / 'scripts/traefik-standalone-upgrade.py'
 SHIM = ROOT / 'tests/static/shim_docker.py'
 CURL = ROOT / 'tests/static/shim_curl.sh'
 OLD_ID, OLD_IMG = 'a' * 64, 'sha256:' + '1' * 64
+PIN = '10.0.1.11'          # synthetic fixture value only: the tool derives the address from the capture
+NETS = {'dokploy-network': {'Name': 'dokploy-network', 'Driver': 'overlay', 'Scope': 'swarm', 'Attachable': True, 'IPAM': {'Config': [{'Subnet': '10.0.1.0/24', 'Gateway': '10.0.1.1'}]}},
+        'supabase-supabase-2bvnab': {'Name': 'supabase-supabase-2bvnab', 'Driver': 'bridge', 'Scope': 'local', 'Attachable': False, 'IPAM': {'Config': [{'Subnet': '172.23.0.0/16'}]}}}
 NEW_IMG, DIGEST = 'sha256:' + '2' * 64, 'sha256:' + '3' * 64
 REF = f'traefik:v3.7.17@{DIGEST}'
 ROUTERS = [{'name': 'cleanops360-f4fxmd-15-websecure@docker', 'rule': 'Host(`cleanops.nuvurent.com`)', 'entryPoints': ['websecure'],
@@ -30,8 +33,8 @@ def container(root):
             'Mounts': [{'Type': 'bind', 'Source': f'{root}/etc/dokploy/traefik/traefik.yml', 'Destination': '/etc/traefik/traefik.yml', 'RW': True},
                        {'Type': 'bind', 'Source': f'{root}/etc/dokploy/traefik/dynamic', 'Destination': '/etc/dokploy/traefik/dynamic', 'RW': True},
                        {'Type': 'bind', 'Source': '/var/run/docker.sock', 'Destination': '/var/run/docker.sock', 'RW': False}],
-            'NetworkSettings': {'Networks': {'dokploy-network': {'Aliases': ['dokploy-traefik', 'aaaaaaaaaaaa'], 'IPAMConfig': None},
-                                             'supabase-supabase-2bvnab': {'Aliases': ['aaaaaaaaaaaa'], 'IPAMConfig': None}}}}
+            'NetworkSettings': {'Networks': {'dokploy-network': {'Aliases': ['dokploy-traefik', 'aaaaaaaaaaaa'], 'IPAMConfig': {'IPv4Address': PIN}, 'IPAddress': PIN},
+                                             'supabase-supabase-2bvnab': {'Aliases': ['aaaaaaaaaaaa'], 'IPAMConfig': {}, 'IPAddress': '172.23.0.15'}}}}
 
 
 class Base(unittest.TestCase):
@@ -44,8 +47,8 @@ class Base(unittest.TestCase):
         (self.root / 'etc/dokploy/traefik/dynamic/acme.json').write_text('{"synthetic":"never a real certificate store"}')
         self.inputs = self.tmp / 'inputs'; self.inputs.mkdir()
         self.write('container.json', [container(self.root)]); self.write('image.json', [image(OLD_IMG, 'traefik:v3.6.7')])
-        for n in ('dokploy-network', 'supabase-supabase-2bvnab'):
-            self.write(f'{n}.json', [{'Name': n}])
+        for n in NETS:
+            self.write(f'{n}.json', [NETS[n]])
 
     def write(self, name, data):
         (self.inputs / name).write_text(json.dumps(data))
@@ -65,6 +68,7 @@ class Planning(Base):
         switch = (self.tmp / 'plan/02-switch.sh').read_text()
         for needle in ('--restart always', '--network dokploy-network', '-p 80:80/tcp', '-p 443:443/tcp', '-p 443:443/udp',
                        'target=/var/run/docker.sock,readonly', 'type=bind,source=', 'docker network connect supabase-supabase-2bvnab "$OLD"',
+                       f'--ip {PIN}', 'docker network disconnect dokploy-network "$PREV"', f'wait_free dokploy-network {PIN}',
                        'docker stop -t 30', 'docker update --restart=no', 'docker rename "$OLD" "$PREV"', 'trap '):
             self.assertIn(needle, switch)
         for name in ('01-prepare.sh', '02-switch.sh', '03-verify.sh', 'rollback.sh'):
@@ -74,6 +78,12 @@ class Planning(Base):
                 self.assertNotIn(forbidden, text, f'{name} contains {forbidden!r}')
         # -v is never used: --mount refuses to create a missing host path
         self.assertNotIn(' -v ', switch)
+        everything = ''.join((self.tmp / 'plan' / n).read_text() for n in ('01-prepare.sh', '02-switch.sh', '03-verify.sh', 'rollback.sh'))
+        self.assertNotIn('172.23.0.15', everything, 'the dynamic address of the second network is never pinned')
+        self.assertNotIn('network connect --ip', switch.split('docker create')[1].split('docker start')[0], 'only the primary network is pinned, at create')
+        self.assertEqual(spec['networkConfig']['dokploy-network'], {'staticIPv4': PIN, 'aliases': []})
+        self.assertEqual(spec['networkConfig']['supabase-supabase-2bvnab'], {'staticIPv4': None, 'aliases': []})
+        self.assertEqual(spec['networkDrivers']['dokploy-network']['driver'], 'overlay')
 
     def refuses(self, mutate, fragment, **kw):
         c = [container(self.root)]; img = [image(OLD_IMG, 'traefik:v3.6.7')]
@@ -90,12 +100,58 @@ class Planning(Base):
         self.refuses(lambda c, i: c['Mounts'][2].update(RW=True), 'read-only')
         self.refuses(lambda c, i: c['Mounts'][1].update(RW=False), 'read-write')
         self.refuses(lambda c, i: c['NetworkSettings']['Networks'].pop('supabase-supabase-2bvnab'), 'networks differ')
-        self.refuses(lambda c, i: c['NetworkSettings']['Networks']['dokploy-network'].update(Aliases=['dokploy-traefik', 'extra.alias', 'aaaaaaaaaaaa']), 'aliases')
-        self.refuses(lambda c, i: c['NetworkSettings']['Networks']['dokploy-network'].update(IPAMConfig={'IPv4Address': '10.0.0.9'}), 'static IP')
         self.refuses(lambda c, i: c['Config'].update(Cmd=['--api.insecure=true']), 'no explicit flags')
         self.refuses(lambda c, i: c['HostConfig'].update(Privileged=True), 'Privileged')
         self.refuses(lambda c, i: c['HostConfig']['RestartPolicy'].update(Name='unless-stopped'), 'restart policy')
         self.refuses(lambda c, i: c['Config'].update(Image='traefik:v3.6.25'), 'inventory confirmed')
+
+    def test_pinned_address_is_derived_never_hardcoded(self):
+        source = TOOL.read_text()
+        self.assertNotIn(PIN, source); self.assertNotIn('10.0.1.', source); self.assertNotIn('172.23.0.15', source)
+        other = '10.7.3.42'
+        c = [container(self.root)]; c[0]['NetworkSettings']['Networks']['dokploy-network'].update(IPAMConfig={'IPv4Address': other}, IPAddress=other)
+        self.write('container.json', c)
+        nets = copy.deepcopy(NETS['dokploy-network']); nets['IPAM']['Config'][0]['Subnet'] = '10.7.3.0/24'; self.write('dokploy-network.json', [nets])
+        r = self.plan(); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads((self.tmp / 'plan/spec.json').read_text())['networkConfig']['dokploy-network']['staticIPv4'], other)
+        text = ''.join((self.tmp / 'plan' / n).read_text() for n in ('02-switch.sh', 'rollback.sh'))
+        self.assertIn(f'--ip {other}', text); self.assertNotIn(PIN, text)
+
+    def test_custom_aliases_are_preserved_exactly(self):
+        c = [container(self.root)]
+        c[0]['NetworkSettings']['Networks']['dokploy-network']['Aliases'] += ['traefik.internal']
+        c[0]['NetworkSettings']['Networks']['supabase-supabase-2bvnab']['Aliases'] += ['edge-proxy']
+        self.write('container.json', c)
+        self.assertEqual(self.plan().returncode, 0)
+        switch = (self.tmp / 'plan/02-switch.sh').read_text(); rollback = (self.tmp / 'plan/rollback.sh').read_text()
+        self.assertIn('--network-alias traefik.internal', switch)
+        self.assertIn('docker network connect --alias edge-proxy supabase-supabase-2bvnab "$OLD"', switch)
+        self.assertIn(f'docker network connect --ip {PIN} --alias traefik.internal dokploy-network', rollback)
+
+    def test_unsupported_network_configurations_are_still_refused(self):
+        dk = lambda c: c['NetworkSettings']['Networks']['dokploy-network']
+        sb = lambda c: c['NetworkSettings']['Networks']['supabase-supabase-2bvnab']
+        self.refuses(lambda c, i: dk(c).update(IPAMConfig={'IPv4Address': PIN, 'IPv6Address': 'fd00::5'}), 'unsupported endpoint IPAM')
+        self.refuses(lambda c, i: dk(c).update(IPAMConfig={'IPv4Address': PIN, 'LinkLocalIPs': ['169.254.1.1']}), 'unsupported endpoint IPAM')
+        self.refuses(lambda c, i: dk(c).update(IPAMConfig={'IPv4Address': '010.0.1.11'}, IPAddress='010.0.1.11'), 'canonical IPv4')
+        self.refuses(lambda c, i: dk(c).update(IPAMConfig={'IPv4Address': 'not-an-ip'}, IPAddress='not-an-ip'), 'canonical IPv4')
+        self.refuses(lambda c, i: dk(c).update(IPAddress='10.0.1.99'), 'inconsistent')
+        self.refuses(lambda c, i: sb(c).update(IPAMConfig={'IPv4Address': '172.23.0.15'}, IPAddress='172.23.0.14'), 'inconsistent')
+        self.refuses(lambda c, i: dk(c).update(Aliases=['dokploy-traefik', 'aaaaaaaaaaaa', 'bad alias!']), 'unsupported alias')
+        # network definitions
+        def with_net(name, **changes):
+            doc = copy.deepcopy(NETS[name]); doc.update(changes); self.write(f'{name}.json', [doc])
+        for label, name, changes, fragment in (
+                ('driver', 'dokploy-network', {'Driver': 'macvlan'}, 'not supported'),
+                ('overlay without swarm scope', 'dokploy-network', {'Scope': 'local'}, 'swarm-scoped and attachable'),
+                ('overlay not attachable', 'dokploy-network', {'Attachable': False}, 'swarm-scoped and attachable'),
+                ('address outside the subnet', 'dokploy-network', {'IPAM': {'Config': [{'Subnet': '10.9.0.0/24'}]}}, 'outside')):
+            with self.subTest(label):
+                shutil.rmtree(self.tmp / 'plan', ignore_errors=True)
+                for n in NETS: self.write(f'{n}.json', [NETS[n]])
+                self.write('container.json', [container(self.root)]); self.write('image.json', [image(OLD_IMG, 'traefik:v3.6.7')])
+                with_net(name, **changes)
+                r = self.plan(); self.assertEqual(r.returncode, 1); self.assertIn(fragment, r.stderr); self.assertFalse((self.tmp / 'plan').exists())
 
     def test_extra_environment_reports_names_never_values(self):
         r = self.refuses(lambda c, i: c['Config']['Env'].append('CF_API_TOKEN=super-secret-value-123'), 'CF_API_TOKEN')
@@ -125,7 +181,8 @@ class Shimmed(Base):
         st = dict(calls=[], api='1.45', containers={'dokploy-traefik': old}, routers=json.dumps(ROUTERS), canary_log=(
             'time=1 level=info msg="Configuration loaded from file: /etc/traefik/traefik.yml"\n'
             'time=2 level=error msg="Cannot connect to the Docker daemon at unix:///var/run/docker.sock" providerName=docker\n'),
-            images={OLD_IMG: image(OLD_IMG, 'traefik:v3.6.7'), REF: image(NEW_IMG, REF)}, **extra)
+            images={OLD_IMG: image(OLD_IMG, 'traefik:v3.6.7'), REF: image(NEW_IMG, REF)},
+            networks=NETS, holders={'dokploy-network': {PIN: OLD_ID}}, **extra)
         self.shim_state.write_text(json.dumps(st))
 
     def sh(self, name, *, env=None, check=False):
@@ -175,8 +232,14 @@ class Shimmed(Base):
         self.sh('01-prepare.sh', check=True)
         r = self.sh('02-switch.sh', env=self.APPROVE, check=True); self.assertIn('SWITCH OK', r.stdout)
         st = self.snapshot(); calls = st['calls']
-        order = [next(i for i, c in enumerate(calls) if c[0] == v and (v != 'network' or True)) for v in ('stop', 'rename', 'create', 'network', 'start')]
-        self.assertEqual(order, sorted(order), 'stop -> rename -> create -> network connect -> start')
+        first = next(i for i, c in enumerate(calls) if c[0] == 'stop')
+        sigs = (['stop'], ['rename'], ['network', 'disconnect'], ['create'], ['network', 'connect'], ['start'])
+        order = [next(i for i, c in enumerate(calls) if i >= first and c[:len(sg)] == sg) for sg in sigs]
+        self.assertEqual(order, sorted(order), 'stop -> rename -> disconnect (release pinned IP) -> create --ip -> connect -> start')
+        create = calls[order[3]]; self.assertEqual(create[create.index('--ip') + 1], PIN)
+        self.assertEqual([c for c in calls if c[:2] == ['network', 'disconnect']], [['network', 'disconnect', 'dokploy-network', st['switch_prev']]] if 'switch_prev' in st else [c for c in calls if c[:2] == ['network', 'disconnect']])
+        connects = [c for c in calls if c[:2] == ['network', 'connect']]
+        self.assertEqual(len(connects), 1); self.assertNotIn('--ip', connects[0], 'the dynamic network is never pinned')
         self.assertFalse(any(c[0] in ('rm', 'service') or c[:2] == ['system', 'prune'] for c in calls))
         new, prev = st['containers']['dokploy-traefik'], next(v for k, v in st['containers'].items() if k.startswith('dokploy-traefik-prev-'))
         self.assertEqual(prev['Id'], OLD_ID); self.assertEqual(prev['HostConfig']['RestartPolicy']['Name'], 'no'); self.assertFalse(prev['State']['Running'])
@@ -185,9 +248,20 @@ class Shimmed(Base):
         self.assertEqual(new['HostConfig']['PortBindings'], old['HostConfig']['PortBindings'])
         self.assertEqual(sorted((m['Source'], m['Destination'], m['RW']) for m in new['Mounts']), sorted((m['Source'], m['Destination'], m['RW']) for m in old['Mounts']))
         self.assertEqual(set(new['NetworkSettings']['Networks']), set(old['NetworkSettings']['Networks']))
+        dk, sb = new['NetworkSettings']['Networks']['dokploy-network'], new['NetworkSettings']['Networks']['supabase-supabase-2bvnab']
+        self.assertEqual((dk['IPAMConfig'], dk['IPAddress']), ({'IPv4Address': PIN}, PIN))          # the same address, still pinned
+        self.assertFalse(sb['IPAMConfig'], 'the automatically assigned address of the other network is not pinned')
+        self.assertEqual(st['holders']['dokploy-network'], {PIN: new['Id']})
+        self.assertNotIn('dokploy-network', prev['NetworkSettings']['Networks'], 'the kept container no longer reserves the address')
+        self.assertIn('supabase-supabase-2bvnab', prev['NetworkSettings']['Networks'])
         self.assertEqual(new['HostConfig']['RestartPolicy']['Name'], 'always'); self.assertEqual(new['Config']['Image'], REF)
         # a later read-only verification passes and compare rejects a dropped network
         self.sh('03-verify.sh', check=True)
+        unpinned = copy.deepcopy(new); unpinned['NetworkSettings']['Networks']['dokploy-network'].update(IPAMConfig=None)
+        (self.tmp / 'unpinned.json').write_text(json.dumps([unpinned]))
+        r = subprocess.run(['python3', '-I', str(TOOL), 'compare', '--spec', str(self.plan_dir / 'spec.json'), '--inspect', str(self.tmp / 'unpinned.json'),
+                            '--image', str(self.state / 'new.image.json'), '--mode', 'after'], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1); self.assertIn('networkConfig', r.stderr)
         broken = copy.deepcopy(new); broken['NetworkSettings']['Networks'].pop('supabase-supabase-2bvnab')
         (self.tmp / 'broken.json').write_text(json.dumps([broken]))
         r = subprocess.run(['python3', '-I', str(TOOL), 'compare', '--spec', str(self.plan_dir / 'spec.json'), '--inspect', str(self.tmp / 'broken.json'),
@@ -214,6 +288,10 @@ class Shimmed(Base):
         self.assertEqual((live['Id'], live['Image']), (OLD_ID, OLD_IMG))
         self.assertEqual(live['HostConfig']['RestartPolicy']['Name'], 'always'); self.assertTrue(live['State']['Running'])
         self.assertEqual([k for k in st['containers'] if '-prev-' in k], [])
+        dk = live['NetworkSettings']['Networks']['dokploy-network']
+        self.assertEqual((dk['IPAMConfig'], dk['IPAddress']), ({'IPv4Address': PIN}, PIN), 'the original owns its exact pinned address again')
+        self.assertFalse(live['NetworkSettings']['Networks']['supabase-supabase-2bvnab']['IPAMConfig'])
+        self.assertEqual(st['holders']['dokploy-network'], {PIN: OLD_ID}, 'no other holder keeps the address')
         failed = [k for k in st['containers'] if '-failed-' in k]
         self.assertEqual(len(failed), failed_candidates)
         for k in failed:
@@ -259,6 +337,81 @@ class Shimmed(Base):
         self.assert_original_restored()
         self.assertEqual(json.loads(before).keys(), self.snapshot()['containers'].keys())
 
+
+    # ---- pinned address on a swarm-scoped network: release, wait, conflicts and recovery of the kept container ----
+    def switch_fails(self, shim_edit, env=None, tries='3'):
+        self.sh('01-prepare.sh', check=True)
+        st = self.snapshot(); shim_edit(st); self.shim_state.write_text(json.dumps(st))
+        e = dict(self.APPROVE, B1_TRAEFIK_IP_WAIT_TRIES=tries, B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES=tries); e.update(env or {})
+        return self.sh('02-switch.sh', env=e)
+
+    def test_prepare_refuses_when_someone_else_holds_the_pinned_address(self):
+        st = self.snapshot(); st['foreign'] = {'dokploy-network': {PIN: 'other-service'}}; self.shim_state.write_text(json.dumps(st))
+        r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 3); self.assertIn('held by something other', r.stderr)
+        self.assertFalse((self.state / 'prepared.ok').exists())
+
+    def test_slow_release_after_disconnect_is_waited_for(self):
+        self.sh('01-prepare.sh', check=True)
+        st = self.snapshot(); st['slow_release'] = {'dokploy-network': {PIN: 3}}; self.shim_state.write_text(json.dumps(st))
+        r = self.sh('02-switch.sh', env=dict(self.APPROVE, B1_TRAEFIK_IP_WAIT_TRIES='10')); self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.snapshot()['calls']; cut = next(i for i, c in enumerate(calls) if c[:2] == ['network', 'disconnect'])
+        self.assertGreaterEqual(len([c for c in calls[cut:] if c[:2] == ['network', 'inspect']]), 3, 'it polled until the reservation went away')
+        self.assertEqual(self.snapshot()['holders']['dokploy-network'], {PIN: self.snapshot()['containers']['dokploy-traefik']['Id']})
+
+    def test_reservation_that_outlives_the_switch_window_but_not_the_rollback_window(self):
+        r = self.switch_fails(lambda st: st.update(slow_release={'dokploy-network': {PIN: 4}}), tries='3',
+                              env={'B1_TRAEFIK_IP_WAIT_TRIES': '2', 'B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES': '10'})
+        self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK OK', r.stdout)
+        self.assert_original_restored()
+        st = self.snapshot(); self.assertFalse([c for c in st['calls'] if c[0] == 'create'], 'the candidate was never created')
+        reconnect = [c for c in st['calls'] if c[:2] == ['network', 'connect']]
+        self.assertEqual(reconnect, [['network', 'connect', '--ip', PIN, 'dokploy-network', OLD_ID]], 'the original is re-attached with its exact pinned address')
+
+    def test_reservation_that_never_goes_away_leaves_the_original_intact_and_recoverable(self):
+        r = self.switch_fails(lambda st: st.update(stuck={'dokploy-network': {PIN: True}}))
+        self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK ALSO FAILED', r.stderr); self.assertIn('ORIGINAL COULD NOT START', r.stderr)
+        st = self.snapshot(); live = st['containers']['dokploy-traefik']
+        self.assertEqual((live['Id'], live['Image']), (OLD_ID, OLD_IMG)); self.assertFalse(live['State']['Running'])
+        self.assertEqual(live['HostConfig']['RestartPolicy']['Name'], 'always')
+        self.assertEqual(live['NetworkSettings']['Networks']['dokploy-network']['IPAMConfig'], {'IPv4Address': PIN}, 'endpoint already restored')
+        self.assertFalse([c for c in st['calls'] if c[0] in ('rm', 'create')])
+        # once the cluster lets go of the address, the same generated rollback finishes the job
+        st['stuck'] = {}; st['holders']['dokploy-network'] = {}; st['ghost_polls'] = {}; self.shim_state.write_text(json.dumps(st))
+        self.sh('rollback.sh', check=True); self.assert_original_restored()
+
+    def test_address_taken_by_another_task_before_the_candidate_starts(self):
+        r = self.switch_fails(lambda st: st.update(foreign_on_start='other-service'))
+        self.assertNotEqual(r.returncode, 0); self.assertIn('Address already in use', r.stderr)
+        self.assertIn('ORIGINAL COULD NOT START', r.stderr)
+        st = self.snapshot(); failed = [k for k in st['containers'] if '-failed-' in k]
+        self.assertEqual(len(failed), 1, 'the candidate is kept aside, never deleted')
+        cand = st['containers'][failed[0]]
+        self.assertFalse(cand['State']['Running']); self.assertEqual(cand['HostConfig']['RestartPolicy']['Name'], 'no')
+        self.assertNotIn('dokploy-network', cand['NetworkSettings']['Networks'], 'the candidate gave its pinned endpoint back')
+        live = st['containers']['dokploy-traefik']; self.assertEqual(live['Id'], OLD_ID); self.assertFalse(live['State']['Running'])
+        st['foreign'] = {}; self.shim_state.write_text(json.dumps(st))      # the other task goes away
+        self.sh('rollback.sh', check=True); self.assert_original_restored(failed_candidates=1)
+
+    def test_disconnect_failures_recover_the_original_endpoint(self):
+        for label, effect in (('disconnect fails, nothing changed', False), ('disconnect fails after the endpoint was removed', True)):
+            with self.subTest(label):
+                self.reset(); (self.state / 'prepared.ok').unlink(missing_ok=True)
+                self.sh('01-prepare.sh', check=True); self.fault(['network', 'disconnect'], effect)
+                r = self.sh('02-switch.sh', env=self.APPROVE)
+                self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored()
+                self.assertFalse([c for c in self.snapshot()['calls'] if c[0] == 'create'])
+
+    def test_release_is_explicit_when_stop_does_not_free_the_address(self):
+        """sticky_stop: the stopped container keeps its reservation; only `network disconnect` frees it."""
+        self.sh('01-prepare.sh', check=True)
+        st = self.snapshot(); st['sticky_stop'] = True; self.shim_state.write_text(json.dumps(st))
+        self.sh('02-switch.sh', env=self.APPROVE, check=True)
+        st = self.snapshot(); self.assertEqual(st['holders']['dokploy-network'], {PIN: st['containers']['dokploy-traefik']['Id']})
+        # and the failure path under the same condition still returns the address to the original
+        self.reset(sticky_stop=True); (self.state / 'prepared.ok').unlink(missing_ok=True)
+        r = self.switch_fails(lambda s: s.update(fail_start=True), tries='3')
+        self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored(failed_candidates=1)
+
     def test_router_change_after_switch_is_detected_and_rolled_back(self):
         self.sh('01-prepare.sh', check=True)
         st = self.snapshot(); changed = copy.deepcopy(ROUTERS); changed[0]['rule'] = 'Host(`evil.example`)'
@@ -282,6 +435,19 @@ class Helpers(Base):
         self.assertEqual(self.run_tool('routers-diff', str(a), str(b)).returncode, 0)
         b.write_text(json.dumps([dict(ROUTERS[0], middlewares=['x@file'])])); self.assertEqual(self.run_tool('routers-diff', str(a), str(b)).returncode, 1)
         b.write_text('[]'); self.assertEqual(self.run_tool('routers-diff', str(a), str(b)).returncode, 1)
+
+    def test_ip_check(self):
+        net = {'Containers': {'c1' + '0' * 62: {'Name': 'other', 'IPv4Address': '10.0.1.11/24'}, 'd2' + '0' * 62: {'Name': 'x', 'IPv4Address': '10.0.1.12/24'}},
+               'Services': {'svc': {'VIP': '10.0.1.2/24', 'Tasks': [{'Name': 'svc.1', 'EndpointIP': '10.0.1.20/24'}]}}}
+        f = self.tmp / 'net.json'; f.write_text(json.dumps([net]))
+        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.11').returncode, 1)
+        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.11', '--ignore-container', 'c1').returncode, 0)
+        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.20').returncode, 1)     # held by a service task
+        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.2').returncode, 1)      # held by a service VIP
+        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.99').returncode, 0)
+        for bad in ('', 'not json'):
+            f.write_text(bad); self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.99').returncode, 2, 'unusable data is never treated as free')
+        self.assertEqual(self.run_tool('ip-check', str(f), '999.1.1.1').returncode, 2)
 
     def test_canary_scan_and_api_check(self):
         log = self.tmp / 'c.log'

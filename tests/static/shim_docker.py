@@ -1,22 +1,33 @@
 #!/usr/bin/env python3
-"""Test double for the Docker CLI (used only by test_traefik_standalone_upgrade.py). No daemon, no network."""
+"""Test double for the Docker CLI (used only by test_traefik_standalone_upgrade.py). No daemon, no network.
+
+Besides containers/images it models what matters for pinned addresses on swarm-scoped networks:
+  * st['holders'][net][ip] = container id that currently reserves the address
+  * `stop` releases the reservation unless st['sticky_stop'] (a stopped container does not reliably give it back)
+  * the release (by `stop`, or by `network disconnect` when stop kept it) is delayed when st['slow_release'][net][ip] = N
+    (it lingers for N `network inspect` polls) or st['stuck'][net][ip] (it never goes away)
+  * st['foreign'][net][ip] = name: a service task elsewhere that holds the address (visible in verbose inspect)
+  * starting / connecting a running container with an address that is reserved by another holder fails like Docker
+"""
 import json, os, sys, uuid
 S = os.environ['SHIM_STATE']
 st = json.load(open(S))
 args = sys.argv[1:]
 st['calls'].append(args)
+
+
+def save():
+    json.dump(st, open(S, 'w'))
+
+
 fail_after = False
 for i, entry in enumerate(st.get('fail_on', [])):
     if args[:len(entry['cmd'])] == entry['cmd']:        # one-shot: later (rollback) calls of the same verb succeed
         st['fail_on'].pop(i)
         if not entry.get('effect'):
-            json.dump(st, open(S, 'w')); sys.exit(1)     # fails WITHOUT changing anything
-        fail_after = True                                # fails AFTER the change happened (e.g. timeout reporting an error)
+            save(); sys.exit(1)                          # fails WITHOUT changing anything
+        fail_after = True                                # fails AFTER the change happened (e.g. a timeout reporting an error)
         break
-
-
-def save():
-    json.dump(st, open(S, 'w'))
 
 
 def find(name):
@@ -30,6 +41,51 @@ def out(x):
     print(x if isinstance(x, str) else json.dumps(x))
 
 
+def holders(net):
+    return st.setdefault('holders', {}).setdefault(net, {})
+
+
+def pinned(e):
+    return (e.get('IPAMConfig') or {}).get('IPv4Address')
+
+
+def conflict(c, net, e):
+    ip = pinned(e)
+    if not ip:
+        return None
+    other = holders(net).get(ip)
+    foreign = st.get('foreign', {}).get(net, {}).get(ip)
+    if foreign or (other not in (None, c['Id'])):
+        return f'Error response from daemon: Address already in use: {ip} on network {net}'
+    return None
+
+
+def allocate(c):
+    for net, e in c['NetworkSettings']['Networks'].items():
+        err = conflict(c, net, e)
+        if err:
+            return err
+    for net, e in c['NetworkSettings']['Networks'].items():
+        ip = pinned(e)
+        if ip:
+            holders(net)[ip] = c['Id']; e['IPAddress'] = ip
+        else:
+            st['next_dyn'] = st.get('next_dyn', 16) + 1; e['IPAddress'] = f"172.23.0.{st['next_dyn']}"
+    return None
+
+
+def release(cid, net, linger=True):
+    for ip, holder in list(holders(net).items()):
+        if holder == cid:
+            slow = st.get('slow_release', {}).get(net, {}).get(ip)
+            if linger and st.get('stuck', {}).get(net, {}).get(ip):
+                holders(net)[ip] = 'ghost-reservation'
+            elif linger and slow:
+                holders(net)[ip] = 'ghost-reservation'; st.setdefault('ghost_polls', {}).setdefault(net, {})[ip] = slow
+            else:
+                del holders(net)[ip]
+
+
 cmd = args[0]
 if cmd == 'inspect':
     _, c = find(args[-1])
@@ -40,6 +96,8 @@ if cmd == 'inspect':
         out(c['Id'])
     elif fmt == '{{.Name}}':
         out(c['Name'])
+    elif fmt == '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}':
+        print(''.join(k + ' ' for k in c['NetworkSettings']['Networks']))
     elif fmt == '{{.State.Running}} {{.RestartCount}}':
         out(f"{str(c['State']['Running']).lower()} {c['RestartCount']}")
     else:
@@ -60,17 +118,23 @@ elif cmd == 'exec':
     out(st['routers'])
 elif cmd == 'stop':
     _, c = find(args[-1]); c['State']['Running'] = False
+    for net, e in c['NetworkSettings']['Networks'].items():
+        e['IPAddress'] = ''
+        if not st.get('sticky_stop'):
+            release(c['Id'], net)          # slow/stuck reservations apply to whichever event frees the address first
 elif cmd == 'update':
     _, c = find(args[-1]); c['HostConfig']['RestartPolicy']['Name'] = args[1].split('=', 1)[1]
 elif cmd == 'rename':
     k, c = find(args[1]); st['containers'][args[2]] = st['containers'].pop(k); c['Name'] = '/' + args[2]
 elif cmd == 'create':
-    a, name, restart, net, ports, mounts = args[1:], None, None, None, {}, []
+    a, name, restart, net, ports, mounts, ip, aliases = args[1:], None, None, None, {}, [], None, []
     i = 0
     while i < len(a) - 1:
         if a[i] == '--name': name = a[i + 1]; i += 2
         elif a[i] == '--restart': restart = a[i + 1]; i += 2
         elif a[i] == '--network': net = a[i + 1]; i += 2
+        elif a[i] == '--ip': ip = a[i + 1]; i += 2
+        elif a[i] == '--network-alias': aliases.append(a[i + 1]); i += 2
         elif a[i] == '-p':
             hp, rest = a[i + 1].split(':'); ports[rest] = [{'HostIp': '', 'HostPort': hp}]; i += 2
         elif a[i] == '--mount':
@@ -83,11 +147,61 @@ elif cmd == 'create':
     st['containers'][name] = {'Id': cid[:64], 'Name': '/' + name, 'Image': img['Id'], 'RestartCount': 0, 'State': {'Running': False, 'Restarting': False},
         'Config': {'Image': ref, 'Cmd': img['Config'].get('Cmd'), 'Entrypoint': img['Config'].get('Entrypoint'), 'Env': img['Config'].get('Env'), 'Labels': img['Config'].get('Labels'), 'User': '', 'WorkingDir': ''},
         'HostConfig': {'RestartPolicy': {'Name': restart}, 'PortBindings': ports, 'LogConfig': {'Type': 'json-file', 'Config': {}}},
-        'Mounts': mounts, 'NetworkSettings': {'Networks': {net: {'Aliases': [name, cid[:12]], 'IPAMConfig': None}}}}
+        'Mounts': mounts, 'NetworkSettings': {'Networks': {net: {'Aliases': [name, cid[:12], *aliases], 'IPAMConfig': {'IPv4Address': ip} if ip else None, 'IPAddress': ''}}}}
 elif cmd == 'network' and args[1] == 'connect':
-    _, c = find(args[3]); c['NetworkSettings']['Networks'][args[2]] = {'Aliases': [c['Id'][:12]], 'IPAMConfig': None}
+    a, ip, aliases = args[2:], None, []
+    i = 0
+    while i < len(a) - 2:
+        if a[i] == '--ip': ip = a[i + 1]; i += 2
+        elif a[i] == '--alias': aliases.append(a[i + 1]); i += 2
+        else: raise SystemExit('shim: unsupported connect arg ' + a[i])
+    net, target = a[-2], a[-1]
+    _, c = find(target)
+    e = {'Aliases': [c['Id'][:12], *aliases], 'IPAMConfig': {'IPv4Address': ip} if ip else None, 'IPAddress': ''}
+    if c['State']['Running']:                          # a running container is attached for real: the address is requested now
+        err = conflict(c, net, e)
+        if err:
+            print(err, file=sys.stderr); save(); sys.exit(1)
+        if ip:
+            holders(net)[ip] = c['Id']; e['IPAddress'] = ip
+        else:
+            st['next_dyn'] = st.get('next_dyn', 16) + 1; e['IPAddress'] = f"172.23.0.{st['next_dyn']}"
+    c['NetworkSettings']['Networks'][net] = e
+elif cmd == 'network' and args[1] == 'disconnect':
+    _, c = find(args[3])
+    c['NetworkSettings']['Networks'].pop(args[2], None)
+    release(c['Id'], args[2])
+elif cmd == 'network' and args[1] == 'inspect':
+    verbose = '--verbose' in args
+    net = args[-1]
+    doc = dict(st['networks'][net])
+    containers = {}
+    for ip, holder in list(holders(net).items()):
+        if holder == 'ghost-reservation':
+            polls = st.setdefault('ghost_polls', {}).setdefault(net, {})
+            if ip in polls:
+                polls[ip] -= 1
+                if polls[ip] <= 0:
+                    del polls[ip]; del holders(net)[ip]; continue
+            containers['ghost' + '0' * 59] = {'Name': 'ghost-endpoint', 'IPv4Address': ip + '/24'}
+            continue
+        _, c = find(holder)
+        containers[holder] = {'Name': (c or {'Name': '/?'})['Name'].lstrip('/'), 'IPv4Address': ip + '/24'}
+    doc['Containers'] = containers
+    if verbose:
+        doc['Services'] = {f'svc-{n}': {'VIP': '', 'Tasks': [{'Name': f'{n}.1', 'EndpointIP': ip + '/24'}]}
+                           for ip, n in st.get('foreign', {}).get(net, {}).items()}
+    out([doc])
 elif cmd == 'start':
-    _, c = find(args[-1]); c['State']['Running'] = not st.get('fail_start')
+    _, c = find(args[-1])
+    if st.get('foreign_on_start') and c['Config']['Image'].startswith('traefik:v3.7'):
+        for net, e in c['NetworkSettings']['Networks'].items():
+            if pinned(e):
+                st.setdefault('foreign', {}).setdefault(net, {})[pinned(e)] = st['foreign_on_start']   # the address is taken by someone else first
+    err = allocate(c)
+    if err:
+        print(err, file=sys.stderr); save(); sys.exit(1)
+    c['State']['Running'] = not st.get('fail_start')
     if st.get('fail_start') and c['Config']['Image'].startswith('traefik:v3.7'): c['RestartCount'] = 3
     elif st.get('fail_start'): c['State']['Running'] = True
 else:

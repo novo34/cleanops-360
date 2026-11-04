@@ -9,10 +9,11 @@ with only the image changed.
   plan   --container C.json --image I.json --network N.json... --target-version 3.7.17 --target-digest sha256:... --out DIR
   compare --spec DIR/spec.json --inspect after.json [--image new-image.json]
   routers-diff BEFORE.json AFTER.json
+  ip-check NETWORK_INSPECT.json IPV4 [--ignore-container ID]   (exit 0 only when no container/task holds the address)
   scan-canary-log LOG
   api-check VERSION
 """
-import argparse, json, os, re, shlex, stat, sys
+import argparse, ipaddress, json, os, re, shlex, stat, sys
 from pathlib import Path
 
 CONTAINER = 'dokploy-traefik'
@@ -24,6 +25,8 @@ MIN_TARGET = (3, 7, 17)                    # first 3.7.x with every fix listed i
 MAX_TARGET_EXCLUSIVE = (3, 8, 0)
 MIN_DOCKER_API = (1, 40)                   # Traefik >= v3.6.16 Docker provider requirement
 DIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')
+ALIAS = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$')
+SUPPORTED_DRIVERS = ('overlay', 'bridge')
 # HostConfig fields that must keep Docker defaults (Dokploy sets none of them).
 DEFAULT_HOSTCONFIG = {'Privileged': False, 'ReadonlyRootfs': False, 'PublishAllPorts': False, 'AutoRemove': False,
                       'CapAdd': None, 'CapDrop': None, 'SecurityOpt': None, 'ExtraHosts': None, 'Dns': None,
@@ -67,6 +70,52 @@ def hostport(binding):
     return binding.get('HostPort')
 
 
+def network_config(c, name):
+    """Per-network endpoint settings that must survive the upgrade. The address is read from the capture (never assumed):
+    a pinned IPv4 is preserved exactly; a dynamic endpoint stays dynamic; custom aliases are preserved; anything else is refused."""
+    running = bool((c.get('State') or {}).get('Running'))
+    out = {}
+    for n, e in sorted(c['NetworkSettings']['Networks'].items()):
+        ipam = e.get('IPAMConfig') or {}
+        unsupported = sorted(k for k, v in ipam.items() if k != 'IPv4Address' and v)
+        if unsupported:
+            refuse(f'unsupported endpoint IPAM settings on {n}: {unsupported} (only a pinned IPv4 address is supported)')
+        static = ipam.get('IPv4Address') or None
+        if static:
+            try:
+                ok = str(ipaddress.IPv4Address(static)) == static
+            except ValueError:
+                ok = False
+            if not ok:
+                refuse(f'pinned address on {n} is not a canonical IPv4 address')
+            if running and e.get('IPAddress') != static:
+                refuse(f'the running endpoint address on {n} differs from the pinned one: the capture is inconsistent')
+        extra = sorted({a for a in (e.get('Aliases') or []) if a != name and not c['Id'].startswith(a)})
+        bad = [a for a in extra if not ALIAS.match(a)]
+        if bad:
+            refuse(f'unsupported alias on {n}: {bad}')
+        out[n] = {'staticIPv4': static, 'aliases': extra}
+    return out
+
+
+def check_networks(netcfg, docs):
+    """Cross-check the pinned addresses with the captured network definitions (driver, scope, subnet)."""
+    info = {}
+    for d in docs:
+        n, driver = d['Name'], d.get('Driver')
+        if driver not in SUPPORTED_DRIVERS:
+            refuse(f'network {n}: driver {driver!r} is not supported (overlay or bridge only)')
+        if driver == 'overlay' and (d.get('Scope') != 'swarm' or not d.get('Attachable')):
+            refuse(f'network {n}: an overlay network used by a standalone container must be swarm-scoped and attachable')
+        subnets = [x['Subnet'] for x in ((d.get('IPAM') or {}).get('Config') or []) if x.get('Subnet') and ':' not in x['Subnet']]
+        info[n] = {'driver': driver, 'scope': d.get('Scope'), 'subnets': subnets}
+    for n, cfg in netcfg.items():
+        ip = cfg['staticIPv4']
+        if ip and not any(ipaddress.ip_address(ip) in ipaddress.ip_network(sub, strict=False) for sub in info[n]['subnets']):
+            refuse(f'pinned address on {n} is outside the IPv4 subnets of that network ({info[n]["subnets"]})')
+    return info
+
+
 def normalize(c, image):
     """The preserved, comparable shape of the container. Only values (never secrets) are kept."""
     cfg, host = c['Config'], c['HostConfig']
@@ -98,14 +147,7 @@ def normalize(c, image):
     nets = c['NetworkSettings']['Networks']
     if set(nets) != set(EXPECTED_NETWORKS):
         refuse(f'networks differ from inventory: {sorted(nets)}')
-    aliases = {}
-    for n, e in nets.items():
-        if (e.get('IPAMConfig') or {}) and any((e['IPAMConfig'] or {}).values()):
-            refuse(f'static IP configuration on {n} is not supported by this procedure')
-        extra = sorted(a for a in (e.get('Aliases') or []) if a != name and not c['Id'].startswith(a))
-        aliases[n] = extra
-    if any(aliases.values()):
-        refuse(f'custom network aliases present {aliases}; not part of the inventory')
+    netcfg = network_config(c, name)
     if cfg.get('Cmd') != image['Config'].get('Cmd') or cfg.get('Entrypoint') != image['Config'].get('Entrypoint'):
         refuse('command/entrypoint differ from the image defaults: the inventory says there are no explicit flags')
     image_env = set(image['Config'].get('Env') or [])
@@ -128,7 +170,7 @@ def normalize(c, image):
     if log.get('Config'):
         refuse('custom log driver options present')
     return {'name': name, 'restart': 'always', 'ports': ports, 'mounts': mounts, 'networks': sorted(nets),
-            'primaryNetwork': PRIMARY_NETWORK, 'logDriver': log.get('Type', 'json-file'),
+            'primaryNetwork': PRIMARY_NETWORK, 'networkConfig': netcfg, 'logDriver': log.get('Type', 'json-file'),
             'backupPaths': sorted(m[1] for m in mounts if m[2] != '/var/run/docker.sock')}
 
 
@@ -143,6 +185,11 @@ def q(s):
 
 def create_args(spec, new_ref):
     out = ['docker', 'create', '--name', q(spec['name']), '--restart', 'always', '--network', q(spec['primaryNetwork'])]
+    prim = spec['networkConfig'][spec['primaryNetwork']]
+    if prim['staticIPv4']:
+        out += ['--ip', q(prim['staticIPv4'])]
+    for a in prim['aliases']:
+        out += ['--network-alias', q(a)]
     for key, host_port in sorted(spec['ports'].items()):
         cport, proto = key.split('/')
         out += ['-p', q(f'{host_port}:{cport}/{proto}')]
@@ -167,12 +214,44 @@ STATE=${B1_TRAEFIK_STATE_DIR:?set B1_TRAEFIK_STATE_DIR to an absolute 0700 direc
 '''
 
 
+def connect_args(spec, n, target):
+    cfg = spec['networkConfig'][n]
+    flags = (['--ip', q(cfg['staticIPv4'])] if cfg['staticIPv4'] else []) + [x for a in cfg['aliases'] for x in ('--alias', q(a))]
+    return ' '.join(['docker', 'network', 'connect', *flags, q(n), target])
+
+
+def static_networks(spec):
+    return [(n, spec['networkConfig'][n]['staticIPv4']) for n in spec['networks'] if spec['networkConfig'][n]['staticIPv4']]
+
+
+NETFUNCS = '''
+# A stopped container does NOT reliably give back a pinned address (swarm-scoped networks reserve it through the
+# cluster): it is released explicitly with `docker network disconnect` and observed free before it is reused.
+wait_free() {   # wait_free <network> <ipv4> [ip-check options]; bounded, true only when nothing holds the address
+  local net=$1 ip=$2 i; shift 2
+  for i in $(seq 1 "${B1_TRAEFIK_IP_WAIT_TRIES:-30}"); do
+    { docker network inspect --verbose "$net" || docker network inspect "$net"; } > "$STATE/net.inspect.json" 2>/dev/null || true
+    python3 -I "$TOOL" ip-check "$STATE/net.inspect.json" "$ip" "$@" && return 0
+    sleep "${B1_TRAEFIK_POLL_SECONDS:-2}"
+  done
+  return 1
+}
+connected() {   # connected <container> <network>
+  local nets; nets=$(docker inspect --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$1")
+  [[ " $nets" == *" $2 "* ]]
+}
+'''
+
+
 def common(spec):
     return (f'OLD={q(spec["name"])}\nOLD_ID={q(spec["containerId"])}\nOLD_IMAGE_ID={q(spec["imageId"])}\n'
-            f'NEW_REF={q(spec["newRef"])}\nNEW_DIGEST={q(spec["targetDigest"])}\nTARGET={q(spec["targetVersion"])}\n')
+            f'NEW_REF={q(spec["newRef"])}\nNEW_DIGEST={q(spec["targetDigest"])}\nTARGET={q(spec["targetVersion"])}\n') + NETFUNCS
 
 
 def script_prepare(spec):
+    ipchecks = '\n'.join(
+        f'B1_TRAEFIK_IP_WAIT_TRIES=1 wait_free {q(n)} {q(ip)} --ignore-container "$OLD_ID" || {{ echo "pinned address on {n} is held by something other than the running Traefik" >&2; exit 3; }}'
+        for n, ip in static_networks(spec))
     return HEADER + common(spec) + f'''
 actual=$(docker inspect --format '{{{{.Id}}}}' "$OLD")
 [[ $actual == "$OLD_ID" ]] || {{ echo "INVENTORY DRIFT: container id changed; regenerate the plan" >&2; exit 3; }}
@@ -181,6 +260,7 @@ python3 -I "$TOOL" api-check "$api"
 avail=$(df --output=avail -k "$STATE" | tail -1 | tr -d ' ')
 (( avail > 262144 )) || {{ echo "less than 256 MiB free in state dir" >&2; exit 3; }}
 docker inspect "$OLD" > "$STATE/before.inspect.json"
+{ipchecks}
 docker image inspect "$OLD_IMAGE_ID" > "$STATE/before.image.json"
 chmod 600 "$STATE"/before.*.json
 python3 -I "$TOOL" compare --spec "$HERE/spec.json" --inspect "$STATE/before.inspect.json" --image "$STATE/before.image.json" --mode before
@@ -235,24 +315,37 @@ echo "VERIFY OK ($NAME)"
 
 
 def script_rollback(spec):
+    release_cand = '\n'.join(f'  if connected "$holder" {q(n)}; then docker network disconnect {q(n)} "$holder" || true; fi' for n, _ in static_networks(spec))
+    restore = []
+    for n in spec['networks']:
+        ip = spec['networkConfig'][n]['staticIPv4']
+        wait = (f'  B1_TRAEFIK_IP_WAIT_TRIES="${{B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES:-90}}" wait_free {q(n)} {q(ip)} --ignore-container "$OLD_ID" || echo "WARN: {n} still reports its pinned address as held; connecting anyway, Docker re-requests it at start" >&2\n' if ip else '')
+        restore.append(f'if ! connected "$OLD_ID" {q(n)}; then\n{wait}  {connect_args(spec, n, chr(34) + "$OLD_ID" + chr(34))}\nfi')
+    restore = '\n'.join(restore)
     return HEADER + common(spec) + f'''
 [[ -s $STATE/switch.state ]] || {{ echo "no switch.state: nothing to roll back" >&2; exit 2; }}
 source "$STATE/switch.state"      # STAMP, PREV, PHASE (last phase reached by 02-switch.sh)
 echo "rollback: last recorded phase = ${{PHASE:-unknown}}" >&2
 # The ERR trap is armed BEFORE stop/update/rename, so the original may still be named "$OLD" (stop, update or
-# rename failed), or already be "$PREV". Recover from the effective state, identifying the original by its Id.
+# rename failed), or already be "$PREV", and it may or may not still own its pinned network endpoints.
+# Recover from the effective state, identifying the original by its Id.
 current=$(docker inspect --format '{{{{.Name}}}}' "$OLD_ID") || {{ echo "ORIGINAL CONTAINER $OLD_ID NOT FOUND: manual recovery required, nothing was deleted" >&2; exit 6; }}
 current=${{current#/}}
-# A candidate (different Id) may hold the production name only after a later phase: move it aside, never delete it.
+# A candidate (different Id) may hold the production name only after a later phase: stop it, give back its pinned
+# addresses and move it aside, never delete it.
 holder=$(docker inspect --format '{{{{.Id}}}}' "$OLD" 2>/dev/null || true)
 if [[ -n $holder && $holder != "$OLD_ID" ]]; then
   docker stop -t 10 "$holder" || true
+{release_cand}
   docker rename "$holder" "$OLD-failed-$STAMP"
   docker update --restart=no "$OLD-failed-$STAMP"
 fi
 [[ $current == "$OLD" ]] || docker rename "$OLD_ID" "$OLD"
+# Re-attach the original to every network it lost, with its exact pinned address and aliases (Docker documents that a
+# stopped container re-requests its address at start, and fails to start if it is unavailable).
+{restore}
 docker update --restart=always "$OLD_ID"
-docker start "$OLD_ID"           # no-op when it never stopped
+docker start "$OLD_ID" || {{ echo "ORIGINAL COULD NOT START (its pinned address is probably still held; see docs runbook section 6). Nothing was deleted: container $OLD_ID is named $OLD with restart=always and its endpoints restored; start it once the address is free." >&2; exit 7; }}
 # Configuration is never rewritten automatically (Dokploy may have written valid changes since). Report drift only.
 if ! (cd "$STATE" && sha256sum --status -c traefik-config.tar.sha256); then echo "backup archive integrity FAILED" >&2; exit 6; fi
 B1_TRAEFIK_VERIFY_MODE=before bash "$HERE/03-verify.sh" "$OLD"
@@ -262,7 +355,9 @@ echo "ROLLBACK OK. Original container $OLD_ID (image $OLD_IMAGE_ID) is $OLD agai
 
 def script_switch(spec):
     create = create_args(spec, spec['newRef'])
-    connect = '\n'.join(f'docker network connect {q(n)} "$OLD"' for n in spec['networks'] if n != spec['primaryNetwork'])
+    connect = '\n'.join(connect_args(spec, n, '"$OLD"') for n in spec['networks'] if n != spec['primaryNetwork'])
+    # The previous container is KEPT (renamed): its pinned addresses are released explicitly and must be seen free before the candidate asks for them.
+    release = '\n'.join(f'docker network disconnect {q(n)} "$PREV"\nwait_free {q(n)} {q(ip)}' for n, ip in static_networks(spec))
     return HEADER + common(spec) + f'''
 : "${{B1_TRAEFIK_APPROVAL_REF:?owner approval reference required (ticket/commit of the written authorization)}}"
 [[ $B1_TRAEFIK_APPROVAL_REF =~ ^[A-Za-z0-9._:/-]{{6,120}}$ ]] || {{ echo "invalid approval reference" >&2; exit 2; }}
@@ -278,8 +373,12 @@ trap 'fail $LINENO' ERR
 phase stopping;         docker stop -t 30 "$OLD"
 phase stopped;          docker update --restart=no "$OLD"
 phase restart-disabled; docker rename "$OLD" "$PREV"
-phase renamed;          {create}
-phase created;          {connect}
+phase renamed
+{release}
+phase released
+phase creating;         {create}
+phase created
+{connect}
 phase networked;        docker start "$OLD"
 phase started
 for i in $(seq 1 30); do
@@ -304,9 +403,10 @@ def cmd_plan(a):
     if c['Image'] != image['Id']:
         refuse('the supplied image JSON is not the image of this container')
     spec = normalize(c, image)
-    nets = {load(p)['Name'] for p in a.network}
-    if nets != set(EXPECTED_NETWORKS):
-        refuse(f'network inspect files cover {sorted(nets)}')
+    docs = [load(p) for p in a.network]
+    if {d['Name'] for d in docs} != set(EXPECTED_NETWORKS):
+        refuse(f'network inspect files cover {sorted(d["Name"] for d in docs)}')
+    spec['networkDrivers'] = check_networks(spec['networkConfig'], docs)
     spec.update(containerId=c['Id'], imageId=c['Image'], sourceVersion=src, targetVersion=a.target_version,
                 targetDigest=a.target_digest, newRef=f'traefik:v{a.target_version}@{a.target_digest}')
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -331,7 +431,7 @@ def cmd_compare(a):
     if image is None:
         refuse('--image is required for before/after comparisons')
     if a.mode == 'before':
-        if normalize(c, image) != {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'logDriver', 'backupPaths')} \
+        if normalize(c, image) != {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'logDriver', 'backupPaths')} \
                 or c['Id'] != spec['containerId'] or c['Image'] != spec['imageId']:
             refuse('running container no longer matches the plan')
         print('BEFORE MATCHES PLAN'); return
@@ -344,7 +444,7 @@ def cmd_compare(a):
     if not c['Config'].get('Image', '').endswith('@' + spec['targetDigest']):
         refuse('container is not running the approved digest')
     now = normalize(c, image)       # image = the pulled NEW image: no extra env/labels/cmd/user may differ from its defaults
-    want = {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'logDriver', 'backupPaths')}
+    want = {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'logDriver', 'backupPaths')}
     if now != want:
         diff = sorted(k for k in want if now.get(k) != want[k])
         refuse(f'NOT PRESERVED: {diff}')
@@ -368,6 +468,32 @@ def cmd_routers(a):
 
 FATAL = re.compile(r'(command traefik error|error configuring|cannot unmarshal|field not found|yaml:|invalid (static )?configuration|unknown (field|flag)|"?level"?[=:]"?fatal|panic:|failed to (decode|load))', re.I)
 EXPECTED_NOISE = re.compile(r'(docker|swarm|acme|letsencrypt|lego|dial unix|cannot connect to the docker daemon|no such host|network is unreachable|resolver)', re.I)
+
+
+def cmd_ipcheck(a):
+    try:
+        ip = str(ipaddress.IPv4Address(a.ip))
+        text = Path(a.network_json).read_text().strip()
+        data = json.loads(text) if text else None
+    except (ValueError, OSError):
+        print('IP-CHECK: unusable input (address or network inspect output); treating the address as NOT free', file=sys.stderr); return 2
+    net = data[0] if isinstance(data, list) and data else data
+    if not isinstance(net, dict):
+        print('IP-CHECK: no network inspect data; treating the address as NOT free', file=sys.stderr); return 2
+    ignore = tuple(a.ignore_container or ())
+    held = []
+    for cid, c in (net.get('Containers') or {}).items():
+        if (c.get('IPv4Address') or '').split('/')[0] == ip and not any(cid.startswith(i) for i in ignore):
+            held.append(f'container {c.get("Name", cid[:12])}')
+    for svc, sv in (net.get('Services') or {}).items():
+        if (sv.get('VIP') or '').split('/')[0] == ip:
+            held.append(f'service VIP {svc}')
+        for t in sv.get('Tasks') or []:
+            if (t.get('EndpointIP') or '').split('/')[0] == ip:
+                held.append(f'task {t.get("Name", "?")}')
+    if held:
+        print(f'IP-CHECK: {ip} is held by: {", ".join(held)}', file=sys.stderr); return 1
+    print(f'IP-CHECK: {ip} is free'); return 0
 
 
 def cmd_scan(a):
@@ -399,11 +525,13 @@ def main(argv=None):
     s = sub.add_parser('compare'); s.add_argument('--spec', required=True); s.add_argument('--inspect'); s.add_argument('--image')
     s.add_argument('--mode', choices=('before', 'after', 'image'), required=True); s.set_defaults(f=cmd_compare)
     s = sub.add_parser('routers-diff'); s.add_argument('before'); s.add_argument('after'); s.set_defaults(f=cmd_routers)
+    s = sub.add_parser('ip-check'); s.add_argument('network_json'); s.add_argument('ip'); s.add_argument('--ignore-container', action='append'); s.set_defaults(f=cmd_ipcheck)
     s = sub.add_parser('scan-canary-log'); s.add_argument('log'); s.set_defaults(f=cmd_scan)
     s = sub.add_parser('api-check'); s.add_argument('version'); s.set_defaults(f=cmd_api)
     a = p.parse_args(argv)
     try:
-        a.f(a)
+        rc = a.f(a)
+        return rc or 0
     except Refused as e:
         print(f'REFUSED: {e}', file=sys.stderr); return 1
     return 0
