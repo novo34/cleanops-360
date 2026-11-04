@@ -235,3 +235,7 @@ Resultado del propietario en VPS: directorio privado presente, UID 0, GID 999, m
 ## Imagen B1 recuperada - 04/11/2026
 
 El propietario informo construccion aislada PASS desde commit cc51574ad85485728d877efbbb69bcb345469596. Imagen local cleanops360-b1-candidate:cc51574a con ID sha256:1db5df548b85f451f5eeec41959671aa1b983bffa687dae722c94571d5c20016, usuario 999:999 y etiqueta de revision coincidente. No se modificaron contenedores operativos. La imagen no esta desplegada y falta aceptacion mTLS/ForwardAuth. No repetir build. AUTH-GATE-05 OPEN.
+
+## Inventario de referencias mTLS del manifiesto
+
+Resultado de lectura privada ejecutada por propietario: MANIFIESTO_V2=PASS, REFERENCIA_EVIDENCIA=PENDIENTE, AUTORIZACION_TLS=PASS, PIN_PROXY_FORMATO=PASS, LISTENER_BINDING=PASS, LISTENER_PUERTO=PASS, FUENTE_CLIENTCA=PASS, FUENTE_TLSCERT=PASS, FUENTE_TLSKEY=PASS, FUENTE_SIGNINGKEY=PASS, FUENTE_PSEUDONYMKEY=PASS. Total 10/11. Se consulto presencia y formato, no coincidencia criptografica, certificados, contenido de fuentes ni referencia autorizada. El campo ingress.evidenceReference sigue vacio y requiere evidencia independiente real; no inventar valor, no modificar manifiesto ni activar. AUTH-GATE-05 OPEN.
