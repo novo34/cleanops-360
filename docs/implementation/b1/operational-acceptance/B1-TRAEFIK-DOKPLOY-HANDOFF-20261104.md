@@ -78,3 +78,17 @@
 - Verificación posterior: `dokploy 1/1`; `TRAEFIK_VERSION=3.7.17` presente; `dokploy-traefik` continúa `IMAGE=traefik:v3.6.7 STATE=running`, contenedor ID `ebf3a3813a5bb52d2cbeb232ca4a18cc1bdf91140eead5477ef76e937f479c67`; tarea nueva `Running`, anterior `Shutdown` sin error informado.
 - **PASS:** actualización y convergencia de servicio Dokploy, variable configurada y Traefik anterior en ejecución. **PENDIENTE:** smoke HTTPS de cinco rutas tras reinicio; comprobación previa a ventana de que no ha habido deriva y que guard `B1_TRAEFIK_VERSION_GUARD_ACK` es válido. **NO EJECUTADO:** rollback de Dokploy (no fue necesario), `02-switch.sh`, activación B1. `AUTH-GATE-05 OPEN`.
 - **Recuperación:** usar rollback de Swarm solo ante fallo y tras confirmar ausencia de actualizaciones concurrentes; el rollback anterior no se ha ejercitado realmente. Mantener capturas privadas exclusivamente en VPS. La actualización de Dokploy no autoriza por sí sola corte Traefik.
+
+## Anexo — smoke HTTPS posterior a actualización Dokploy (04-11-2026)
+
+**Fuente:** salida del VPS aportada por el propietario tras configurar `TRAEFIK_VERSION=3.7.17` en Dokploy. Comprobación de solo lectura sobre `/root/b1-traefik-upgrade/smoke.tsv`, `curl --resolve <host>:443:127.0.0.1`, TLS verificado sin `-k`; el contenedor Traefik aún ejecuta `3.6.7`.
+
+| HTTPS | Resultado |
+|---|---|
+| `cleanops.nuvurent.com/login` | PASS HTTP 200 |
+| `cleanops.nuvurent.com/dev` | PASS HTTP 200 |
+| `dokploy.nuvurent.com/` | PASS HTTP 200 |
+| `espacore.nuvurent.com/` | PASS HTTP 200 |
+| `jev.nuvurent.com/` | PASS HTTP 200 |
+
+**`VERIFICADOS=5 FALLOS=0` — PASS.** Queda cerrada la verificación de disponibilidad HTTPS posterior a alineación Dokploy; no repetir sin cambio de estado. **Pendiente:** corte autorizado de Traefik, `03-verify.sh` tras ese corte, observación, cierre real de `AUTH-GATE-05` y revisión independiente. Esta evidencia no acredita el funcionamiento con Traefik 3.7.17.
