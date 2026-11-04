@@ -50,11 +50,26 @@ def regular(path, mode=None):
 
 
 def probe(path):
-    result = call(["curl", "--silent", "--show-error", "--max-time", "8",
+    result = call(["curl", "--noproxy", "*", "--silent", "--show-error", "--max-time", "8",
                    "--resolve", "cleanops.nuvurent.com:443:127.0.0.1",
                    "-o", "/dev/null", "-w", "%{http_code}",
                    "https://cleanops.nuvurent.com" + path], timeout=11)
     return result.stdout.strip() if result.returncode == 0 else "000"
+
+
+def router_enabled():
+    res = call(["docker", "exec", "dokploy-traefik", "wget", "-qO-",
+                "http://127.0.0.1:8080/api/http/routers"], timeout=12)
+    if res.returncode != 0:
+        return False
+    try:
+        routers = json.loads(res.stdout)
+        return any(r.get("name") == "cleanops360-b1-guarded@file"
+                   and r.get("status") == "enabled"
+                   and "cleanops-b1-shadow" in r.get("service", "")
+                   for r in routers)
+    except (ValueError, TypeError, AttributeError):
+        return False
 
 
 def run():
@@ -140,7 +155,7 @@ def run():
         tmp.unlink()
         validated = False
         for _ in range(16):
-            if probe("/auth/login") == "403" and probe("/login") == "200":
+            if router_enabled() and probe("/auth/login") == "403" and probe("/login") == "200":
                 validated = True
                 break
             time.sleep(1)
@@ -164,7 +179,12 @@ def run():
             except OSError:
                 pass
         if not installed and restart_changed:
-            call(["docker", "update", "--restart=no", SHADOW])
+            for _ in range(12):
+                if not router_enabled():
+                    break
+                time.sleep(1)
+            if not router_enabled():
+                call(["docker", "update", "--restart=no", SHADOW])
         print("B1_CUTOVER=ROLLBACK_INTENTADO" if not installed
               else "B1_CUTOVER=REQUIERE_RECUPERACION_MANUAL", file=sys.stderr)
         raise
@@ -187,7 +207,13 @@ def rollback():
               hashlib.sha256(SOURCE.read_bytes()).digest(),
               "Ruta B1 fue modificada después de activar; no borrar")
         target.unlink()
-    # The candidate stays running privately; do not remove any credentials.
+    # The file provider updates asynchronously. Do not disable supervision
+    # while an active router could still target the candidate.
+    for _ in range(15):
+        if not router_enabled():
+            break
+        time.sleep(1)
+    check(not router_enabled(), "Traefik aún expone el router B1; mantener shadow")
     result = call(["docker", "update", "--restart=no", SHADOW])
     check(result.returncode == 0, "No se pudo desactivar reinicio automático")
     check(probe("/login") == "200", "Revisar login tras retirar ruta B1")
