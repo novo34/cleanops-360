@@ -135,6 +135,15 @@ http:
 # Do NOT add the same alias to the original cleanops360-f4fxmd-web-1.
 # Ensure the shadow is RUNNING, its trusted runtime and internal listener are READY,
 # and AUTH-GATE-05/security/owner approval is complete before this YAML is installed.
+# Shadow is intentionally staged with restart=no. Once readiness, issuance and the
+# exact cutover authorization are accepted, but BEFORE installing this router,
+# owner must enable its independent restart policy:
+#   docker update --restart=unless-stopped cleanops360-b1-shadow-cc51574a
+# Then reassert it is running. Otherwise a Node crash/host reboot leaves this
+# B1 router pointing to a stopped backend. The old web policy is unchanged.
+# Rollback order: withdraw this YAML FIRST and confirm original routing; THEN
+# disable shadow restart (docker update --restart=no), stop shadow gracefully
+# and preserve durable audit/credentials. Never stop the old web as rollback.
 #
 # Rollback: REMOVE/rename only the new B1 dynamic YAML, verify original B1 paths
 # return to the previous web router, then stop the B1 shadow without destroying
