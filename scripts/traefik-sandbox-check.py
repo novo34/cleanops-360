@@ -178,10 +178,10 @@ def run(traefik, label):
             except subprocess.TimeoutExpired:
                 proc.kill()
             auth.shutdown(); backend.shutdown()
-        text = log.read_text(errors='replace')
+        text = re.sub(r'\x1b\[[0-9;]*m', '', log.read_text(errors='replace'))
         result['observations']['version'] = re.search(r'"?version"?[=: ]+"?(3\.\d+\.\d+)', text) and re.search(r'(3\.\d+\.\d+)', text).group(1)
-        result['observations']['error_lines'] = [l[:200] for l in text.splitlines() if re.search(r'\blvl=error|"level":"error"|level=error', l)][:5]
-        result['observations']['deprecation_or_warn_lines'] = sorted({re.sub(r'^\S+\s+', '', l)[:160] for l in text.splitlines() if re.search(r'level=warn|"level":"warn"', l) and re.search(r'deprecat|trustForwardHeader|underscore|aliasHeaders', l, re.I)})[:6]
+        result['observations']['error_lines'] = [line[:200] for line in text.splitlines() if re.search(r'\\s(ERR|FTL|PNC)\\s|\\blvl=error|"level":"error"|level=error', line)][:5]
+        result['observations']['deprecation_or_warn_lines'] = sorted({re.sub(r'^\\S+\\s+', '', line)[:160] for line in text.splitlines() if re.search(r'\\sWRN\\s|level=warn|"level":"warn"', line) and re.search(r'deprecat|trustForwardHeader|underscore|aliasHeaders', line, re.I)})[:6]
     result['passed'] = all(result['checks'].values()) and not result['observations']['error_lines']
     return result
 
