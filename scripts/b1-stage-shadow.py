@@ -183,8 +183,22 @@ def stage():
         print("TRAEFIK=INTACTO")
         print("SQL_OPENBAO=INTACTOS")
     except Exception:
-        if created:
-            subprocess.run(["docker", "rm", SHADOW], capture_output=True, text=True, check=False)
+        # Compose may create a container before returning a failure. Only
+        # remove our exact newly created, still-stopped Compose service.
+        probe = subprocess.run(["docker", "container", "inspect", SHADOW],
+                               capture_output=True, text=True, check=False)
+        if probe.returncode == 0:
+            try:
+                candidate = json.loads(probe.stdout)[0]
+                labels = candidate.get("Config", {}).get("Labels") or {}
+                if (candidate.get("Image") == IMAGE_ID
+                    and candidate.get("State", {}).get("Status") == "created"
+                    and labels.get("com.docker.compose.project") == "cleanops-b1-shadow"
+                    and labels.get("com.docker.compose.service") == "shadow"):
+                    subprocess.run(["docker", "rm", SHADOW], capture_output=True,
+                                   text=True, check=False)
+            except (ValueError, IndexError, TypeError):
+                pass
         compose_file.unlink(missing_ok=True)
         raise
 
