@@ -193,3 +193,11 @@ La fila única del journal coincide con el checksum `40c9a316a2f5d6d6317198eb178
 Fuente: resultado de lectura PostgreSQL en `cleanops_staging` compartido por el propietario: `SQL0003_PROCEDENCIA=METADATOS_COMPLETOS`.
 
 **PASS limitado:** la fila única de `0003_ingress_persistence` contiene `source_commit` con formato SHA-40, `runner_sha256` con formato SHA-256, `approval_reference` y `applied_by` no vacíos, además de `applied_at` presente. **No demuestra:** correspondencia del commit con los bytes realmente aplicados, autorización independiente válida, ni matriz efectiva de privilegios. No se ejecutó ninguna migración. Continuar con verificación puntual y no mutadora de ACL. `AUTH-GATE-05` permanece OPEN.
+
+## Anexo — ACL de ejecución del operador B1 (04-11-2026)
+
+**Fuente:** salida de consulta read-only en PostgreSQL `cleanops_staging` facilitada por el propietario, comparando `has_function_privilege('cleanops_ingress_operator', p.oid, 'EXECUTE')` con el modelo SQL0003. No se invocaron funciones ni se modificaron datos.
+
+- `ingress_claim=PASS`; `ingress_credential_read=PASS`; `ingress_enroll=PASS`; `ingress_gc=PASS`; `ingress_recover=PASS`; `ingress_revoke=PASS`.
+- **PASS limitado:** para cada uno de los seis nombres se encontró una función en `auth_api` y coincidió la capacidad de ejecución esperada: operador solo autorizado en enroll/revoke/recover, denegado en claim/read/gc.
+- **Pendiente:** comprobar acceso de runtime y mantenimiento, propietarios/SECURITY DEFINER y acceso directo a las tres tablas, y revisión independiente. El uso de nombres y conteos no sustituye revisión de las firmas ni prueba funcional real. `AUTH-GATE-05 OPEN`. No reinstalar SQL0003.
