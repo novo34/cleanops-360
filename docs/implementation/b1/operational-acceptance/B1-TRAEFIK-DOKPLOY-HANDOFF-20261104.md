@@ -187,3 +187,9 @@ ROL_OPERADOR=true
 Fuente: resultado de una consulta PostgreSQL de solo lectura realizada por el propietario: `SQL0003_JOURNAL=MATCH`.
 
 La fila única del journal coincide con el checksum `40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca`, el perfil `b1` y la ruta SQL0003 versionada. Este PASS no acredita por sí solo permisos efectivos ni revisión independiente. No se realizó ninguna migración. Conservar `AUTH-GATE-05 OPEN` y no reinstalar SQL0003.
+
+## Anexo — metadatos de procedencia SQL0003 (04-11-2026)
+
+Fuente: resultado de lectura PostgreSQL en `cleanops_staging` compartido por el propietario: `SQL0003_PROCEDENCIA=METADATOS_COMPLETOS`.
+
+**PASS limitado:** la fila única de `0003_ingress_persistence` contiene `source_commit` con formato SHA-40, `runner_sha256` con formato SHA-256, `approval_reference` y `applied_by` no vacíos, además de `applied_at` presente. **No demuestra:** correspondencia del commit con los bytes realmente aplicados, autorización independiente válida, ni matriz efectiva de privilegios. No se ejecutó ninguna migración. Continuar con verificación puntual y no mutadora de ACL. `AUTH-GATE-05` permanece OPEN.
