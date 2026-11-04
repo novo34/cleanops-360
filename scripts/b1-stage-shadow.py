@@ -148,18 +148,16 @@ def stage():
                      for name in networks},
         "volumes": {"agent_sink": {"external": True, "name": VOLUME}}
     }
-    fd = os.open(compose_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
-    with os.fdopen(fd, "w") as out:
-        json.dump(config, out, sort_keys=True)
-        out.write("\n")
-        out.flush()
-        os.fsync(out.fileno())
-    created = False
     try:
+        fd = os.open(compose_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, "w") as out:
+            json.dump(config, out, sort_keys=True)
+            out.write("\n")
+            out.flush()
+            os.fsync(out.fileno())
         # No 'up', no start, no builds and no network/volume creation.
         run("docker", "compose", "-f", str(compose_file), "-p", "cleanops-b1-shadow",
             "create", "--no-build", "--no-recreate", "--pull", "never", "shadow")
-        created = True
         container = inspect("container", SHADOW)
         if container["State"]["Status"] != "created" or container["Image"] != IMAGE_ID:
             raise RuntimeError("Contenedor preparado en estado inesperado")
@@ -199,6 +197,7 @@ def stage():
                                    text=True, check=False)
             except (ValueError, IndexError, TypeError):
                 pass
+        STATE.unlink(missing_ok=True)
         compose_file.unlink(missing_ok=True)
         raise
 
