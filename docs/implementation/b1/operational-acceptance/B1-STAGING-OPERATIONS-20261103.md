@@ -357,3 +357,20 @@ No se ha comparado la huella con el certificado **cliente mTLS real de Traefik**
 **Decisión de procedimiento:** a partir de ahora, el despliegue se prepara en **GitHub** y se entrega mediante **Dokploy** con revisión; SSH solo para verificaciones específicas, no para mantener un YAML lateral sin control de versiones. Rama de trabajo no desplegable `prep/b1-dokploy-traefik-handoff-20261103` basada en `cc51574ad85485728d877efbbb69bcb345469596`. Se actualizó la plantilla `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` y el runbook existente `B1-DOKPLOY-RECONCILIATION-20261031.md`, **sin activar configuración ni alterar `staging`**.
 
 **Pendientes antes de cualquier cambio real:** demostrar certificado cliente mTLS / CA y pin reales y su acceso seguro desde Traefik; identificar ruta/alias/puerto y cert SAN; completar referencia de evidencia con aprobación independiente; preservar el Compose y routers previos; verificar la operabilidad de ForwardAuth y la credencial de ingreso prelogin, y autorizar ejecución reversible. No repetir SQL ni la ceremonia de primer actor `COMMITTED`.
+
+
+## 22. B1 handoff incorporado y CI final observado — 04/11/2026
+
+**Código vigente del PR #33:** rama `prep/b1-final-closure-20261102`, HEAD `1d73b96006d906cc29ddcb3416be57e88c32a28d`, PR abierto en draft, no merged; incorporó linealmente 8 commits de `prep/b1-dokploy-traefik-handoff-20261103` y un commit de corrección de pruebas/documentación. La integración incorpora cinco rutas modificadas respecto del commit de seguridad `5d9f531`.
+
+**Estado de GitHub Actions confirmado el 04/11/2026 para el SHA exacto `1d73b960`:**
+- `Quality` — **completed/success**, run `41729460077`.
+- `B1 synthetic staging preparation` — **completed/success**, run `41729460150`.
+- `B1 proxy origin regression` — **completed/success**, run `41729460126`.
+- Los jobs específicos PG/browsers protegidos observados constan `skipped`; **no convertir SKIP en PASS de integración real**.
+
+**Pruebas reportadas por Claude en su contenedor con Node 24.22:** B1 334 PASS / 0 FAIL / 2 SKIP; 146 pruebas estáticas OK (3 skipped), lint 0 errores (1 warning preexistente), typecheck PASS, Compose offline y YAML de ejemplo parseable. Estas pruebas locales no implican despliegue, login real, certificados mTLS, actualización de Traefik, ni AUTH-GATE-05.
+
+**Revisión independiente:** GitHub registra 35 hilos de review no resueltos (acumulados/históricos, no equivalentes a 35 errores confirmados actuales); no está acreditada una revisión independiente final de seguridad sobre el SHA `1d73b960`. No reabrir PASS anteriores ni cambiar código por hallazgos obsoletos sin verificar bytes y reproducibilidad.
+
+**Siguiente gate:** inventario **sanitizado** del modo real de gestión de `dokploy-traefik` (Docker standalone/Swarm), identidad de imagen/digest, puertos, montaje y redes existentes, más versión efectiva de Dokploy; así seleccionar parche compatible y rollback. SSH solo lectura, sin pasar secretos al chat; sin usar acceso de Claude al VPS.
