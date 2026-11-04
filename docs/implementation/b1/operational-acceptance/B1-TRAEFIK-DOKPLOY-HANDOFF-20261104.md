@@ -251,3 +251,7 @@ El propietario inspecciono el contenedor activo dokploy-traefik: estado running,
 ## Ausencia de B1 en el directorio dinamico de Traefik
 
 Comprobacion de solo lectura comunicada por el propietario el 04/11/2026: cuatro configuraciones en directorio dinamico, cero referencias B1, cero referencias ForwardAuth, cero archivos de certificado y cero archivos de clave segun extensiones reconocidas; cero errores de lectura. La busqueda es limitada al directorio montado, no acredita ausencia de identidad cliente mTLS fuera de el. Traefik continua en ejecucion. No se han anadido archivos ni activado rutas. Siguiente gate: determinar si ya existe el certificado cliente del proxy cuyo SHA-256 coincide con el pin del manifiesto, y verificar cadena y permisos. No inventar ni sustituir la aprobacion de ingress.evidenceReference. AUTH-GATE-05 OPEN.
+
+## Certificado cliente del proxy: pin no localizado
+
+El propietario ejecuto un barrido de certificados limitado a los directorios privados de B1 y Traefik: CERTIFICADOS_CANDIDATOS_EXAMINADOS=7; CERTIFICADO_CLIENTE_PIN=NO_LOCALIZADO. Esto no demuestra ausencia global del certificado ni ausencia de un formato de archivo distinto; solo descarta una coincidencia entre los siete examinados. No se generaron certificados ni se modifico el manifiesto. Sigue pendiente identificar la custodia de identidad cliente real, demostrar la coincidencia de pin y CA, y registrar evidencia independiente antes de configurar ForwardAuth. AUTH-GATE-05 OPEN.
