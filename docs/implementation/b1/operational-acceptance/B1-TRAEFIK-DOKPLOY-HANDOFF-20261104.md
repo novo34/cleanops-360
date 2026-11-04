@@ -181,3 +181,9 @@ ROL_OPERADOR=true
 ```
 
 **PASS (presencia):** `public._migrations`, `identity_private.ingress_claims`, `identity_private.ingress_credentials`, `identity_private.ingress_operator_audit`, rol `cleanops_ingress_operator` existen en la base objetivo. **NO ACREDITADO:** fila de journal `0003_ingress_persistence`, checksum y origen aplicados; permisos efectivos, propietario de objetos, autorización independiente, canal de operador y aceptación funcional. La presencia de objetos no justifica una nueva instalación ni implica que sean de la revisión actual. Próximo control único: consultar exclusivamente el estado y comparación del checksum de `0003_ingress_persistence` en el journal, sin mostrar `approval_reference`, `applied_by` ni información personal. Ninguna mutación autorizada ni ejecutada.
+
+## Anexo — verificación journal SQL0003 (04-11-2026)
+
+Fuente: resultado de una consulta PostgreSQL de solo lectura realizada por el propietario: `SQL0003_JOURNAL=MATCH`.
+
+La fila única del journal coincide con el checksum `40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca`, el perfil `b1` y la ruta SQL0003 versionada. Este PASS no acredita por sí solo permisos efectivos ni revisión independiente. No se realizó ninguna migración. Conservar `AUTH-GATE-05 OPEN` y no reinstalar SQL0003.
