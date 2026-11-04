@@ -239,3 +239,7 @@ El propietario informo construccion aislada PASS desde commit cc51574ad85485728d
 ## Inventario de referencias mTLS del manifiesto
 
 Resultado de lectura privada ejecutada por propietario: MANIFIESTO_V2=PASS, REFERENCIA_EVIDENCIA=PENDIENTE, AUTORIZACION_TLS=PASS, PIN_PROXY_FORMATO=PASS, LISTENER_BINDING=PASS, LISTENER_PUERTO=PASS, FUENTE_CLIENTCA=PASS, FUENTE_TLSCERT=PASS, FUENTE_TLSKEY=PASS, FUENTE_SIGNINGKEY=PASS, FUENTE_PSEUDONYMKEY=PASS. Total 10/11. Se consulto presencia y formato, no coincidencia criptografica, certificados, contenido de fuentes ni referencia autorizada. El campo ingress.evidenceReference sigue vacio y requiere evidencia independiente real; no inventar valor, no modificar manifiesto ni activar. AUTH-GATE-05 OPEN.
+
+## Validacion criptografica del listener TLS
+
+El propietario reporto cuatro PASS de una inspeccion OpenSSL read-only del paquete privado: CLIENT_CA_VALIDA, LISTENER_CERT_VIGENTE, LISTENER_SAN_CORRECTO y LISTENER_CLAVE_COINCIDE. Resultado agregado TLS_LISTENER=PASS. La inspeccion comprobo CA:TRUE, vigencia temporal, DNS SAN del alias y coincidencia de claves publicas del certificado y la clave privada. No se expusieron claves ni certificados. Este resultado no acredita la cadena del servidor ante Traefik ni la identidad y el pin del certificado cliente de Traefik. Se mantienen pendientes la configuracion efectiva de ForwardAuth, referencia documental de evidencia y aprobacion independiente. AUTH-GATE-05 OPEN.
