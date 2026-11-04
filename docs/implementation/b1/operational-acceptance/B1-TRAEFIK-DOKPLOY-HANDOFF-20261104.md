@@ -247,3 +247,7 @@ El propietario reporto cuatro PASS de una inspeccion OpenSSL read-only del paque
 ## Montajes actuales de Traefik — inspeccion 04/11
 
 El propietario inspecciono el contenedor activo dokploy-traefik: estado running, tres montajes. Destinos: /etc/dokploy/traefik/dynamic (bind RW), /etc/traefik/traefik.yml (bind RW), /var/run/docker.sock (bind RO). No se observo montaje independiente de material cliente mTLS. Esto no demuestra ausencia de certificados dentro del directorio dinamico ni existencia de una configuracion B1. Ninguna alteracion ejecutada. Proximo control: inspeccion limitada a presencia de configuracion B1 en el directorio dinamico sin imprimir datos privados. AUTH-GATE-05 OPEN.
+
+## Ausencia de B1 en el directorio dinamico de Traefik
+
+Comprobacion de solo lectura comunicada por el propietario el 04/11/2026: cuatro configuraciones en directorio dinamico, cero referencias B1, cero referencias ForwardAuth, cero archivos de certificado y cero archivos de clave segun extensiones reconocidas; cero errores de lectura. La busqueda es limitada al directorio montado, no acredita ausencia de identidad cliente mTLS fuera de el. Traefik continua en ejecucion. No se han anadido archivos ni activado rutas. Siguiente gate: determinar si ya existe el certificado cliente del proxy cuyo SHA-256 coincide con el pin del manifiesto, y verificar cadena y permisos. No inventar ni sustituir la aprobacion de ingress.evidenceReference. AUTH-GATE-05 OPEN.
