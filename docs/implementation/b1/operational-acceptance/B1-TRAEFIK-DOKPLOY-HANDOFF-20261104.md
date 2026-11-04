@@ -211,3 +211,9 @@ Pendiente: propiedad y configuración SECURITY DEFINER de funciones, aprobación
 ## SQL0003: verificacion estructural
 
 El propietario informo seis resultados PASS: ingress_claim, ingress_credential_read, ingress_enroll, ingress_gc, ingress_recover e ingress_revoke. La consulta read-only comprobo propietario cleanops_auth_broker, SECURITY DEFINER y search_path pg_catalog. Sin cambios de base de datos. AUTH-GATE-05 permanece abierto hasta aceptacion funcional independiente.
+
+## Anexo — estado real web B1 tras actualización Traefik (04-11-2026)
+
+Fuente: salida read-only del propietario del VPS: `cleanops360-f4fxmd-web-1` sigue `running` con imagen ID `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290`; red `dokploy-network=PASS`; `/run/cleanops-agent=NO_MONTADO`; `/run/cleanops-b1-private=NO_MONTADO`; consulta por etiqueta `cleanops360-b1-candidate:cc51574a` devuelve `NO_ENCONTRADA`.
+
+Interpretacion: web activa aun sin montajes B1. La etiqueta faltante no acredita perdida de la imagen por ID ni obliga a reconstruirla. El siguiente control unico sera inventario read-only de imagenes Docker por etiqueta/ID y de contenedor candidato, sin construir, etiquetar, desplegar ni tocar datos. SQL0003 mantiene PASS previos; AUTH-GATE-05 OPEN. No se autorizo activacion.
