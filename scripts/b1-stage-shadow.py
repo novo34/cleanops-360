@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 WEB = "cleanops360-f4fxmd-web-1"
+AGENT = "cleanops360-f4fxmd-openbao-agent-1"
 SHADOW = "cleanops360-b1-shadow-cc51574a"
 IMAGE = "cleanops360-b1-candidate:cc51574a"
 IMAGE_ID = "sha256:1db5df548b85f451f5eeec41959671aa1b983bffa687dae722c94571d5c20016"
@@ -75,12 +76,23 @@ def plan():
                 ipaddress.ip_address(v["IPAddress"]) in cidr]
     if matching != ["dokploy-network"]:
         raise RuntimeError("La IP de B1 no resuelve solo en dokploy-network")
-    available = run("docker", "network", "ls", "--format", "{{.Name}}").splitlines()
-    bao = [n for n in available if n == "identity_bao" or n.endswith("_identity_bao")]
-    if len(bao) != 1:
-        raise RuntimeError("Red identidad Bao no unívoca")
+    # The real agent, not a guessed network suffix, is the custody authority.
+    # Its Compose contract connects only to the pre-existing identity network.
     if inspect("volume", VOLUME).get("Name") != VOLUME:
         raise RuntimeError("Volumen Agent existente no encontrado")
+    agent = inspect("container", AGENT)
+    if agent.get("State", {}).get("Status") != "running":
+        raise RuntimeError("OpenBao Agent existente no está ejecutándose")
+    writers = [m for m in agent.get("Mounts", []) if m.get("Type") == "volume"
+               and m.get("Name") == VOLUME and m.get("RW") is True]
+    if len(writers) != 1:
+        raise RuntimeError("Agent no es el escritor único del sink aprobado")
+    agent_networks = agent.get("NetworkSettings", {}).get("Networks") or {}
+    if len(agent_networks) != 1:
+        raise RuntimeError("Agent no tiene exactamente una red de custodia")
+    custody = next(iter(agent_networks))
+    if custody in netmap:
+        raise RuntimeError("La web previa ya está en la red de custodia: topología distinta")
     current_env = dict(s.split("=", 1) for s in web.get("Config", {}).get("Env", [])
                        if "=" in s)
     env = {"NODE_ENV": "production", "NEXT_TELEMETRY_DISABLED": "1"}
@@ -89,7 +101,7 @@ def plan():
             env[k] = current_env[k]
     if env.get("CLEANOPS_AUTH_ORIGIN", "https://cleanops.nuvurent.com").rstrip("/") != "https://cleanops.nuvurent.com":
         raise RuntimeError("Origen de web incompatible")
-    return sorted(set(netmap) | {bao[0]}), env
+    return sorted(set(netmap) | {custody}), env
 
 
 def stage():
@@ -98,28 +110,64 @@ def stage():
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
     if present.returncode == 0:
         raise RuntimeError("Contenedor B1 ya presente, no duplicar")
-    args = ["docker", "create", "--name", SHADOW, "--network", "none",
-            "--restart", "no", "--init", "--read-only", "--cap-drop", "ALL",
-            "--security-opt", "no-new-privileges:true", "--pids-limit", "128",
-            "--memory", "768m", "--cpus", "0.65",
-            "--tmpfs", "/tmp:rw,nosuid,nodev,size=64m",
-            "--mount", f"type=bind,src={PRIVATE},dst=/run/cleanops-b1-private,readonly",
-            "--mount", f"type=volume,src={VOLUME},dst=/run/cleanops-agent,readonly,volume-nocopy"]
-    for k, v in sorted(env.items()):
-        args += ["--env", k + "=" + v]
-    args.append(IMAGE)
+    STATE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    protected(STATE.parent, "directory", 0o700, 0, 0)
+    compose_file = STATE.parent / "compose.yaml"
+    if compose_file.exists():
+        raise RuntimeError("Compose de preparación ya existe; no sobrescribir")
+
+    # Compose 'create' is explicitly designed for multi-network containers
+    # WITHOUT starting them. No 'network connect' on a stopped container.
+    aliases = {name: "net" + str(i) for i, name in enumerate(networks)}
+    network_services = {
+        aliases[name]: ({"aliases": ["cleanops-b1-ingress"]} if name == "dokploy-network" else {})
+        for name in networks
+    }
+    config = {
+        "name": "cleanops-b1-shadow",
+        "services": {"shadow": {
+            "container_name": SHADOW,
+            "image": IMAGE, "pull_policy": "never",
+            "restart": "no", "init": True, "user": "999:999",
+            "read_only": True, "cap_drop": ["ALL"],
+            "security_opt": ["no-new-privileges:true"],
+            "pids_limit": 128, "mem_limit": "768m", "cpus": 0.65,
+            "tmpfs": ["/tmp:rw,nosuid,nodev,size=64m"],
+            "environment": env,
+            "volumes": [
+                {"type": "bind", "source": str(PRIVATE),
+                 "target": "/run/cleanops-b1-private", "read_only": True,
+                 "bind": {"create_host_path": False}},
+                {"type": "volume", "source": "agent_sink",
+                 "target": "/run/cleanops-agent", "read_only": True,
+                 "volume": {"nocopy": True}},
+            ],
+            "networks": network_services
+        }},
+        "networks": {aliases[name]: {"external": True, "name": name}
+                     for name in networks},
+        "volumes": {"agent_sink": {"external": True, "name": VOLUME}}
+    }
+    fd = os.open(compose_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as out:
+        json.dump(config, out, sort_keys=True)
+        out.write("\n")
+        out.flush()
+        os.fsync(out.fileno())
     created = False
     try:
-        run(*args)
+        # No 'up', no start, no builds and no network/volume creation.
+        run("docker", "compose", "-f", str(compose_file), "-p", "cleanops-b1-shadow",
+            "create", "--no-build", "--no-recreate", "--pull", "never", "shadow")
         created = True
-        for n in networks:
-            extra = ["--alias", "cleanops-b1-ingress"] if n == "dokploy-network" else []
-            run("docker", "network", "connect", *extra, n, SHADOW)
         container = inspect("container", SHADOW)
         if container["State"]["Status"] != "created" or container["Image"] != IMAGE_ID:
             raise RuntimeError("Contenedor preparado en estado inesperado")
-        STATE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        protected(STATE.parent, "directory", 0o700, 0, 0)
+        attached = container.get("NetworkSettings", {}).get("Networks") or {}
+        if set(attached) != set(networks):
+            raise RuntimeError("Redes del contenedor no coinciden con las aprobadas")
+        if "cleanops-b1-ingress" not in (attached["dokploy-network"].get("Aliases") or []):
+            raise RuntimeError("Alias DNS de ingress no instalado")
         snapshot = {"container": SHADOW, "containerId": container["Id"],
                     "imageId": IMAGE_ID, "networks": networks,
                     "manifestSha256": hashlib.sha256(MANIFEST.read_bytes()).hexdigest(),
@@ -137,8 +185,8 @@ def stage():
     except Exception:
         if created:
             subprocess.run(["docker", "rm", SHADOW], capture_output=True, text=True, check=False)
+        compose_file.unlink(missing_ok=True)
         raise
-
 
 def rollback_stage():
     if os.geteuid() != 0:
@@ -154,6 +202,7 @@ def rollback_stage():
         raise RuntimeError("Contenedor no es la preparación detenida original")
     run("docker", "rm", SHADOW)
     STATE.unlink()
+    (STATE.parent / "compose.yaml").unlink(missing_ok=True)
     print("B1_SOMBRA=REVERTIDA")
     print("WEB_ACTUAL=INTACTA")
 
