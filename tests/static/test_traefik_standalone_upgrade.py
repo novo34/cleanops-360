@@ -79,6 +79,13 @@ class Planning(Base):
                 self.assertNotIn(forbidden, text, f'{name} contains {forbidden!r}')
         # -v is never used: --mount refuses to create a missing host path
         self.assertNotIn(' -v ', switch)
+        prepare = (self.tmp / 'plan/01-prepare.sh').read_text()
+        probe_cmd = next(l for l in prepare.splitlines() if l.startswith('docker create --name "$PROBE"'))
+        self.assertIn('--network none', probe_cmd); self.assertIn('--restart no', probe_cmd)
+        for forbidden in ('--ip', ' -p ', '--network-alias', 'dokploy-network', 'supabase'):
+            self.assertNotIn(forbidden, probe_cmd, f'the probe must not compete for {forbidden!r}')
+        self.assertNotIn('network connect', prepare.split('PROBE=')[1].split('# Canary')[0], 'the probe attaches to no network')
+        self.assertIn('--mount type=bind,source=', probe_cmd); self.assertIn('"${LOGARGS[@]}"', probe_cmd)
         everything = ''.join((self.tmp / 'plan' / n).read_text() for n in ('01-prepare.sh', '02-switch.sh', '03-verify.sh', 'rollback.sh'))
         self.assertNotIn('172.23.0.15', everything, 'the dynamic address of the second network is never pinned')
         self.assertNotIn('network connect --ip', switch.split('docker create')[1].split('docker start')[0], 'only the primary network is pinned, at create')
@@ -326,6 +333,12 @@ class Shimmed(Base):
         self.assertRegex(probe, r'^dokploy-traefik-probe-\d{8}T\d{6}Z$')
         self.assertFalse(st['containers'][probe]['State']['Running'])
         self.assertEqual(st['containers']['dokploy-traefik']['Id'], OLD_ID)
+        pc = st['containers'][probe]
+        self.assertEqual((pc['HostConfig']['NetworkMode'], sorted(pc['NetworkSettings']['Networks']), pc['HostConfig']['PortBindings']), ('none', ['none'], {}))
+        self.assertFalse([c for c in st['calls'] if c[:2] in (['network', 'connect'], ['network', 'disconnect'])], 'prepare never touches a network')
+        self.assertFalse([a for c in creates for a in c if a in ('--ip', '-p', '--network-alias')])
+        self.assertEqual(st['holders']['dokploy-network'], {PIN: OLD_ID}, 'the pinned address still belongs only to the operational Traefik')
+        self.assertEqual(st['containers']['dokploy-traefik']['NetworkSettings']['Networks'], container(self.root)['NetworkSettings']['Networks'], 'its endpoints are untouched')
         for name in ('traefik-config.tar', 'before.inspect.json', 'canary.log', 'prepared.ok'):
             self.assertEqual(stat.S_IMODE((self.state / name).stat().st_mode) & 0o077, 0, name)
         listing = subprocess.run(['tar', '-tf', str(self.state / 'traefik-config.tar')], capture_output=True, text=True).stdout
@@ -472,6 +485,39 @@ class Shimmed(Base):
         st = self.snapshot(); st['foreign'] = {'dokploy-network': {PIN: 'other-service'}}; self.shim_state.write_text(json.dumps(st))
         r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 3); self.assertIn('held by something other', r.stderr)
         self.assertFalse((self.state / 'prepared.ok').exists())
+
+    def test_probe_never_competes_even_with_a_daemon_that_reserves_at_create(self):
+        """Not proven for swarm-scoped networks whether `docker create --ip/-p` reserves the address/ports; the probe must not depend on it."""
+        st = self.snapshot(); st['create_reserves_ip'] = True; st['create_reserves_ports'] = True; st['ports_taken'] = ['80/tcp', '443/tcp', '443/udp']
+        self.shim_state.write_text(json.dumps(st))
+        r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 0, r.stderr)
+        st = self.snapshot(); self.assertEqual(st['holders']['dokploy-network'], {PIN: OLD_ID})
+        self.assertEqual(st['ports_taken'], ['80/tcp', '443/tcp', '443/udp'])
+        # control: the OLD probe shape (same --ip / -p as the switch) is rejected by such a daemon, which is exactly what must be avoided
+        plan = json.loads((self.plan_dir / 'spec.json').read_text())
+        bad = subprocess.run(['docker', 'create', '--name', 'old-design-probe', '--network', 'dokploy-network', '--ip', PIN, '-p', '80:80/tcp', REF],
+                             env={'PATH': f'{self.bin}:/usr/bin:/bin', 'SHIM_STATE': str(self.shim_state)}, capture_output=True, text=True)
+        self.assertNotEqual(bad.returncode, 0); self.assertIn('already', bad.stderr); self.assertEqual(plan['networkConfig']['dokploy-network']['staticIPv4'], PIN)
+
+    def test_probe_checker_refuses_a_probe_that_could_compete(self):
+        self.sh('01-prepare.sh', check=True)
+        probe = json.loads((self.state / 'probe.inspect.json').read_text())[0]
+        def check(mutated):
+            f = self.tmp / 'probe-mut.json'; f.write_text(json.dumps([mutated]))
+            return subprocess.run(['python3', '-I', str(TOOL), 'compare', '--spec', str(self.plan_dir / 'spec.json'), '--inspect', str(f),
+                                   '--image', str(self.state / 'new.image.json'), '--mode', 'probe'], capture_output=True, text=True)
+        self.assertEqual(check(probe).returncode, 0, check(probe).stderr)
+        cases = {}
+        p1 = copy.deepcopy(probe); p1['HostConfig']['PortBindings'] = {'80/tcp': [{'HostIp': '', 'HostPort': '80'}]}; cases['publishes a port'] = (p1, 'publishes ports')
+        p2 = copy.deepcopy(probe); p2['HostConfig']['NetworkMode'] = 'dokploy-network'; cases['network mode'] = (p2, 'attached to a network')
+        p3 = copy.deepcopy(probe); p3['NetworkSettings']['Networks'] = {'dokploy-network': {'Aliases': [], 'IPAMConfig': {'IPv4Address': PIN}, 'IPAddress': ''}}
+        cases['endpoint with the pinned address'] = (p3, 'attached to a network')
+        p4 = copy.deepcopy(probe); p4['HostConfig']['RestartPolicy']['Name'] = 'always'; cases['restart always'] = (p4, 'restart policy')
+        p5 = copy.deepcopy(probe); p5['HostConfig']['LogConfig'] = {'Type': 'json-file', 'Config': {'max-size': '1k'}}; cases['different log'] = (p5, 'WOULD NOT PRESERVE')
+        p6 = copy.deepcopy(probe); p6['State']['Running'] = True; cases['running'] = (p6, 'stopped container')
+        for label, (mut, fragment) in cases.items():
+            with self.subTest(label):
+                r = check(mut); self.assertEqual(r.returncode, 1); self.assertIn(fragment, r.stderr)
 
     def test_slow_release_after_disconnect_is_waited_for(self):
         self.sh('01-prepare.sh', check=True)

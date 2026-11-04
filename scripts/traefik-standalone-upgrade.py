@@ -32,6 +32,9 @@ LOG_OPT_KEY = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$')
 # Names this procedure itself gives to containers; Docker may leave them as stale aliases after `docker rename`.
 TRANSIENT_NAME = re.compile(r'^' + re.escape('dokploy-traefik') + r'-(prev|failed|probe)-\d{8}T\d{6}Z$')
 PROBE_NAME = TRANSIENT_NAME
+# What the isolated pre-flight probe can prove. Ports, networks, the pinned address and aliases are NOT part of it on purpose:
+# the probe must never compete with the operational Traefik for them (they are validated offline and in the switch window).
+PROBE_KEYS = ('name', 'restart', 'mounts', 'log', 'inherited', 'backupPaths')
 PRESERVED = ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'log', 'inherited', 'backupPaths')
 SUPPORTED_DRIVERS = ('overlay', 'bridge')
 # HostConfig fields that must keep Docker defaults (Dokploy sets none of them). Init/SecurityOpt/Ulimits/LogConfig are the
@@ -163,12 +166,16 @@ def normalize(c, image, kind='live'):
     if (host.get('RestartPolicy') or {}).get('Name') not in ((restart, '') if restart == 'no' else (restart,)):
         refuse(f'restart policy is not "{restart}"')
     ports = {}
-    for key, binds in (host.get('PortBindings') or {}).items():
-        if not binds or len(binds) != 1:
-            refuse(f'port {key} has {len(binds or [])} bindings')
-        ports[key] = hostport(binds[0])
-    if ports != EXPECTED_PORTS:
-        refuse(f'published ports differ from inventory: {sorted(ports.items())}')
+    if probe:
+        if host.get('PortBindings'):
+            refuse('the pre-flight candidate publishes ports: it must never compete for the operational ports')
+    else:
+        for key, binds in (host.get('PortBindings') or {}).items():
+            if not binds or len(binds) != 1:
+                refuse(f'port {key} has {len(binds or [])} bindings')
+            ports[key] = hostport(binds[0])
+        if ports != EXPECTED_PORTS:
+            refuse(f'published ports differ from inventory: {sorted(ports.items())}')
     mounts = sorted([m['Type'], m['Source'], m['Destination'], bool(m['RW'])] for m in c['Mounts'])
     if len(mounts) != 3 or any(m[0] != 'bind' for m in mounts):
         refuse('expected exactly three bind mounts')
@@ -190,14 +197,19 @@ def normalize(c, image, kind='live'):
         refuse('inventory says the Docker socket is read-only but the container mounts it read-write; resolve before changing anything')
     nets = c['NetworkSettings']['Networks']
     mode = host.get('NetworkMode') or ''
-    if mode in ('host', 'none') or mode.startswith('container:'):
-        refuse(f'network mode {mode.split(":")[0]!r} is not supported')
-    if PRIMARY_NETWORK not in nets:
-        refuse(f'{PRIMARY_NETWORK} is not attached')
-    odd = sorted(n for n in nets if n in ('bridge', 'host', 'none') or not NETNAME.match(n))
-    if odd:
-        refuse(f'unsupported network attachments: {odd}')
-    netcfg = network_config(c, name)
+    if probe:
+        if mode != 'none' or set(nets) - {'none'}:
+            refuse('the pre-flight candidate is attached to a network: it must have none, so it cannot take an endpoint or the pinned address')
+        netcfg = {}
+    else:
+        if mode in ('host', 'none') or mode.startswith('container:'):
+            refuse(f'network mode {mode.split(":")[0]!r} is not supported')
+        if PRIMARY_NETWORK not in nets:
+            refuse(f'{PRIMARY_NETWORK} is not attached')
+        odd = sorted(n for n in nets if n in ('bridge', 'host', 'none') or not NETNAME.match(n))
+        if odd:
+            refuse(f'unsupported network attachments: {odd}')
+        netcfg = network_config(c, name)
     if cfg.get('Cmd') != image['Config'].get('Cmd') or cfg.get('Entrypoint') != image['Config'].get('Entrypoint'):
         refuse('command/entrypoint differ from the image defaults: the inventory says there are no explicit flags')
     image_env = set(image['Config'].get('Env') or [])
@@ -231,18 +243,23 @@ def q(s):
     return shlex.quote(str(s))
 
 
-def create_args(spec, new_ref, name=None, restart='always'):
+def create_args(spec, new_ref, name=None, restart='always', isolated=False):
     """`name` is an already-quoted shell expression (the pre-flight probe uses "$PROBE"). Log flags come from "${LOGARGS[@]}" which the
     scripts load from the private capture at run time, so option values never appear in the generated scripts or spec.json."""
-    out = ['docker', 'create', '--name', name or q(spec['name']), '--restart', restart, '--network', q(spec['primaryNetwork'])]
-    prim = spec['networkConfig'][spec['primaryNetwork']]
-    if prim['staticIPv4']:
-        out += ['--ip', q(prim['staticIPv4'])]
-    for a in prim['aliases']:
-        out += ['--network-alias', q(a)]
-    for key, host_port in sorted(spec['ports'].items()):
-        cport, proto = key.split('/')
-        out += ['-p', q(f'{host_port}:{cport}/{proto}')]
+    if isolated:
+        # Pre-flight probe: NO network, NO published port, NO pinned address. It cannot take an endpoint, a port or the address of the
+        # operational Traefik at any time (not even if someone started it), and no existing network is touched.
+        out = ['docker', 'create', '--name', name or q(spec['name']), '--restart', restart, '--network', 'none']
+    else:
+        out = ['docker', 'create', '--name', name or q(spec['name']), '--restart', restart, '--network', q(spec['primaryNetwork'])]
+        prim = spec['networkConfig'][spec['primaryNetwork']]
+        if prim['staticIPv4']:
+            out += ['--ip', q(prim['staticIPv4'])]
+        for a in prim['aliases']:
+            out += ['--network-alias', q(a)]
+        for key, host_port in sorted(spec['ports'].items()):
+            cport, proto = key.split('/')
+            out += ['-p', q(f'{host_port}:{cport}/{proto}')]
     for typ, src, dst, rw in spec['mounts']:
         # --mount (unlike -v) refuses to create a missing host path.
         out += ['--mount', q(f'type=bind,source={src},target={dst}' + ('' if rw else ',readonly'))]
@@ -299,16 +316,17 @@ def common(spec):
             f'NEW_REF={q(spec["newRef"])}\nNEW_DIGEST={q(spec["targetDigest"])}\nTARGET={q(spec["targetVersion"])}\n') + NETFUNCS
 
 
-PROBE_TEMPLATE = '''# Pre-flight candidate: created exactly as 02-switch.sh will create it, but NEVER started and with restart=no (so no daemon restart can
-# start it and take ports 80/443 or the pinned address). Comparing it with the plan surfaces, BEFORE any downtime, what this daemon
-# adds or inherits (log driver, init, security options, ulimits) and every flag Docker would reject. It is left stopped for you to
+PROBE_TEMPLATE = '''# Pre-flight probe: created with the same image, mounts, log driver/options and restart policy (restart=no here) as 02-switch.sh will use,
+# but ISOLATED: no network, no published port, no pinned address, never started. It therefore cannot compete with the running Traefik
+# for its endpoints, ports or fixed IP, and no existing network is touched. Comparing it with the plan surfaces, BEFORE any downtime,
+# what this daemon adds or inherits (log driver, init, security options, ulimits) and every option Docker would reject. Ports, networks,
+# the pinned address and aliases are validated offline (plan) and in the switch window, not here. It is left stopped for you to
 # remove after the change window (its name is in probe.name; deleting it is a decision for the owner).
 python3 -I "$TOOL" log-args --spec "$HERE/spec.json" --inspect "$STATE/before.inspect.json" > "$STATE/log.args"
 chmod 600 "$STATE/log.args"
 mapfile -d '' -t LOGARGS < "$STATE/log.args"
 PROBE="$OLD-probe-$(date -u +%Y%m%dT%H%M%SZ)"
 @CREATE@
-@CONNECT@
 docker inspect "$PROBE" > "$STATE/probe.inspect.json"
 chmod 600 "$STATE/probe.inspect.json"
 python3 -I "$TOOL" compare --spec "$HERE/spec.json" --inspect "$STATE/probe.inspect.json" --image "$STATE/new.image.json" --mode probe
@@ -317,8 +335,7 @@ echo "$PROBE" > "$STATE/probe.name"
 
 
 def probe_snippet(spec):
-    connect = '\n'.join(connect_args(spec, n, '"$PROBE"') for n in spec['networks'] if n != spec['primaryNetwork'])
-    return PROBE_TEMPLATE.replace('@CREATE@', create_args(spec, spec['newRef'], name='"$PROBE"', restart='no')).replace('@CONNECT@', connect)
+    return PROBE_TEMPLATE.replace('@CREATE@', create_args(spec, spec['newRef'], name='"$PROBE"', restart='no', isolated=True))
 
 
 def script_prepare(spec):
@@ -533,11 +550,11 @@ def cmd_compare(a):
             refuse('the pre-flight candidate must be a different, stopped container')
         if not c['Config'].get('Image', '').endswith('@' + spec['targetDigest']):
             refuse('the pre-flight candidate does not use the approved digest')
-        now = normalize(c, image, kind='probe')
-        want['restart'] = 'no'
-        if now != want:
-            refuse(f'THE CANDIDATE WOULD NOT PRESERVE: {sorted(k for k in want if now.get(k) != want[k])} (nothing was switched)')
-        print('PROBE OK: a candidate created with the generated flags preserves ports, mounts, networks, log configuration and inherited settings'); return
+        now = normalize(c, image, kind='probe')       # refuses a probe that has a network or a published port
+        pw = {k: want[k] for k in PROBE_KEYS}; pw['restart'] = 'no'
+        if {k: now[k] for k in PROBE_KEYS} != pw:
+            refuse(f'THE CANDIDATE WOULD NOT PRESERVE: {sorted(k for k in pw if now.get(k) != pw[k])} (nothing was switched)')
+        print('PROBE OK: an isolated candidate created with the generated flags preserves mounts, log configuration and inherited settings (ports, networks and the pinned address are not exercised by the probe)'); return
     # after: the new container must be the old one with ONLY the image (and ids) changed.
     state = c['State']
     if not state.get('Running') or state.get('Restarting') or c['RestartCount'] != 0:

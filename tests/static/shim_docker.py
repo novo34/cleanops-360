@@ -12,6 +12,9 @@ Besides containers/images it models what matters for pinned addresses on swarm-s
     security options, ulimits), like a hardened daemon.json; `--log-driver/--log-opt` override the log default
   * st['routers_lag'] = N: the first N router-API queries return nothing (providers still rebuilding after a start)
   * st['reject_create_with'] = flag: `docker create` fails when that flag is present (an option the daemon refuses)
+  * st['create_reserves_ip'] = True: a daemon that reserves a pinned address ALREADY AT `docker create` (not proven either way on
+    swarm-scoped networks): creating with an address someone holds fails, and a successful create takes the reservation
+  * st['create_reserves_ports'] = True: `-p` at create conflicts with / takes the operational ports (st['ports_taken'])
 """
 import json, os, sys, uuid
 S = os.environ['SHIM_STATE']
@@ -158,9 +161,18 @@ elif cmd == 'create':
     ref = a[-1]
     img = st['images'][ref]
     cid = uuid.uuid4().hex * 2
+    if ip and st.get('create_reserves_ip'):
+        if holders(net).get(ip) or st.get('foreign', {}).get(net, {}).get(ip):
+            print(f'Error response from daemon: Address already in use: {ip} on network {net}', file=sys.stderr); save(); sys.exit(1)
+        holders(net)[ip] = cid[:64]
+    if ports and st.get('create_reserves_ports'):
+        taken = set(st.setdefault('ports_taken', []))
+        if taken & set(ports):
+            print('Error response from daemon: port is already allocated', file=sys.stderr); save(); sys.exit(1)
+        st['ports_taken'] = sorted(taken | set(ports))
     st['containers'][name] = {'Id': cid[:64], 'Name': '/' + name, 'Image': img['Id'], 'RestartCount': 0, 'State': {'Running': False, 'Restarting': False},
         'Config': {'Image': ref, 'Cmd': img['Config'].get('Cmd'), 'Entrypoint': img['Config'].get('Entrypoint'), 'Env': img['Config'].get('Env'), 'Labels': img['Config'].get('Labels'), 'User': '', 'WorkingDir': ''},
-        'HostConfig': {'RestartPolicy': {'Name': restart}, 'PortBindings': ports,
+        'HostConfig': {'RestartPolicy': {'Name': restart}, 'PortBindings': ports, 'NetworkMode': net,
                        'LogConfig': ({'Type': log_driver, 'Config': log_opts} if log_driver else dict(st.get('daemon_log', {'Type': 'json-file', 'Config': {}}))),
                        **st.get('daemon_hostconfig', {})},
         'Mounts': mounts, 'NetworkSettings': {'Networks': {net: {'Aliases': [name, cid[:12], *aliases], 'IPAMConfig': {'IPv4Address': ip} if ip else None, 'IPAddress': ''}}}}
