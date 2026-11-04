@@ -19,6 +19,12 @@
 # - Running Dokploy proxy is traefik:v3.6.7, AFFECTED by GHSA-6384-m2mw-rf54
 #   (ForwardAuth X-Forwarded-Prefix spoofing with trustForwardHeader=false
 #   in certain upstream proxy topologies). Upstream fix for v3.6 is v3.6.14.
+#   UPDATE 2026-11-04: the 3.6 line has been OUT of security support since 2026-08-16 and does not
+#   receive the fix for GHSA-hrpp-p4fc-wwf8 (ForwardAuth shared auth connection pool, fixed in >= 3.7.16).
+#   Approved target: v3.7.17. In an isolated run (scripts/traefik-sandbox-check.py) v3.6.7 delivered an
+#   EMPTY body to the auth server despite forwardBody: true, so this template cannot work on the running
+#   proxy; v3.7.17 delivers the exact body. Procedure: docs/implementation/b1/operational-acceptance/
+#   B1-TRAEFIK-UPGRADE-RUNBOOK-20261104.md
 #   Source: https://github.com/traefik/traefik/security/advisories/GHSA-6384-m2mw-rf54
 # - Never enable THIS example with affected Traefik version. Independently plan
 #   and validate a Dokploy-compatible patched version, controlled restart,

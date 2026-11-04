@@ -128,3 +128,7 @@ Base: `5d9f531` (configuración de permisos) + cherry-pick lineal de `prep/b1-do
 - `ingress.evidenceReference` genuina, procedencia/huella del certificado cliente mTLS real de Traefik, CA/SAN y rutas de material TLS.
 - Revisión independiente del SHA y pruebas negativas de cabeceras con el proxy parcheado; `AUTH-GATE-05` sigue OPEN.
 - Red de la sesión: `doc.traefik.io` no es accesible (fuera de la lista de dominios permitidos); la documentación oficial de ForwardAuth se contrastó vía el código fuente en GitHub. Añadir ese dominio si se quiere citar la documentación oficial.
+
+
+### Decisión de versión de Traefik — 04/11/2026
+Actualiza «Secuencia de decisión»: la opción (A) rama 3.6.x (p. ej. `v3.6.25`) **queda descartada** (3.6 sin soporte de seguridad desde el 16/08/2026 y sin corrección de GHSA-hrpp-p4fc-wwf8); el objetivo es **v3.7.17** por digest. Evidencia, procedimiento ejecutable, requisitos humanos y rollback: `B1-TRAEFIK-UPGRADE-RUNBOOK-20261104.md`. Sin ejecución; `AUTH-GATE-05` sigue OPEN.
