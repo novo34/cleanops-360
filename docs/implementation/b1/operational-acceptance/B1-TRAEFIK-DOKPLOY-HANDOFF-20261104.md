@@ -92,3 +92,17 @@
 | `jev.nuvurent.com/` | PASS HTTP 200 |
 
 **`VERIFICADOS=5 FALLOS=0` — PASS.** Queda cerrada la verificación de disponibilidad HTTPS posterior a alineación Dokploy; no repetir sin cambio de estado. **Pendiente:** corte autorizado de Traefik, `03-verify.sh` tras ese corte, observación, cierre real de `AUTH-GATE-05` y revisión independiente. Esta evidencia no acredita el funcionamiento con Traefik 3.7.17.
+
+## Anexo — preflight posterior a alineación Dokploy (04-11-2026)
+
+**Origen:** salida de la ejecución de solo lectura del propietario en `srv1155120`. Sin conmutación ni prueba repetida. Alcance: existencia de `prepared.ok`, `02-switch.sh`, `03-verify.sh`, `rollback.sh`, `smoke.tsv`, sintaxis `bash -n` de los tres scripts, variable Dokploy y estado de Traefik original.
+
+Resultados comunicados literalmente:
+```text
+SCRIPTS_Y_PREPARE=PASS
+DOKPLOY_ALINEADO=PASS
+TRAEFIK_ORIGINAL=PASS
+PREFLIGHT_PREVIO_AL_CORTE=PASS
+```
+
+**PASS** para esos cuatro controles. **Límite:** esto no es un nuevo ensayo de recuperación ni una comprobación completa de deriva de redes/montajes; el procedimiento `02-switch.sh` debe conservar sus propias condiciones de parada. **OPEN:** conmutación de Traefik, `03-verify.sh` post-corte, observación y `AUTH-GATE-05`. No existe autorización de interrupción de Traefik en esta evidencia.
