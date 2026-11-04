@@ -106,3 +106,16 @@ PREFLIGHT_PREVIO_AL_CORTE=PASS
 ```
 
 **PASS** para esos cuatro controles. **Límite:** esto no es un nuevo ensayo de recuperación ni una comprobación completa de deriva de redes/montajes; el procedimiento `02-switch.sh` debe conservar sus propias condiciones de parada. **OPEN:** conmutación de Traefik, `03-verify.sh` post-corte, observación y `AUTH-GATE-05`. No existe autorización de interrupción de Traefik en esta evidencia.
+
+## Anexo — conmutación real Traefik 3.7.17 (04-11-2026)
+
+**Fuente:** salida de consola suministrada por el propietario del VPS `srv1155120`, tras autorización explícita separada para la conmutación y rollback automático. No se suben artefactos privados. Alcance: reemplazo del contenedor Traefik standalone, no activación B1.
+
+- Ejecución: `B1_TRAEFIK_APPROVAL_REF=owner-chat-20261104-traefik-3717`, `B1_TRAEFIK_VERSION_GUARD_ACK=yes`, `bash /root/b1-traefik-upgrade/plan/02-switch.sh` con estado preparado vigente y Dokploy previamente alineado. Salida `INICIANDO_CONMUTACION_TRAEFIK`.
+- Liberación: `IP-CHECK: 10.0.1.11 is free`.
+- Integridad: `AFTER PRESERVES PORTS/MOUNTS/NETWORKS/LOG/RESTART; image changed to the approved digest`.
+- Comprobación del script: `VERIFY OK (dokploy-traefik)`; `SWITCH OK`; `SWITCH_EXIT=0`; `SWITCH_FINALIZADO`.
+- Contenedor nuevo `dokploy-traefik` ID `5da638732423a8e664b8e917006584fe6be1aa2fb8fc58110eab64cd9bd8c5c7`, `IMAGE=traefik:v3.7.17@sha256:68ae5fe5b64ca166704b746a9e8afcd385e36b3f569a5691401bf652d57b3748`, `STATE=running`.
+- Original conservado y detenido, sin reinicio automático: `dokploy-traefik-prev-20261104T164250Z`, `restart=no`. **No eliminar durante observación**; no se ha invocado rollback porque la conmutación pasó.
+
+**PASS:** conmutación controlada y verificación integrada del plan (incluye las comprobaciones propias de `03-verify.sh` según el runbook). **PENDIENTE:** observación de disponibilidad/errores posterior al corte, confirmación del resultado agregado de cinco HTTPS en ventana de observación, decisión posterior sobre retención del contenedor previo y aceptación independiente de B1. Los resultados anteriores de `smoke.tsv` validaban Dokploy antes del corte; no sustituirlos por afirmaciones no observadas tras el corte. **OPEN:** `AUTH-GATE-05`; PR #33 permanece draft, no fusionado. No ejecutar nueva conmutación por rutina.
