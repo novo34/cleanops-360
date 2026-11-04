@@ -154,3 +154,15 @@ PREFLIGHT_PREVIO_AL_CORTE=PASS
 5. **Aceptación final:** dictamen de reviewer distinto del autor en SHA preciso; aprobación de Product Owner para cambio de staging, pruebas PR006/PR007 y reconciliación de requisitos. `AUTH-GATE-05 OPEN`, PR #33 draft/no merge.
 
 **Orden de trabajo:** (A) reconciliar evidencia de SQL0003 existente y Compose actual mediante metadata privada redactada, (B) obtener decisiones reales de certificados/custodia y paquete de aprobación independiente, (C) autorización expresa para cambios B1 y ventana separada, (D) desplegar deltas mínimos y ejecutar una sola aceptación operacional, (E) revisión independiente y cierre formal. No crear nuevas ramas, PR, agentes o componentes sin defecto probado.
+
+## Anexo — reconciliación de manifiesto SQL0003 (04-11-2026)
+
+**Fuente inmutable de código consultada:** rama `prep/b1-final-closure-20261102`; `scripts/trusted-migrations.mjs` blob `0d29d45d1cd77200b8ac83afccb550b345b5286f`, `scripts/migrate-postgres.mjs`, `db/migrations/0003_ingress_persistence.review.sql` blob `36171c3e48495c0112fc95ca2ccfffd18a9d768b`, `B1-OPERATOR-CHANNEL-CONTRACT-20261102.md`.
+
+- `0002_first_actor` = `proposed:true` SHA256 `4868b8dcbfa473695179d61c2a451db53e83c0698f04b8409e87e4e12b18b5b6`.
+- `0003_ingress_persistence` = `proposed:true` SHA256 `40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca`.
+- `loadTrustedMigrations(..., "b1")` excluye propuestas cuando `proposalsOnly=false`; el runner normal no aplicará estos dos archivos. **Este hecho de código no prueba ausencia o presencia de objetos SQL en la base real**. 0002 y primer administrador tienen antecedentes de COMMITTED: no reejecutar.
+- El runner canónico utiliza `public._migrations` y exige para cada fila `id`, `checksum`, `profile`, `source_file`, `source_commit`, `runner_sha256`, `approval_reference`, `applied_by`, `applied_at`. Para SQL0003, primero consultar exclusivamente existencia del journal y fila `0003_ingress_persistence`, junto con existencia (sin contenido) de objetos/roles críticos. **Si no existe una fila, no inferir por sí sola que las tablas no existen; no ejecutar migración hasta reconciliar procedencia y autorización.**
+- PENDIENTE — una única evidencia de solo lectura en VPS con nombres/estado de journal y comparativa local, sin revelar tokens, roles login, certificados, secretos ni valores personales. Cualquier ausencia de permisos se marca BLOCKED y se utiliza un canal DBA autorizado, no se improvisan credenciales.
+
+**No se ha ejecutado SQL, no se ha cambiado código ni se declara PASS operativo.** `AUTH-GATE-05 OPEN`.
