@@ -45,3 +45,18 @@ Código de preparación publicado: `scripts/b1-stage-shadow.py`, `scripts/b1-pre
 - Estado de tráfico real B1: **NO ACTIVO**.
 
 **Límite:** esta evidencia es compilación documental de resultados de terminal compartidos por el propietario y de blobs Git; no incluye secretos, tokens, certificados PEM ni inspección directa de runtime de los servicios.
+
+## Actualización 04/11 — revisión de correcciones, sin despliegue
+
+**Último resultado del propietario:** `TRAEFIK_B1_TLS=PREPARADO`, `COPIAS_TLS=3_ROOT_ONLY`, `ORIGINALES_TLS=INTACTOS`, `FORWARDAUTH=NO_ACTIVADO`, `WEB_B1=NO_ARRANCADA`. PASS de copia en el bind ya montado del proxy; no ejecutar otra vez el instalador.
+
+**Correcciones GitHub del PR #33 tras review:**
+- El runbook histórico de Traefik se rotuló como ejecutado y se retiró una secuencia de recuperación manual peligrosa que podía detener el contenedor original; commit `f0ff4f90cdb8662afa26f30ffb7631551cb76034`.
+- El switch de Traefik (que YA SE EJECUTÓ) ahora exige `smoke.tsv` antes del stop, procesa la última fila sin salto final y rechaza matrices sin rutas; commit `4ecca123df2d279b66572bd14c0ee1d35241c9aa`. Esto es mantenimiento de script para futuros usos, **no** autoriza ni requiere volver a ejecutar el switch.
+- El parser de log aislado ahora reconoce `ERR/FTL/PNC/WRN` y secuencias ANSI de Traefik 3.7.17; commits `0ebfed58044875d91aa2fb90c3e6e7fd8a6702f3`, `5dff5784e877541f529f64b04e44accbe3837a5c`.
+- Se corrigieron dos aserciones de pruebas estáticas que nunca verificaban lo que afirmaban; commits `160c507d29290f4c2e681c170ef7847cfa95bd8a`, `fbff368e2adb7ed1186cb8e1e0ad3df12fb2844e`.
+- Se corrigió la limpieza de `STATE` y Compose en fallos parciales de creación futura de shadow, commit `438971df6cad7ee748d90a50e8636782327820f1`. **No recrear shadow actual**.
+- Se exige presencia de los tres archivos TLS *en el bind real de Traefik*, no solo en fuente original, antes de renderizar en futuras instalaciones, commit `76d28a5974ac0a09b0f177cc5d893ce864b61481`. En este VPS ya se prepararon TLS después del render y su fase reportó PASS; no repetir ninguna de ellas por este cambio de orden futuro.
+- Se establece `restart=unless-stopped` del shadow **únicamente durante un cutover aprobado y después de readiness, antes de activar el router**; retirar router antes de apagar shadow y entonces poner restart=no, commit `afe3c84f4a0006f03fef070e0b96e8f85060c627`. No se cambia la política del shadow mientras está detenido.
+
+**Verificación independiente:** CodeRabbit ha reportado problemas concretos, pero las correcciones aún necesitan revisión del SHA final y aceptación humana de `AUTH-GATE-05`. Ninguna operación de runtime se ha realizado en estos cambios. Los hechos del VPS previos permanecen PASS. `ingress.evidenceReference` continúa pendiente y no se debe rellenar sin referencia auténtica revisada. 
