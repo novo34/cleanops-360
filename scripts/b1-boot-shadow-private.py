@@ -127,7 +127,7 @@ def boot():
     manifest = json.loads(old)
     require(manifest.get("version") == 2
             and manifest.get("postgres", {}).get("environment") == "staging"
-            and manifest.get("origin") == "https://cleanops.nuvurent.com"
+            and str(manifest.get("origin", "")).rstrip("/") == "https://cleanops.nuvurent.com"
             and manifest.get("ingress", {}).get("evidenceReference") in ("", None),
             "Manifest tiene estado distinto al pendiente documentado")
     require(manifest["ingress"].get("tlsAuthorizationReference"),
@@ -154,7 +154,6 @@ def boot():
     require(len(new) < 65536, "Manifest supera tamaño permitido")
 
     changed = False
-    running = False
     try:
         write_exclusive(BACKUP, old, 0o600)
         replace_manifest(new)
@@ -163,7 +162,6 @@ def boot():
                 "Manifest actualizado con metadatos incorrectos")
         started = run(["docker", "start", SHADOW], timeout=25)
         require(started.returncode == 0, "No se pudo iniciar shadow")
-        running = True
         ready = False
         for _ in range(18):
             candidate = inspect(SHADOW)
@@ -193,8 +191,15 @@ def boot():
         print("WEB_ANTERIOR=INTACTA")
         print("AUTH_GATE_05=OPEN")
     except Exception:
-        if running:
-            run(["docker", "stop", "-t", "40", SHADOW], timeout=55)
+        # docker start may fail after creating a live process; inspect by exact
+        # immutable Id before attempting any cleanup of our candidate.
+        try:
+            current = inspect(SHADOW)
+            if (current.get("Id") == state.get("containerId")
+                and current.get("State", {}).get("Status") == "running"):
+                run(["docker", "stop", "-t", "40", SHADOW], timeout=55)
+        except Exception:
+            pass
         if changed and sha(MANIFEST.read_bytes()) == sha(new):
             replace_manifest(old)
         # Keep the original root-only manifest backup if rollback is ambiguous.
