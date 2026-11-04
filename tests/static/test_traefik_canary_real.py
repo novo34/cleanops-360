@@ -61,7 +61,8 @@ class RealTraefikCanary(unittest.TestCase):
         self.assertEqual(rc, 124, text[:600])                       # still running when the window closed
         self.assertEqual(scan.returncode, 0, scan.stderr)
         self.assertIn('docker/swarm provider cannot reach Docker', scan.stdout); self.assertIn('startup messages in the log: 0', scan.stdout)
-        self.assertTrue(text.strip()) and self.assertNotIn(' INF ', text, 'the default level is ERROR: Traefik prints no startup message')
+        self.assertTrue(text.strip())
+        self.assertNotIn(' INF ', text, 'the default level is ERROR: Traefik prints no startup message')
         self.assertFalse([l for l in text.splitlines() if ' ERR ' in l and 'providerName=docker' not in l and 'providerName=swarm' not in l and 'docker' not in l.lower()])
 
     def test_info_level_adds_traefiks_own_startup_messages(self):
