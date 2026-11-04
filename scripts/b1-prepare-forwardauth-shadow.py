@@ -59,8 +59,17 @@ def prepare(template):
               if m.get("Type") == "bind" and m.get("Destination") == TRAEFIK_DIR]
     if len(mounts) != 1:
         fail("El directorio dinámico existente de Traefik no coincide")
+    # The rendered paths are in Traefik's existing bind, not in CERT_DIR.
+    staged = Path(mounts[0]["Source"]) / "cleanops-b1-mtls"
+    staged_info = staged.lstat()
+    if not stat.S_ISDIR(staged_info.st_mode) or staged_info.st_uid != 0 or stat.S_IMODE(staged_info.st_mode) != 0o700:
+        fail("Directorio TLS B1 del proxy no es root-only")
     for name in ("server-ca.crt", "traefik-client.crt", "traefik-client.key"):
         regular(CERT_DIR / name)
+        staged_file = staged / name
+        meta = regular(staged_file)
+        if meta.st_uid != 0 or stat.S_IMODE(meta.st_mode) != 0o400:
+            fail("Archivo TLS preparado sin custodia root-only")
 
     manifest = json.loads(MANIFEST.read_text())
     ingress = manifest.get("ingress", {})
