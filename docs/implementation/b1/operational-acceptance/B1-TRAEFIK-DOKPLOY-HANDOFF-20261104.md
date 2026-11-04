@@ -166,3 +166,18 @@ PREFLIGHT_PREVIO_AL_CORTE=PASS
 - PENDIENTE — una única evidencia de solo lectura en VPS con nombres/estado de journal y comparativa local, sin revelar tokens, roles login, certificados, secretos ni valores personales. Cualquier ausencia de permisos se marca BLOCKED y se utiliza un canal DBA autorizado, no se improvisan credenciales.
 
 **No se ha ejecutado SQL, no se ha cambiado código ni se declara PASS operativo.** `AUTH-GATE-05 OPEN`.
+
+## Anexo — presencia real de objetos ingress en PostgreSQL (04-11-2026)
+
+**Fuente:** ejecución de solo lectura por el propietario en el contenedor PostgreSQL de `srv1155120`, base `cleanops_staging`. La primera consulta histórica falló porque no existe un rol SQL llamado `postgres`; un intento con SQL pasado a través de comillas de shell falló por quoting. Ningún error alteró el esquema. La consulta final utilizó `POSTGRES_USER`/ `POSTGRES_DB` del contenedor y un heredoc SQL directamente en stdin, con `psql -X -q -A -t -w -v ON_ERROR_STOP=1`.
+
+Resultados exactos:
+```text
+JOURNAL_PRESENTE=true
+INGRESS_CLAIMS=true
+INGRESS_CREDENTIALS=true
+AUDITORIA_OPERADOR=true
+ROL_OPERADOR=true
+```
+
+**PASS (presencia):** `public._migrations`, `identity_private.ingress_claims`, `identity_private.ingress_credentials`, `identity_private.ingress_operator_audit`, rol `cleanops_ingress_operator` existen en la base objetivo. **NO ACREDITADO:** fila de journal `0003_ingress_persistence`, checksum y origen aplicados; permisos efectivos, propietario de objetos, autorización independiente, canal de operador y aceptación funcional. La presencia de objetos no justifica una nueva instalación ni implica que sean de la revisión actual. Próximo control único: consultar exclusivamente el estado y comparación del checksum de `0003_ingress_persistence` en el journal, sin mostrar `approval_reference`, `applied_by` ni información personal. Ninguna mutación autorizada ni ejecutada.
