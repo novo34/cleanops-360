@@ -389,7 +389,9 @@ class Shimmed(Base):
         order = [next(i for i, c in enumerate(calls) if i >= first and c[:len(sg)] == sg) for sg in sigs]
         self.assertEqual(order, sorted(order), 'stop -> rename -> disconnect (release pinned IP) -> create --ip -> connect -> start')
         create = calls[order[3]]; self.assertEqual(create[create.index('--ip') + 1], PIN)
-        self.assertEqual([c for c in calls if c[:2] == ['network', 'disconnect']], [['network', 'disconnect', 'dokploy-network', st['switch_prev']]] if 'switch_prev' in st else [c for c in calls if c[:2] == ['network', 'disconnect']])
+        previous_name = next(name for name in st['containers'] if name.startswith('dokploy-traefik-prev-'))
+        self.assertEqual([call for call in calls if call[:2] == ['network', 'disconnect']],
+                         [['network', 'disconnect', 'dokploy-network', previous_name]])
         connects = [c for c in self.switch_calls() if c[:2] == ['network', 'connect']]
         self.assertEqual(len(connects), 1); self.assertNotIn('--ip', connects[0], 'the dynamic network is never pinned')
         self.assertFalse(any(c[0] in ('rm', 'service') or c[:2] == ['system', 'prune'] for c in calls))
