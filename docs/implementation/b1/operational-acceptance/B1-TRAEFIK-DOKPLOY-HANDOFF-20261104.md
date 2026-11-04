@@ -243,3 +243,7 @@ Resultado de lectura privada ejecutada por propietario: MANIFIESTO_V2=PASS, REFE
 ## Validacion criptografica del listener TLS
 
 El propietario reporto cuatro PASS de una inspeccion OpenSSL read-only del paquete privado: CLIENT_CA_VALIDA, LISTENER_CERT_VIGENTE, LISTENER_SAN_CORRECTO y LISTENER_CLAVE_COINCIDE. Resultado agregado TLS_LISTENER=PASS. La inspeccion comprobo CA:TRUE, vigencia temporal, DNS SAN del alias y coincidencia de claves publicas del certificado y la clave privada. No se expusieron claves ni certificados. Este resultado no acredita la cadena del servidor ante Traefik ni la identidad y el pin del certificado cliente de Traefik. Se mantienen pendientes la configuracion efectiva de ForwardAuth, referencia documental de evidencia y aprobacion independiente. AUTH-GATE-05 OPEN.
+
+## Montajes actuales de Traefik — inspeccion 04/11
+
+El propietario inspecciono el contenedor activo dokploy-traefik: estado running, tres montajes. Destinos: /etc/dokploy/traefik/dynamic (bind RW), /etc/traefik/traefik.yml (bind RW), /var/run/docker.sock (bind RO). No se observo montaje independiente de material cliente mTLS. Esto no demuestra ausencia de certificados dentro del directorio dinamico ni existencia de una configuracion B1. Ninguna alteracion ejecutada. Proximo control: inspeccion limitada a presencia de configuracion B1 en el directorio dinamico sin imprimir datos privados. AUTH-GATE-05 OPEN.
