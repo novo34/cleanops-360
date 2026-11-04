@@ -1,0 +1,47 @@
+# CleanOps B1 — ficha verificable para aceptación de shadow + ForwardAuth (04/11/2026)
+
+**Estado: EVIDENCIA TÉCNICA RECOPILADA; SIN APROBACIÓN INDEPENDIENTE; SIN AUTORIZACIÓN DE CORTE.**
+Esta ficha se refiere exclusivamente al candidato B1 aislado en el VPS y a la configuración ForwardAuth de la rama de preparación. No constituye por sí sola el valor de autoridad de `ingress.evidenceReference`, y no debe copiarse automáticamente al manifiesto.
+
+## Identidad fija
+
+- Repositorio: `novo34/cleanops-360`. Rama: `prep/b1-final-closure-20261102`; PR #33 DRAFT, sin merge.
+- Fuente del candidato: `cc51574ad85485728d877efbbb69bcb345469596`. Imagen local: `sha256:1db5df548b85f451f5eeec41959671aa1b983bffa687dae722c94571d5c20016`.
+- Imagen del servicio web original preservada: `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290`.
+- Manifest privado `/run/cleanops-b1-private/installation.json` v2, custodia root:999 0440. `ingress.evidenceReference` aún vacío.
+- Proxy Traefik 3.7.17 actualizado y verificado anteriormente; la actualización y cinco HTTPS smoke PASS no se repiten.
+
+## Hechos operativos reportados por el propietario (04/11/2026)
+
+| Requisito | Evidencia | Conclusión limitada |
+|---|---|---|
+| Certificado Traefik | `TRAEFIK_CLAVE_CERTIFICADO=PASS`, `TRAEFIK_CLAVE_PROTEGIDA=PASS`, `TRAEFIK_CLIENTE_CA_B1=PASS`; PIN previo PASS | Identidad mTLS cliente compatible |
+| Listener B1 | SAN DNS `cleanops-b1-ingress`, CA y clave del servidor previamente PASS | Material criptográfico preparado, no indica listener en ejecución |
+| Red privada | `BINDING_CIDR=PASS`, red de web `dokploy-network` única | Referencia de red en host, no readiness del proceso shadow |
+| Servicio viejo | `cleanops360-f4fxmd-15-websecure@docker` confirmado, puerto 3000 | NO debe ser el backend de rutas B1 |
+| Dispositivo | `CREDENCIAL_B1=NO_ACTIVA`, `OPERADOR_B1=CONFIGURADO` | Faltan emisión y canal seguro de entrega |
+| Firma operadora | `CLAVE_OPERADOR=PASS`, `ED25519=PASS`, `CLAVE_ORIGINAL=CONSERVADA`, `COPIA_OPERADOR=PROTEGIDA` | Emisor puede prepararse, sin emisión realizada |
+| Shadow Docker | `B1_SOMBRA=PREPARADA_SIN_ARRANCAR`, `WEB_ACTUAL=INTACTA`, `TRAEFIK=INTACTO`, `SQL_OPENBAO=INTACTOS` | Contenedor creado y detenido; rollback con `scripts/b1-stage-shadow.py rollback-stage` antes de arrancar |
+| Delta ForwardAuth | `B1_FORWARD_AUTH=DELTA_PREPARADO_NO_ACTIVO`, `BACKEND_B1=SOMBRA_SEPARADA` | Archivo privado `/root/b1-shadow-stage/b1-forwardauth.pending` generado; NO instalado |
+| TLS proxy | `TRAEFIK_B1_TLS=PREPARADO`, `COPIAS_TLS=3_ROOT_ONLY`, `ORIGINALES_TLS=INTACTOS`, `FORWARDAUTH=NO_ACTIVADO`, `WEB_B1=NO_ARRANCADA` | Tres archivos de TLS copiados bajo el bind del proxy; no cambia rutas |
+
+Referencia de rutas candidatas: `deploy/staging/traefik/b1-forward-auth.delta.example.yaml` tras commit `c63cd244a231e165871933c9e2fa004feb3592d0` usa **exclusivamente** `cleanops-b1-shadow` como servicio File-provider para rutas B1, con URL privada `http://cleanops-b1-ingress:3000`. El servicio original continúa en sus routers.
+
+Código de preparación publicado: `scripts/b1-stage-shadow.py`, `scripts/b1-prepare-forwardauth-shadow.py` y `scripts/b1-stage-traefik-client-tls.py`; no reejecutar las operaciones PASS. Leer el relevo `B1-TRAEFIK-DOKPLOY-HANDOFF-20261104.md` para la procedencia y cronología.
+
+## Puertas no satisfechas: no simular PASS
+
+1. **Referencia de evidencia para listener**: revisión real, atribuible y exacta de las redes, TLS y conducta de ForwardAuth; el campo `ingress.evidenceReference` debe apuntar al registro auténtico aprobado. Esta ficha documenta preparación, no sustituye dictamen.
+2. **Primera credencial**: solicitud `device.issue` con `authorizationReference` auténtica, usuario operador ya configurado y entrega de cookie `Secure; HttpOnly; SameSite=Strict; Path=/` por canal seguro. No generar antes de un cutover coordinado.
+3. **Arranque y pruebas**: arrancar shadow solo con el manifiesto aprobado, observar readiness del listener y `/login` de Next; negativa mTLS, rutas/headers spoofed, POST/body, replay, logout/TOTP/sesiones y drenaje; rollback si falla.
+4. **Cambio público**: instalar YAML dinámica de forma atómica **después** de B1-ready y credential delivery, preservar el antiguo router y retirar el nuevo primero en rollback. No tocar PostgreSQL/OpenBao ni recrear infraestructura.
+5. **Aceptación**: revisión independiente del código/infra y aprobación expresa del propietario para staging, con procedimiento de recuperación detallado. `AUTH-GATE-05 OPEN` hasta resultados reales.
+
+## Registro de aprobaciones (pendiente)
+
+- Reviewer independiente, identidad/fecha, commit y alcance: **SIN APROBAR**.
+- Product Owner, referencia y alcance del corte: **SIN APROBAR**.
+- `ingress.evidenceReference` en manifest: **VACÍO**, no generar texto ficticio.
+- Estado de tráfico real B1: **NO ACTIVO**.
+
+**Límite:** esta evidencia es compilación documental de resultados de terminal compartidos por el propietario y de blobs Git; no incluye secretos, tokens, certificados PEM ni inspección directa de runtime de los servicios.
