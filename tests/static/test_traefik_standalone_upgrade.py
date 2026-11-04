@@ -11,6 +11,24 @@ TOOL = ROOT / 'scripts/traefik-standalone-upgrade.py'
 SHIM = ROOT / 'tests/static/shim_docker.py'
 CURL = ROOT / 'tests/static/shim_curl.sh'
 OLD_ID, OLD_IMG = 'a' * 64, 'sha256:' + '1' * 64
+ESC = '\x1b'
+
+
+def cl(level, msg, ts='2026-11-04T13:31:00Z'):
+    """A console log line exactly as Traefik prints it (ANSI colours included)."""
+    colour = {'ERR': 31, 'WRN': 33, 'INF': 32, 'DBG': 35}.get(level, 0)
+    return f'{ESC}[90m{ts}{ESC}[0m {ESC}[{colour}m{level}{ESC}[0m {ESC}[1m{msg}{ESC}[0m'
+
+
+DOCKER_SOCK = ('error="failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: '
+               'dial unix /var/run/docker.sock: connect: no such file or directory"')
+# What the VPS canary produced: only Docker/Swarm provider errors (the canary has no socket on purpose), Traefik still running.
+DOCKER_NOISE = [cl('ERR', f'Failed to retrieve information of the docker client and server host {DOCKER_SOCK} providerName={n}') if i % 2 == 0
+                else cl('ERR', f'Provider error, retrying in {300 + i}.5ms {DOCKER_SOCK} providerName={n}')
+                for i in range(15) for n in ('docker',)] + \
+               [cl('ERR', f'Provider error, retrying in {200 + i}.1ms {DOCKER_SOCK} providerName=swarm') for i in range(15)] + \
+               [cl('ERR', 'Cannot retrieve data error="context canceled" providerName=swarm'), cl('ERR', 'Cannot retrieve data error="context canceled" providerName=docker')]
+CANARY_LOG = '\n'.join(DOCKER_NOISE)
 LOG_SECRET = 'SECRET-VALUE-do-not-print-9f3a'   # stands for a credential carried in a log option
 PIN = '10.0.1.11'          # synthetic fixture value only: the tool derives the address from the capture
 NETS = {'dokploy-network': {'Name': 'dokploy-network', 'Driver': 'overlay', 'Scope': 'swarm', 'Attachable': True, 'IPAM': {'Config': [{'Subnet': '10.0.1.0/24', 'Gateway': '10.0.1.1'}]}},
@@ -296,9 +314,7 @@ class Shimmed(Base):
 
     def reset(self, **extra):
         old = container(self.root)
-        st = dict(calls=[], api='1.45', containers={'dokploy-traefik': old}, routers=json.dumps(ROUTERS), canary_log=(
-            'time=1 level=info msg="Configuration loaded from file: /etc/traefik/traefik.yml"\n'
-            'time=2 level=error msg="Cannot connect to the Docker daemon at unix:///var/run/docker.sock" providerName=docker\n'),
+        st = dict(calls=[], api='1.45', containers={'dokploy-traefik': old}, routers=json.dumps(ROUTERS), canary_log=CANARY_LOG,
             images={OLD_IMG: image(OLD_IMG, 'traefik:v3.6.7'), REF: image(NEW_IMG, REF)},
             networks=NETS, holders={'dokploy-network': {PIN: OLD_ID}}, **extra)
         self.shim_state.write_text(json.dumps(st))
@@ -354,7 +370,7 @@ class Shimmed(Base):
         self.assertEqual(self.sh('01-prepare.sh').returncode, 3)
         self.reset(); st = self.snapshot(); st['api'] = '1.39'; self.shim_state.write_text(json.dumps(st))
         r = self.sh('01-prepare.sh'); self.assertNotEqual(r.returncode, 0); self.assertIn('1.40', r.stderr)
-        self.reset(); st = self.snapshot(); st['canary_log'] = 'level=error msg="command traefik error: field not found, node: foo"'; self.shim_state.write_text(json.dumps(st))
+        self.reset(); st = self.snapshot(); st['canary_log'] = '{"level":"error","error":"command traefik error: field not found, node: foo","time":"2026-11-04T13:31:00Z","message":"Command error"}'; st['canary_rc'] = 1; self.shim_state.write_text(json.dumps(st))
         r = self.sh('01-prepare.sh'); self.assertNotEqual(r.returncode, 0); self.assertFalse((self.state / 'prepared.ok').exists())
 
     def test_switch_requires_approval_ack_and_prepare(self):
@@ -480,6 +496,28 @@ class Shimmed(Base):
         st = self.snapshot(); shim_edit(st); self.shim_state.write_text(json.dumps(st))
         e = dict(self.APPROVE, B1_TRAEFIK_IP_WAIT_TRIES=tries, B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES=tries); e.update(env or {})
         return self.sh('02-switch.sh', env=e)
+
+    def test_prepare_canary_accepts_the_vps_outcome_only_docker_errors_and_traefik_still_running(self):
+        r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn('process alive for the whole 20s window', r.stdout); self.assertIn('32 x docker/swarm provider cannot reach Docker', r.stdout)
+        self.assertEqual((self.state / 'canary.rc').read_text().strip(), '124'); self.assertTrue((self.state / 'prepared.ok').exists())
+        script = (self.plan_dir / '01-prepare.sh').read_text()
+        self.assertIn('timeout "$CANARY_SECONDS" docker run', script); self.assertIn('canary_rc=$?', script)
+        self.assertIn('scan-canary-log "$STATE/canary.log" --exit-code "$canary_rc" --window "$CANARY_SECONDS"', script)
+        self.assertIn('CANARY_SECONDS=${B1_TRAEFIK_CANARY_SECONDS:-20}', script)
+
+    def test_prepare_canary_refuses_an_early_exit_or_a_configuration_error(self):
+        cases = {'Traefik exited with a static configuration error': (dict(canary_rc=1, canary_log='{"level":"error","error":"command traefik error: field not found, node: x","message":"Command error"}'), 'fatal'),
+                 'Traefik exited cleanly before the window closed': (dict(canary_rc=0, canary_log=CANARY_LOG), 'exit code 0'),
+                 'docker could not even run the canary': (dict(canary_rc=125, canary_log='docker: Error response from daemon: invalid mount config'), 'exit code 125'),
+                 'alive but a dynamic file is broken': (dict(canary_rc=124, canary_log=CANARY_LOG + '\n' + cl('ERR', 'Error while building configuration (for the first time) error="collecting file configs: /d/x.yml: yaml: line 2" providerName=file')), 'unexpected')}
+        for label, (edit, fragment) in cases.items():
+            with self.subTest(label):
+                self.reset(); (self.state / 'prepared.ok').unlink(missing_ok=True)
+                st = self.snapshot(); st.update(edit); self.shim_state.write_text(json.dumps(st))
+                r = self.sh('01-prepare.sh'); self.assertNotEqual(r.returncode, 0, r.stdout)
+                self.assertIn(fragment, r.stderr); self.assertFalse((self.state / 'prepared.ok').exists())
+                self.assertFalse({'stop', 'rename', 'update'} & {c[0] for c in self.snapshot()['calls']}, 'no downtime was caused')
 
     def test_prepare_accepts_the_real_double_representation_of_the_original_endpoint(self):
         """VPS evidence: the pinned address shows up in Containers AND in Services.Tasks (same EndpointID, empty ContainerID)."""
@@ -707,6 +745,9 @@ class Shimmed(Base):
         self.assertEqual(self.snapshot()['containers']['dokploy-traefik']['Id'], OLD_ID)
 
 
+ANSI_STRIP = lambda line: __import__('re').sub(r'\x1b\[[0-9;]*m', '', line)
+
+
 class Helpers(Base):
     def run_tool(self, *args):
         return subprocess.run(['python3', '-I', str(TOOL), *args], capture_output=True, text=True)
@@ -801,22 +842,83 @@ class Helpers(Base):
         # a prefix of the real id does not ignore it either (the old behaviour), even when it is a valid-looking full id of ANOTHER container
         r = self.ipc(self.real_like(), '--ignore-container', 'a' * 63 + 'b'); self.assertEqual(r.returncode, 1)
 
-    def test_canary_scan_ignores_info_lines_and_provider_noise_but_not_real_errors(self):
-        log = self.tmp / 'c2.log'
-        base = 'time=1 level=info msg="Configuration loaded from file: /etc/traefik/traefik.yml"\n'
-        log.write_text(base + 'time=2 level=info msg="the yaml: parser is happy, field not found is just text here"\n'
-                       'time=3 level=error msg="router app@file: service \\"svc@docker\\" does not exist"\n'
-                       'time=4 level=error msg="Provider connection error: Cannot connect to the Docker daemon" providerName=swarm\n')
-        self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 0)
-        log.write_text(base + 'command traefik error: yaml: unmarshal errors: field fooBar not found in type static.Configuration\n')
-        self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
-        log.write_text(base + 'time=5 level=fatal msg="could not start"\n'); self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
+    # ---- canary acceptance: Traefik ALIVE for the whole window + no configuration error in ANY of the three log formats ----
+    def scan(self, lines, rc='absent', window=20):
+        log = self.tmp / 'canary-case.log'; log.write_text('\n'.join(lines) if isinstance(lines, list) else lines)
+        args = ['scan-canary-log', str(log), '--window', str(window)] + ([] if rc == 'absent' else ['--exit-code', str(rc)])
+        return self.run_tool(*args)
 
-    def test_canary_scan_and_api_check(self):
-        log = self.tmp / 'c.log'
-        log.write_text('level=info msg="Configuration loaded from file"\nlevel=error msg="docker provider: Cannot connect"\n'); self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 0)
-        log.write_text('level=info msg="Configuration loaded from file"\nlevel=error msg="middleware cleanops-b1: bad tls file"\n'); self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
-        log.write_text(''); self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
+    STARTUP = [cl('INF', 'Traefik version 3.7.17 built on 2026-10-30T08:24:21Z version=3.7.17'), cl('INF', 'Starting provider aggregator *aggregator.ProviderAggregator'),
+               cl('INF', 'Starting provider *file.Provider')]
+
+    def test_canary_accepts_a_traefik_that_stayed_alive_with_only_docker_errors(self):
+        """The VPS case: 32 ERR lines about the missing Docker socket, no startup message (default log level is ERROR), process still running."""
+        self.assertEqual(len(DOCKER_NOISE), 32)
+        r = self.scan(DOCKER_NOISE, rc=124); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('process alive for the whole 20s window', r.stdout); self.assertIn('0 configuration errors', r.stdout)
+        self.assertIn('32 x docker/swarm provider cannot reach Docker', r.stdout); self.assertIn('startup messages in the log: 0', r.stdout)
+        # a silent healthy Traefik (no Docker provider configured, default level) is also a start
+        self.assertEqual(self.scan([], rc=124).returncode, 0)
+        # raw ANSI, plain text, logfmt and JSON renderings of the same tolerated condition
+        self.assertEqual(self.scan([ANSI_STRIP(l) for l in DOCKER_NOISE], rc=124).returncode, 0)
+
+    def test_canary_docker_errors_are_never_evidence_of_a_start(self):
+        r = self.scan(DOCKER_NOISE); self.assertEqual(r.returncode, 1); self.assertIn('prove nothing about a start', r.stderr)
+        self.assertEqual(self.scan(DOCKER_NOISE + self.STARTUP).returncode, 0, 'without an exit status only Traefik\'s own INFO output counts')
+
+    def test_canary_requires_the_process_to_outlive_the_window(self):
+        for rc in (0, 1, 2, 125, 126, 127, 137, 143):
+            with self.subTest(rc):
+                r = self.scan(DOCKER_NOISE, rc=rc); self.assertEqual(r.returncode, 1); self.assertIn(f'exit code {rc}', r.stderr)
+        self.assertEqual(self.run_tool('scan-canary-log', str(self.tmp / 'canary-case.log'), '--exit-code', 'abc').returncode, 2)
+
+    def test_canary_rejects_static_configuration_errors_whatever_the_exit_status(self):
+        j = lambda err: json.dumps({'level': 'error', 'error': err, 'time': '2026-11-04T13:31:55Z', 'message': 'Command error'})
+        cases = {'unknown nested field': j('command traefik error: field not found, node: bogusNested'),
+                 'typo in a known key': j('command traefik error: field not found, node: exposedByDefalt'),
+                 'invalid yaml': j("decoding configuration file /etc/traefik/traefik.yml: yaml: line 36: did not find expected ',' or ']'"),
+                 'wrong type': j('command traefik error: strconv.ParseBool: parsing "notabool": invalid syntax'),
+                 'port in use': cl('ERR', 'Command error error="command traefik error: error while building entryPoint websecure: building listener: error opening listener: listen tcp :443: bind: address already in use"'),
+                 'invalid log level (alive, but ignored)': json.dumps({'level': 'error', 'error': "Unknown Level String: 'superloud', defaulting to NoLevel", 'logLevel': 'superloud', 'message': 'Unspecified or invalid log level, setting the level to default (ERROR)...'}),
+                 'fatal level': cl('FTL', 'could not start'), 'panic': 'panic: runtime error: index out of range\ngoroutine 1 [running]:'}
+        for label, line in cases.items():
+            for rc in (1, 124):
+                with self.subTest(f'{label} / rc={rc}'):
+                    r = self.scan(DOCKER_NOISE + [line], rc=rc); self.assertEqual(r.returncode, 1, r.stdout + r.stderr); self.assertIn('REFUSED', r.stderr)
+
+    def test_canary_rejects_dynamic_configuration_errors_logged_in_console_format(self):
+        """These keep Traefik running, so they only show up as ERR lines; the old criterion could not even see the console format."""
+        cases = {'file with invalid yaml': cl('ERR', 'Error while building configuration (for the first time) error="collecting file configs: /etc/dokploy/traefik/dynamic/x.yml: yaml: line 2: did not find expected \',\' or \']\'" providerName=file'),
+                 'unknown option in a dynamic file': cl('ERR', 'Error while building configuration (for the first time) error="collecting file configs: /d/mw.yml: field not found, node: schemeX" providerName=file'),
+                 'missing service in the file provider': cl('ERR', 'error="the service \\"nosuchservice@file\\" does not exist" entryPointName=web routerName=r2@file'),
+                 'missing middleware': cl('ERR', 'error="middleware \\"nosuchmw@file\\" does not exist" entryPointName=web routerName=r2@file'),
+                 'entrypoint that does not exist': cl('ERR', "EntryPoint doesn't exist entryPointName=nonexistent routerName=acme-http@internal"),
+                 'file provider cannot start': cl('ERR', 'Cannot start the provider *file.Provider error="unable to read directory /etc/dokploy/traefik/dynamic: open /etc/dokploy/traefik/dynamic: no such file or directory"'),
+                 'acme failing for another reason': cl('ERR', 'Unable to obtain ACME certificate for domains error="cannot get ACME client get directory at \'https://x\': unable to communicate with the API server: error: Get \\"https://x\\": Forbidden" providerName=letsencrypt.acme'),
+                 'acme with a bad account': cl('ERR', 'Unable to obtain ACME certificate for domains error="acme: error: 400 :: POST :: urn:ietf:params:acme:error:invalidEmail" providerName=letsencrypt.acme')}
+        for label, line in cases.items():
+            with self.subTest(label):
+                r = self.scan(DOCKER_NOISE + [line], rc=124); self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+                self.assertIn(ANSI_STRIP(line)[:60], r.stderr, 'the offending line is shown'); self.assertNotIn('providerName=docker', r.stderr, 'tolerated noise is not shown')
+
+    def test_canary_tolerates_only_specific_environment_errors(self):
+        ok = {'service of the absent docker provider': cl('ERR', 'error="the service \\"svc-app@docker\\" does not exist" entryPointName=web routerName=r3@file'),
+              'middleware of the absent swarm provider': cl('ERR', 'error="middleware \\"auth@swarm\\" does not exist" entryPointName=web routerName=r3@file'),
+              'acme without a network (dns)': cl('ERR', 'Unable to obtain ACME certificate for domains error="cannot get ACME client get directory at \'https://acme-v02.api.letsencrypt.org/directory\': unable to communicate with the API server: error: Get \\"https://acme-v02.api.letsencrypt.org/directory\\": dial tcp: lookup acme-v02.api.letsencrypt.org on 8.8.8.8:53: no such host" providerName=letsencrypt.acme'),
+              'acme without a network (unreachable)': cl('ERR', 'Unable to obtain ACME certificate for domains error="cannot get ACME client get directory at \'https://x\': unable to communicate with the API server: error: Get \\"https://x\\": dial tcp 1.2.3.4:443: connect: network is unreachable"'),
+              'warnings and info with scary words': cl('WRN', 'error handling is not configured, field not found is only text here'),
+              'multi-line info message': cl('INF', 'Version check is disabled.') + '\nYou will not be notified: error command traefik error is just prose here\nMore details: https://doc.traefik.io/'}
+        for label, line in ok.items():
+            with self.subTest(label):
+                r = self.scan(DOCKER_NOISE + [line], rc=124); self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_canary_understands_the_other_log_renderings(self):
+        self.assertEqual(self.scan(['time=1 level=info msg="Starting provider *file.Provider"'] + [f'time=2 level=error msg="x" providerName={n}' for n in ('docker', 'swarm')], rc=124).returncode, 0)
+        self.assertEqual(self.scan(['time=2 level=error msg="router r: service nope@file does not exist"'], rc=124).returncode, 1)
+        self.assertEqual(self.scan([json.dumps({'level': 'error', 'message': 'router x broken', 'error': 'bad'})], rc=124).returncode, 1)
+        self.assertEqual(self.scan([json.dumps({'level': 'info', 'message': 'ok'})], rc=124).returncode, 0)
+
+    def test_api_check(self):
         self.assertEqual(self.run_tool('api-check', '1.40').returncode, 0); self.assertEqual(self.run_tool('api-check', '1.39').returncode, 1)
 
 

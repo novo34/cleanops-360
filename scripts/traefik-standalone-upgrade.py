@@ -9,6 +9,7 @@ with only the image changed.
   plan   --container C.json --image I.json --network N.json... --target-version 3.7.17 --target-digest sha256:... --out DIR
   compare --spec DIR/spec.json --inspect after.json [--image new-image.json]
   log-args --spec DIR/spec.json --inspect before.inspect.json   (NUL-separated --log-driver/--log-opt tokens; values never printed to a terminal)
+  scan-canary-log LOG --exit-code N --window SECONDS   (accept only a Traefik that stayed alive for the whole window with no configuration errors)
   routers-diff BEFORE.json AFTER.json
   ip-check NETWORK_INSPECT.json IPV4 [--ignore-container FULL_ID]   (exit 0 only when no container/task/VIP holds the address;
       the one authorised container is matched by its FULL id and its endpoint by FULL EndpointID; 1 = held; 2 = unusable data)
@@ -369,16 +370,23 @@ docker pull "$NEW_REF"
 docker image inspect "$NEW_REF" > "$STATE/new.image.json"
 python3 -I "$TOOL" compare --spec "$HERE/spec.json" --image "$STATE/new.image.json" --mode image
 {probe}
-# Canary: parse the REAL configuration with the new binary; no network, no published ports, no Docker socket.
+# Canary: load the REAL configuration with the new binary; no network, no published ports, no Docker socket.
+# Acceptance: Traefik is still ALIVE when the window closes (exit status 124 of `timeout`) AND the log holds no configuration error.
+# Static-configuration errors (invalid YAML, unknown field, wrong type, port conflict) end the process with exit code 1 within
+# milliseconds; dynamic-configuration errors keep it running and are logged as ERR lines, so both checks are needed. The Docker/Swarm
+# provider errors this canary produces on purpose (no socket) and ACME errors (no network) are tolerated but are NEVER evidence of a start.
+CANARY_SECONDS=${{B1_TRAEFIK_CANARY_SECONDS:-20}}
 set +e
-timeout 20 docker run --rm --name "$OLD-canary" --network none --read-only --cap-drop ALL \\
+timeout "$CANARY_SECONDS" docker run --rm --name "$OLD-canary" --network none --read-only --cap-drop ALL \\
   --security-opt no-new-privileges --pids-limit 256 --memory 256m \\
   --mount type=bind,source={q(next(m[1] for m in spec["mounts"] if m[2] == "/etc/traefik/traefik.yml"))},target=/etc/traefik/traefik.yml,readonly \\
   --mount type=bind,source={q(next(m[1] for m in spec["mounts"] if m[2] == "/etc/dokploy/traefik/dynamic"))},target=/etc/dokploy/traefik/dynamic,readonly \\
   "$NEW_REF" > "$STATE/canary.log" 2>&1
+canary_rc=$?
 set -e
 chmod 600 "$STATE/canary.log"
-python3 -I "$TOOL" scan-canary-log "$STATE/canary.log"
+echo "$canary_rc" > "$STATE/canary.rc"
+python3 -I "$TOOL" scan-canary-log "$STATE/canary.log" --exit-code "$canary_rc" --window "$CANARY_SECONDS"
 date -u +%FT%TZ > "$STATE/prepared.ok"
 echo "PREPARE OK. The running Traefik was not touched; a stopped, restart=no pre-flight candidate exists: $PROBE."
 '''
@@ -585,9 +593,27 @@ def cmd_routers(a):
     print(f'ROUTERS OK ({len(before)} preserved, {len(set(after) - set(before))} added)')
 
 
-FATAL = re.compile(r'(command traefik error|error configuring|cannot unmarshal|field not found|yaml:|invalid (static )?configuration|unknown (field|flag)|"?level"?[=:]"?fatal|panic:|failed to (decode|load))', re.I)
-EXPECTED_NOISE = re.compile(r'(docker|swarm|acme|letsencrypt|lego|dial unix|cannot connect to the docker daemon|no such host|network is unreachable|resolver)', re.I)
-
+# --- canary log analysis (formats measured with the official Traefik 3.7.17 binary) ----------------------------------------------------
+# * runtime lines are CONSOLE format, with ANSI colours:   2026-11-04T13:31:00Z ERR Provider error, retrying in 604ms error="..." providerName=docker
+# * errors raised before the logger exists are JSON:        {"level":"error","error":"command traefik error: field not found, node: x",...}
+# * the default level is ERROR, so a healthy Traefik prints NO startup message; flags/env cannot raise the level when --configFile is used.
+ANSI = re.compile(r'\x1b\[[0-9;]*m')
+CONSOLE_LINE = re.compile(r'^\d{4}-\d{2}-\d{2}T[0-9:.+\-]+Z?\s+(TRC|DBG|INF|WRN|ERR|FTL|PNC)\b')
+JSON_LEVELS = {'trace': 'TRC', 'debug': 'DBG', 'info': 'INF', 'warn': 'WRN', 'warning': 'WRN', 'error': 'ERR', 'fatal': 'FTL', 'panic': 'PNC'}
+LOGFMT_LEVEL = re.compile(r'\blevel=(trace|debug|info|warn|warning|error|fatal|panic)\b')
+ERROR_LEVELS = ('ERR', 'FTL', 'PNC')
+# Text of a rejected configuration. Static-configuration errors end the process with exit code 1 and one of these messages.
+FATAL = re.compile(r'(command traefik error|"message":"Command error"|\bCommand error\b|error configuring|cannot unmarshal|field not found|decoding configuration|'
+                   r'invalid (static )?configuration|unknown (field|flag)|failed to (decode|load)|^panic:|goroutine \d+ \[|strconv\.)', re.I)
+# The ONLY environment-caused errors tolerated: no Docker socket and no network inside the canary. Each one is specific: the old blanket
+# words (docker, swarm, acme, resolver...) also hid real mistakes such as `EntryPoint doesn't exist ... routerName=acme-http@internal`.
+TOLERATED = (
+    ('docker/swarm provider cannot reach Docker', re.compile(r'providerName=(docker|swarm)\b|failed to connect to the docker API|Cannot connect to the Docker daemon|dial unix /var/run/docker\.sock', re.I)),
+    ('ACME cannot reach the CA without a network', re.compile(r'(Unable to obtain ACME certificate|cannot get ACME client|unable to communicate with the API server).*'
+                                                              r'(lookup |dial tcp|no such host|unreachable|Temporary failure in name resolution|i/o timeout|connection refused|context deadline exceeded)', re.I)),
+    # inside error="..." the quotes appear escaped:  \"svc-app@docker\" does not exist
+    ('reference to an object of the absent docker/swarm provider', re.compile(r'\\?"[^"\\]*@(docker|swarm)\\?" does not exist', re.I)),
+)
 
 def cmd_logargs(a):
     spec, c = json.loads(Path(a.spec).read_text()), load(a.inspect)
@@ -671,19 +697,60 @@ def cmd_ipcheck(a):
     print(f'IP-CHECK: {ip} is free{note}'); return 0
 
 
+def parse_canary_log(text):
+    """[(level, line)] with levels TRC/DBG/INF/WRN/ERR/FTL/PNC or 'UNK'. Lines without a level (continuations of a multi-line message, or CLI
+    output before the first log line) inherit the previous level."""
+    out, current = [], 'UNK'
+    for raw in text.splitlines():
+        line = ANSI.sub('', raw).rstrip()
+        if not line.strip():
+            continue
+        m = CONSOLE_LINE.match(line)
+        if m:
+            current = m.group(1)
+        elif line.lstrip().startswith('{'):
+            try:
+                current = JSON_LEVELS.get(str(json.loads(line).get('level', '')).lower(), 'UNK')
+            except ValueError:
+                pass
+        else:
+            m = LOGFMT_LEVEL.search(line)
+            if m:
+                current = JSON_LEVELS[m.group(1)]
+        out.append((current, line))
+    return out
+
+
 def cmd_scan(a):
-    lines = Path(a.log).read_text(errors='replace').splitlines()
-    benign = re.compile(r'level=(info|debug|warn|trace)\b|"level":"(info|debug|warn|trace)"')
-    fatal = [l for l in lines if FATAL.search(l) and not benign.search(l)]
-    errors = [l for l in lines if re.search(r'level=error|"level":"error"', l)]
-    unexpected = [l for l in errors if not EXPECTED_NOISE.search(l)]
+    entries = parse_canary_log(Path(a.log).read_text(errors='replace'))
+    suspect = [(lv, l) for lv, l in entries if lv in ERROR_LEVELS or lv == 'UNK']
+    fatal = [l for lv, l in suspect if lv in ('FTL', 'PNC') or FATAL.search(l)]
+    tolerated, unexpected = {}, []
+    for lv, l in suspect:
+        if lv not in ERROR_LEVELS or l in fatal:
+            continue
+        for label, rx in TOLERATED:
+            if rx.search(l):
+                tolerated[label] = tolerated.get(label, 0) + 1
+                break
+        else:
+            unexpected.append(l)
     if fatal or unexpected:
         for l in (fatal + unexpected)[:10]:
             print('CANARY:', l[:200], file=sys.stderr)
-        refuse('canary found configuration errors the new version cannot start with')
-    if not any('Configuration loaded from file' in l or 'Starting provider' in l or 'Starting Traefik' in l for l in lines):
-        refuse('canary produced no startup evidence (image did not run?)')
-    print(f'CANARY OK ({len(errors)} expected provider/ACME errors without a network or socket, 0 configuration errors)')
+        refuse(f'canary found {len(fatal)} fatal and {len(unexpected)} unexpected configuration error line(s) the new version cannot start with')
+    starts = [l for lv, l in entries if lv == 'INF' and re.search(r'Traefik version|Starting provider (aggregator|\*file)', l)]
+    if a.exit_code is None:
+        # Without the exit status the only proof of a start is Traefik's own INFO output, which exists only if the configuration sets log.level <= INFO.
+        if not starts:
+            refuse('no exit status was given and the log holds no Traefik startup message: Docker/provider errors prove nothing about a start')
+        how = f'{len(starts)} startup message(s) in the log'
+    else:
+        if a.exit_code != 124:
+            refuse(f'Traefik did not stay alive: the canary ended with exit code {a.exit_code} before the {a.window}s window closed (124 = still running when it closed)')
+        how = f'process alive for the whole {a.window}s window'
+    noise = ', '.join(f'{n} x {label}' for label, n in sorted(tolerated.items())) or 'none'
+    print(f'CANARY OK ({how}; 0 configuration errors; tolerated environment errors: {noise}; startup messages in the log: {len(starts)})')
 
 
 def cmd_api(a):
@@ -704,7 +771,8 @@ def main(argv=None):
     s = sub.add_parser('routers-diff'); s.add_argument('before'); s.add_argument('after'); s.set_defaults(f=cmd_routers)
     s = sub.add_parser('log-args'); s.add_argument('--spec', required=True); s.add_argument('--inspect', required=True); s.set_defaults(f=cmd_logargs)
     s = sub.add_parser('ip-check'); s.add_argument('network_json'); s.add_argument('ip'); s.add_argument('--ignore-container', action='append'); s.set_defaults(f=cmd_ipcheck)
-    s = sub.add_parser('scan-canary-log'); s.add_argument('log'); s.set_defaults(f=cmd_scan)
+    s = sub.add_parser('scan-canary-log'); s.add_argument('log'); s.add_argument('--exit-code', type=int, default=None)
+    s.add_argument('--window', type=int, default=20); s.set_defaults(f=cmd_scan)
     s = sub.add_parser('api-check'); s.add_argument('version'); s.set_defaults(f=cmd_api)
     a = p.parse_args(argv)
     try:

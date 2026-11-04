@@ -13,6 +13,7 @@ Besides containers/images it models what matters for pinned addresses on swarm-s
   * `network inspect` reports a running container's endpoint like the real daemon does on swarm-scoped networks: in Containers (with its full
     EndpointID) AND, with --verbose, as a Services...Tasks entry carrying the same EndpointID and an empty ContainerID
   * st['stuck'][net][ip] = 'owner': after the release the ORIGINAL's own endpoint is still reported (a residual that must not be ignored)
+  * st['canary_log'] / st['canary_rc']: output and exit status of the canary `docker run` (default 124 = Traefik alive at the end of the window)
   * st['routers_lag'] = N: the first N router-API queries return nothing (providers still rebuilding after a start)
   * st['reject_create_with'] = flag: `docker create` fails when that flag is present (an option the daemon refuses)
   * st['create_reserves_ip'] = True: a daemon that reserves a pinned address ALREADY AT `docker create` (not proven either way on
@@ -127,6 +128,7 @@ elif cmd == 'pull':
         save(); sys.exit(1)
 elif cmd == 'run':
     out(st['canary_log'])
+    save(); sys.exit(st.get('canary_rc', 124))          # 124: still running when `timeout` closed the window; set canary_rc for an early exit
 elif cmd == 'exec':
     if st.get('routers_lag', 0) > 0:
         st['routers_lag'] -= 1; out('[]')
