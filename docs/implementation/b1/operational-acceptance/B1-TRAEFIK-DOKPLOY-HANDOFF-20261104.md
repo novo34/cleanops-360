@@ -119,3 +119,19 @@ PREFLIGHT_PREVIO_AL_CORTE=PASS
 - Original conservado y detenido, sin reinicio automático: `dokploy-traefik-prev-20261104T164250Z`, `restart=no`. **No eliminar durante observación**; no se ha invocado rollback porque la conmutación pasó.
 
 **PASS:** conmutación controlada y verificación integrada del plan (incluye las comprobaciones propias de `03-verify.sh` según el runbook). **PENDIENTE:** observación de disponibilidad/errores posterior al corte, confirmación del resultado agregado de cinco HTTPS en ventana de observación, decisión posterior sobre retención del contenedor previo y aceptación independiente de B1. Los resultados anteriores de `smoke.tsv` validaban Dokploy antes del corte; no sustituirlos por afirmaciones no observadas tras el corte. **OPEN:** `AUTH-GATE-05`; PR #33 permanece draft, no fusionado. No ejecutar nueva conmutación por rutina.
+
+## Anexo — observación inmediata posterior al switch (04-11-2026)
+
+**Fuente:** consola del VPS `srv1155120` comunicada por el propietario; comprobación de solo lectura, posterior a la conmutación real de Traefik standalone (sin rollback). La captura privada y los ficheros operativos permanecen solo en el VPS.
+
+- `ESTADO=running`, `REINICIOS=0`; imagen `traefik:v3.7.17@sha256:68ae5fe5b64ca166704b746a9e8afcd385e36b3f569a5691401bf652d57b3748`.
+- `cleanops.nuvurent.com/login`: PASS HTTP 200.
+- `cleanops.nuvurent.com/dev`: PASS HTTP 200.
+- `dokploy.nuvurent.com/`: PASS HTTP 200.
+- `espacore.nuvurent.com/`: PASS HTTP 200.
+- `jev.nuvurent.com/`: PASS HTTP 200.
+- `HTTPS_VERIFICADOS=5 FALLOS=0`, con `curl --resolve` a loopback y TLS verificado sin `-k`.
+
+**PASS:** salud inmediata del contenedor, cero reinicios al momento de la lectura y smoke HTTPS 5/5 con Traefik 3.7.17. **NO DEMOSTRADO:** salud sostenida durante la ventana de observación, renovación ACME futura y aceptación operacional B1. El contenedor previo `dokploy-traefik-prev-20261104T164250Z` debe permanecer detenido y disponible hasta decisión expresa; no se ha ejecutado rollback.
+
+**Siguiente gate distinto:** `AUTH-GATE-05 OPEN`; recopilar únicamente evidencias pendientes de mTLS/ForwardAuth, custodia, identidad de correo y evaluación independiente por SHA. PR #33 sigue en draft, sin merge; no repetir pruebas marcadas PASS.
