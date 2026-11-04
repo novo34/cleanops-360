@@ -374,3 +374,32 @@ No se ha comparado la huella con el certificado **cliente mTLS real de Traefik**
 **Revisión independiente:** GitHub registra 35 hilos de review no resueltos (acumulados/históricos, no equivalentes a 35 errores confirmados actuales); no está acreditada una revisión independiente final de seguridad sobre el SHA `1d73b960`. No reabrir PASS anteriores ni cambiar código por hallazgos obsoletos sin verificar bytes y reproducibilidad.
 
 **Siguiente gate:** inventario **sanitizado** del modo real de gestión de `dokploy-traefik` (Docker standalone/Swarm), identidad de imagen/digest, puertos, montaje y redes existentes, más versión efectiva de Dokploy; así seleccionar parche compatible y rollback. SSH solo lectura, sin pasar secretos al chat; sin usar acceso de Claude al VPS.
+
+
+## 23. Inventario real de Dokploy/Traefik y decisión de mecanismo de actualización — propietario, 04/11/2026
+
+Resultado observado por el propietario desde el VPS, sin cambios:
+
+```text
+CONTENEDOR=dokploy-traefik
+ESTADO=running
+IMAGEN=traefik:v3.6.7
+IMAGE_ID=sha256:a9890c898f379c1905ee5b28342f6b408dc863f08db2dab20e46c267d1ff463a
+RESTART=always
+PUERTOS=80/tcp,443/tcp,443/udp [bind HostIp vacío]
+REDES=dokploy-network,supabase-supabase-2bvnab
+MOUNTS=/etc/dokploy/traefik/dynamic (RW); /etc/traefik/traefik.yml (RW); /var/run/docker.sock (RO)
+FLAGS_EXPLICITOS=ninguno
+SWARM=active
+DOKPLOY=dokploy/dokploy:v0.30.10 (tarea Swarm)
+DOKPLOY_POSTGRES=postgres:16 (tarea Swarm)
+DOKPLOY_REDIS=redis:7 (tarea Swarm)
+```
+
+**Interpretación:** `dokploy-traefik` tiene nombre de contenedor y reinicio `always`, montaje/puertos de contenedor y es independiente de las tareas Swarm de Dokploy. **Swarm activo no significa que Traefik sea un servicio Swarm**; no utilizar `docker service update` ni `docker service rm` para ese contenedor. Confirmar ausencia de servicio homónimo antes de ejecutar cualquier operación de mantenimiento.
+
+**Mecanismo oficial verificado:** Dokploy documenta actualización manual de Traefik standalone mediante recreación del contenedor con la misma configuración: https://docs.dokploy.com/docs/core/manual-installation . El ejemplo NO debe ejecutarse literalmente: solo reconecta `dokploy-network` y omite la red adicional `supabase-supabase-2bvnab`, que es real y debe preservarse. También deben conservarse los montajes RO/RW correctos, el bind de 80/443 TCP+UDP, el restart always, certificados y flags/configuración real.
+
+**STOP activo:** aún no hay receta de recreación validada ni simulacro de rollback, versión candidata aprobada ni ventana de mantenimiento; actualizar Traefik puede interrumpir simultáneamente todos los dominios en ese proxy. Se requiere preservación de `IMAGE_ID` original y capacidad comprobada de restaurar la versión anterior con redes exactas; respaldar en custodia local privada las configuraciones estática/dinámica y ACME antes del cambio, sin subir secretos a GitHub ni registrarlos en chat. La configuración dinámica montada RW tiene cambios en caliente, por lo que ningún comando de ejemplo garantiza snapshot consistente sin revisión.
+
+**Siguiente acción:** preparar en GitHub la receta versionada para upgrade/rollback del contenedor standalone y la lista de comprobaciones pre/post por servicio; sin ejecutarla desde Claude, sin copiar certificados ni inventar paths de archivos del host. Mantener AUTH-GATE-05 OPEN.
