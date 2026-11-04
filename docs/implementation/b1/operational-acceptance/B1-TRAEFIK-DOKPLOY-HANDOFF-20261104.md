@@ -201,3 +201,9 @@ Fuente: resultado de lectura PostgreSQL en `cleanops_staging` compartido por el 
 - `ingress_claim=PASS`; `ingress_credential_read=PASS`; `ingress_enroll=PASS`; `ingress_gc=PASS`; `ingress_recover=PASS`; `ingress_revoke=PASS`.
 - **PASS limitado:** para cada uno de los seis nombres se encontró una función en `auth_api` y coincidió la capacidad de ejecución esperada: operador solo autorizado en enroll/revoke/recover, denegado en claim/read/gc.
 - **Pendiente:** comprobar acceso de runtime y mantenimiento, propietarios/SECURITY DEFINER y acceso directo a las tres tablas, y revisión independiente. El uso de nombres y conteos no sustituye revisión de las firmas ni prueba funcional real. `AUTH-GATE-05 OPEN`. No reinstalar SQL0003.
+
+## Anexo — ACL SQL0003, siete controles PASS
+
+Fuente: comprobación de solo lectura en PostgreSQL, facilitada por el propietario. Funciones: cleanops_auth_maintenance PASS, cleanops_identity_service PASS, cleanops_ingress_operator PASS. Acceso directo a las tres tablas: cleanops_auth_maintenance PASS, cleanops_identity_service PASS, cleanops_ingress_operator PASS, cleanops_runtime PASS. Total 7/7 PASS en controles consultados. No se hicieron cambios ni se reejecutaron migraciones.
+
+Pendiente: propiedad y configuración SECURITY DEFINER de funciones, aprobación independiente, integración B1 y AUTH-GATE-05 OPEN. Estos PASS no garantizan ausencia de privilegios por membresía no revisada.
