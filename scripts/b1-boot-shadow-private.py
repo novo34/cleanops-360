@@ -142,11 +142,12 @@ def boot():
             and shadow["Image"] == SHADOW_IMAGE
             and shadow["Id"] == state.get("containerId"),
             "Shadow no es el candidato original detenido")
-    n = shadow.get("NetworkSettings", {}).get("Networks", {}).get("dokploy-network", {})
-    ip = n.get("IPAddress")
-    require(ip and ipaddress.ip_address(ip) in cidr
-            and "cleanops-b1-ingress" in (n.get("Aliases") or []),
-            "La red del shadow no coincide con su binding y alias")
+    # A Docker Compose "create" can attach a network endpoint and aliases
+    # without assigning an IPv4 address until "docker start". Do not reject
+    # a correctly staged, stopped shadow just because IPAddress is empty.
+    staged_networks = shadow.get("NetworkSettings", {}).get("Networks") or {}
+    require("dokploy-network" in staged_networks,
+            "Shadow creado sin la red privada dokploy-network")
     require(len(EVIDENCE) <= 256 and EVIDENCE.startswith("github:"),
             "Referencia técnica fuera de contrato")
     manifest["ingress"]["evidenceReference"] = EVIDENCE
@@ -163,14 +164,30 @@ def boot():
         started = run(["docker", "start", SHADOW], timeout=25)
         require(started.returncode == 0, "No se pudo iniciar shadow")
         ready = False
+        network_seen = False
         for _ in range(18):
             candidate = inspect(SHADOW)
-            if candidate["State"]["Status"] != "running":
+            require(candidate.get("Id") == state.get("containerId"),
+                    "Docker cambió la identidad del shadow durante el arranque")
+            if candidate.get("State", {}).get("Status") != "running":
                 break
+            active_network = (candidate.get("NetworkSettings", {})
+                              .get("Networks", {}).get("dokploy-network", {}))
+            ip = active_network.get("IPAddress") or ""
+            aliases = active_network.get("Aliases") or []
+            if not ip:
+                time.sleep(1)
+                continue
+            require(ipaddress.ip_address(ip) in cidr,
+                    "IP asignada al shadow fuera del CIDR aprobado")
+            require("cleanops-b1-ingress" in aliases,
+                    "El shadow arrancó sin su alias DNS privado")
+            network_seen = True
             if probe(SHADOW, p, ip):
                 ready = True
                 break
             time.sleep(1)
+        require(network_seen, "Docker no asignó IP privada al shadow arrancado")
         require(ready, "Listener privado B1 o Next no alcanzan readiness")
         # The shadow has no public router. Confirmation is private only.
         info = {
