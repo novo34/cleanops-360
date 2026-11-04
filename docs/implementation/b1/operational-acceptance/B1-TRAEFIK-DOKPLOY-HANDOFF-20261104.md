@@ -207,3 +207,7 @@ Fuente: resultado de lectura PostgreSQL en `cleanops_staging` compartido por el 
 Fuente: comprobación de solo lectura en PostgreSQL, facilitada por el propietario. Funciones: cleanops_auth_maintenance PASS, cleanops_identity_service PASS, cleanops_ingress_operator PASS. Acceso directo a las tres tablas: cleanops_auth_maintenance PASS, cleanops_identity_service PASS, cleanops_ingress_operator PASS, cleanops_runtime PASS. Total 7/7 PASS en controles consultados. No se hicieron cambios ni se reejecutaron migraciones.
 
 Pendiente: propiedad y configuración SECURITY DEFINER de funciones, aprobación independiente, integración B1 y AUTH-GATE-05 OPEN. Estos PASS no garantizan ausencia de privilegios por membresía no revisada.
+
+## SQL0003: verificacion estructural
+
+El propietario informo seis resultados PASS: ingress_claim, ingress_credential_read, ingress_enroll, ingress_gc, ingress_recover e ingress_revoke. La consulta read-only comprobo propietario cleanops_auth_broker, SECURITY DEFINER y search_path pg_catalog. Sin cambios de base de datos. AUTH-GATE-05 permanece abierto hasta aceptacion funcional independiente.
