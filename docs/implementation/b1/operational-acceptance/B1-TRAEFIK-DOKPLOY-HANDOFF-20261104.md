@@ -68,3 +68,13 @@
 5. Mantener `B1_TRAEFIK_VERSION_GUARD_ACK` separado de aprobación de corte. Solo después del PASS Dokploy, bajo **otra aprobación de corte**, ejecutar `02-switch.sh`, `03-verify.sh` y rollback de Traefik conforme al runbook existente. `AUTH-GATE-05` permanece OPEN; no merge de PR #33.
 
 **No se autorizó ni ejecutó** `docker service update`, `docker service rollback`, conmutación Traefik o activación B1. El rollback aquí documentado es un procedimiento condicionado, no un PASS operacional.
+
+## Anexo — alineación efectiva Dokploy 3.7.17 (04-11-2026)
+
+**Origen:** salidas del VPS `srv1155120` aportadas por el propietario; intervención autorizada explícitamente en conversación. Evidencia de alcance operativo, no sustituto de logs privados.
+
+- Preflight: `PREFLIGHT_DOKPLOY=PASS` comparando ID, `Version.Index` y especificación completa con el respaldo existente antes del cambio.
+- Operación autorizada ejecutada: `docker service update --detach=false --env-add TRAEFIK_VERSION=3.7.17 dokploy`. Salida: `overall progress: 1 out of 1 tasks`, `1/1: running`, `verify: Service dokploy converged`, `ACTUALIZACION_DOKPLOY_FINALIZADA`.
+- Verificación posterior: `dokploy 1/1`; `TRAEFIK_VERSION=3.7.17` presente; `dokploy-traefik` continúa `IMAGE=traefik:v3.6.7 STATE=running`, contenedor ID `ebf3a3813a5bb52d2cbeb232ca4a18cc1bdf91140eead5477ef76e937f479c67`; tarea nueva `Running`, anterior `Shutdown` sin error informado.
+- **PASS:** actualización y convergencia de servicio Dokploy, variable configurada y Traefik anterior en ejecución. **PENDIENTE:** smoke HTTPS de cinco rutas tras reinicio; comprobación previa a ventana de que no ha habido deriva y que guard `B1_TRAEFIK_VERSION_GUARD_ACK` es válido. **NO EJECUTADO:** rollback de Dokploy (no fue necesario), `02-switch.sh`, activación B1. `AUTH-GATE-05 OPEN`.
+- **Recuperación:** usar rollback de Swarm solo ante fallo y tras confirmar ausencia de actualizaciones concurrentes; el rollback anterior no se ha ejercitado realmente. Mantener capturas privadas exclusivamente en VPS. La actualización de Dokploy no autoriza por sí sola corte Traefik.
