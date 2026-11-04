@@ -172,9 +172,38 @@ def run():
         tmp.unlink(missing_ok=True)
 
 
+def rollback():
+    """Withdraw only the exact B1 router file; keep the old web intact."""
+    check(os.geteuid() == 0, "Se requiere root")
+    regular(SOURCE, 0o600)
+    proxy = docker("dokploy-traefik")
+    mounts = [m for m in proxy.get("Mounts", [])
+              if m.get("Type") == "bind" and m.get("Destination") == MOUNT and m.get("RW")]
+    check(len(mounts) == 1, "Directorio dinámico no coincide")
+    target = Path(mounts[0]["Source"]) / ROUTER_FILE
+    if os.path.lexists(target):
+        regular(target, 0o600)
+        check(hashlib.sha256(target.read_bytes()).digest() ==
+              hashlib.sha256(SOURCE.read_bytes()).digest(),
+              "Ruta B1 fue modificada después de activar; no borrar")
+        target.unlink()
+    # The candidate stays running privately; do not remove any credentials.
+    result = call(["docker", "update", "--restart=no", SHADOW])
+    check(result.returncode == 0, "No se pudo desactivar reinicio automático")
+    check(probe("/login") == "200", "Revisar login tras retirar ruta B1")
+    print("B1_ROUTER=RETIRADO")
+    print("B1_CREDENCIAL=CONSERVADA_PARA_REVOCACION_AUDITADA")
+    print("WEB_ORIGINAL_LOGIN=HTTP_200")
+
+
 if __name__ == "__main__":
     try:
-        run()
+        if sys.argv[1:] == ["activate"]:
+            run()
+        elif sys.argv[1:] == ["rollback"]:
+            rollback()
+        else:
+            raise RuntimeError("Uso: b1-cutover-forwardauth.py activate|rollback")
     except Exception as error:
         print("B1_CUTOVER_STOP=" + str(error), file=sys.stderr)
         sys.exit(1)
