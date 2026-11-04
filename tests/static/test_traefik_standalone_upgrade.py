@@ -481,6 +481,36 @@ class Shimmed(Base):
         e = dict(self.APPROVE, B1_TRAEFIK_IP_WAIT_TRIES=tries, B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES=tries); e.update(env or {})
         return self.sh('02-switch.sh', env=e)
 
+    def test_prepare_accepts_the_real_double_representation_of_the_original_endpoint(self):
+        """VPS evidence: the pinned address shows up in Containers AND in Services.Tasks (same EndpointID, empty ContainerID)."""
+        r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        seen = json.loads((self.state / 'net.inspect.json').read_text())[0]
+        cont = seen['Containers'][OLD_ID]; tasks = [t for sv in seen['Services'].values() for t in sv['Tasks']]
+        self.assertEqual(len(tasks), 1); self.assertEqual(tasks[0]['EndpointID'], cont['EndpointID']); self.assertEqual(tasks[0]['ContainerID'], '')
+        self.assertIn('mirrored task entry', r.stdout)
+
+    def test_prepare_still_refuses_another_container_or_task_on_the_pinned_address(self):
+        for label, edit in (('another task', lambda st: st.update(foreign={'dokploy-network': {PIN: 'other-service'}})),
+                            ('another container instead of the original', lambda st: (st['containers'].update(intruder={'Id': 'b' * 64, 'Name': '/intruder', 'State': {'Running': True}}),
+                                                                                        st['holders']['dokploy-network'].update({PIN: 'b' * 64})))):
+            with self.subTest(label):
+                self.reset(); (self.state / 'prepared.ok').unlink(missing_ok=True)
+                st = self.snapshot(); edit(st); self.shim_state.write_text(json.dumps(st))
+                r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 3, r.stdout + r.stderr); self.assertIn('held by something other', r.stderr)
+                self.assertFalse((self.state / 'prepared.ok').exists())
+
+    def test_only_prepare_may_ignore_the_original_and_never_after_it_was_disconnected(self):
+        prepare, switch, rollback = [(self.plan_dir / n).read_text() for n in ('01-prepare.sh', '02-switch.sh', 'rollback.sh')]
+        self.assertIn('--ignore-container "$OLD_ID"', prepare); self.assertNotIn('--ignore-container', switch); self.assertNotIn('--ignore-container', rollback)
+
+    def test_a_residual_endpoint_of_the_original_after_disconnect_is_not_ignored(self):
+        """After `network disconnect` the address must be OBSERVED free: even the original's own lingering endpoint is an occupant."""
+        r = self.switch_fails(lambda st: st.update(stuck={'dokploy-network': {PIN: 'owner'}}))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn('held by: container dokploy-traefik', r.stderr, 'the residual endpoint was reported, not ignored')
+        self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored()
+        self.assertFalse([c for c in self.switch_calls() if c[0] == 'create'], 'no candidate was created while the address was still reported held')
+
     def test_prepare_refuses_when_someone_else_holds_the_pinned_address(self):
         st = self.snapshot(); st['foreign'] = {'dokploy-network': {PIN: 'other-service'}}; self.shim_state.write_text(json.dumps(st))
         r = self.sh('01-prepare.sh'); self.assertEqual(r.returncode, 3); self.assertIn('held by something other', r.stderr)
@@ -688,19 +718,88 @@ class Helpers(Base):
         b.write_text(json.dumps([dict(ROUTERS[0], middlewares=['x@file'])])); self.assertEqual(self.run_tool('routers-diff', str(a), str(b)).returncode, 1)
         b.write_text('[]'); self.assertEqual(self.run_tool('routers-diff', str(a), str(b)).returncode, 1)
 
-    def test_ip_check(self):
-        net = {'Containers': {'c1' + '0' * 62: {'Name': 'other', 'IPv4Address': '10.0.1.11/24'}, 'd2' + '0' * 62: {'Name': 'x', 'IPv4Address': '10.0.1.12/24'}},
-               'Services': {'svc': {'VIP': '10.0.1.2/24', 'Tasks': [{'Name': 'svc.1', 'EndpointIP': '10.0.1.20/24'}]}}}
-        f = self.tmp / 'net.json'; f.write_text(json.dumps([net]))
-        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.11').returncode, 1)
-        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.11', '--ignore-container', 'c1').returncode, 0)
-        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.20').returncode, 1)     # held by a service task
-        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.2').returncode, 1)      # held by a service VIP
-        self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.99').returncode, 0)
-        for bad in ('', 'not json'):
-            f.write_text(bad); self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.99').returncode, 2, 'unusable data is never treated as free')
-        self.assertEqual(self.run_tool('ip-check', str(f), '999.1.1.1').returncode, 2)
+    # ---- ip-check: one real endpoint is reported twice (Containers and Services.Tasks); only THAT endpoint may be ignored ----
+    IP_OWNER = 'a' * 64                       # the authorised original (full container id)
+    EP = '68f01b00ca08' + 'c' * 52            # its full EndpointID (synthetic)
+    OTHER = 'b' * 64
 
+    def netdoc(self, containers=None, services=None):
+        return {'Name': 'dokploy-network', 'Containers': containers, 'Services': services}
+
+    def real_like(self):
+        """What the VPS reported: the same endpoint as a container AND as a task with an empty ContainerID."""
+        return self.netdoc({self.IP_OWNER: {'Name': 'dokploy-traefik', 'EndpointID': self.EP, 'IPv4Address': '10.0.1.11/24'}},
+                           {'dokploy-traefik': {'VIP': '', 'Tasks': [{'Name': 'dokploy-traefik', 'EndpointID': self.EP, 'EndpointIP': '10.0.1.11/24', 'ContainerID': ''}]}})
+
+    def ipc(self, doc, *extra, ip='10.0.1.11', raw=None):
+        f = self.tmp / 'ipc.json'; f.write_text(raw if raw is not None else json.dumps([doc]))
+        return self.run_tool('ip-check', str(f), ip, *extra)
+
+    def test_ip_check_ignores_only_the_authorised_endpoint_seen_twice(self):
+        own = ('--ignore-container', self.IP_OWNER)
+        r = self.ipc(self.real_like(), *own); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('only the authorised container endpoint was ignored, including 1 mirrored task entry', r.stdout)
+        # once the original has been disconnected nothing may be ignored: the very same view is a holder
+        r = self.ipc(self.real_like()); self.assertEqual(r.returncode, 1); self.assertIn('dokploy-traefik', r.stderr)
+        # the container representation alone, and several mirrors of the same endpoint, are fine
+        doc = self.real_like(); doc['Services'] = None; self.assertEqual(self.ipc(doc, *own).returncode, 0)
+        doc = self.real_like(); doc['Services']['dokploy-traefik']['Tasks'].append(dict(doc['Services']['dokploy-traefik']['Tasks'][0])); self.assertEqual(self.ipc(doc, *own).returncode, 0)
+        # entries on other addresses never matter, nor does a free address
+        doc = self.real_like(); doc['Containers'][self.OTHER] = {'Name': 'x', 'EndpointID': 'd' * 64, 'IPv4Address': '10.0.1.12/24'}
+        self.assertEqual(self.ipc(doc, *own).returncode, 0); self.assertEqual(self.ipc(doc, ip='10.0.1.99').returncode, 0)
+
+    def test_ip_check_still_refuses_anything_else_holding_the_address(self):
+        own = ('--ignore-container', self.IP_OWNER)
+        cases = {}
+        d = self.real_like(); d['Containers'][self.OTHER] = {'Name': 'intruder', 'EndpointID': 'd' * 64, 'IPv4Address': '10.0.1.11/24'}; cases['another container'] = (d, 'intruder')
+        d = self.real_like(); d['Containers'][self.OTHER] = {'Name': 'dokploy-traefik', 'EndpointID': self.EP, 'IPv4Address': '10.0.1.11/24'}
+        cases['another container id with the SAME endpoint id and name'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['other'] = {'VIP': '', 'Tasks': [{'Name': 'other.1', 'EndpointID': 'e' * 64, 'EndpointIP': '10.0.1.11/24', 'ContainerID': ''}]}; cases['another task'] = (d, 'other.1')
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'].append({'Name': 'dokploy-traefik', 'EndpointID': 'f' * 64, 'EndpointIP': '10.0.1.11/24', 'ContainerID': ''})
+        cases['a task with the same NAME but another endpoint (never deduplicated by name)'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'][0]['EndpointID'] = self.EP[:12] + 'e' * 52; cases['endpoint id equal only in its first 12 characters'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'][0]['EndpointID'] = self.EP.upper(); cases['endpoint id differing in case'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'][0]['ContainerID'] = self.OTHER; cases['same endpoint id but claimed by another container'] = (d, 'dokploy-traefik')
+        d = self.real_like(); del d['Services']['dokploy-traefik']['Tasks'][0]['EndpointID']; cases['task without endpoint id'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'][0]['EndpointID'] = None; cases['task with a null endpoint id'] = (d, 'dokploy-traefik')
+        d = self.real_like(); d['Services']['vip'] = {'VIP': '10.0.1.11/24', 'Tasks': []}; cases['a service VIP'] = (d, 'service VIP vip')
+        d = self.real_like(); d['Containers'] = {}; cases['task whose container entry is absent (cannot prove it is the original)'] = (d, 'dokploy-traefik')
+        for label, (doc, who) in cases.items():
+            with self.subTest(label):
+                r = self.ipc(doc, *own); self.assertEqual(r.returncode, 1, r.stdout + r.stderr); self.assertIn(who, r.stderr)
+
+    def test_ip_check_handles_missing_or_inconsistent_fields_safely(self):
+        own = ('--ignore-container', self.IP_OWNER)
+        # the authorised entry cannot prove which endpoint it is: unusable (2), never silently ignored
+        for label, mutate in (('missing endpoint id', lambda d: d['Containers'][self.IP_OWNER].pop('EndpointID')),
+                              ('empty endpoint id', lambda d: d['Containers'][self.IP_OWNER].update(EndpointID='')),
+                              ('short endpoint id', lambda d: d['Containers'][self.IP_OWNER].update(EndpointID='68f01b00ca08')),
+                              ('non-string endpoint id', lambda d: d['Containers'][self.IP_OWNER].update(EndpointID=12345)),
+                              ('containers is a list', lambda d: d.update(Containers=[])),
+                              ('services is a list', lambda d: d.update(Services=[])),
+                              ('a container entry is not a map', lambda d: d['Containers'].update({self.OTHER: 'x'})),
+                              ('a service entry is not a map', lambda d: d['Services'].update(bad='x')),
+                              ('tasks is not a list', lambda d: d['Services']['dokploy-traefik'].update(Tasks={})),
+                              ('a task is not a map', lambda d: d['Services']['dokploy-traefik']['Tasks'].append('x'))):
+            with self.subTest(label):
+                d = self.real_like(); mutate(d); r = self.ipc(d, *own); self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        # missing optional fields on entries that are not on this address simply do not match; unrelated gaps are not holders
+        d = self.real_like(); d['Containers'][self.OTHER] = {'Name': 'x'}; d['Services']['dokploy-traefik']['Tasks'].append({'Name': 'y'})
+        self.assertEqual(self.ipc(d, *own).returncode, 0)
+        d = self.real_like(); d['Services']['dokploy-traefik']['Tasks'][0].pop('ContainerID'); self.assertEqual(self.ipc(d, *own).returncode, 0)
+        # no ignore requested: Services/Containers may be absent altogether (free address)
+        self.assertEqual(self.ipc({'Name': 'n'}).returncode, 0)
+        # unreadable input is never "free"
+        for raw in ('', 'not json', '"str"', '[]', 'null'):
+            with self.subTest(raw): self.assertEqual(self.ipc(None, raw=raw).returncode, 2)
+        self.assertEqual(self.ipc(self.real_like(), ip='999.1.1.1').returncode, 2)
+
+    def test_ip_check_only_accepts_a_full_container_id_to_ignore(self):
+        for bad in (self.IP_OWNER[:12], self.IP_OWNER[:63], self.IP_OWNER.upper(), 'dokploy-traefik', self.IP_OWNER + 'a', '', 'a' * 64 + '\n'):
+            with self.subTest(bad[:20]):
+                r = self.ipc(self.real_like(), '--ignore-container', bad); self.assertEqual(r.returncode, 2); self.assertIn('full 64-hex', r.stderr)
+        # a prefix of the real id does not ignore it either (the old behaviour), even when it is a valid-looking full id of ANOTHER container
+        r = self.ipc(self.real_like(), '--ignore-container', 'a' * 63 + 'b'); self.assertEqual(r.returncode, 1)
 
     def test_canary_scan_ignores_info_lines_and_provider_noise_but_not_real_errors(self):
         log = self.tmp / 'c2.log'

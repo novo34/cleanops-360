@@ -10,7 +10,8 @@ with only the image changed.
   compare --spec DIR/spec.json --inspect after.json [--image new-image.json]
   log-args --spec DIR/spec.json --inspect before.inspect.json   (NUL-separated --log-driver/--log-opt tokens; values never printed to a terminal)
   routers-diff BEFORE.json AFTER.json
-  ip-check NETWORK_INSPECT.json IPV4 [--ignore-container ID]   (exit 0 only when no container/task holds the address)
+  ip-check NETWORK_INSPECT.json IPV4 [--ignore-container FULL_ID]   (exit 0 only when no container/task/VIP holds the address;
+      the one authorised container is matched by its FULL id and its endpoint by FULL EndpointID; 1 = held; 2 = unusable data)
   scan-canary-log LOG
   api-check VERSION
 """
@@ -423,7 +424,7 @@ def script_rollback(spec):
     restore = []
     for n in spec['networks']:
         ip = spec['networkConfig'][n]['staticIPv4']
-        wait = (f'  B1_TRAEFIK_IP_WAIT_TRIES="${{B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES:-90}}" wait_free {q(n)} {q(ip)} --ignore-container "$OLD_ID" || echo "WARN: {n} still reports its pinned address as held; connecting anyway, Docker re-requests it at start" >&2\n' if ip else '')
+        wait = (f'  B1_TRAEFIK_IP_WAIT_TRIES="${{B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES:-90}}" wait_free {q(n)} {q(ip)} || echo "WARN: {n} still reports its pinned address as held; connecting anyway, Docker re-requests it at start" >&2\n' if ip else '')
         restore.append(f'if ! connected "$OLD_ID" {q(n)}; then\n{wait}  {connect_args(spec, n, chr(34) + "$OLD_ID" + chr(34))}\nfi')
     restore = '\n'.join(restore)
     return HEADER + common(spec) + f'''
@@ -598,30 +599,76 @@ def cmd_logargs(a):
     sys.stdout.buffer.flush()
 
 
+HEX64 = re.compile(r'[0-9a-f]{64}')      # always used with fullmatch: `$` would accept a trailing newline
+
+
+def _ip_of(value):
+    return value.split('/')[0] if isinstance(value, str) else ''
+
+
 def cmd_ipcheck(a):
+    """Is the IPv4 held by anything? `docker network inspect --verbose` reports ONE standalone endpoint twice: as Containers[<id>] and as a
+    Services.<svc>.Tasks[] entry with the same EndpointID (and an empty ContainerID). Only the endpoint of the explicitly authorised
+    container (full 64-hex id) is ignored, and its Tasks mirror only when it carries exactly the same FULL EndpointID. Names, IPs and
+    partial ids are never used to deduplicate; anything else holding the address (another container, task, VIP) is a holder."""
+    def unusable(why):
+        print(f'IP-CHECK: {why}; treating the address as NOT free', file=sys.stderr); return 2
+    ignore = set(a.ignore_container or [])
+    if not all(HEX64.fullmatch(i) for i in ignore):
+        return unusable('--ignore-container needs the full 64-hex container id (no names, short ids or prefixes)')
     try:
         ip = str(ipaddress.IPv4Address(a.ip))
         text = Path(a.network_json).read_text().strip()
         data = json.loads(text) if text else None
     except (ValueError, OSError):
-        print('IP-CHECK: unusable input (address or network inspect output); treating the address as NOT free', file=sys.stderr); return 2
+        return unusable('unusable input (address or network inspect output)')
     net = data[0] if isinstance(data, list) and data else data
     if not isinstance(net, dict):
-        print('IP-CHECK: no network inspect data; treating the address as NOT free', file=sys.stderr); return 2
-    ignore = tuple(a.ignore_container or ())
-    held = []
-    for cid, c in (net.get('Containers') or {}).items():
-        if (c.get('IPv4Address') or '').split('/')[0] == ip and not any(cid.startswith(i) for i in ignore):
-            held.append(f'container {c.get("Name", cid[:12])}')
-    for svc, sv in (net.get('Services') or {}).items():
-        if (sv.get('VIP') or '').split('/')[0] == ip:
+        return unusable('no network inspect data')
+    containers, services = net.get('Containers'), net.get('Services')
+    containers = {} if containers is None else containers       # absent is fine; a wrong type (even an empty one) is not
+    services = {} if services is None else services
+    if not isinstance(containers, dict) or not isinstance(services, dict):
+        return unusable('Containers/Services are not maps')
+    held, authorised, mirrored = [], {}, 0
+    for cid, c in containers.items():
+        if not isinstance(c, dict):
+            return unusable(f'container entry {str(cid)[:12]} is not a map')
+        if _ip_of(c.get('IPv4Address')) != ip:
+            continue
+        if cid in ignore:
+            eid = c.get('EndpointID')
+            if not (isinstance(eid, str) and HEX64.fullmatch(eid)):
+                return unusable('the authorised container entry has no full EndpointID, so its endpoint cannot be told apart from another occupant')
+            authorised[eid] = cid
+        else:
+            held.append(f'container {c.get("Name", str(cid)[:12])}')
+    for svc, sv in services.items():
+        if not isinstance(sv, dict):
+            return unusable(f'service entry {str(svc)[:24]} is not a map')
+        if _ip_of(sv.get('VIP')) == ip:
             held.append(f'service VIP {svc}')
-        for t in sv.get('Tasks') or []:
-            if (t.get('EndpointIP') or '').split('/')[0] == ip:
-                held.append(f'task {t.get("Name", "?")}')
+        tasks = sv.get('Tasks')
+        tasks = [] if tasks is None else tasks
+        if not isinstance(tasks, list):
+            return unusable(f'tasks of {str(svc)[:24]} are not a list')
+        for t in tasks:
+            if not isinstance(t, dict):
+                return unusable(f'a task of {str(svc)[:24]} is not a map')
+            if _ip_of(t.get('EndpointIP')) != ip:
+                continue
+            eid, tcid = t.get('EndpointID'), t.get('ContainerID') or ''
+            owner = authorised.get(eid) if isinstance(eid, str) else None
+            if owner is not None and tcid in ('', owner):     # same full EndpointID, no other container claimed: the same endpoint seen twice
+                mirrored += 1
+                continue
+            held.append(f'task {t.get("Name", "?")}')
     if held:
         print(f'IP-CHECK: {ip} is held by: {", ".join(held)}', file=sys.stderr); return 1
-    print(f'IP-CHECK: {ip} is free'); return 0
+    note = ''
+    if authorised:
+        note = ' (only the authorised container endpoint was ignored' + (', including %d mirrored task %s' % (mirrored, 'entry' if mirrored == 1 else 'entries') if mirrored else '') + ')'
+    print(f'IP-CHECK: {ip} is free{note}'); return 0
 
 
 def cmd_scan(a):

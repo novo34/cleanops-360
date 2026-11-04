@@ -10,13 +10,16 @@ Besides containers/images it models what matters for pinned addresses on swarm-s
   * starting / connecting a running container with an address that is reserved by another holder fails like Docker
   * the simulated DAEMON applies its own defaults to created containers (st['daemon_log'], st['daemon_hostconfig']: init,
     security options, ulimits), like a hardened daemon.json; `--log-driver/--log-opt` override the log default
+  * `network inspect` reports a running container's endpoint like the real daemon does on swarm-scoped networks: in Containers (with its full
+    EndpointID) AND, with --verbose, as a Services...Tasks entry carrying the same EndpointID and an empty ContainerID
+  * st['stuck'][net][ip] = 'owner': after the release the ORIGINAL's own endpoint is still reported (a residual that must not be ignored)
   * st['routers_lag'] = N: the first N router-API queries return nothing (providers still rebuilding after a start)
   * st['reject_create_with'] = flag: `docker create` fails when that flag is present (an option the daemon refuses)
   * st['create_reserves_ip'] = True: a daemon that reserves a pinned address ALREADY AT `docker create` (not proven either way on
     swarm-scoped networks): creating with an address someone holds fails, and a successful create takes the reservation
   * st['create_reserves_ports'] = True: `-p` at create conflicts with / takes the operational ports (st['ports_taken'])
 """
-import json, os, sys, uuid
+import hashlib, json, os, sys, uuid
 S = os.environ['SHIM_STATE']
 st = json.load(open(S))
 args = sys.argv[1:]
@@ -85,7 +88,10 @@ def release(cid, net, linger=True):
     for ip, holder in list(holders(net).items()):
         if holder == cid:
             slow = st.get('slow_release', {}).get(net, {}).get(ip)
-            if linger and st.get('stuck', {}).get(net, {}).get(ip):
+            stuck = st.get('stuck', {}).get(net, {}).get(ip)
+            if linger and stuck == 'owner':
+                pass                                          # the owner's endpoint lingers, still attributed to the same container
+            elif linger and stuck:
                 holders(net)[ip] = 'ghost-reservation'
             elif linger and slow:
                 holders(net)[ip] = 'ghost-reservation'; st.setdefault('ghost_polls', {}).setdefault(net, {})[ip] = slow
@@ -214,11 +220,18 @@ elif cmd == 'network' and args[1] == 'inspect':
             containers['ghost' + '0' * 59] = {'Name': 'ghost-endpoint', 'IPv4Address': ip + '/24'}
             continue
         _, c = find(holder)
-        containers[holder] = {'Name': (c or {'Name': '/?'})['Name'].lstrip('/'), 'IPv4Address': ip + '/24'}
+        eid = hashlib.sha256(f'{holder}:{net}'.encode()).hexdigest()
+        containers[holder] = {'Name': (c or {'Name': '/?'})['Name'].lstrip('/'), 'EndpointID': eid, 'IPv4Address': ip + '/24'}
     doc['Containers'] = containers
     if verbose:
-        doc['Services'] = {f'svc-{n}': {'VIP': '', 'Tasks': [{'Name': f'{n}.1', 'EndpointIP': ip + '/24'}]}
+        doc['Services'] = {f'svc-{n}': {'VIP': '', 'Tasks': [{'Name': f'{n}.1', 'EndpointID': hashlib.sha256(f'foreign:{n}'.encode()).hexdigest(),
+                                                              'EndpointIP': ip + '/24', 'ContainerID': ''}]}
                            for ip, n in st.get('foreign', {}).get(net, {}).items()}
+        for cid, ent in containers.items():                    # the same endpoint again, as a task with an empty ContainerID
+            if cid.startswith('ghost'):
+                continue
+            doc['Services'].setdefault(ent['Name'], {'VIP': '', 'Tasks': []})['Tasks'].append(
+                {'Name': ent['Name'], 'EndpointID': ent['EndpointID'], 'EndpointIP': ent['IPv4Address'], 'ContainerID': ''})
     out([doc])
 elif cmd == 'start':
     _, c = find(args[-1])
