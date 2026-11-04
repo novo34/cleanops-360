@@ -50,3 +50,21 @@
 - Basar hechos del VPS en salidas arriba, no suponer acceso directo. Evitar pruebas cerradas, ciclos de diagnóstico repetidos y nuevas funciones sin defecto. Trabajar en español, comandos breves y seguros.
 - Registrar en Git las decisiones/evidencias **sin datos privados** con alcance, SHA, origen y resultados. Los hechos nuevos requieren verificación; documentar FAIL/OPEN explícitamente.
 - Si cambia código, ejecutar pruebas del módulo afectado y revisión; no repetir B1 PASS. Para operaciones en VPS, distinguir planificación read-only, reinicio Dokploy y corte Traefik; obtener autorización humana apropiada.
+
+## Anexo — verificación Dokploy del 04-11-2026 (salidas aportadas por propietario)
+
+**Alcance:** comprobaciones de solo lectura realizadas por el propietario en `srv1155120`, sin reinicios ni mutaciones; evidencia de conversación, no logs privados publicados. HEAD documental previo: `644c21bfc3c09178b8716fe802af210aed598da2`. Respaldo privado permanece exclusivamente en `/root/b1-traefik-upgrade/dokploy-service-before.json`.
+
+- `BACKUP_JSON=PASS`; `SERVICE_ID_PRESENTE=True`; `VERSION_INDEX_PRESENTE=True`; `IMAGEN_PRESENTE=True`; `ROLLBACK_SPEC_PRESENTE=True`; `UPDATE_SPEC_PRESENTE=True`; 1 red y 3 montajes en el respaldo. `TRAEFIK_VERSION_BACKUP=NO_DEFINIDA`.
+- Servicio actual: `SERVICE_ID_MATCH=True`; `IMAGEN_MATCH=True`; `VERSION_ACTUAL=703`; `VERSION_BACKUP=703`; `UPDATE_ORDER=stop-first`; `ROLLBACK_ORDER=stop-first`; `TRAEFIK_VERSION_ACTUAL=NO_DEFINIDA`; `ROLLBACK_CLI_DISPONIBLE=PASS`. `dokploy` reportó `1/1` réplicas. Hay una tarea histórica fallida de hace dos semanas, no una falla de la tarea vigente.
+- **PASS:** integridad estructural del respaldo y coincidencia actual de identidad, imagen, versión de especificación y ausencia de variable. **PENDIENTE:** ejecutar y verificar rollback de la actualización futura. La presencia de `docker service rollback` no demuestra que se haya ejecutado ni que el estado anterior siga disponible después de futuras operaciones.
+
+### Procedimiento acordado para la ventana (NO ejecutado; requiere autorización)
+
+1. Congelar cambios concurrentes del servicio Dokploy. Registrar de forma privada la versión `703` y la especificación ya respaldada; inmediatamente antes de ejecutar, reconfirmar ID, imagen, réplica 1/1 y ausencia de `TRAEFIK_VERSION`. Abortarlo si hubo deriva.
+2. **Con autorización específica para reiniciar la única réplica Dokploy**, ejecutar solo `docker service update --env-add TRAEFIK_VERSION=3.7.17 dokploy`. Es `stop-first` y puede interrumpir el panel. No conmutar Traefik en paralelo.
+3. Verificar `docker service ps dokploy`, `docker service ls` (1/1), variable `TRAEFIK_VERSION` exacta, imagen y demás especificación esperadas; comprobar HTTPS del panel y las cinco rutas de `smoke.tsv` (baseline previa). No afirmar PASS hasta recibir salida efectiva.
+4. Si la actualización del paso 2 falla y **no hubo cambios intermedios en Dokploy**, usar `docker service rollback dokploy` y verificar ID, imagen, configuración sin `TRAEFIK_VERSION`, 1/1 y HTTPS. El rollback es una operación disruptiva y requiere autorización. Como recuperación de contingencia, si no puede garantizarse el historial de Swarm, considerar `docker service update --env-rm TRAEFIK_VERSION dokploy` **solo tras contrastar la especificación completa** con el respaldo; también reinicia tarea. No reconstruir servicio a ciegas ni publicar JSON privado.
+5. Mantener `B1_TRAEFIK_VERSION_GUARD_ACK` separado de aprobación de corte. Solo después del PASS Dokploy, bajo **otra aprobación de corte**, ejecutar `02-switch.sh`, `03-verify.sh` y rollback de Traefik conforme al runbook existente. `AUTH-GATE-05` permanece OPEN; no merge de PR #33.
+
+**No se autorizó ni ejecutó** `docker service update`, `docker service rollback`, conmutación Traefik o activación B1. El rollback aquí documentado es un procedimiento condicionado, no un PASS operacional.
