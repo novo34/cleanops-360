@@ -413,7 +413,8 @@ if [[ -s $STATE/routers.before.json ]]; then
   (( ok )) || {{ python3 -I "$TOOL" routers-diff "$STATE/routers.before.json" "$STATE/routers.after.json" || true; echo "router baseline not restored" >&2; exit 5; }}
 fi
 [[ -s $STATE/smoke.tsv ]] || {{ echo "missing $STATE/smoke.tsv (host<TAB>path<TAB>expected status)" >&2; exit 4; }}
-while IFS=$'\\t' read -r host path want; do
+checked=0
+while IFS=$'\\t' read -r host path want || [[ -n ${{host:-}} ]]; do
   [[ -z ${{host:-}} || $host == \\#* ]] && continue
   got=000
   for i in $(seq 1 "$TRIES"); do
@@ -422,7 +423,9 @@ while IFS=$'\\t' read -r host path want; do
     sleep "${{B1_TRAEFIK_POLL_SECONDS:-2}}"
   done
   [[ $got == "$want" ]] || {{ echo "SMOKE FAIL $host$path got $got want $want" >&2; exit 5; }}
+  checked=$((checked+1))
 done < "$STATE/smoke.tsv"
+(( checked > 0 )) || {{ echo "smoke.tsv has no checkable routes" >&2; exit 4; }}
 echo "VERIFY OK ($NAME)"
 '''
 
@@ -476,6 +479,8 @@ def script_switch(spec):
 [[ $B1_TRAEFIK_APPROVAL_REF =~ ^[A-Za-z0-9._:/-]{{6,120}}$ ]] || {{ echo "invalid approval reference" >&2; exit 2; }}
 [[ ${{B1_TRAEFIK_VERSION_GUARD_ACK:-}} == "yes" ]] || {{ echo "ACK required: Dokploy TRAEFIK_VERSION must be aligned to $TARGET first, or any panel-triggered recreate silently reverts Traefik to Dokploy's default" >&2; exit 2; }}
 [[ -s $STATE/prepared.ok ]] || {{ echo "run 01-prepare.sh first" >&2; exit 2; }}
+# Abort before touching live Traefik if the route smoke matrix is absent.
+[[ -s $STATE/smoke.tsv ]] || {{ echo "missing $STATE/smoke.tsv; refusing proxy stop" >&2; exit 2; }}
 [[ $(docker inspect --format '{{{{.Id}}}}' "$OLD") == "$OLD_ID" ]] || {{ echo "INVENTORY DRIFT since prepare" >&2; exit 3; }}
 python3 -I "$TOOL" log-args --spec "$HERE/spec.json" --inspect "$STATE/before.inspect.json" > "$STATE/log.args"
 chmod 600 "$STATE/log.args"
