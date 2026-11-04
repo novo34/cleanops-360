@@ -223,3 +223,7 @@ Interpretacion: web activa aun sin montajes B1. La etiqueta faltante no acredita
 Fuente: inventario Docker de solo lectura enviado por propietario el 04-11-2026. Imagen web operativa sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290. No se identifico etiqueta ni imagen B1 candidata en el inventario filtrado; contenedor web actual saludable y recursos PG/OpenBao/Agent activos. La inspeccion no demuestra ausencia en otros hosts ni en caches de construccion.
 
 Referencia historica de imagen candidata: commit cc51574ad85485728d877efbbb69bcb345469596. Comparacion GitHub actual: rama de preparacion 33 commits posterior, sin divergence; hay cambios en overlay Compose, ejemplo Traefik, pruebas y documentacion, pero no en los archivos de runtime listados. Antes de generar o distribuir una nueva imagen fijar el SHA exacto de candidato y efectuar revision independiente de los deltas posteriores. No reconstruir automaticamente, desplegar ni modificar servidores por esta observacion. AUTH-GATE-05 OPEN.
+
+## BuildKit sin cache disponible
+
+El propietario informo builder default v0.27.1 operativo, cache BuildKit 0 B, checkout de produccion en d3ea84b38fd1574db1610f03b59c8c4a5050ac72 y arbol sin cambios. Imagen candidata B1 no disponible en inventario local. Proxima accion: preparar compilacion aislada desde el SHA revisado sin alterar el checkout. Activacion pendiente; AUTH-GATE-05 OPEN.
