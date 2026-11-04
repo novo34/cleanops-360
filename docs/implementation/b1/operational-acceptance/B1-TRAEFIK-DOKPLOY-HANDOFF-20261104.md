@@ -217,3 +217,9 @@ El propietario informo seis resultados PASS: ingress_claim, ingress_credential_r
 Fuente: salida read-only del propietario del VPS: `cleanops360-f4fxmd-web-1` sigue `running` con imagen ID `sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290`; red `dokploy-network=PASS`; `/run/cleanops-agent=NO_MONTADO`; `/run/cleanops-b1-private=NO_MONTADO`; consulta por etiqueta `cleanops360-b1-candidate:cc51574a` devuelve `NO_ENCONTRADA`.
 
 Interpretacion: web activa aun sin montajes B1. La etiqueta faltante no acredita perdida de la imagen por ID ni obliga a reconstruirla. El siguiente control unico sera inventario read-only de imagenes Docker por etiqueta/ID y de contenedor candidato, sin construir, etiquetar, desplegar ni tocar datos. SQL0003 mantiene PASS previos; AUTH-GATE-05 OPEN. No se autorizo activacion.
+
+## Inventario Docker del candidato B1
+
+Fuente: inventario Docker de solo lectura enviado por propietario el 04-11-2026. Imagen web operativa sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290. No se identifico etiqueta ni imagen B1 candidata en el inventario filtrado; contenedor web actual saludable y recursos PG/OpenBao/Agent activos. La inspeccion no demuestra ausencia en otros hosts ni en caches de construccion.
+
+Referencia historica de imagen candidata: commit cc51574ad85485728d877efbbb69bcb345469596. Comparacion GitHub actual: rama de preparacion 33 commits posterior, sin divergence; hay cambios en overlay Compose, ejemplo Traefik, pruebas y documentacion, pero no en los archivos de runtime listados. Antes de generar o distribuir una nueva imagen fijar el SHA exacto de candidato y efectuar revision independiente de los deltas posteriores. No reconstruir automaticamente, desplegar ni modificar servidores por esta observacion. AUTH-GATE-05 OPEN.
