@@ -8,6 +8,10 @@ Besides containers/images it models what matters for pinned addresses on swarm-s
     (it lingers for N `network inspect` polls) or st['stuck'][net][ip] (it never goes away)
   * st['foreign'][net][ip] = name: a service task elsewhere that holds the address (visible in verbose inspect)
   * starting / connecting a running container with an address that is reserved by another holder fails like Docker
+  * the simulated DAEMON applies its own defaults to created containers (st['daemon_log'], st['daemon_hostconfig']: init,
+    security options, ulimits), like a hardened daemon.json; `--log-driver/--log-opt` override the log default
+  * st['routers_lag'] = N: the first N router-API queries return nothing (providers still rebuilding after a start)
+  * st['reject_create_with'] = flag: `docker create` fails when that flag is present (an option the daemon refuses)
 """
 import json, os, sys, uuid
 S = os.environ['SHIM_STATE']
@@ -115,7 +119,10 @@ elif cmd == 'pull':
 elif cmd == 'run':
     out(st['canary_log'])
 elif cmd == 'exec':
-    out(st['routers'])
+    if st.get('routers_lag', 0) > 0:
+        st['routers_lag'] -= 1; out('[]')
+    else:
+        out(st['routers'])
 elif cmd == 'stop':
     _, c = find(args[-1]); c['State']['Running'] = False
     for net, e in c['NetworkSettings']['Networks'].items():
@@ -126,8 +133,13 @@ elif cmd == 'update':
     _, c = find(args[-1]); c['HostConfig']['RestartPolicy']['Name'] = args[1].split('=', 1)[1]
 elif cmd == 'rename':
     k, c = find(args[1]); st['containers'][args[2]] = st['containers'].pop(k); c['Name'] = '/' + args[2]
+    for e in c['NetworkSettings']['Networks'].values():          # worst case: the previous name stays as a stale alias
+        e['Aliases'] = list(dict.fromkeys((e.get('Aliases') or []) + [args[2]]))
 elif cmd == 'create':
     a, name, restart, net, ports, mounts, ip, aliases = args[1:], None, None, None, {}, [], None, []
+    log_driver, log_opts = None, {}
+    if st.get('reject_create_with') and st['reject_create_with'] in a:
+        print('Error response from daemon: unsupported option', file=sys.stderr); save(); sys.exit(1)
     i = 0
     while i < len(a) - 1:
         if a[i] == '--name': name = a[i + 1]; i += 2
@@ -135,6 +147,8 @@ elif cmd == 'create':
         elif a[i] == '--network': net = a[i + 1]; i += 2
         elif a[i] == '--ip': ip = a[i + 1]; i += 2
         elif a[i] == '--network-alias': aliases.append(a[i + 1]); i += 2
+        elif a[i] == '--log-driver': log_driver = a[i + 1]; i += 2
+        elif a[i] == '--log-opt': k, v = a[i + 1].split('=', 1); log_opts[k] = v; i += 2
         elif a[i] == '-p':
             hp, rest = a[i + 1].split(':'); ports[rest] = [{'HostIp': '', 'HostPort': hp}]; i += 2
         elif a[i] == '--mount':
@@ -146,7 +160,9 @@ elif cmd == 'create':
     cid = uuid.uuid4().hex * 2
     st['containers'][name] = {'Id': cid[:64], 'Name': '/' + name, 'Image': img['Id'], 'RestartCount': 0, 'State': {'Running': False, 'Restarting': False},
         'Config': {'Image': ref, 'Cmd': img['Config'].get('Cmd'), 'Entrypoint': img['Config'].get('Entrypoint'), 'Env': img['Config'].get('Env'), 'Labels': img['Config'].get('Labels'), 'User': '', 'WorkingDir': ''},
-        'HostConfig': {'RestartPolicy': {'Name': restart}, 'PortBindings': ports, 'LogConfig': {'Type': 'json-file', 'Config': {}}},
+        'HostConfig': {'RestartPolicy': {'Name': restart}, 'PortBindings': ports,
+                       'LogConfig': ({'Type': log_driver, 'Config': log_opts} if log_driver else dict(st.get('daemon_log', {'Type': 'json-file', 'Config': {}}))),
+                       **st.get('daemon_hostconfig', {})},
         'Mounts': mounts, 'NetworkSettings': {'Networks': {net: {'Aliases': [name, cid[:12], *aliases], 'IPAMConfig': {'IPv4Address': ip} if ip else None, 'IPAddress': ''}}}}
 elif cmd == 'network' and args[1] == 'connect':
     a, ip, aliases = args[2:], None, []

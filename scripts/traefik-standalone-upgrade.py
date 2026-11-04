@@ -8,17 +8,17 @@ with only the image changed.
 
   plan   --container C.json --image I.json --network N.json... --target-version 3.7.17 --target-digest sha256:... --out DIR
   compare --spec DIR/spec.json --inspect after.json [--image new-image.json]
+  log-args --spec DIR/spec.json --inspect before.inspect.json   (NUL-separated --log-driver/--log-opt tokens; values never printed to a terminal)
   routers-diff BEFORE.json AFTER.json
   ip-check NETWORK_INSPECT.json IPV4 [--ignore-container ID]   (exit 0 only when no container/task holds the address)
   scan-canary-log LOG
   api-check VERSION
 """
-import argparse, ipaddress, json, os, re, shlex, stat, sys
+import argparse, hashlib, ipaddress, json, os, re, shlex, stat, sys
 from pathlib import Path
 
 CONTAINER = 'dokploy-traefik'
 EXPECTED_SOURCE_VERSION = '3.6.7'          # inventory confirmed by the owner on 2026-11-03
-EXPECTED_NETWORKS = ('dokploy-network', 'supabase-supabase-2bvnab')
 PRIMARY_NETWORK = 'dokploy-network'        # the one Dokploy attaches at creation time
 EXPECTED_PORTS = {'80/tcp': '80', '443/tcp': '443', '443/udp': '443'}
 MIN_TARGET = (3, 7, 17)                    # first 3.7.x with every fix listed in the runbook; 3.6 is out of security support
@@ -26,11 +26,19 @@ MAX_TARGET_EXCLUSIVE = (3, 8, 0)
 MIN_DOCKER_API = (1, 40)                   # Traefik >= v3.6.16 Docker provider requirement
 DIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')
 ALIAS = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$')
+NETNAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,126}$')
+LOG_DRIVERS = ('json-file', 'local', 'journald', 'syslog', 'gelf', 'fluentd', 'splunk', 'awslogs', 'gcplogs', 'none')   # built-in drivers only
+LOG_OPT_KEY = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$')
+# Names this procedure itself gives to containers; Docker may leave them as stale aliases after `docker rename`.
+TRANSIENT_NAME = re.compile(r'^' + re.escape('dokploy-traefik') + r'-(prev|failed|probe)-\d{8}T\d{6}Z$')
+PROBE_NAME = TRANSIENT_NAME
+PRESERVED = ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'log', 'inherited', 'backupPaths')
 SUPPORTED_DRIVERS = ('overlay', 'bridge')
-# HostConfig fields that must keep Docker defaults (Dokploy sets none of them).
+# HostConfig fields that must keep Docker defaults (Dokploy sets none of them). Init/SecurityOpt/Ulimits/LogConfig are the
+# ones a hardened daemon.json legitimately injects: they are preserved and VERIFIED on a pre-flight candidate (see inherited_settings).
 DEFAULT_HOSTCONFIG = {'Privileged': False, 'ReadonlyRootfs': False, 'PublishAllPorts': False, 'AutoRemove': False,
-                      'CapAdd': None, 'CapDrop': None, 'SecurityOpt': None, 'ExtraHosts': None, 'Dns': None,
-                      'Devices': None, 'Sysctls': None, 'Tmpfs': None, 'Init': None, 'UsernsMode': '', 'PidMode': '',
+                      'CapAdd': None, 'CapDrop': None, 'ExtraHosts': None, 'Dns': None,
+                      'Devices': None, 'Sysctls': None, 'Tmpfs': None, 'UsernsMode': '', 'PidMode': '',
                       'UTSMode': '', 'Memory': 0, 'NanoCpus': 0, 'CpuShares': 0, 'PidsLimit': None}
 
 
@@ -90,7 +98,7 @@ def network_config(c, name):
                 refuse(f'pinned address on {n} is not a canonical IPv4 address')
             if running and e.get('IPAddress') != static:
                 refuse(f'the running endpoint address on {n} differs from the pinned one: the capture is inconsistent')
-        extra = sorted({a for a in (e.get('Aliases') or []) if a != name and not c['Id'].startswith(a)})
+        extra = sorted({a for a in (e.get('Aliases') or []) if a != name and not c['Id'].startswith(a) and not TRANSIENT_NAME.match(a)})
         bad = [a for a in extra if not ALIAS.match(a)]
         if bad:
             refuse(f'unsupported alias on {n}: {bad}')
@@ -116,14 +124,44 @@ def check_networks(netcfg, docs):
     return info
 
 
-def normalize(c, image):
+def read_log(host):
+    """Validated (driver, options) of HostConfig.LogConfig. Errors name keys only, never option values (they may be credentials)."""
+    lc = host.get('LogConfig') or {}
+    typ, opts = lc.get('Type') or '', lc.get('Config') or {}
+    if typ not in LOG_DRIVERS:
+        refuse(f'log driver {typ!r} cannot be reproduced or verified (built-in drivers only: {", ".join(LOG_DRIVERS)})')
+    if not isinstance(opts, dict):
+        refuse('LogConfig.Config is not a map')
+    for k, v in opts.items():
+        if not isinstance(k, str) or not LOG_OPT_KEY.match(k):
+            refuse(f'log option key {str(k)[:40]!r} is not reproducible')
+        if not isinstance(v, str) or len(v) > 4096 or any(ord(ch) < 32 or ord(ch) == 127 for ch in v):
+            refuse(f'value of log option {k!r} is not reproducible (non-string, too long or control characters); the value is not shown')
+    return typ, opts
+
+
+def log_summary(typ, opts):
+    canonical = json.dumps({'type': typ, 'config': opts}, sort_keys=True, separators=(',', ':'))
+    return {'driver': typ, 'optionKeys': sorted(opts), 'sha256': hashlib.sha256(canonical.encode()).hexdigest()}
+
+
+def inherited_settings(host):
+    """Settings a hardened daemon.json injects into every container. They are not copied as flags: the candidate is created by the
+    same daemon and the pre-flight probe proves it ends up with the same values (otherwise nothing is switched)."""
+    ulimits = sorted(({'Name': u.get('Name'), 'Soft': u.get('Soft'), 'Hard': u.get('Hard')} for u in (host.get('Ulimits') or [])), key=lambda u: str(u['Name']))
+    return {'init': bool(host.get('Init')), 'securityOpt': sorted(host.get('SecurityOpt') or []), 'ulimits': ulimits}
+
+
+def normalize(c, image, kind='live'):
     """The preserved, comparable shape of the container. Only values (never secrets) are kept."""
     cfg, host = c['Config'], c['HostConfig']
     name = c['Name'].lstrip('/')
-    if name != CONTAINER:
+    probe = kind == 'probe'      # the stopped pre-flight candidate: other name, restart=no (it must never start by itself)
+    if name != CONTAINER and not (probe and PROBE_NAME.match(name) and '-probe-' in name):
         refuse(f'container name {name!r} != {CONTAINER}')
-    if host.get('RestartPolicy', {}).get('Name') != 'always':
-        refuse('restart policy is not "always"')
+    restart = 'no' if probe else 'always'
+    if (host.get('RestartPolicy') or {}).get('Name') not in ((restart, '') if restart == 'no' else (restart,)):
+        refuse(f'restart policy is not "{restart}"')
     ports = {}
     for key, binds in (host.get('PortBindings') or {}).items():
         if not binds or len(binds) != 1:
@@ -134,6 +172,12 @@ def normalize(c, image):
     mounts = sorted([m['Type'], m['Source'], m['Destination'], bool(m['RW'])] for m in c['Mounts'])
     if len(mounts) != 3 or any(m[0] != 'bind' for m in mounts):
         refuse('expected exactly three bind mounts')
+    for m in c['Mounts']:
+        if (m.get('Propagation') or 'rprivate') != 'rprivate':
+            refuse(f'mount {m["Destination"]}: propagation {m.get("Propagation")!r} cannot be reproduced')
+        mode = m.get('Mode') or ''
+        if mode not in ('', 'rw', 'ro') or (mode == 'ro' and m['RW']) or (mode == 'rw' and not m['RW']):
+            refuse(f'mount {m["Destination"]}: mode {mode!r} is not reproducible or contradicts RW')
     byDest = {m[2]: m for m in mounts}
     if set(byDest) != {'/etc/traefik/traefik.yml', '/etc/dokploy/traefik/dynamic', '/var/run/docker.sock'}:
         refuse(f'unexpected mount destinations: {sorted(byDest)}')
@@ -145,8 +189,14 @@ def normalize(c, image):
     if byDest['/var/run/docker.sock'][3]:
         refuse('inventory says the Docker socket is read-only but the container mounts it read-write; resolve before changing anything')
     nets = c['NetworkSettings']['Networks']
-    if set(nets) != set(EXPECTED_NETWORKS):
-        refuse(f'networks differ from inventory: {sorted(nets)}')
+    mode = host.get('NetworkMode') or ''
+    if mode in ('host', 'none') or mode.startswith('container:'):
+        refuse(f'network mode {mode.split(":")[0]!r} is not supported')
+    if PRIMARY_NETWORK not in nets:
+        refuse(f'{PRIMARY_NETWORK} is not attached')
+    odd = sorted(n for n in nets if n in ('bridge', 'host', 'none') or not NETNAME.match(n))
+    if odd:
+        refuse(f'unsupported network attachments: {odd}')
     netcfg = network_config(c, name)
     if cfg.get('Cmd') != image['Config'].get('Cmd') or cfg.get('Entrypoint') != image['Config'].get('Entrypoint'):
         refuse('command/entrypoint differ from the image defaults: the inventory says there are no explicit flags')
@@ -166,12 +216,10 @@ def normalize(c, image):
             refuse(f'HostConfig.{key} = {have!r} is not the Docker default')
     if (cfg.get('User') or '') != (image['Config'].get('User') or '') or (cfg.get('WorkingDir') or '') != (image['Config'].get('WorkingDir') or ''):
         refuse('User/WorkingDir overrides present')
-    log = host.get('LogConfig') or {}
-    if log.get('Config'):
-        refuse('custom log driver options present')
-    return {'name': name, 'restart': 'always', 'ports': ports, 'mounts': mounts, 'networks': sorted(nets),
-            'primaryNetwork': PRIMARY_NETWORK, 'networkConfig': netcfg, 'logDriver': log.get('Type', 'json-file'),
-            'backupPaths': sorted(m[1] for m in mounts if m[2] != '/var/run/docker.sock')}
+    log = log_summary(*read_log(host))
+    return {'name': CONTAINER, 'restart': restart, 'ports': ports, 'mounts': mounts, 'networks': sorted(nets),
+            'primaryNetwork': PRIMARY_NETWORK, 'networkConfig': netcfg, 'log': log,
+            'inherited': inherited_settings(host), 'backupPaths': sorted(m[1] for m in mounts if m[2] != '/var/run/docker.sock')}
 
 
 def image_version(c):
@@ -183,8 +231,10 @@ def q(s):
     return shlex.quote(str(s))
 
 
-def create_args(spec, new_ref):
-    out = ['docker', 'create', '--name', q(spec['name']), '--restart', 'always', '--network', q(spec['primaryNetwork'])]
+def create_args(spec, new_ref, name=None, restart='always'):
+    """`name` is an already-quoted shell expression (the pre-flight probe uses "$PROBE"). Log flags come from "${LOGARGS[@]}" which the
+    scripts load from the private capture at run time, so option values never appear in the generated scripts or spec.json."""
+    out = ['docker', 'create', '--name', name or q(spec['name']), '--restart', restart, '--network', q(spec['primaryNetwork'])]
     prim = spec['networkConfig'][spec['primaryNetwork']]
     if prim['staticIPv4']:
         out += ['--ip', q(prim['staticIPv4'])]
@@ -196,6 +246,7 @@ def create_args(spec, new_ref):
     for typ, src, dst, rw in spec['mounts']:
         # --mount (unlike -v) refuses to create a missing host path.
         out += ['--mount', q(f'type=bind,source={src},target={dst}' + ('' if rw else ',readonly'))]
+    out.append('"${LOGARGS[@]}"')
     out.append(q(new_ref))
     return ' '.join(out)
 
@@ -248,7 +299,30 @@ def common(spec):
             f'NEW_REF={q(spec["newRef"])}\nNEW_DIGEST={q(spec["targetDigest"])}\nTARGET={q(spec["targetVersion"])}\n') + NETFUNCS
 
 
+PROBE_TEMPLATE = '''# Pre-flight candidate: created exactly as 02-switch.sh will create it, but NEVER started and with restart=no (so no daemon restart can
+# start it and take ports 80/443 or the pinned address). Comparing it with the plan surfaces, BEFORE any downtime, what this daemon
+# adds or inherits (log driver, init, security options, ulimits) and every flag Docker would reject. It is left stopped for you to
+# remove after the change window (its name is in probe.name; deleting it is a decision for the owner).
+python3 -I "$TOOL" log-args --spec "$HERE/spec.json" --inspect "$STATE/before.inspect.json" > "$STATE/log.args"
+chmod 600 "$STATE/log.args"
+mapfile -d '' -t LOGARGS < "$STATE/log.args"
+PROBE="$OLD-probe-$(date -u +%Y%m%dT%H%M%SZ)"
+@CREATE@
+@CONNECT@
+docker inspect "$PROBE" > "$STATE/probe.inspect.json"
+chmod 600 "$STATE/probe.inspect.json"
+python3 -I "$TOOL" compare --spec "$HERE/spec.json" --inspect "$STATE/probe.inspect.json" --image "$STATE/new.image.json" --mode probe
+echo "$PROBE" > "$STATE/probe.name"
+'''
+
+
+def probe_snippet(spec):
+    connect = '\n'.join(connect_args(spec, n, '"$PROBE"') for n in spec['networks'] if n != spec['primaryNetwork'])
+    return PROBE_TEMPLATE.replace('@CREATE@', create_args(spec, spec['newRef'], name='"$PROBE"', restart='no')).replace('@CONNECT@', connect)
+
+
 def script_prepare(spec):
+    probe = probe_snippet(spec)
     ipchecks = '\n'.join(
         f'B1_TRAEFIK_IP_WAIT_TRIES=1 wait_free {q(n)} {q(ip)} --ignore-container "$OLD_ID" || {{ echo "pinned address on {n} is held by something other than the running Traefik" >&2; exit 3; }}'
         for n, ip in static_networks(spec))
@@ -276,6 +350,7 @@ chmod 600 "$STATE/routers.before.json"
 docker pull "$NEW_REF"
 docker image inspect "$NEW_REF" > "$STATE/new.image.json"
 python3 -I "$TOOL" compare --spec "$HERE/spec.json" --image "$STATE/new.image.json" --mode image
+{probe}
 # Canary: parse the REAL configuration with the new binary; no network, no published ports, no Docker socket.
 set +e
 timeout 20 docker run --rm --name "$OLD-canary" --network none --read-only --cap-drop ALL \\
@@ -287,7 +362,7 @@ set -e
 chmod 600 "$STATE/canary.log"
 python3 -I "$TOOL" scan-canary-log "$STATE/canary.log"
 date -u +%FT%TZ > "$STATE/prepared.ok"
-echo "PREPARE OK. Nothing was changed on the running Traefik."
+echo "PREPARE OK. The running Traefik was not touched; a stopped, restart=no pre-flight candidate exists: $PROBE."
 '''
 
 
@@ -300,14 +375,26 @@ chmod 600 "$STATE/after.inspect.json"
 MODE=${{B1_TRAEFIK_VERIFY_MODE:-after}}
 IMG="$STATE/new.image.json"; [[ $MODE == before ]] && IMG="$STATE/before.image.json"
 python3 -I "$TOOL" compare --spec "$HERE/spec.json" --inspect "$STATE/after.inspect.json" --image "$IMG" --mode "$MODE"
+TRIES=${{B1_TRAEFIK_VERIFY_TRIES:-15}}
+# The Docker/Swarm providers rebuild their routers a few seconds after a start: retry (bounded) before judging.
 if [[ -s $STATE/routers.before.json ]]; then
-  docker exec "$NAME" wget -qO- http://127.0.0.1:8080/api/http/routers > "$STATE/routers.after.json"
-  python3 -I "$TOOL" routers-diff "$STATE/routers.before.json" "$STATE/routers.after.json"
+  ok=0
+  for i in $(seq 1 "$TRIES"); do
+    if docker exec "$NAME" wget -qO- http://127.0.0.1:8080/api/http/routers > "$STATE/routers.after.json" 2>/dev/null \
+       && python3 -I "$TOOL" routers-diff "$STATE/routers.before.json" "$STATE/routers.after.json" >/dev/null 2>&1; then ok=1; break; fi
+    sleep "${{B1_TRAEFIK_POLL_SECONDS:-2}}"
+  done
+  (( ok )) || {{ python3 -I "$TOOL" routers-diff "$STATE/routers.before.json" "$STATE/routers.after.json" || true; echo "router baseline not restored" >&2; exit 5; }}
 fi
 [[ -s $STATE/smoke.tsv ]] || {{ echo "missing $STATE/smoke.tsv (host<TAB>path<TAB>expected status)" >&2; exit 4; }}
 while IFS=$'\\t' read -r host path want; do
   [[ -z ${{host:-}} || $host == \\#* ]] && continue
-  got=$(curl -sS -o /dev/null -w '%{{http_code}}' --max-time 15 --resolve "$host:443:127.0.0.1" "https://$host$path" || echo 000)
+  got=000
+  for i in $(seq 1 "$TRIES"); do
+    got=$(curl -sS -o /dev/null -w '%{{http_code}}' --max-time 15 --resolve "$host:443:127.0.0.1" "https://$host$path" || echo 000)
+    [[ $got == "$want" ]] && break
+    sleep "${{B1_TRAEFIK_POLL_SECONDS:-2}}"
+  done
   [[ $got == "$want" ]] || {{ echo "SMOKE FAIL $host$path got $got want $want" >&2; exit 5; }}
 done < "$STATE/smoke.tsv"
 echo "VERIFY OK ($NAME)"
@@ -364,6 +451,9 @@ def script_switch(spec):
 [[ ${{B1_TRAEFIK_VERSION_GUARD_ACK:-}} == "yes" ]] || {{ echo "ACK required: Dokploy TRAEFIK_VERSION must be aligned to $TARGET first, or any panel-triggered recreate silently reverts Traefik to Dokploy's default" >&2; exit 2; }}
 [[ -s $STATE/prepared.ok ]] || {{ echo "run 01-prepare.sh first" >&2; exit 2; }}
 [[ $(docker inspect --format '{{{{.Id}}}}' "$OLD") == "$OLD_ID" ]] || {{ echo "INVENTORY DRIFT since prepare" >&2; exit 3; }}
+python3 -I "$TOOL" log-args --spec "$HERE/spec.json" --inspect "$STATE/before.inspect.json" > "$STATE/log.args"
+chmod 600 "$STATE/log.args"
+mapfile -d '' -t LOGARGS < "$STATE/log.args"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ); PREV="$OLD-prev-$STAMP"
 printf 'STAMP=%s\\nPREV=%s\\nAPPROVAL=%s\\n' "$STAMP" "$PREV" "$B1_TRAEFIK_APPROVAL_REF" > "$STATE/switch.state"
 phase() {{ printf 'PHASE=%s\\n' "$1" >> "$STATE/switch.state"; }}
@@ -398,14 +488,15 @@ def cmd_plan(a):
     c, image = load(a.container), load(a.image)
     check_target(a.target_version, a.target_digest)
     src = image_version(c)
-    if src != EXPECTED_SOURCE_VERSION:
-        refuse(f'running image tag is {src!r}, inventory confirmed {EXPECTED_SOURCE_VERSION}')
+    if src != a.expect_source_version:
+        refuse(f'running image tag is {src!r}, the inventory confirmed {a.expect_source_version} (--expect-source-version)')
     if c['Image'] != image['Id']:
         refuse('the supplied image JSON is not the image of this container')
     spec = normalize(c, image)
     docs = [load(p) for p in a.network]
-    if {d['Name'] for d in docs} != set(EXPECTED_NETWORKS):
-        refuse(f'network inspect files cover {sorted(d["Name"] for d in docs)}')
+    attached = set(c['NetworkSettings']['Networks'])
+    if {d['Name'] for d in docs} != attached:
+        refuse(f'networks differ: the supplied network captures {sorted(d["Name"] for d in docs)} do not match the networks attached to the container {sorted(attached)}')
     spec['networkDrivers'] = check_networks(spec['networkConfig'], docs)
     spec.update(containerId=c['Id'], imageId=c['Image'], sourceVersion=src, targetVersion=a.target_version,
                 targetDigest=a.target_digest, newRef=f'traefik:v{a.target_version}@{a.target_digest}')
@@ -430,11 +521,23 @@ def cmd_compare(a):
     image = load(a.image) if a.image else None
     if image is None:
         refuse('--image is required for before/after comparisons')
+    want = {k: spec[k] for k in PRESERVED}
     if a.mode == 'before':
-        if normalize(c, image) != {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'logDriver', 'backupPaths')} \
-                or c['Id'] != spec['containerId'] or c['Image'] != spec['imageId']:
+        if normalize(c, image) != want or c['Id'] != spec['containerId'] or c['Image'] != spec['imageId']:
             refuse('running container no longer matches the plan')
         print('BEFORE MATCHES PLAN'); return
+    if a.mode == 'probe':
+        # The stopped pre-flight candidate, created by THIS daemon with the generated flags: everything Docker adds or
+        # inherits (log driver, init, security options, ulimits, mounts, networks) must equal the plan before any downtime.
+        if (c.get('State') or {}).get('Running') or c['Id'] in (spec['containerId'],):
+            refuse('the pre-flight candidate must be a different, stopped container')
+        if not c['Config'].get('Image', '').endswith('@' + spec['targetDigest']):
+            refuse('the pre-flight candidate does not use the approved digest')
+        now = normalize(c, image, kind='probe')
+        want['restart'] = 'no'
+        if now != want:
+            refuse(f'THE CANDIDATE WOULD NOT PRESERVE: {sorted(k for k in want if now.get(k) != want[k])} (nothing was switched)')
+        print('PROBE OK: a candidate created with the generated flags preserves ports, mounts, networks, log configuration and inherited settings'); return
     # after: the new container must be the old one with ONLY the image (and ids) changed.
     state = c['State']
     if not state.get('Running') or state.get('Restarting') or c['RestartCount'] != 0:
@@ -444,11 +547,9 @@ def cmd_compare(a):
     if not c['Config'].get('Image', '').endswith('@' + spec['targetDigest']):
         refuse('container is not running the approved digest')
     now = normalize(c, image)       # image = the pulled NEW image: no extra env/labels/cmd/user may differ from its defaults
-    want = {k: spec[k] for k in ('name', 'restart', 'ports', 'mounts', 'networks', 'primaryNetwork', 'networkConfig', 'logDriver', 'backupPaths')}
     if now != want:
-        diff = sorted(k for k in want if now.get(k) != want[k])
-        refuse(f'NOT PRESERVED: {diff}')
-    print('AFTER PRESERVES PORTS/MOUNTS/NETWORKS/RESTART; image changed to the approved digest')
+        refuse(f'NOT PRESERVED: {sorted(k for k in want if now.get(k) != want[k])}')
+    print('AFTER PRESERVES PORTS/MOUNTS/NETWORKS/LOG/RESTART; image changed to the approved digest')
 
 
 def routers(path):
@@ -468,6 +569,16 @@ def cmd_routers(a):
 
 FATAL = re.compile(r'(command traefik error|error configuring|cannot unmarshal|field not found|yaml:|invalid (static )?configuration|unknown (field|flag)|"?level"?[=:]"?fatal|panic:|failed to (decode|load))', re.I)
 EXPECTED_NOISE = re.compile(r'(docker|swarm|acme|letsencrypt|lego|dial unix|cannot connect to the docker daemon|no such host|network is unreachable|resolver)', re.I)
+
+
+def cmd_logargs(a):
+    spec, c = json.loads(Path(a.spec).read_text()), load(a.inspect)
+    typ, opts = read_log(c['HostConfig'])
+    if log_summary(typ, opts) != spec['log']:
+        refuse('the log configuration of the capture differs from the plan; regenerate the plan')
+    tokens = ['--log-driver', typ] + [t for k in sorted(opts) for t in ('--log-opt', f'{k}={opts[k]}')]
+    sys.stdout.buffer.write(b''.join(t.encode() + b'\0' for t in tokens))   # NUL-separated: no shell quoting, no values in scripts
+    sys.stdout.buffer.flush()
 
 
 def cmd_ipcheck(a):
@@ -498,7 +609,8 @@ def cmd_ipcheck(a):
 
 def cmd_scan(a):
     lines = Path(a.log).read_text(errors='replace').splitlines()
-    fatal = [l for l in lines if FATAL.search(l)]
+    benign = re.compile(r'level=(info|debug|warn|trace)\b|"level":"(info|debug|warn|trace)"')
+    fatal = [l for l in lines if FATAL.search(l) and not benign.search(l)]
     errors = [l for l in lines if re.search(r'level=error|"level":"error"', l)]
     unexpected = [l for l in errors if not EXPECTED_NOISE.search(l)]
     if fatal or unexpected:
@@ -521,10 +633,12 @@ def main(argv=None):
     p = argparse.ArgumentParser(); sub = p.add_subparsers(dest='cmd', required=True)
     s = sub.add_parser('plan'); s.add_argument('--container', required=True); s.add_argument('--image', required=True)
     s.add_argument('--network', nargs='+', required=True); s.add_argument('--target-version', required=True)
-    s.add_argument('--target-digest', required=True); s.add_argument('--out', required=True); s.set_defaults(f=cmd_plan)
+    s.add_argument('--target-digest', required=True); s.add_argument('--out', required=True)
+    s.add_argument('--expect-source-version', default=EXPECTED_SOURCE_VERSION); s.set_defaults(f=cmd_plan)
     s = sub.add_parser('compare'); s.add_argument('--spec', required=True); s.add_argument('--inspect'); s.add_argument('--image')
-    s.add_argument('--mode', choices=('before', 'after', 'image'), required=True); s.set_defaults(f=cmd_compare)
+    s.add_argument('--mode', choices=('before', 'probe', 'after', 'image'), required=True); s.set_defaults(f=cmd_compare)
     s = sub.add_parser('routers-diff'); s.add_argument('before'); s.add_argument('after'); s.set_defaults(f=cmd_routers)
+    s = sub.add_parser('log-args'); s.add_argument('--spec', required=True); s.add_argument('--inspect', required=True); s.set_defaults(f=cmd_logargs)
     s = sub.add_parser('ip-check'); s.add_argument('network_json'); s.add_argument('ip'); s.add_argument('--ignore-container', action='append'); s.set_defaults(f=cmd_ipcheck)
     s = sub.add_parser('scan-canary-log'); s.add_argument('log'); s.set_defaults(f=cmd_scan)
     s = sub.add_parser('api-check'); s.add_argument('version'); s.set_defaults(f=cmd_api)

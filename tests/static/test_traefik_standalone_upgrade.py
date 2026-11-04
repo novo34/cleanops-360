@@ -11,6 +11,7 @@ TOOL = ROOT / 'scripts/traefik-standalone-upgrade.py'
 SHIM = ROOT / 'tests/static/shim_docker.py'
 CURL = ROOT / 'tests/static/shim_curl.sh'
 OLD_ID, OLD_IMG = 'a' * 64, 'sha256:' + '1' * 64
+LOG_SECRET = 'SECRET-VALUE-do-not-print-9f3a'   # stands for a credential carried in a log option
 PIN = '10.0.1.11'          # synthetic fixture value only: the tool derives the address from the capture
 NETS = {'dokploy-network': {'Name': 'dokploy-network', 'Driver': 'overlay', 'Scope': 'swarm', 'Attachable': True, 'IPAM': {'Config': [{'Subnet': '10.0.1.0/24', 'Gateway': '10.0.1.1'}]}},
         'supabase-supabase-2bvnab': {'Name': 'supabase-supabase-2bvnab', 'Driver': 'bridge', 'Scope': 'local', 'Attachable': False, 'IPAM': {'Config': [{'Subnet': '172.23.0.0/16'}]}}}
@@ -53,11 +54,11 @@ class Base(unittest.TestCase):
     def write(self, name, data):
         (self.inputs / name).write_text(json.dumps(data))
 
-    def plan(self, version='3.7.17', digest=DIGEST, out=None):
+    def plan(self, version='3.7.17', digest=DIGEST, out=None, networks=('dokploy-network.json', 'supabase-supabase-2bvnab.json'), extra=()):
         out = out or self.tmp / 'plan'
         return subprocess.run(['python3', '-I', str(TOOL), 'plan', '--container', str(self.inputs / 'container.json'), '--image', str(self.inputs / 'image.json'),
-                               '--network', str(self.inputs / 'dokploy-network.json'), str(self.inputs / 'supabase-supabase-2bvnab.json'),
-                               '--target-version', version, '--target-digest', digest, '--out', str(out)], capture_output=True, text=True)
+                               '--network', *[str(self.inputs / n) for n in networks],
+                               '--target-version', version, '--target-digest', digest, '--out', str(out), *extra], capture_output=True, text=True)
 
 
 class Planning(Base):
@@ -153,6 +154,116 @@ class Planning(Base):
                 with_net(name, **changes)
                 r = self.plan(); self.assertEqual(r.returncode, 1); self.assertIn(fragment, r.stderr); self.assertFalse((self.tmp / 'plan').exists())
 
+
+    # ---- integral audit: LogConfig and the other predictable false rejections / false acceptances ----
+    SECRET = 'SECRET-VALUE-do-not-print-9f3a'
+    LOGS = {
+        'json-file with rotation (typical hardened daemon.json)': {'Type': 'json-file', 'Config': {'max-size': '10m', 'max-file': '3'}},
+        'local with limits': {'Type': 'local', 'Config': {'max-size': '20m', 'compress': 'true'}},
+        'journald': {'Type': 'journald', 'Config': {'tag': 'traefik'}},
+        'syslog': {'Type': 'syslog', 'Config': {'syslog-address': 'udp://127.0.0.1:514', 'tag': 'cleanops-{{.Name}}-prod'}},
+        'fluentd': {'Type': 'fluentd', 'Config': {'fluentd-address': 'localhost:24224', 'fluentd-async': 'true'}},
+        'none': {'Type': 'none', 'Config': {}},
+        'splunk with a credential option': {'Type': 'splunk', 'Config': {'splunk-url': 'https://splunk.example:8088', 'splunk-token': SECRET}},
+        'default json-file': {'Type': 'json-file', 'Config': {}},
+    }
+
+    def test_every_supported_log_configuration_is_preserved_without_printing_values(self):
+        for label, lc in self.LOGS.items():
+            with self.subTest(label):
+                shutil.rmtree(self.tmp / 'plan', ignore_errors=True)
+                c = [container(self.root)]; c[0]['HostConfig']['LogConfig'] = copy.deepcopy(lc); self.write('container.json', c)
+                r = self.plan(); self.assertEqual(r.returncode, 0, r.stderr)
+                spec = json.loads((self.tmp / 'plan/spec.json').read_text())
+                self.assertEqual(spec['log']['driver'], lc['Type']); self.assertEqual(spec['log']['optionKeys'], sorted(lc['Config']))
+                private = r.stdout + r.stderr + ''.join(f.read_text() for f in (self.tmp / 'plan').iterdir())
+                for v in lc['Config'].values():
+                    if len(v) > 8:
+                        self.assertFalse(v in private, f'{label}: option values are never written to the plan, its scripts or the terminal')   # no haystack dump on failure
+                # the flags are produced at run time from the private capture, exactly and NUL-separated
+                tokens = subprocess.run(['python3', '-I', str(TOOL), 'log-args', '--spec', str(self.tmp / 'plan/spec.json'), '--inspect', str(self.inputs / 'container.json')], capture_output=True)
+                self.assertEqual(tokens.returncode, 0)
+                want = ['--log-driver', lc['Type']] + [t for k in sorted(lc['Config']) for t in ('--log-opt', f"{k}={lc['Config'][k]}")]
+                self.assertEqual(tokens.stdout.split(b'\0')[:-1], [t.encode() for t in want])
+                self.assertIn('"${LOGARGS[@]}"', (self.tmp / 'plan/02-switch.sh').read_text())
+
+    def test_unreproducible_log_configurations_are_refused_without_leaking_values(self):
+        cases = (('unknown/plugin driver', {'Type': 'acme/custom-logger', 'Config': {}}, 'cannot be reproduced'),
+                 ('empty driver', {'Type': '', 'Config': {}}, 'cannot be reproduced'),
+                 ('options not a map', {'Type': 'json-file', 'Config': ['max-size=10m']}, 'not a map'),
+                 ('bad option key', {'Type': 'json-file', 'Config': {'bad key=1': self.SECRET}}, 'not reproducible'),
+                 ('non-string value', {'Type': 'json-file', 'Config': {'max-size': 10}}, 'not reproducible'),
+                 ('newline in a value', {'Type': 'json-file', 'Config': {'tag': self.SECRET + '\nINJECTED'}}, 'not reproducible'),
+                 ('oversized value', {'Type': 'json-file', 'Config': {'tag': 'x' * 5000}}, 'not reproducible'))
+        for label, lc, fragment in cases:
+            with self.subTest(label):
+                shutil.rmtree(self.tmp / 'plan', ignore_errors=True)
+                c = [container(self.root)]; c[0]['HostConfig']['LogConfig'] = lc; self.write('container.json', c)
+                r = self.plan(); self.assertEqual(r.returncode, 1); self.assertIn('REFUSED', r.stderr); self.assertIn(fragment, r.stderr)
+                self.assertFalse(self.SECRET in r.stdout + r.stderr or 'INJECTED' in r.stdout + r.stderr, 'values are never echoed')
+                self.assertFalse((self.tmp / 'plan').exists())
+
+    def test_log_args_refuses_a_capture_that_changed_after_planning(self):
+        self.assertEqual(self.plan().returncode, 0)
+        c = [container(self.root)]; c[0]['HostConfig']['LogConfig'] = {'Type': 'json-file', 'Config': {'max-size': '1m'}}; self.write('container.json', c)
+        r = subprocess.run(['python3', '-I', str(TOOL), 'log-args', '--spec', str(self.tmp / 'plan/spec.json'), '--inspect', str(self.inputs / 'container.json')], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 1); self.assertIn('differs from the plan', r.stderr); self.assertEqual(r.stdout, '')
+
+    def test_mount_mode_and_propagation_are_no_longer_ignored(self):
+        self.refuses(lambda c, i: c['Mounts'][0].update(Propagation='rshared'), 'propagation')
+        self.refuses(lambda c, i: c['Mounts'][1].update(Mode='z'), 'not reproducible')
+        self.refuses(lambda c, i: c['Mounts'][2].update(Mode='rw'), 'contradicts')
+        self.refuses(lambda c, i: c['Mounts'][1].update(Mode='ro'), 'contradicts')
+        c = [container(self.root)]
+        for m in c[0]['Mounts']: m.update(Propagation='rprivate')
+        c[0]['Mounts'][2].update(Mode='ro'); self.write('container.json', c)       # what Docker really reports for `-v /var/run/docker.sock:...:ro`
+        self.assertEqual(self.plan().returncode, 0)
+
+    def test_network_modes_and_attachments_other_than_user_networks_are_refused(self):
+        self.refuses(lambda c, i: c['HostConfig'].update(NetworkMode='host'), 'network mode')
+        self.refuses(lambda c, i: c['HostConfig'].update(NetworkMode='container:abc'), 'network mode')
+        self.refuses(lambda c, i: c['NetworkSettings']['Networks'].update(bridge={'Aliases': None, 'IPAMConfig': None, 'IPAddress': '172.17.0.2'}), 'unsupported network attachments')
+        self.refuses(lambda c, i: c['NetworkSettings']['Networks'].pop('dokploy-network'), 'not attached')
+
+    def test_network_names_and_source_version_are_not_tied_to_one_installation(self):
+        c = [container(self.root)]
+        c[0]['NetworkSettings']['Networks']['other-stack_default'] = c[0]['NetworkSettings']['Networks'].pop('supabase-supabase-2bvnab')
+        self.write('container.json', c)
+        doc = copy.deepcopy(NETS['supabase-supabase-2bvnab']); doc['Name'] = 'other-stack_default'; self.write('other.json', [doc])
+        r = self.plan(networks=('dokploy-network.json', 'other.json')); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads((self.tmp / 'plan/spec.json').read_text())['networks'], ['dokploy-network', 'other-stack_default'])
+        # a network capture that does not match what is attached is still refused
+        shutil.rmtree(self.tmp / 'plan'); r = self.plan(); self.assertEqual(r.returncode, 1); self.assertIn('networks differ', r.stderr)
+        # another running 3.6.x needs the explicit confirmation, nothing is silently accepted
+        c = [container(self.root)]; c[0]['Config']['Image'] = 'traefik:v3.6.12'; self.write('container.json', c)
+        self.assertEqual(self.plan().returncode, 1)
+        self.assertEqual(self.plan(extra=('--expect-source-version', '3.6.12')).returncode, 0)
+
+    def test_settings_a_hardened_daemon_injects_are_recorded_for_verification_not_rejected(self):
+        c = [container(self.root)]
+        c[0]['HostConfig'].update(Init=True, SecurityOpt=['no-new-privileges'], Ulimits=[{'Name': 'nofile', 'Soft': 1024, 'Hard': 2048}])
+        self.write('container.json', c)
+        r = self.plan(); self.assertEqual(r.returncode, 0, r.stderr)
+        spec = json.loads((self.tmp / 'plan/spec.json').read_text())
+        self.assertEqual(spec['inherited'], {'init': True, 'securityOpt': ['no-new-privileges'], 'ulimits': [{'Name': 'nofile', 'Soft': 1024, 'Hard': 2048}]})
+        switch = (self.tmp / 'plan/02-switch.sh').read_text()
+        for flag in ('--init', '--security-opt', '--ulimit'):
+            self.assertNotIn(flag, switch, 'inherited settings are verified on a probe, never guessed as flags')
+        # explicit non-default settings that are NOT inheritable stay refused
+        shutil.rmtree(self.tmp / 'plan')
+        self.refuses(lambda c, i: c['HostConfig'].update(CapAdd=['NET_ADMIN']), 'CapAdd')
+
+    def test_stale_transient_aliases_left_by_rename_are_not_custom_aliases(self):
+        c = [container(self.root)]
+        c[0]['NetworkSettings']['Networks']['dokploy-network']['Aliases'] += ['dokploy-traefik-prev-20261104T101010Z', 'dokploy-traefik-failed-20261104T101010Z']
+        self.write('container.json', c)
+        self.assertEqual(self.plan().returncode, 0)
+        self.assertEqual(json.loads((self.tmp / 'plan/spec.json').read_text())['networkConfig']['dokploy-network']['aliases'], [])
+        # a genuinely custom alias is still preserved, one that merely looks similar is not swallowed
+        c[0]['NetworkSettings']['Networks']['dokploy-network']['Aliases'] += ['dokploy-traefik-prev-notatimestamp']; self.write('container.json', c)
+        shutil.rmtree(self.tmp / 'plan'); self.assertEqual(self.plan().returncode, 0)
+        self.assertEqual(json.loads((self.tmp / 'plan/spec.json').read_text())['networkConfig']['dokploy-network']['aliases'], ['dokploy-traefik-prev-notatimestamp'])
+
     def test_extra_environment_reports_names_never_values(self):
         r = self.refuses(lambda c, i: c['Config']['Env'].append('CF_API_TOKEN=super-secret-value-123'), 'CF_API_TOKEN')
         self.assertNotIn('super-secret-value-123', r.stdout + r.stderr)
@@ -194,15 +305,27 @@ class Shimmed(Base):
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return r
 
+    def switch_calls(self):
+        calls = self.snapshot()['calls']
+        first = next((i for i, c in enumerate(calls) if c[0] == 'stop'), len(calls))
+        return calls[first:]
+
     def snapshot(self):
         return json.loads(self.shim_state.read_text())
 
     APPROVE = {'B1_TRAEFIK_APPROVAL_REF': 'OWNER-2026-11-04:b1-traefik', 'B1_TRAEFIK_VERSION_GUARD_ACK': 'yes'}
 
     def test_prepare_is_non_mutating_and_makes_a_private_backup(self):
-        r = self.sh('01-prepare.sh', check=True); self.assertIn('Nothing was changed', r.stdout)
-        verbs = [c[0] for c in self.snapshot()['calls']]
-        self.assertFalse({'stop', 'rename', 'create', 'start', 'update'} & set(verbs), verbs)
+        r = self.sh('01-prepare.sh', check=True); self.assertIn('was not touched', r.stdout)
+        st = self.snapshot(); verbs = [c[0] for c in st['calls']]
+        self.assertFalse({'stop', 'rename', 'start', 'update'} & set(verbs), verbs)
+        creates = [c for c in st['calls'] if c[0] == 'create']
+        self.assertEqual(len(creates), 1, 'exactly one stopped pre-flight probe')
+        self.assertEqual(creates[0][creates[0].index('--restart') + 1], 'no', 'the probe can never be started by a daemon restart')
+        probe = (self.state / 'probe.name').read_text().strip()
+        self.assertRegex(probe, r'^dokploy-traefik-probe-\d{8}T\d{6}Z$')
+        self.assertFalse(st['containers'][probe]['State']['Running'])
+        self.assertEqual(st['containers']['dokploy-traefik']['Id'], OLD_ID)
         for name in ('traefik-config.tar', 'before.inspect.json', 'canary.log', 'prepared.ok'):
             self.assertEqual(stat.S_IMODE((self.state / name).stat().st_mode) & 0o077, 0, name)
         listing = subprocess.run(['tar', '-tf', str(self.state / 'traefik-config.tar')], capture_output=True, text=True).stdout
@@ -238,7 +361,7 @@ class Shimmed(Base):
         self.assertEqual(order, sorted(order), 'stop -> rename -> disconnect (release pinned IP) -> create --ip -> connect -> start')
         create = calls[order[3]]; self.assertEqual(create[create.index('--ip') + 1], PIN)
         self.assertEqual([c for c in calls if c[:2] == ['network', 'disconnect']], [['network', 'disconnect', 'dokploy-network', st['switch_prev']]] if 'switch_prev' in st else [c for c in calls if c[:2] == ['network', 'disconnect']])
-        connects = [c for c in calls if c[:2] == ['network', 'connect']]
+        connects = [c for c in self.switch_calls() if c[:2] == ['network', 'connect']]
         self.assertEqual(len(connects), 1); self.assertNotIn('--ip', connects[0], 'the dynamic network is never pinned')
         self.assertFalse(any(c[0] in ('rm', 'service') or c[:2] == ['system', 'prune'] for c in calls))
         new, prev = st['containers']['dokploy-traefik'], next(v for k, v in st['containers'].items() if k.startswith('dokploy-traefik-prev-'))
@@ -272,6 +395,7 @@ class Shimmed(Base):
         self.sh('01-prepare.sh', check=True)
         st = self.snapshot(); st['fail_start'] = True; self.shim_state.write_text(json.dumps(st))
         r = self.sh('02-switch.sh', env=self.APPROVE); self.assertNotEqual(r.returncode, 0); self.assertIn('automatic rollback', r.stderr)
+        self.assertIn('ROLLBACK OK', r.stdout); self.assertNotIn('ROLLBACK ALSO FAILED', r.stderr)   # including its own verification of the original
         st = self.snapshot(); live = st['containers']['dokploy-traefik']
         self.assertEqual(live['Id'], OLD_ID); self.assertEqual(live['Image'], OLD_IMG)
         self.assertEqual(live['HostConfig']['RestartPolicy']['Name'], 'always'); self.assertTrue(live['State']['Running'])
@@ -316,8 +440,7 @@ class Shimmed(Base):
                 self.assertNotEqual(r.returncode, 0); self.assertIn('automatic rollback', r.stderr); self.assertNotIn('ROLLBACK ALSO FAILED', r.stderr)
                 self.assertIn('ROLLBACK OK', r.stdout)
                 self.assert_original_restored()
-                verbs = [c[0] for c in self.snapshot()['calls']]
-                self.assertNotIn('create', verbs, 'no candidate may be created before the original is safely renamed')
+                self.assertNotIn('create', [c[0] for c in self.switch_calls()], 'no candidate may be created before the original is safely renamed')
 
     def test_failure_after_the_rename_still_recovers(self):
         for label, cmd, failed in (('create fails', ['create'], 0), ('network connect fails', ['network', 'connect'], 1), ('start fails', ['start'], 1)):
@@ -363,8 +486,8 @@ class Shimmed(Base):
                               env={'B1_TRAEFIK_IP_WAIT_TRIES': '2', 'B1_TRAEFIK_ROLLBACK_IP_WAIT_TRIES': '10'})
         self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK OK', r.stdout)
         self.assert_original_restored()
-        st = self.snapshot(); self.assertFalse([c for c in st['calls'] if c[0] == 'create'], 'the candidate was never created')
-        reconnect = [c for c in st['calls'] if c[:2] == ['network', 'connect']]
+        st = self.snapshot(); self.assertFalse([c for c in self.switch_calls() if c[0] == 'create'], 'the candidate was never created')
+        reconnect = [c for c in self.switch_calls() if c[:2] == ['network', 'connect']]
         self.assertEqual(reconnect, [['network', 'connect', '--ip', PIN, 'dokploy-network', OLD_ID]], 'the original is re-attached with its exact pinned address')
 
     def test_reservation_that_never_goes_away_leaves_the_original_intact_and_recoverable(self):
@@ -374,7 +497,7 @@ class Shimmed(Base):
         self.assertEqual((live['Id'], live['Image']), (OLD_ID, OLD_IMG)); self.assertFalse(live['State']['Running'])
         self.assertEqual(live['HostConfig']['RestartPolicy']['Name'], 'always')
         self.assertEqual(live['NetworkSettings']['Networks']['dokploy-network']['IPAMConfig'], {'IPv4Address': PIN}, 'endpoint already restored')
-        self.assertFalse([c for c in st['calls'] if c[0] in ('rm', 'create')])
+        self.assertFalse([c for c in self.switch_calls() if c[0] in ('rm', 'create')])
         # once the cluster lets go of the address, the same generated rollback finishes the job
         st['stuck'] = {}; st['holders']['dokploy-network'] = {}; st['ghost_polls'] = {}; self.shim_state.write_text(json.dumps(st))
         self.sh('rollback.sh', check=True); self.assert_original_restored()
@@ -399,7 +522,7 @@ class Shimmed(Base):
                 self.sh('01-prepare.sh', check=True); self.fault(['network', 'disconnect'], effect)
                 r = self.sh('02-switch.sh', env=self.APPROVE)
                 self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored()
-                self.assertFalse([c for c in self.snapshot()['calls'] if c[0] == 'create'])
+                self.assertFalse([c for c in self.switch_calls() if c[0] == 'create'])
 
     def test_release_is_explicit_when_stop_does_not_free_the_address(self):
         """sticky_stop: the stopped container keeps its reservation; only `network disconnect` frees it."""
@@ -411,6 +534,89 @@ class Shimmed(Base):
         self.reset(sticky_stop=True); (self.state / 'prepared.ok').unlink(missing_ok=True)
         r = self.switch_fails(lambda s: s.update(fail_start=True), tries='3')
         self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored(failed_candidates=1)
+
+
+    # ---- LogConfig and daemon-inherited settings: preservation, pre-flight probe, switch and rollback ----
+    ROTATION = {'Type': 'json-file', 'Config': {'max-size': '10m', 'max-file': '3'}}
+    SPLUNK = {'Type': 'splunk', 'Config': {'splunk-url': 'https://splunk.example:8088', 'splunk-token': LOG_SECRET}}
+
+    def adopt(self, mutate, **shim):
+        """Plan from a different (synthetic) capture and make the simulated daemon hold exactly that container."""
+        c = container(self.root); mutate(c)
+        self.write('container.json', [c]); shutil.rmtree(self.plan_dir)
+        r = self.plan(); self.assertEqual(r.returncode, 0, r.stderr)
+        for name in ('prepared.ok', 'switch.state'): (self.state / name).unlink(missing_ok=True)
+        self.reset(**shim); st = self.snapshot(); st['containers']['dokploy-traefik'] = c; self.shim_state.write_text(json.dumps(st))
+        return c
+
+    def private_text(self, *results):
+        return ''.join(r.stdout + r.stderr for r in results) + ''.join(f.read_text() for f in self.plan_dir.iterdir())
+
+    def test_log_configuration_is_preserved_exactly_by_the_switch_and_never_printed(self):
+        for label, lc in (('rotation options', self.ROTATION), ('driver carrying a credential', self.SPLUNK)):
+            with self.subTest(label):
+                self.adopt(lambda c: c['HostConfig'].update(LogConfig=copy.deepcopy(lc)))
+                r1 = self.sh('01-prepare.sh', check=True); r2 = self.sh('02-switch.sh', env=self.APPROVE, check=True)
+                st = self.snapshot(); new = st['containers']['dokploy-traefik']
+                self.assertEqual(new['HostConfig']['LogConfig'], lc, 'the candidate runs with the exact driver and options')
+                probe = st['containers'][(self.state / 'probe.name').read_text().strip()]
+                self.assertEqual(probe['HostConfig']['LogConfig'], lc)
+                create = next(c for c in self.switch_calls() if c[0] == 'create')
+                self.assertEqual(create[create.index('--log-driver') + 1], lc['Type'])
+                self.assertFalse(LOG_SECRET in self.private_text(r1, r2), 'option values are in neither the output nor the generated scripts')
+                self.assertEqual(stat.S_IMODE((self.state / 'log.args').stat().st_mode) & 0o077, 0, 'the only copy of the options is private')
+
+    def test_log_configuration_survives_a_failed_switch_and_its_rollback(self):
+        self.adopt(lambda c: c['HostConfig'].update(LogConfig=copy.deepcopy(self.SPLUNK)))
+        r = self.switch_fails(lambda st: st.update(fail_start=True), tries='3')
+        self.assertIn('ROLLBACK OK', r.stdout); self.assert_original_restored(failed_candidates=1)
+        st = self.snapshot()
+        self.assertEqual(st['containers']['dokploy-traefik']['HostConfig']['LogConfig'], self.SPLUNK, 'the original keeps its own configuration')
+        failed = next(v for k, v in st['containers'].items() if '-failed-' in k)
+        self.assertEqual(failed['HostConfig']['LogConfig'], self.SPLUNK)
+        self.assertFalse(LOG_SECRET in self.private_text(r))
+
+    def test_preflight_probe_stops_everything_when_the_daemon_would_not_reproduce_the_container(self):
+        for label, daemon in (('the daemon injects init', {'Init': True}), ('the daemon injects security options', {'SecurityOpt': ['no-new-privileges']}),
+                              ('the daemon injects a ulimit', {'Ulimits': [{'Name': 'nofile', 'Soft': 1, 'Hard': 2}]})):
+            with self.subTest(label):
+                self.adopt(lambda c: None, daemon_hostconfig=daemon)
+                r = self.sh('01-prepare.sh'); self.assertNotEqual(r.returncode, 0)
+                self.assertIn('WOULD NOT PRESERVE', r.stderr); self.assertIn('inherited', r.stderr)
+                self.assertFalse((self.state / 'prepared.ok').exists())
+                self.assertEqual(self.sh('02-switch.sh', env=self.APPROVE).returncode != 0, True, 'the switch refuses to start without a passing prepare')
+                self.assertFalse({'stop', 'rename', 'update', 'start'} & {c[0] for c in self.snapshot()['calls']}, 'no downtime was caused')
+
+    def test_hardened_daemon_defaults_are_accepted_when_the_probe_proves_they_match(self):
+        hard = {'Init': True, 'SecurityOpt': ['no-new-privileges'], 'Ulimits': [{'Name': 'nofile', 'Soft': 1024, 'Hard': 2048}]}
+        self.adopt(lambda c: c['HostConfig'].update(copy.deepcopy(hard)), daemon_hostconfig=copy.deepcopy(hard))
+        self.sh('01-prepare.sh', check=True); self.sh('02-switch.sh', env=self.APPROVE, check=True)
+        new = self.snapshot()['containers']['dokploy-traefik']
+        for k, v in hard.items(): self.assertEqual(new['HostConfig'][k], v)
+
+    def test_an_option_the_daemon_rejects_is_found_before_any_downtime(self):
+        self.adopt(lambda c: c['HostConfig'].update(LogConfig=copy.deepcopy(self.ROTATION)), reject_create_with='--log-opt')
+        r = self.sh('01-prepare.sh'); self.assertNotEqual(r.returncode, 0); self.assertIn('unsupported option', r.stderr)
+        self.assertFalse((self.state / 'prepared.ok').exists())
+        self.assertFalse({'stop', 'rename', 'update', 'start'} & {c[0] for c in self.snapshot()['calls']})
+
+    def test_the_probe_is_left_stopped_with_restart_no_and_never_owns_the_pinned_address(self):
+        self.sh('01-prepare.sh', check=True); self.sh('02-switch.sh', env=self.APPROVE, check=True)
+        st = self.snapshot(); probe = st['containers'][(self.state / 'probe.name').read_text().strip()]
+        self.assertFalse(probe['State']['Running']); self.assertEqual(probe['HostConfig']['RestartPolicy']['Name'], 'no')
+        self.assertNotIn(probe['Id'], st['holders']['dokploy-network'].values())
+        self.assertFalse(any(c[0] in ('rm', 'service') for c in st['calls']), 'the probe is never deleted by the procedure')
+
+    def test_verification_waits_for_providers_to_rebuild_their_routers(self):
+        self.sh('01-prepare.sh', check=True)
+        st = self.snapshot(); st['routers_lag'] = 3; self.shim_state.write_text(json.dumps(st))
+        r = self.sh('02-switch.sh', env=self.APPROVE); self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.snapshot()['routers_lag'], 0, 'it polled until the routers were back instead of rolling back')
+
+    def test_routers_that_never_come_back_still_roll_back(self):
+        r = self.switch_fails(lambda st: st.update(routers_lag=4), env={'B1_TRAEFIK_VERIFY_TRIES': '3'})
+        self.assertNotEqual(r.returncode, 0); self.assertIn('router baseline not restored', r.stderr); self.assertIn('ROLLBACK OK', r.stdout)
+        self.assert_original_restored(failed_candidates=1)
 
     def test_router_change_after_switch_is_detected_and_rolled_back(self):
         self.sh('01-prepare.sh', check=True)
@@ -448,6 +654,18 @@ class Helpers(Base):
         for bad in ('', 'not json'):
             f.write_text(bad); self.assertEqual(self.run_tool('ip-check', str(f), '10.0.1.99').returncode, 2, 'unusable data is never treated as free')
         self.assertEqual(self.run_tool('ip-check', str(f), '999.1.1.1').returncode, 2)
+
+
+    def test_canary_scan_ignores_info_lines_and_provider_noise_but_not_real_errors(self):
+        log = self.tmp / 'c2.log'
+        base = 'time=1 level=info msg="Configuration loaded from file: /etc/traefik/traefik.yml"\n'
+        log.write_text(base + 'time=2 level=info msg="the yaml: parser is happy, field not found is just text here"\n'
+                       'time=3 level=error msg="router app@file: service \\"svc@docker\\" does not exist"\n'
+                       'time=4 level=error msg="Provider connection error: Cannot connect to the Docker daemon" providerName=swarm\n')
+        self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 0)
+        log.write_text(base + 'command traefik error: yaml: unmarshal errors: field fooBar not found in type static.Configuration\n')
+        self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
+        log.write_text(base + 'time=5 level=fatal msg="could not start"\n'); self.assertEqual(self.run_tool('scan-canary-log', str(log)).returncode, 1)
 
     def test_canary_scan_and_api_check(self):
         log = self.tmp / 'c.log'
