@@ -237,20 +237,26 @@ echo "VERIFY OK ($NAME)"
 def script_rollback(spec):
     return HEADER + common(spec) + f'''
 [[ -s $STATE/switch.state ]] || {{ echo "no switch.state: nothing to roll back" >&2; exit 2; }}
-source "$STATE/switch.state"      # STAMP, PREV (previous container name)
-docker inspect "$PREV" >/dev/null
-if docker inspect "$OLD" >/dev/null 2>&1; then
-  docker stop -t 10 "$OLD" || true
-  docker rename "$OLD" "$OLD-failed-$STAMP"
+source "$STATE/switch.state"      # STAMP, PREV, PHASE (last phase reached by 02-switch.sh)
+echo "rollback: last recorded phase = ${{PHASE:-unknown}}" >&2
+# The ERR trap is armed BEFORE stop/update/rename, so the original may still be named "$OLD" (stop, update or
+# rename failed), or already be "$PREV". Recover from the effective state, identifying the original by its Id.
+current=$(docker inspect --format '{{{{.Name}}}}' "$OLD_ID") || {{ echo "ORIGINAL CONTAINER $OLD_ID NOT FOUND: manual recovery required, nothing was deleted" >&2; exit 6; }}
+current=${{current#/}}
+# A candidate (different Id) may hold the production name only after a later phase: move it aside, never delete it.
+holder=$(docker inspect --format '{{{{.Id}}}}' "$OLD" 2>/dev/null || true)
+if [[ -n $holder && $holder != "$OLD_ID" ]]; then
+  docker stop -t 10 "$holder" || true
+  docker rename "$holder" "$OLD-failed-$STAMP"
   docker update --restart=no "$OLD-failed-$STAMP"
 fi
-docker rename "$PREV" "$OLD"
-docker update --restart=always "$OLD"
-docker start "$OLD"
+[[ $current == "$OLD" ]] || docker rename "$OLD_ID" "$OLD"
+docker update --restart=always "$OLD_ID"
+docker start "$OLD_ID"           # no-op when it never stopped
 # Configuration is never rewritten automatically (Dokploy may have written valid changes since). Report drift only.
 if ! (cd "$STATE" && sha256sum --status -c traefik-config.tar.sha256); then echo "backup archive integrity FAILED" >&2; exit 6; fi
 B1_TRAEFIK_VERIFY_MODE=before bash "$HERE/03-verify.sh" "$OLD"
-echo "ROLLBACK OK. Failed candidate kept as $OLD-failed-$STAMP for analysis; previous image $OLD_IMAGE_ID restored."
+echo "ROLLBACK OK. Original container $OLD_ID (image $OLD_IMAGE_ID) is $OLD again; any failed candidate is kept as $OLD-failed-$STAMP for analysis."
 '''
 
 
@@ -265,15 +271,17 @@ def script_switch(spec):
 [[ $(docker inspect --format '{{{{.Id}}}}' "$OLD") == "$OLD_ID" ]] || {{ echo "INVENTORY DRIFT since prepare" >&2; exit 3; }}
 STAMP=$(date -u +%Y%m%dT%H%M%SZ); PREV="$OLD-prev-$STAMP"
 printf 'STAMP=%s\\nPREV=%s\\nAPPROVAL=%s\\n' "$STAMP" "$PREV" "$B1_TRAEFIK_APPROVAL_REF" > "$STATE/switch.state"
-fail() {{ echo "SWITCH FAILED at line $1 -> automatic rollback" >&2; trap - ERR; bash "$HERE/rollback.sh" || echo "ROLLBACK ALSO FAILED: manual restore from $PREV required" >&2; exit 1; }}
+phase() {{ printf 'PHASE=%s\\n' "$1" >> "$STATE/switch.state"; }}
+fail() {{ echo "SWITCH FAILED at line $1 (phase: $(sed -n 's/^PHASE=//p' "$STATE/switch.state" | tail -1)) -> automatic rollback" >&2; trap - ERR; bash "$HERE/rollback.sh" || echo "ROLLBACK ALSO FAILED: manual restore from $PREV required" >&2; exit 1; }}
 trap 'fail $LINENO' ERR
 # Downtime window starts: ports 80/443 are released by the stop.
-docker stop -t 30 "$OLD"
-docker update --restart=no "$OLD"
-docker rename "$OLD" "$PREV"
-{create}
-{connect}
-docker start "$OLD"
+phase stopping;         docker stop -t 30 "$OLD"
+phase stopped;          docker update --restart=no "$OLD"
+phase restart-disabled; docker rename "$OLD" "$PREV"
+phase renamed;          {create}
+phase created;          {connect}
+phase networked;        docker start "$OLD"
+phase started
 for i in $(seq 1 30); do
   [[ $(docker inspect --format '{{{{.State.Running}}}} {{{{.RestartCount}}}}' "$OLD") == "true 0" ]] && ok=$((${{ok:-0}}+1)) || ok=0
   (( ok >= 5 )) && break
@@ -281,6 +289,7 @@ for i in $(seq 1 30); do
 done
 (( ${{ok:-0}} >= 5 )) || false
 bash "$HERE/03-verify.sh" "$OLD"
+phase verified
 trap - ERR
 echo "SWITCH OK. Previous container kept stopped as $PREV (restart=no). Do NOT delete it until the observation window ends."
 '''

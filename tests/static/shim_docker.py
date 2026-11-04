@@ -5,6 +5,14 @@ S = os.environ['SHIM_STATE']
 st = json.load(open(S))
 args = sys.argv[1:]
 st['calls'].append(args)
+fail_after = False
+for i, entry in enumerate(st.get('fail_on', [])):
+    if args[:len(entry['cmd'])] == entry['cmd']:        # one-shot: later (rollback) calls of the same verb succeed
+        st['fail_on'].pop(i)
+        if not entry.get('effect'):
+            json.dump(st, open(S, 'w')); sys.exit(1)     # fails WITHOUT changing anything
+        fail_after = True                                # fails AFTER the change happened (e.g. timeout reporting an error)
+        break
 
 
 def save():
@@ -30,6 +38,8 @@ if cmd == 'inspect':
     fmt = args[2] if args[1] == '--format' else None
     if fmt == '{{.Id}}':
         out(c['Id'])
+    elif fmt == '{{.Name}}':
+        out(c['Name'])
     elif fmt == '{{.State.Running}} {{.RestartCount}}':
         out(f"{str(c['State']['Running']).lower()} {c['RestartCount']}")
     else:
@@ -83,3 +93,4 @@ elif cmd == 'start':
 else:
     save(); sys.exit('shim: unsupported docker command ' + ' '.join(args))
 save()
+sys.exit(1 if fail_after else 0)

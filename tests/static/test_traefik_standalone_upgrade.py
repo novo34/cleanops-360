@@ -205,6 +205,60 @@ class Shimmed(Base):
         self.assertEqual(len(failed), 1); self.assertEqual(st['containers'][failed[0]]['HostConfig']['RestartPolicy']['Name'], 'no')
         self.assertFalse([k for k in st['containers'] if '-prev-' in k])
 
+    def fault(self, cmd, effect=False):
+        st = self.snapshot(); st['fail_on'] = [{'cmd': cmd, 'effect': effect}]; self.shim_state.write_text(json.dumps(st))
+
+    def assert_original_restored(self, failed_candidates=0):
+        st = self.snapshot(); live = st['containers'].get('dokploy-traefik')
+        self.assertIsNotNone(live, list(st['containers']))
+        self.assertEqual((live['Id'], live['Image']), (OLD_ID, OLD_IMG))
+        self.assertEqual(live['HostConfig']['RestartPolicy']['Name'], 'always'); self.assertTrue(live['State']['Running'])
+        self.assertEqual([k for k in st['containers'] if '-prev-' in k], [])
+        failed = [k for k in st['containers'] if '-failed-' in k]
+        self.assertEqual(len(failed), failed_candidates)
+        for k in failed:
+            self.assertEqual(st['containers'][k]['HostConfig']['RestartPolicy']['Name'], 'no'); self.assertFalse(st['containers'][k]['State']['Running'])
+        self.assertFalse(any(c[0] in ('rm', 'service') for c in st['calls']), 'nothing is ever deleted')
+
+    def test_failure_before_the_rename_recovers_the_original_in_place(self):
+        """The ERR trap is armed before stop/update/rename: PREV does not exist yet, the original must still be recovered."""
+        cases = {
+            'stop fails, nothing changed': (['stop'], False),
+            'stop fails after the container was stopped': (['stop'], True),
+            'restart-policy update fails, nothing changed': (['update'], False),
+            'restart-policy update fails after restart=no was applied': (['update'], True),
+            'rename fails, nothing renamed': (['rename'], False),
+            'rename fails after the container was renamed to PREV': (['rename'], True),
+        }
+        for label, (cmd, effect) in cases.items():
+            with self.subTest(label):
+                self.reset(); (self.state / 'prepared.ok').unlink(missing_ok=True)
+                self.sh('01-prepare.sh', check=True); self.fault(cmd, effect)
+                r = self.sh('02-switch.sh', env=self.APPROVE)
+                self.assertNotEqual(r.returncode, 0); self.assertIn('automatic rollback', r.stderr); self.assertNotIn('ROLLBACK ALSO FAILED', r.stderr)
+                self.assertIn('ROLLBACK OK', r.stdout)
+                self.assert_original_restored()
+                verbs = [c[0] for c in self.snapshot()['calls']]
+                self.assertNotIn('create', verbs, 'no candidate may be created before the original is safely renamed')
+
+    def test_failure_after_the_rename_still_recovers(self):
+        for label, cmd, failed in (('create fails', ['create'], 0), ('network connect fails', ['network', 'connect'], 1), ('start fails', ['start'], 1)):
+            with self.subTest(label):
+                self.reset(); (self.state / 'prepared.ok').unlink(missing_ok=True)
+                self.sh('01-prepare.sh', check=True); self.fault(cmd)
+                r = self.sh('02-switch.sh', env=self.APPROVE)
+                self.assertNotEqual(r.returncode, 0); self.assertIn('ROLLBACK OK', r.stdout)
+                self.assert_original_restored(failed_candidates=failed)
+
+    def test_switch_state_records_the_phase_and_rollback_is_idempotent(self):
+        self.sh('01-prepare.sh', check=True); self.fault(['rename'])
+        self.assertNotEqual(self.sh('02-switch.sh', env=self.APPROVE).returncode, 0)
+        self.assertIn('PHASE=restart-disabled', (self.state / 'switch.state').read_text())
+        before = json.dumps(self.snapshot()['containers'], sort_keys=True)
+        self.sh('rollback.sh', check=True)       # second run on an already recovered system changes nothing material
+        self.assert_original_restored()
+        self.assertEqual(json.loads(before).keys(), self.snapshot()['containers'].keys())
+
     def test_router_change_after_switch_is_detected_and_rolled_back(self):
         self.sh('01-prepare.sh', check=True)
         st = self.snapshot(); changed = copy.deepcopy(ROUTERS); changed[0]['rule'] = 'Host(`evil.example`)'
