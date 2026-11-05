@@ -502,3 +502,17 @@ B1_SECRETOS=NO_IMPRESOS
 **Interpretación:** el nuevo router file-provider `cleanops-b1-device-ui-v2.yaml` se instaló, preservando `/login` antiguo sin la cookie B1, enrutando `/login` con cookie B1 y ForwardAuth al canary `cleanops-b1-assets:3000`; `/b1-static/_next/static/` se desenvuelve con StripPrefix y CSS/JS HTTP 200 en las comprobaciones del script. Las versiones Next antiguas ya no comparten la misma ruta de assets para B1. **Esto es PASS de HTTP y recursos del ensayo con curl**, no acredita todavía carga completa ni ausencia del error 500 en Brave, ni PREAUTH/CSRF, login, MFA o sesiones. El guard SQL permanece en su estado cerrado `deployment_enabled=false`, confirmado por rollback anterior; no reejecutar router activate ni regenerar credenciales.
 
 **Siguiente prueba obligatoria en navegador:** el propietario, con la nueva cookie host-only en el mismo perfil de Brave, debe **escribir directamente** `https://cleanops.nuvurent.com/login` para conservar SameSite=Strict (no navegar desde ChatGPT en primera carga), comprobar que la página carga con estilos y sin HTTP 500, y reportar resultado sin exponer cookie/credenciales/respuestas privadas. Si aparece HTTP 500, hacer rollback inmediato **solo del router v2** con `python3 /root/b1-ui-v2-guarded-cutover-20261105.py rollback`, no alterar canary SQL ni main router. Si la interfaz carga, probar por separado el desbloqueo temporal SQL con recibo protegido y aceptación autenticación sintética; no introducir contraseñas mientras el SQL gate sigue cerrado. `AUTH-GATE-05=OPEN` hasta pruebas reales y dictamen independiente.
+
+## 05/11/2026 — rollback UI v2 PASS; captura posterior muestra formulario
+
+El propietario notificó ejecución de `python3 /root/b1-ui-v2-guarded-cutover-20261105.py rollback` con salida:
+
+```text
+B1_UI_V2_ROLLBACK=PASS
+B1_MAIN_ROUTER=INTACTO
+B1_SQL_GATE=NO_MODIFICADO
+B1_ORIGINALES=NO_MODIFICADOS_POR_SCRIPT
+B1_SECRETOS=NO_IMPRESOS
+```
+
+Luego aportó una captura del navegador en `cleanops.nuvurent.com/login` con el formulario básico «CleanOps 360 · Acceso», campos Email/Contraseña, «Continuar», «Restablecer contraseña», «Reiniciar acceso». La captura **no muestra HTTP 500**, pero, al estar tomada después del rollback, no constituye evidencia de que el router UI v2 haya funcionado en Brave. No está confirmado por el usuario el motivo del rollback ni si se observó 500 durante la ventana activa; no inventar esa causa. `app/login/page.tsx` renderiza `AuthPanel`, `components/auth-panel.tsx` tiene `style={{maxWidth:640, margin:'3rem auto', padding:24}}` y `app/globals.css` define una apariencia deliberadamente mínima, sin `font-family` personalizado. Por tanto **el aspecto simple no demuestra ausencia de CSS**. La prioridad siguiente es distinguir si hubo HTTP 500 en el navegador durante v2 activo o si se retiró preventivamente; en caso de error real, obtener nombre de recurso y código de la solicitud fallida desde DevTools/Network sin copiar cookies, cuerpos, cabeceras ni URLs con tokens. No volver a activar a ciegas, no volver a emitir device, no rehacer PostgreSQL/TLS/OpenBao. SQL guard cerrado, canary v2 privado sigue preparado según último PASS, PR #33 draft, `AUTH-GATE-05` OPEN.
