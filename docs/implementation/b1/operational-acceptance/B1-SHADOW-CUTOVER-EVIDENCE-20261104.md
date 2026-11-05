@@ -382,3 +382,22 @@ B1_SECRETOS=NO_IMPRESOS
 ```
 
 **Interpretación estricta:** la compilación de imagen y GET HTML local pasan; la prueba de recursos se detiene antes de registrar `B1_ASSET_CSS=PASS`. El script atrapa excepciones sin distinguir si faltan referencias `/b1-static/_next/static/*.css`/`*.js` en HTML o si la primera petición CSS devolvió estado/MIME incorrecto. No atribuir aún causa. La imagen existe, **NO RECONSTRUIR** ni activar routers. El `next.config.ts` usa variable `CLEANOPS_B1_ASSET_PREFIX` al compilar, pero la etapa runtime de `deploy/staging/Dockerfile` no la declara: **hipótesis a verificar** si Next evalúa el assetPrefix distinto en build y start. Próxima prueba aislada de solo imagen, sin usar el VPS público, imprime exclusivamente prefix en config, conteos de referencias CSS/JS y estado/MIME de un recurso local de cada tipo; no imprime HTML, rutas ni cabeceras completas. Web original 200, SQL gate y UI B1 cerrados.
+
+## 05/11/2026 — inspección del candidato sin rebuild: prefix build PASS, runtime ausente
+
+Inspección estrictamente aislada de imagen ya compilada `cleanops360-b1-assets-candidate:296d4ef2`, con `docker run --rm -i --pull=never --network none --read-only`, sin acceso a servicios ni configuraciones del VPS. El propietario proporcionó:
+
+```text
+B1_BUILD_PREFIX=PASS
+B1_RUNTIME_PREFIX=AUSENTE
+B1_HTML=PASS
+B1_REFS_PREFIJO=2
+B1_REFS_SIN_PREFIJO=10
+B1_CSS=REFERENCIA_AUSENTE
+B1_JS_HTTP=200
+B1_JS_TIPO=PASS
+B1_CAMBIOS_SERVICIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Interpretación:** El artefacto `.next/required-server-files.json` conserva el assetPrefix de compilación; la etapa final del Dockerfile no contiene `CLEANOPS_B1_ASSET_PREFIX` en el entorno, tal como revela `B1_RUNTIME_PREFIX=AUSENTE`. El HTML del servidor presenta referencias mezcladas y la primera búsqueda de CSS *prefijado* falló. No se ha confirmado ausencia del CSS en el artefacto ni identificado el estado de referencias CSS no prefijadas. Las referencias CSS/JS se deben clasificar por extensión y prefijo en una única petición local, **sin imprimir rutas completas, tokens, cookies, HTML ni cabeceras**, y comprobar con `-e CLEANOPS_B1_ASSET_PREFIX=/b1-static` en el contenedor aislado **sin reconstruir imagen**. Si con el flag de ejecución las referencias CSS/JS quedan coherentemente prefijadas y archivos pasan 200 MIME, corregir Dockerfile y script para incluir variable no secreta de runtime y recompilar una sola vez en un tag nuevo. Si no, investigar la serialización Next de scripts y el routing de build; no atribuir el problema de manera definitiva a la variable todavía. Guard SQL cerrado, UI routers retirados, web antigua intacta. `AUTH-GATE-05` sigue OPEN.
