@@ -428,3 +428,25 @@ Se ha versionado un procedimiento de staging en `scripts/b1-assets-canary-202611
 **Secuencia pendiente:** validar Python del script y stage canary en el VPS, comprobar salida de smoke y salud original; solo después preparar/autorizar *nuevo* router que dirija `/login` y `/b1-static/_next/static/` **al canary nuevo** (no al antiguo `cleanops-b1-shadow@file` del archivo review), con ForwardAuth obligatorio en login y stripPrefix solo para assets. El plan de public cutover debe tener rollback y pruebas HTTP/browser; evitar usar directamente YAML de review anterior cuyo backend apunta al contenedor antiguo. El gate SQL está cerrado y no se debe reabrir solo para comprobar assets. No declarar AUTH-GATE-05 cerrado.
 
 **Adenda — target correcto del router v2:** en commit `b0b98bc80880f2d8933cd49132b845679a161ada` se corrigió el borrador `deploy/staging/traefik/b1-device-ui-assets-v2.review.yaml` para que **ambos routers** (login y assets) apunten al servicio nuevo `cleanops-b1-assets-shadow@file` con URL `http://cleanops-b1-assets:3000`. No instalar este archivo hasta confirmar el nuevo canary y revisión del rollback; no tocar el router principal B1. La cookie SameSite=Strict y el origen de navegación externa aún pueden provocar comportamiento de dos webs; se exige prueba de navegador real. El PR #33 sigue draft y sin merge; HEAD consultado tenía cero workflow runs PR. No se ejecutó el stage canary todavía.
+
+## 05/11/2026 — canary aislado PASS; cutover UI v2 con rollback preparado
+
+El propietario ejecutó en el VPS `/root/b1-assets-canary-20261105.py stage` con bytes de Git previamente comprobados. Salida literal:
+
+```text
+B1_CANARY_HTML=PASS
+B1_CANARY_CSS=PASS
+B1_CANARY_JS=PASS
+B1_CANARY_REF_MIX=ZERO
+B1_CANARY=PREPARADO_PRIVADO_SIN_ROUTER
+B1_ORIGINALES=INTACTOS
+B1_ROUTERS=NO_MODIFICADOS
+B1_SQL_GATE=NO_MODIFICADO
+B1_SECRETOS=NO_IMPRESOS
+```
+
+**Cierra preparación de canary**, no la aceptación de navegador. La imagen `cleanops360-b1-assets-candidate:296d4ef2` (ID previamente verificado `sha256:da7e2fc8369763d51002acdd4b00eb7788ecc603f39275dd36407fe6b6ade332`) ya está arrancada con `CLEANOPS_B1_ASSET_PREFIX=/b1-static`. La infraestructura existente no ha sufrido modificaciones según el script. El guard SQL sigue `deployment_enabled=false` tras rollback.
+
+Se preparó el **script de cutover UI protegido v2**, `scripts/b1-ui-v2-guarded-cutover-20261105.py` (última revisión commit `7e22e453dabab152de03a7e37e7a2e440dc2ee0f`, NO ejecutado): exige el canary esperado, verifica archivo YAML Git inmutable `b0b98bc80880f2d8933cd49132b845679a161ada` y blob `b7410ec217ff309f045a060e5612f0496264faca`, la presencia de la ruta B1 principal, la ausencia de routers UI anteriores y una credencial durable no caducada custodiada en el VPS. Instala únicamente `cleanops-b1-device-ui-v2.yaml` mediante hardlink atómico en el provider ya existente; conserva ForwardAuth + stripAssertion de `/login`, aísla recursos `/b1-static/_next/static/` con stripPrefix hacia `cleanops-b1-assets:3000`, sin tocar `/_next/static` original. Tras instalar comprueba: /login sin dispositivo HTML 200 de web original; /login con dispositivo HTTP 200 y HTML del candidato con únicamente recursos prefijados; GET de CSS y JS públicos 200 + MIME correcto; estado canary running. Si cualquier paso falla retira exactamente el nuevo YAML y comprueba la restitución del login original; incluye acción `rollback` explícita. No modifica SQL/OpenBao, no recrea web, no redepliega shadow previo ni publica tokens.
+
+**Limitación explícita:** con guard SQL cerrado, el smoke HTTP del login puede pasar 200 sin emitir PREAUTH/CSRF; esto **NO valida el login funcional**, solo el routing y los assets. El siguiente paso tras activar el nuevo UI es comprobar navegador **navegando directamente dentro del mismo origen** para que la cookie SameSite=Strict sea enviada; no hacer clic desde otra web para usar la primera carga como prueba de dispositivo. Si aparece HTTP 500, retirar router v2 inmediatamente y clasificar respuesta/logs exactos redacted; no confundir 200 curl con éxito de navegador. Solo si UI de navegador se verifica, reabrir gate SQL mediante procedimiento separado autorizado, validar bootstrap real y primera cuenta sintética/TOTP/sesiones. No declarar AUTH-GATE-05 cerrado por este cutover.
