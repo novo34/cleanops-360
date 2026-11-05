@@ -483,3 +483,22 @@ B1_COOKIE=NO_EXPUESTA
 ```
 
 **PASS de emisión única:** la nueva cookie está custodiada en `/run/cleanops-b1-operator/result.json` modo root-only sin revelar el bearer; los antiguos `request.json`/`result.json` están archivados bajo `/run/cleanops-b1-operator/expired-ui-v2-20261105`. El tiempo de 239 minutos era el restante **en ese instante**, no una predicción a futuro. No reejecutar renovación ni el operador. El canary privado continúa preparado y funcional según último PASS; UI v2 todavía no instalada porque el anterior `activate` se detuvo previamente en `DEVICE_CADUCADO`; SQL gate cerrado. Próxima operación: copiar solo el token nuevo mediante el procedimiento anterior Windows PowerShell SSH cifrado a clipboard, sustituir en el **mismo perfil Brave** la cookie `__Host-cleanops_b1_ingress_device` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, host-only), vaciar clipboard y confirmar sin mostrar el valor. Solo después activar el script v2 con rollback automático. No repetir build, env, TOTP, SQL, PKI. El HTTP 500 en Brave queda no verificado hasta prueba de navegador.
+
+## 05/11/2026 — router B1 UI v2 ACTIVADO con HTTPS, CSS y JS PASS
+
+**Salida de ejecución real recibida del propietario** en el VPS `srv1155120`, tras la renovación de una única credencial con `B1_CREDENCIAL_V2=ENROLLED` (239 min de vigencia *en el momento de emisión*). Ejecución única de `python3 /root/b1-ui-v2-guarded-cutover-20261105.py activate`, versión verificada en Git (script de commit `7e22e453dabab152de03a7e37e7a2e440dc2ee0f`):
+
+```text
+B1_UI_V2_HTTP=200
+B1_UI_V2_CSS=PASS
+B1_UI_V2_JS=PASS
+B1_UI_V2_REF_MIX=ZERO
+B1_UI_V2=ACTIVO_DEVICE_ONLY
+B1_SQL_GATE=NO_MODIFICADO
+B1_ORIGINALES=NO_MODIFICADOS_POR_SCRIPT
+B1_SECRETOS=NO_IMPRESOS
+```
+
+**Interpretación:** el nuevo router file-provider `cleanops-b1-device-ui-v2.yaml` se instaló, preservando `/login` antiguo sin la cookie B1, enrutando `/login` con cookie B1 y ForwardAuth al canary `cleanops-b1-assets:3000`; `/b1-static/_next/static/` se desenvuelve con StripPrefix y CSS/JS HTTP 200 en las comprobaciones del script. Las versiones Next antiguas ya no comparten la misma ruta de assets para B1. **Esto es PASS de HTTP y recursos del ensayo con curl**, no acredita todavía carga completa ni ausencia del error 500 en Brave, ni PREAUTH/CSRF, login, MFA o sesiones. El guard SQL permanece en su estado cerrado `deployment_enabled=false`, confirmado por rollback anterior; no reejecutar router activate ni regenerar credenciales.
+
+**Siguiente prueba obligatoria en navegador:** el propietario, con la nueva cookie host-only en el mismo perfil de Brave, debe **escribir directamente** `https://cleanops.nuvurent.com/login` para conservar SameSite=Strict (no navegar desde ChatGPT en primera carga), comprobar que la página carga con estilos y sin HTTP 500, y reportar resultado sin exponer cookie/credenciales/respuestas privadas. Si aparece HTTP 500, hacer rollback inmediato **solo del router v2** con `python3 /root/b1-ui-v2-guarded-cutover-20261105.py rollback`, no alterar canary SQL ni main router. Si la interfaz carga, probar por separado el desbloqueo temporal SQL con recibo protegido y aceptación autenticación sintética; no introducir contraseñas mientras el SQL gate sigue cerrado. `AUTH-GATE-05=OPEN` hasta pruebas reales y dictamen independiente.
