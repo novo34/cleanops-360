@@ -65,7 +65,7 @@ def transact(version, values, enabled):
            WHERE singleton = true
              AND deployment_enabled = {source}
              AND version = {version}
-             AND values_json = $b1json$${content}$b1json$::jsonb;
+             AND values_json = $b1json${content}$b1json$::jsonb;
           GET DIAGNOSTICS changed = ROW_COUNT;
           IF changed <> 1 THEN RAISE EXCEPTION 'CAS_MISMATCH'; END IF;
         END $b1gate$;
