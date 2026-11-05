@@ -160,3 +160,17 @@ Prohibido por esta autorización: modificar `values_json`, `version`, `review_re
 El primer intento del propietario de ejecutar `chmod 700 /root/b1-gate-trial-20261105.py` y `python3 ... activate` devolvió **No such file or directory**, porque el script adjuntado en ChatGPT no se había transferido al VPS. **Ninguna mutación ejecutada**, gate SQL sigue deshabilitado según último estado verificado.
 
 Para evitar copiar secretos o modificar el checkout operativo, se versionó el script de un solo uso `scripts/b1-gate-trial-20261105.py` en la rama de preparación, commit `1986c001a8da75142c8c6aff309f2aebaf181c2a`, blob Git `73f18fd1e8abac4b0fec5d97c560a9187f987a49`, SHA-256 `3caecdced110cb12e15c63a4f2c6c05998b62461697497c3d0a4d613608fbcc7`, 5127 bytes. La comparación del Git blob confirma que **los bytes coinciden exactamente** con el archivo creado y verificado en el entorno de preparación. El operador puede hacer fetch de solo lectura del repositorio local, `git show COMMIT:scripts/b1-gate-trial-20261105.py > /root/... `, comprobar SHA-256 y activar. `git fetch` solo actualiza objetos/referencias Git, no checkout, Compose ni contenedores. El script no debe ejecutarse automáticamente mediante CI. La ejecución, rollback y salud real **NO están confirmados aún**; no declarar habilitado hasta salida nueva del propietario.
+
+## 15. Activación SQL B1 confirmada por recibo (05/11/2026)
+
+Tras autorización expresa, el propietario importó el script versionado de commit `1986c001a8da75142c8c6aff309f2aebaf181c2a` a `/root/b1-gate-trial-20261105.py`, verificó la huella SHA-256 del contenido y lo ejecutó exactamente una vez con `activate`. Salida reportada:
+
+```text
+/root/b1-gate-trial-20261105.py: OK
+B1_ROLLBACK=RECIBO_PRIVADO_PREPARADO
+B1_GATE_SQL=HABILITADO_VERIFICADO
+B1_OTROS_CAMBIOS=NINGUNO_SOLICITADO
+B1_SECRETOS=NO_IMPRESOS
+```
+
+Esto demuestra apertura **temporal del guard SQL en `cleanops_staging`**, verificación positiva de `auth_api.security_policy()` contra hash de los 60 valores de configuración y presencia del recibo privado en el VPS, sin cambiar la web original ni los routers. **No repetir `activate`**; el operador conserva `python3 /root/b1-gate-trial-20261105.py rollback` para cerrar esta prueba. Este registro no evidencia login B1 ni disponibilidad del backend a través de ForwardAuth. La próxima prueba acotada será una sola solicitud HTTPS `GET /auth/me` por el router B1 existente, usando exclusivamente el recibo vigente de dispositivo de `/run/cleanops-b1-operator/result.json`, con valor transmitido por stdin a curl y no mostrado; si está vencido, informar solo `B1_DEVICE=CADUCADO` sin enviar peticiones y no regenerar a ciegas. Proyectar `HTTP` y `error.code` permitido, no cuerpos completos ni identidades ni Set-Cookie. Si el backend devuelve `401 AUTH_INVALID` sin sesión tras validar el dispositivo, el gate funcional puede estar abierto, pendiente de UI/CSRF/MFA. Si devuelve `503`, no repetir SQL ni OpenBao: aislar el defecto real del backend. Si no se puede continuar la aceptación, volver el guard SQL a false con el procedimiento aprobado; `AUTH-GATE-05` de producto sigue OPEN.
