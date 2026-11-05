@@ -608,3 +608,20 @@ El propietario remitió la única lectura categorizada de logs para 2026-11-05T1
 **Continuación del ensayo B1 solicitada por el propietario.** La decisión explícita anterior acepta Chrome/Edge como navegadores de prueba y deja Brave fuera del hito sin afirmar que su 500 esté corregido. Los tres routers B1 estaban enabled según la última lectura; el guard SQL fue revertido con `B1_GATE_SQL=ROLLBACK_PASS`, y el script original `scripts/b1-gate-trial-20261105.py` conserva su recibo privado `/root/b1-gate-trial-20261105.receipt.json`. No reutilizar `activate` del ensayo anterior ni borrar sobrescribir el recibo existente. La emisión del dispositivo mediante operador con `ENROLLED` **no es** una identidad de formulario email/password ni constituye prueba de que exista el primer actor sintético.
 
 Se ha versionado `scripts/b1-chrome-account-readiness-20261105.py`, commit `645a157e34b03e663323fde1374edc15003ac65c` (blob `ab10ce2106c03b4c89c9cae10b4fd11a4b504954`), **no ejecutado en el VPS todavía**. Usa una transacción PostgreSQL explícitamente `READ ONLY` sobre `cleanops_staging`, informa solo `B1_GATE_SQL` (cerrado/abierto), números de `app.users` activos y cuentas activas unidas a `identity_private.principals`, `identity_private.credentials` y `app.organizations`, sin leer/mostrar emails, hashes, IDs, tokens o material privado. Aunque exista una cuenta con credencial no acredita que sea sintética ni que esté lista para MFA. Una lectura por superusuario del contenedor PG puede acceder a esas tablas; su único objetivo es verificar si el flujo manual de Chrome tiene una cuenta candidata o necesita ejecutar separadamente la ceremonia `first-actor` ya existente y pendiente, sin duplicar preparaciones. `AUTH-GATE-05` permanece OPEN. Solo tras conocer este resultado se diseñará el nuevo ensayo SQL reversible con recibo distinto y cierre controlado, sin repetir PG/TLS/OpenBao ni build.
+
+## 05/11/2026 — cuenta de staging: 1 activa y con credencial; guard SQL cerrado
+
+**Salida real del propietario VPS** del verificador read-only `scripts/b1-chrome-account-readiness-20261105.py` (blob `ab10ce2106c03b4c89c9cae10b4fd11a4b504954`):
+
+```text
+B1_BASE=STAGING_VERIFICADA
+B1_GATE_SQL=CERRADO
+B1_USUARIOS_ACTIVOS=1
+B1_CUENTAS_CON_CREDENCIAL=1
+B1_USUARIO_SINTETICO=NO_ACREDITADO
+B1_PRUEBA_LOGIN=NO_EJECUTADA
+B1_OPERACION=SOLO_LECTURA
+B1_IDENTIDADES_Y_SECRETOS=NO_IMPRESOS
+```
+
+**Conclusión:** hay una cuenta activa con credencial en `cleanops_staging`, pero el resultado no acredita si pertenece a un fixture sintético. **No crear otra cuenta** ni abrir el gate a ciegas. Se preparó un nuevo procedimiento opt-in `scripts/b1-chrome-gate-window-20261105.py`, commit `f0796ed520a58992ff4ba34dd32f9bbe8b0f5a9d`, blob `f73c18953f0cd6a6192c5a8eae9ebc7852772983`. **No ejecutado en VPS**. Usa el estado SQL original 60/60 y SHA256 `3d582f...`; exige los tres routers B1 enabled, cuenta única activa con credencial y email dentro de dominios de prueba reservados `.invalid`, `.test`, `.localhost`, `example.com/.org/.net` (**sin mostrar el email**); exige el recibo previo `/root/b1-gate-trial-20261105.receipt.json` sin sobrescribirlo; abre solo `identity_private.configuration.deployment_enabled` en DB `cleanops_staging` con CAS y política idéntica; crea recibo nuevo inmutable `/root/b1-chrome-gate-20261105.receipt.json` root:root 0600 y registra **timer systemd 20 min** para rollback automático antes de abrir la compuerta. Verifica apertura, dispone de `rollback` inmediato y bloquea el reintento. No toca producción ni otros datos. Si la cuenta carece de dominio reservado, sale `B1_CUENTA_SINTETICA=NO_ACREDITADA` y NO abre SQL; se requerirá validar origen sintético por otro mecanismo, no asumirlo. Si systemd-run ausente, fail-closed. No reusar `b1-gate-trial-20261105.py activate` ni resetear su recibo. Esta preparación no acredita login, TOTP o sesiones; requiere después GET /login con cookies preauth/CSRF solo por nombre, nunca por valor. La compatibilidad Brave está fuera del alcance de esta etapa por decisión del propietario; Chrome se usará para el ensayo. AUTH-GATE-05 OPEN, PR #33 draft, sin merge.
