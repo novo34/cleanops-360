@@ -83,3 +83,17 @@ El propietario aportó inventario **directo de Docker** (sin secretos ni cambios
 - `cleanops-dcc-postgres-mapq0o... | postgres:16`, `dokploy-postgres... | postgres:16`, `jev-staging-es4gdq-postgres-1 | postgres:16-alpine`: instancias Docker separadas, sin atribuirles conexiones a `cleanops_staging`.
 
 **Avance:** el error `NO_IDENTIFICADO` del inventario automático es un falso negativo de descubrimiento, no un problema operativo de PG. No reconstruir/clonar PostgreSQL: la vía preferente es evaluar primero el almacenamiento existente de CleanOps. Para abrir un gate de base de datos, determinar el alcance mediante comparación puntual de la red/alias y la instalación existente, sin auditorías generales ni repetición de PASS. No es prueba por sí sola de que ninguna otra aplicación use la misma instancia. `AUTH-GATE-05 OPEN`; no aplicar `deployment_enabled=true` ni abrir routers UI sin diseño de reversión y revisión humana.
+
+## 9. Redes efectivas y plan de cierre acotado — 05/11/2026
+
+Evidencia aportada por el propietario (consultas `docker inspect` read-only):
+
+```text
+/cleanops360-f4fxmd-postgres-1 | REDES=cleanops360_staging_private,
+/cleanops360-f4fxmd-web-1 | REDES=cleanops360-f4fxmd_default,cleanops360_staging_private,dokploy-network,
+/cleanops360-b1-shadow-cc51574a | REDES=cleanops360-f4fxmd_default,cleanops360_staging_custody,cleanops360_staging_private,dokploy-network,
+```
+
+La web original **sí tiene conectividad de red** hacia PostgreSQL de staging, pero su backend registrado es el cerrado `closedBackend`; ello no prueba que no existan otras aplicaciones con credenciales a esta DB. El shadow comparte esa red y es el candidato efectivo de autenticación. Otras instancias PG de Dokploy, JEV y DCC fueron listadas como contenedores distintos, no como destinos de este manifest. Evitar crear PostgreSQL nuevo por defecto o reconstruir datos que ya están. La prueba rápida restante para decidir el perímetro de la base es un listado acotado de los contenedores de `cleanops360_staging_private`; luego un preflight del estado/cantidad de filas de `identity_private.configuration` bajo el rol DBA autorizado sin exponer `values_json`, `review_reference`, roles o contraseñas. Si la configuración está cerrada, **no se debe crear ni habilitar una fila a ciegas**: los 60 valores de política y aprobación del perfil de ensayo deben ser los exactos del commit y tener una reversión que preserve la configuración íntegra.
+
+**Dos puertas distintas:** (1) `deployment_enabled` es un guard SQL de ejecución por base, y su excepción `AUTH_GATE_05` explica el error de runtime; (2) `AUTH-GATE-05` es también la aceptación más amplia de autenticación B1 en producto. Abrir el guard SQL solo bajo un ensayo aprobado no cierra automáticamente la puerta de producto. Exigir validación de /login B1 (UI 500 previo), CSRF/TOTP/sesiones, negaciones del router, backup/restauración del flag y dictamen independiente. `AUTH-GATE-05` del producto permanece OPEN hasta ello. No cambiar la web original, no reemitir dispositivos ni repetir mTLS/OpenBao/SQL0003.
