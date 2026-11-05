@@ -206,3 +206,16 @@ Esto **refuta para este contenedor** la hipótesis previa de que `/run/cleanops-
 La captura de Brave del propietario enseña `/login` **del router de la web antigua** después del rollback UI; no confirma que B1 funcione, ni que `/auth/me` ya no responda 503. En Brave, la cookie `__Host-cleanops_b1_ingress_device` permanece con `Secure`, `HttpOnly`, `SameSite=Strict` y `Path=/`; no copiar a Git/chat el valor.
 
 **Siguiente lectura acotada:** comprobar dentro del *shadow* (no del agent aparte) que el UID/GID/modos y tamaño del directorio/file token en `/run/cleanops-agent` coinciden con `manifest.sink`. Utilizar solo `fs.statSync` y `fs.statfsSync`, nunca `readFile` del token y nunca imprimir sus atributos completos, credenciales o manifiesto. En caso de pasar, investigar la disponibilidad operacional de la lectura OpenBao y pool PG de modo mínimo, sin cambiar servicios ni probar de nuevo los PASS de instalación. `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — sink metadata PASS, aislar lectura de claves OpenBao
+
+Resultado confirmado por el propietario en el mismo contenedor shadow:
+```text
+B1_IDENTIDAD=PASS
+B1_DIRECTORIO_SINK=PASS
+B1_ARCHIVO_TOKEN=PASS
+B1_CONTENIDO_TOKEN=NO_LEIDO
+```
+El tipo de filesystem también había sido `TMPFS_CORRECTO`. Por tanto, las hipótesis de tipo de montaje y metadatos (UID/GID, modos, tamaño del token, enlace único) quedan descartadas para este shadow; no cambiar el volumen ni OpenBao por ellas.
+
+El código SHA `cc51574a...` demuestra que `withB1Custody` carga cinco claves versionadas secuencialmente (`audit-hmac`, `otp-hmac`, `recovery-hmac`, `cursor-hmac`, `totp-aead`) **antes** de abrir PostgreSQL. `createOpenBaoKeys` no devuelve el error de proveedor ni los detalles HTTP, sino un 503 genérico. La próxima comprobación debe hacer únicamente GET de los cinco paths del catálogo, con mTLS y token del sink en memoria, sin imprimir token, bytes, URIs, IDs de claves, cuerpos ni cabeceras; proyectar cantidad PASS, categoría de primer fallo y cero cambios. Si OpenBao pasa completo, priorizar conexión o transacción PG del runtime. No repetir configuración de TLS/SQL ni cambiar el router. `AUTH-GATE-05 OPEN`.
