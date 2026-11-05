@@ -1,6 +1,7 @@
 import process from "node:process"
 import { createRequire } from "node:module"
 import { createHash } from "node:crypto"
+import { checkServerIdentity } from "node:tls"
 import { readFile } from "node:fs/promises"
 import { execFileSync } from "node:child_process"
 import { fileURLToPath, pathToFileURL } from "node:url"
@@ -10,6 +11,36 @@ import { loadTrustedMigrations, loadTrustedB1Baseline } from "./trusted-migratio
 const root = fileURLToPath(new URL("../", import.meta.url))
 class MigrationFault extends Error {}
 const fail = code => { throw new MigrationFault(code) }
+const hasExplicitB1Approval = value => typeof value === "string" && !!value.trim() && value.trim() !== "local-cli"
+/** B1 writes require an approved, authenticated PostgreSQL server certificate pin.
+ * The pin belongs to operator-controlled staging custody, never HTTP or a DB row.
+ */
+function verifyB1MigrationServer(client, approvedSha256) {
+  if (typeof approvedSha256 !== "string" || !/^[a-f0-9]{64}$/.test(approvedSha256)) fail("B1_STAGING_SERVER_PIN_REQUIRED")
+  const stream = client?.connection?.stream
+  if (stream?.encrypted !== true || stream?.authorized !== true ||
+      typeof stream?.getPeerCertificate !== "function") fail("B1_STAGING_TLS_IDENTITY_REQUIRED")
+  const raw = stream.getPeerCertificate()?.raw
+  if (!Buffer.isBuffer(raw) || raw.length === 0 ||
+      hash(raw) !== approvedSha256) fail("B1_STAGING_SERVER_PIN_MISMATCH")
+}
+/** The B1 apply transport must authenticate the server before sending credentials.
+ * Reject libpq-style URL TLS overrides instead of letting pg parse them over ssl.
+ */
+export function b1MigrationPoolConfiguration(connectionString, ca) {
+  let parsed
+  try { parsed = new URL(connectionString) } catch { fail("B1_STAGING_DATABASE_URL_INVALID") }
+  if (!["postgres:", "postgresql:"].includes(parsed.protocol) || !parsed.hostname ||
+      [...parsed.searchParams.keys()].some(key => /^(ssl|sslmode|sslrootcert|sslcert|sslkey|sslnegotiation)$/i.test(key))) {
+    fail("B1_STAGING_DATABASE_URL_TLS_OVERRIDE")
+  }
+  if (!Buffer.isBuffer(ca) || ca.length === 0 || ca.length > 65536 ||
+      !ca.toString("utf8").includes("-----BEGIN CERTIFICATE-----")) fail("B1_STAGING_CA_INVALID")
+  const hostname = parsed.hostname.replace(/^\\[|\\]$/g, "")
+  return { connectionString,
+    ssl: { ca: Buffer.from(ca), rejectUnauthorized: true,
+      checkServerIdentity: (_hostname, cert) => checkServerIdentity(hostname, cert) } }
+}
 const hash = value => createHash("sha256").update(value).digest("hex")
 // Stable across both profiles and the SQL14 installer; transaction-scoped, fail-fast.
 export const migrationLock = "SELECT pg_try_advisory_xact_lock(1869764913, 1) AS locked"
@@ -89,17 +120,34 @@ function validateHistory(rows, profile, queue, baseline) {
 }
 
 /** One runner, one transaction. connect is injectable for offline protocol tests only. */
-export async function runMigrations({ connect, mode = "apply", profile = "foundation", source } = {}) {
+export async function runMigrations({ connect, mode, profile = "foundation", source, approvedServerSha256 } = {}) {
+  // B1 is read-only by default; only an explicit mode can authorize writes.
+  mode ??= profile === "b1" ? "plan" : "apply"
   if (!["apply", "plan", "offline-plan"].includes(mode)) fail("UNKNOWN_MIGRATION_MODE")
   const { queue, baseline } = await artifacts(profile) // ALL hashes before any connect.
   if (mode === "offline-plan") return { profile, registry: "UNKNOWN_NOT_CONNECTED", migrations: queue.map(({ id, sha256 }) => ({ id, sha256 })), proposed: (await loadTrustedMigrations(undefined, profile, true)).map(({id,sha256,sourceFile}) => ({id,sha256,sourceFile,executable:false})), baseline: baseline ? { id: baseline.id, sha256: baseline.sha256, sourceFile: baseline.sourceFile, automatic: false } : null }
-  if (mode === "apply") validateSource(source)
+  if (mode === "apply") {
+    validateSource(source)
+    if (profile === "b1") {
+      if (!hasExplicitB1Approval(source.approvalReference)) fail("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+      if (typeof approvedServerSha256 !== "string" || !/^[a-f0-9]{64}$/.test(approvedServerSha256)) fail("B1_STAGING_SERVER_PIN_REQUIRED")
+    }
+  }
   const client = await connect()
   let begun = false, committed = false
   try {
+    // Verify the actual TLS peer before BEGIN, locks, or any database writes.
+    if (profile === "b1" && mode === "apply") verifyB1MigrationServer(client, approvedServerSha256)
     await client.query(mode === "plan" ? "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY" : "BEGIN")
     begun = true
-    await client.query("SET LOCAL search_path=public,pg_catalog,pg_temp")
+    await client.query(profile === "b1"
+      ? "SET LOCAL search_path=pg_catalog,public,pg_temp"
+      : "SET LOCAL search_path=public,pg_catalog,pg_temp")
+    // An installation approval cannot authorize writing to another database.
+    if (profile === "b1" && mode === "apply") {
+      const scope = await client.query("SELECT pg_catalog.current_database() AS database")
+      if (scope.rows[0]?.database !== "cleanops_staging") fail("B1_STAGING_DATABASE_REQUIRED")
+    }
     if (mode === "apply" && (await client.query(migrationLock)).rows[0]?.locked !== true) fail("MIGRATION_BUSY")
     const rows = await history(client)
     const seen = validateHistory(rows, profile, queue, baseline)
@@ -149,8 +197,8 @@ SET LOCAL standard_conforming_strings=on;
 SET LOCAL search_path=public,pg_catalog,pg_temp;
 DO $migration_guard$ BEGIN
  IF NOT pg_catalog.pg_try_advisory_xact_lock(1869764913,1) THEN RAISE EXCEPTION 'MIGRATION_BUSY'; END IF;
- IF current_database()<>${literal(canonical.databaseName)} THEN RAISE EXCEPTION 'DATABASE_MISMATCH'; END IF;
- IF to_regclass('public._migrations') IS NOT NULL OR NOT (${freshB1Predicate}) THEN RAISE EXCEPTION 'EMPTY_CLUSTER_REQUIRED'; END IF;
+ IF pg_catalog.current_database()<>${literal(canonical.databaseName)} THEN RAISE EXCEPTION 'DATABASE_MISMATCH'; END IF;
+ IF pg_catalog.to_regclass('public._migrations') IS NOT NULL OR NOT (${freshB1Predicate}) THEN RAISE EXCEPTION 'EMPTY_CLUSTER_REQUIRED'; END IF;
 END $migration_guard$;
 ${journalDDL};
 INSERT INTO public._migrations (id,checksum,profile,source_file,source_commit,runner_sha256,approval_reference)
@@ -163,8 +211,10 @@ export async function main(argv = process.argv.slice(2)) {
   const allowed = ["--apply", "--plan", "--offline-plan", "--emit-sql14-batch", "--profile=foundation", "--profile=b1"]
   if (argv.some(a => !allowed.includes(a)) || new Set(argv).size !== argv.length || argv.filter(a => !a.startsWith("--profile=")).length > 1 || argv.filter(a => a.startsWith("--profile=")).length > 1) fail("MIGRATION_ARGUMENTS_INVALID")
   const profile = argv.includes("--profile=b1") ? "b1" : "foundation"
+  const modes = ["--apply", "--plan", "--offline-plan"].filter(flag => argv.includes(flag))
+  if (modes.length > 1) fail("MIGRATION_ARGUMENTS_INVALID")
   if (argv.includes("--emit-sql14-batch")) {
-    if (argv.some(a => a.startsWith("--profile="))) fail("MIGRATION_ARGUMENTS_INVALID")
+    if (argv.some(a => a.startsWith("--profile=")) || modes.length) fail("MIGRATION_ARGUMENTS_INVALID")
     let input = ""
     for await (const chunk of process.stdin) { input += chunk; if (input.length > 65536) fail("MIGRATION_RECORD_TOO_LARGE") }
     const record = JSON.parse(input)
@@ -172,16 +222,35 @@ export async function main(argv = process.argv.slice(2)) {
     process.stdout.write(await sql14InstallBatch(record, await migrationProvenance([baseline], record.STAGING_SYNTHETIC?.deploymentApprovalReference)))
     return
   }
-  const mode = argv.includes("--plan") ? "plan" : argv.includes("--offline-plan") ? "offline-plan" : "apply"
+  const mode = argv.includes("--plan") ? "plan" : argv.includes("--offline-plan") ? "offline-plan" :
+    (argv.includes("--apply") || profile === "foundation") ? "apply" : "plan"
+  if (profile === "b1" && mode === "apply" && !hasExplicitB1Approval(process.env.MIGRATION_APPROVAL_REFERENCE)) {
+    fail("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+  }
+  const approvedServerSha256 = profile === "b1" && mode === "apply"
+    ? process.env.MIGRATION_STAGING_SERVER_CERT_SHA256
+    : undefined
+  if (profile === "b1" && mode === "apply" &&
+      (typeof approvedServerSha256 !== "string" || !/^[a-f0-9]{64}$/.test(approvedServerSha256))) {
+    fail("B1_STAGING_SERVER_PIN_REQUIRED")
+  }
   const entries = await artifacts(profile)
   const source = mode === "apply" ? await migrationProvenance([...entries.queue, ...(entries.baseline ? [entries.baseline] : [])]) : undefined
   let pool
   try {
-    const result = await runMigrations({ mode, profile, source, connect: async () => {
+    const result = await runMigrations({ mode, profile, source, approvedServerSha256, connect: async () => {
       if (!process.env.DATABASE_URL) fail("MIGRATION_DATABASE_URL_REQUIRED")
       const require = createRequire(import.meta.url)
       const pg = require("pg")
-      pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+      let configuration = { connectionString: process.env.DATABASE_URL }
+      if (profile === "b1" && mode === "apply") {
+        const caPath = process.env.MIGRATION_STAGING_CA_CERT_PATH
+        if (!caPath || !caPath.startsWith("/") || caPath.includes("\\0")) fail("B1_STAGING_CA_REQUIRED")
+        let ca
+        try { ca = await readFile(caPath) } catch { fail("B1_STAGING_CA_UNAVAILABLE") }
+        configuration = b1MigrationPoolConfiguration(process.env.DATABASE_URL, ca)
+      }
+      pool = new pg.Pool(configuration)
       return pool.connect()
     } })
     console.log(JSON.stringify(result))

@@ -5,29 +5,46 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { loadTrustedMigrations, loadTrustedB1Baseline } from "../scripts/trusted-migrations.mjs"
 import * as trusted from "../scripts/trusted-migrations.mjs"
-import { runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migrate-postgres.mjs"
+import { main, runMigrations, migrationLock, sql14InstallBatch, b1MigrationPoolConfiguration } from "../scripts/migrate-postgres.mjs"
 import { readFile } from "node:fs/promises"
+import { createHash } from "node:crypto"
+
+it("B1 migration transport enforces a trusted CA and refuses URL TLS overrides", () => {
+  const ca = Buffer.from("-----BEGIN CERTIFICATE-----\\nTEST ONLY\\n-----END CERTIFICATE-----\\n")
+  const configured = b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal:5432/cleanops_staging", ca)
+  expect(configured.ssl.rejectUnauthorized).toBe(true)
+  expect(configured.ssl.ca).toEqual(ca)
+  expect(configured.ssl.checkServerIdentity).toBeTypeOf("function")
+  for (const parameter of ["sslmode=disable", "sslmode=no-verify", "sslrootcert=%2Ftmp%2Ffake", "sslcert=%2Ftmp%2Ffake", "sslkey=%2Ftmp%2Ffake", "sslnegotiation=direct", "ssl=true"]) {
+    expect(() => b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal/cleanops_staging?" + parameter, ca)).toThrow("B1_STAGING_DATABASE_URL_TLS_OVERRIDE")
+  }
+  expect(() => b1MigrationPoolConfiguration("postgresql://operator@pg.staging.internal/cleanops_staging", Buffer.alloc(0))).toThrow("B1_STAGING_CA_INVALID")
+})
 
 const temporaryDirectories: string[] = []
+// Synthetic test bytes only: no certificate, private key, or real staging trust.
+const syntheticServerCert = Buffer.from("CLEANOPS_B1_STAGING_TEST_PEER_ONLY")
+const syntheticServerSha256 = createHash("sha256").update(syntheticServerCert).digest("hex")
 
-it('FIRST-ACTOR incremental is hash-verified as a proposal and cannot enter the B1 apply queue', async () => {
-  expect(await loadTrustedMigrations(undefined,'b1')).toEqual([])
-  const proposed=await loadTrustedMigrations(undefined,'b1',true)
-  expect(proposed.map(p=>p.id)).toEqual(['0002_first_actor','0003_ingress_persistence'])
-  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
-  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
-  expect(proposed[0].sql).toContain('CREATE TABLE identity_provision.first_actor_history')
-   expect(proposed[0].sql).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
-  expect(proposed[0].sql).toContain("r.state<>'ABORTED'")
-  expect(proposed[0].sql).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
-  expect(proposed[0].sql).not.toMatch(/DELETE FROM identity_provision/)
-  expect(proposed[0].sql).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
-  const plan=await runMigrations({mode:'offline-plan',profile:'b1'})
-  expect(plan.migrations).toEqual([])
-  expect(plan.proposed[0]).toMatchObject({id:'0002_first_actor',executable:false})
-  expect(plan.proposed[1]).toMatchObject({id:'0003_ingress_persistence',executable:false})
+it('B1 incremental SQL0002/0003 is hash-verified and enabled only in the reviewed B1 queue', async () => {
+  const enabled = await loadTrustedMigrations(undefined, 'b1')
+  expect(enabled.map(m => m.id)).toEqual(['0002_first_actor', '0003_ingress_persistence'])
+  expect(await loadTrustedMigrations(undefined, 'b1', true)).toEqual([])
+  const first = enabled[0].sql
+  expect(first).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
+  expect(first).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
+  expect(first).toContain('CREATE TABLE identity_provision.first_actor_history')
+  expect(first).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
+  expect(first).toContain("r.state<>'ABORTED'")
+  expect(first).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
+  expect(first).not.toMatch(/DELETE FROM identity_provision/)
+  expect(first).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
+  const plan = await runMigrations({mode:'offline-plan',profile:'b1'})
+  expect(plan.migrations.map(m => m.id)).toEqual(['0002_first_actor', '0003_ingress_persistence'])
+  expect(plan.proposed).toEqual([])
+  expect(plan.baseline).toMatchObject({id:'b1_sql14', automatic:false})
   // S-3: the canonical runner owns the transaction; the incremental must not nest one.
-  const ingress=proposed[1].sql
+  const ingress=enabled[1].sql
   expect(ingress.replace(/--.*$/gm,'')).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\s*;/)
   expect(ingress).toContain('RESET ROLE;')
   expect(ingress.indexOf('RESET ROLE;')).toBeLessThan(ingress.indexOf('ALTER FUNCTION auth_api.ingress_claim'))
@@ -90,7 +107,7 @@ describe("trusted migration manifest", () => {
 const source = { sourceCommit: "a".repeat(40), runnerSha256: "b".repeat(64), approvalReference: "OFFLINE_TEST_ONLY" }
 const expectedColumns = [["id","text"],["checksum","text"],["profile","text"],["source_file","text"],["source_commit","text"],["runner_sha256","text"],["approval_reference","text"],["applied_by","text"],["applied_at","timestamp with time zone"]]
 type Entry = { id: string; checksum: string; profile: string; source_file: string; source_commit: string; runner_sha256: string; approval_reference: string; applied_by: string; applied_at: Date }
-function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; pause?: () => Promise<void> } = {}) {
+function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boolean; failCommit?: boolean; lostCommitAck?: boolean; databaseName?: string; tls?: 'missing' | 'unauthorized' | 'wrong-pin'; pause?: () => Promise<void> } = {}) {
   let durable = { registry: false, rows: [] as Entry[], effects: 0 }
   let locked: symbol | null = null
   const calls: string[] = [], releases: boolean[] = []
@@ -98,9 +115,17 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
   const connect = vi.fn(async () => {
     const owner = Symbol(); let tx = structuredClone(durable)
     return {
+      connection: { stream: options.tls === 'missing' ? {} : {
+        encrypted: true,
+        authorized: options.tls !== 'unauthorized',
+        getPeerCertificate: () => ({
+          raw: options.tls === 'wrong-pin' ? Buffer.from('OTHER_SYNTHETIC_PEER') : syntheticServerCert,
+        }),
+      } },
       async query(sql: string, values: unknown[] = []) {
         calls.push(sql)
         if (sql.startsWith("BEGIN")) { tx = structuredClone(durable); return { rows: [] } }
+        if (sql === "SELECT pg_catalog.current_database() AS database") return { rows: [{ database: options.databaseName ?? "cleanops_staging" }] }
         if (sql === migrationLock) {
           if (locked) return { rows: [{ locked: false }] }
           locked = owner; return { rows: [{ locked: true }] }
@@ -122,6 +147,12 @@ function database(options: { occupied?: boolean; legacy?: boolean; failSql?: boo
         }
         if (sql.startsWith("CREATE TABLE IF NOT EXISTS organizations")) {
           await options.pause?.(); tx.effects++
+          if (options.failSql) throw Error("private server diagnostic")
+          return { rows: [] }
+        }
+        if (sql.includes("CREATE SCHEMA identity_provision AUTHORIZATION cleanops_first_actor_owner;") ||
+            sql.includes("CREATE TABLE identity_private.ingress_claims (")) {
+          tx.effects++
           if (options.failSql) throw Error("private server diagnostic")
           return { rows: [] }
         }
@@ -156,6 +187,8 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(foundation.freshnessCalls[0].sql).toContain("NOT $1::boolean OR NOT EXISTS")
     expect(foundation.freshnessCalls[0].values).toEqual([false])
     expect(b1.freshnessCalls[0].values).toEqual([true])
+    expect(foundation.calls).toContain("SET LOCAL search_path=public,pg_catalog,pg_temp")
+    expect(b1.calls).toContain("SET LOCAL search_path=pg_catalog,public,pg_temp")
   })
   it("plans an absent registry without DDL, writes or creating history", async () => {
     const db = database()
@@ -237,17 +270,84 @@ describe("migration journal protocol (offline simulation)", () => {
     const db = database()
     const plan = await runMigrations({ connect: db.connect, mode: "plan", profile: "b1" })
     expect(plan.baseline).toMatchObject({ id: "b1_sql14", applied: false, automatic: false })
-    await expect(runMigrations({ connect: db.connect, profile: "b1", source })).rejects.toThrow("EXPLICIT_INSTALLER")
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })).rejects.toThrow("EXPLICIT_INSTALLER")
     expect(db.calls.some(q => q.includes("CREATE ROLE"))).toBe(false)
   })
   it("accepts the exact recorded B1 baseline without rerunning it or mixing foundation", async () => {
     const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
     const db = database(); db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
-    const result = await runMigrations({ connect: db.connect, profile: "b1", source })
+    const result = await runMigrations({ connect: db.connect, mode: "plan", profile: "b1" })
     expect(result.baseline?.applied).toBe(true)
+    expect(result.pending).toEqual(["0002_first_actor", "0003_ingress_persistence"])
     expect(result.applied).toEqual([])
     expect(db.state().effects).toBe(0)
     await expect(runMigrations({ connect: db.connect, source })).rejects.toThrow("UNEXPECTED_MIGRATION_HISTORY")
+  })
+  it("applies promoted SQL0002/0003 once after recorded SQL14 with immutable journal provenance", async () => {
+    const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
+    const db = database()
+    db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
+    const first = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })
+    expect(first.applied).toEqual(["0002_first_actor", "0003_ingress_persistence"])
+    expect(first.baseline?.applied).toBe(true)
+    expect(db.state().effects).toBe(2)
+    expect(db.state().rows.map(r => r.id)).toEqual(["b1_sql14", "0002_first_actor", "0003_ingress_persistence"])
+    expect(db.state().rows.slice(1).every(r => r.approval_reference === source.approvalReference && r.source_commit === source.sourceCommit)).toBe(true)
+    const again = await runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 })
+    expect(again.applied).toEqual([])
+    expect(db.state().effects).toBe(2)
+  })
+  it("B1 apply requires a pinned and authenticated TLS server before BEGIN", async () => {
+    const noPin = database()
+    await expect(runMigrations({ connect: noPin.connect, mode: "apply", profile: "b1", source }))
+      .rejects.toThrow("B1_STAGING_SERVER_PIN_REQUIRED")
+    expect(noPin.connect).not.toHaveBeenCalled()
+
+    for (const tls of ['missing', 'unauthorized', 'wrong-pin'] as const) {
+      const db = database({ tls })
+      await expect(runMigrations({
+        connect: db.connect, mode: "apply", profile: "b1", source,
+        approvedServerSha256: syntheticServerSha256,
+      })).rejects.toThrow(tls === 'wrong-pin' ? "B1_STAGING_SERVER_PIN_MISMATCH" : "B1_STAGING_TLS_IDENTITY_REQUIRED")
+      expect(db.calls).toEqual([])
+      expect(db.state().effects).toBe(0)
+    }
+  })
+
+  it("B1 application rejects a non-staging database before the advisory lock or any writes", async () => {
+    const db = database({ databaseName: "other_database" })
+    await expect(runMigrations({ connect: db.connect, mode: "apply", profile: "b1", source, approvedServerSha256: syntheticServerSha256 }))
+      .rejects.toThrow("B1_STAGING_DATABASE_REQUIRED")
+    expect(db.calls).toContain("ROLLBACK")
+    expect(db.calls).not.toContain(migrationLock)
+    expect(db.calls.some(q => /^(INSERT|CREATE|UPDATE|ALTER)/.test(q))).toBe(false)
+    expect(db.state().effects).toBe(0)
+  })
+  it("B1 defaults to read-only and rejects implicit or generic application approval", async () => {
+    const baseline = await loadTrustedB1Baseline(), entry = await appliedEntry()
+    const db = database()
+    db.seed([{ ...entry, id: baseline.id, checksum: baseline.sha256, profile: "b1", source_file: baseline.sourceFile }])
+    const result = await runMigrations({ connect: db.connect, profile: "b1", source })
+    expect(result.applied).toEqual([])
+    expect(result.pending).toEqual(["0002_first_actor", "0003_ingress_persistence"])
+    expect(db.state().effects).toBe(0)
+    expect(db.calls[0]).toContain("READ ONLY")
+
+    const refusedConnect = vi.fn()
+    await expect(runMigrations({ connect: refusedConnect, mode: "apply", profile: "b1",
+      source: { ...source, approvalReference: "local-cli" } }))
+      .rejects.toThrow("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+    expect(refusedConnect).not.toHaveBeenCalled()
+
+    const previous = process.env.MIGRATION_APPROVAL_REFERENCE
+    try {
+      delete process.env.MIGRATION_APPROVAL_REFERENCE
+      await expect(main(["--apply", "--profile=b1"])).rejects.toThrow("B1_MIGRATION_EXPLICIT_APPROVAL_REQUIRED")
+      await expect(main(["--apply", "--plan", "--profile=b1"])).rejects.toThrow("MIGRATION_ARGUMENTS_INVALID")
+    } finally {
+      if (previous === undefined) delete process.env.MIGRATION_APPROVAL_REFERENCE
+      else process.env.MIGRATION_APPROVAL_REFERENCE = previous
+    }
   })
   it("offline plan verifies artifacts without requiring or connecting a database", async () => {
     const connect = vi.fn()
@@ -263,7 +363,9 @@ describe("migration journal protocol (offline simulation)", () => {
     expect(batch.indexOf("INSERT INTO public._migrations")).toBeLessThan(batch.indexOf(baseline.sql))
     expect(batch).toContain("pg_catalog.pg_try_advisory_xact_lock(1869764913,1)")
     expect(batch).toContain(baseline.sha256)
-    expect(batch).toContain("current_database()<>'cleanops_staging'")
+    expect(batch).toContain("pg_catalog.current_database()<>'cleanops_staging'")
+    expect(batch).toContain("SET LOCAL search_path=public,pg_catalog,pg_temp;")
+    expect(batch).toContain("pg_catalog.to_regclass('public._migrations')")
     record.STAGING_SYNTHETIC.composeProject = "other"
     await expect(sql14InstallBatch(record, source)).rejects.toThrow("AUTHORIZATION_REQUIRED")
   })

@@ -14,14 +14,12 @@ const migrations = [
   {
     id: "0002_first_actor",
     profile: "b1",
-    proposed: true,
     file: "0002_first_actor.review.sql",
     sha256: "4868b8dcbfa473695179d61c2a451db53e83c0698f04b8409e87e4e12b18b5b6",
   },
   {
     id: "0003_ingress_persistence",
     profile: "b1",
-    proposed: true,
     file: "0003_ingress_persistence.review.sql",
     sha256: "40c9a316a2f5d6d6317198eb178dc9244547524fd4c222efd886c4121090f4ca",
   },
