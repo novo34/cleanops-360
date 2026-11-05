@@ -39,3 +39,19 @@ La base PostgreSQL separada no es suficiente si comparte material/confianzas de 
 Obtener un inventario **sin imprimir secretos ni nombres de usuarios** de los clientes actualmente conectados a la misma base desde el contenedor shadow, usando una conexión PG independiente y un `SELECT` sobre `pg_stat_activity` que proyecte únicamente conteos por clase (`cleanops-identity-staging`, otras aplicaciones, sin etiqueta). Esta vista muestra conexiones activas al instante; NO prueba que no haya consumidores desconectados ni conexiones de otros días. Complementar posteriormente con Compose/servicios y credenciales montadas por configuración. Si la consulta requiere privilegios no presentes, marcar `NO_ACREDITADO` y usar al DBA autorizado, sin nuevos grants.
 
 No repetir las pruebas PASS, no emitir nueva cookie, no tocar Traefik, SQL ni OpenBao. Registrar únicamente categorías agregadas y el SHA de este plan. 
+
+## 6. Inventario de sesiones PostgreSQL (05/11/2026)
+
+La lectura de `pg_stat_activity` hecha por el propietario con la identidad real del shadow devolvió:
+
+```text
+B1_DB_CONEXIONES=0
+B1_DB_CONEXIONES_B1=0
+B1_DB_SIN_ETIQUETA=0
+B1_DB_OTRAS_APLICACIONES=0
+B1_DB_VISIBILIDAD=LIMITADA
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Interpretación acotada:** cero otros backends reportados en el instante de muestreo y visibilidad insuficiente para acreditar exclusividad de uso, configuración, conexiones históricas o futuras. Queda `B1_DB_EXCLUSIVIDAD=NO_ACREDITADA`. No promover el gate, ni conceder `pg_read_all_stats`. Próxima lectura: inventariar contenedores Docker (running/stopped) y redes de la base, identificar el contenedor PostgreSQL por el destino/alias del `installation.json`, comparar la red del shadow y la web original, y contar posibles consumidores por nombres de variables (nunca sus valores). Esta evidencia tampoco prueba exclusividad definitiva; contrastar Compose/Dokploy efectivos antes de una decisión operativa. Ninguna configuración ni datos modificados.
