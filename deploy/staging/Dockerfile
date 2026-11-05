@@ -4,7 +4,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
-RUN npm run build
+# Only explicitly reviewed B1 candidate builds set this flag.
+# Kept out of the final runtime image environment and default normal web builds.
+ARG CLEANOPS_B1_ASSET_PREFIX
+RUN CLEANOPS_B1_ASSET_PREFIX="${CLEANOPS_B1_ASSET_PREFIX}" npm run build
 
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
