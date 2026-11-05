@@ -268,3 +268,17 @@ B1_SECRETOS=NO_EXPUESTOS
 Esta es una respuesta de autenticación válida para una petición sin sesión de usuario; sustituye al previo `503 AUTH_DEPENDENCY_UNAVAILABLE` y evidencia que el backend B1 procesa la solicitud a través de la ruta de dispositivo. No equivale a login ni a sesión ACTIVE. El router B1 principal ya está instalado; los routers UI de dispositivo **siguen retirados** tras el HTTP 500 anterior. No reactivarlos a ciegas.
 
 **Próximo paso único:** una solicitud local GET `http://127.0.0.1:3000/login` desde dentro del shadow y proyección de **solo status HTTP, HTML y nombres de cookie** `__Host-cleanops_preauth`, `__Host-cleanops_csrf`, sin valores. Este GET puede crear un registro PREAUTH efímero bajo el perfil del ensayo; no es una consulta SQL read-only. No cargar la interfaz pública ni manipular el router. Si ambas cookies están presentes y la página responde 200, preparar una activación UI device-only con autoverificación de GET autenticado y rollback si no responde 200. Si falta alguna cookie, diagnosticar *solo* el bootstrap de proxy/Next antes de activar UI. La web anterior se conserva. `AUTH-GATE-05` aceptación sigue OPEN.
+
+## 05/11/2026 — bootstrap /login B1 local: 200 HTML, PREAUTH y CSRF PASS
+
+El propietario realizó un único GET desde el contenedor `cleanops360-b1-shadow-cc51574a` directamente a `http://127.0.0.1:3000/login` con Node `fetch`. Solo proyectó estado, tipo de contenido y presencia de **nombres de cookies**, sin exponer valores. Resultado:
+
+```text
+B1_SECRETOS=NO_EXPUESTOS
+B1_LOGIN_HTTP=200
+B1_LOGIN_HTML=SI
+B1_PREAUTH=PASS
+B1_CSRF=PASS
+```
+
+El bootstrap B1 del shadow responde y entrega las dos cookies requeridas después de habilitar temporalmente la configuración SQL (hash de perfil 60/60 PASS). Este GET pudo crear una preautorización efímera de ensayo. **No acredita todavía que la ruta pública /login device-only funcione**; el ensayo anterior produjo HTTP 500 y el rollback de ambos routers se comprobó. Siguiente operación, separada del guard SQL ya activado: ejecutar el script de router UI existente `/root/b1-shadow-stage/device-ui-router.py activate` bajo comprobación de vigencia de credencial y comprobar `GET https://cleanops.nuvurent.com/login` con el bearer privado por stdin a curl. Éxito solo con `HTTP 200`, HTML y cookies `__Host-cleanops_preauth`/`__Host-cleanops_csrf` en la respuesta. Si falla, invocar **inmediatamente** `device-ui-router.py rollback` para retirar los dos routers con validación de hash y confirmar original /login=200, sin detener shadow, tocar PostgreSQL ni destruir el recibo. Mantener separado el ensayo de usuario sintético y MFA. La duración de la credencial existente debe verificarse antes de la operación; si falta menos de 5 minutos, detener sin activar ni reemitir credencial automáticamente. No repetir pruebas anteriores, no declarar cierre de `AUTH-GATE-05` todavía.
