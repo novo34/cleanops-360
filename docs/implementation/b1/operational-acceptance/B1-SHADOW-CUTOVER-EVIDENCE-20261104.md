@@ -237,3 +237,17 @@ B1_CAMBIOS=NINGUNO
 ```
 
 **Nuevo hallazgo de código, no modificar privilegios:** en `docs/canonical/auth-review/v4/b1-review-only.sql`, y en `docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql`, `auth_api.security_policy()` invoca `identity_private.require_enabled()`. Esta última eleva deliberadamente `RAISE EXCEPTION 'AUTH_GATE_05' USING ERRCODE='42501'` cuando no existe fila `identity_private.configuration` singleton con `deployment_enabled = true` (valor inicial por defecto `false`). Es por tanto una **explicación muy probable y específica** para el `SQLSTATE 42501` visto desde shadow, no necesariamente falta de GRANT. Para atribuirlo al SQL *real* del VPS falta verificar el mensaje exacto del error devuelto por la función en una sola consulta de clasificación redacted (booleano literal `AUTH_GATE_05`, no imprimir otras excepciones). Si coincide, el 503 B1 es un fail-closed por gate intencional; no habilitar el flag ni hacer GRANT ni alterar funciones/migraciones hasta aprobación independiente y revisión de los requisitos de AUTH-GATE-05. El PASS de usuario/función NO autoriza el cambio. La UI antigua continúa intacta, el router principal B1 activo y la UI B1 por dispositivo retirada. `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — AUTH_GATE_05 confirmado como bloqueo operativo
+
+El propietario confirmó que `SELECT auth_api.security_policy()`, ejecutado con el mismo usuario de servicio del shadow y una transacción de lectura con rollback, produjo exactamente el mensaje `AUTH_GATE_05` y SQLSTATE `42501`:
+
+```text
+B1_GATE=AUTH_GATE_05_CONFIRMADO
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+La fuente canónica `docs/canonical/auth-review/v4/b1-review-only.sql` y el SQL consolidado rev14 contienen `auth_api.security_policy()` → `identity_private.require_enabled()` → excepción intencional `AUTH_GATE_05`, SQLSTATE `42501`, cuando no existe configuración singleton habilitada. Es consistente con el `503 AUTH_DEPENDENCY_UNAVAILABLE` del backend en shadow y explica el error de policy sin necesidad de GRANT adicional. No es un fallo del token/PG-TLS ni de su esquema o EXECUTE; anteriores verificaciones OpenBao 5/5 y PG conexión/rol/EXECUTE PASS permanecen válidas. **No demostrar que todos los flujos funcionarán al abrir el gate**; quedan pendientes UI de B1, login, CSRF, TOTP, sesiones y aceptación independiente.
+
+**Decisión operativa:** no establecer `deployment_enabled=true` por SQL manual en `cleanops_staging`, no alterar `require_enabled()`, no introducir un bypass ni redeplegar web original. El flag es una compuerta compartida, no un switch per-request por cookie. La autorización previa de pruebas/documentación no equivale a aprobación de apertura de este gate en la DB compartida; `AUTH-GATE-05 OPEN`. Deben definirse primero el aislamiento del ensayo o perímetro aprobado para staging, identidad de usuario de prueba, snapshot y rollback de configuración, plan de inspección/aceptación y revisión independiente del diff/manifest y evidencias. No repetir pruebas ya PASS. PR #33 comprobado: `open`, `draft`, `merged=false`, destino `staging`. La web original funciona y los routers UI adicionales permanecen retirados por el rollback previo.
