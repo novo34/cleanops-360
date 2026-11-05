@@ -565,3 +565,21 @@ Paso diagnóstico nuevo, sin mutación de VPS: desactivar la emulación móvil e
 El propietario aportó captura nueva tras **desactivar la emulación móvil** y recargar Brave con Network abierto, sin filtros. En el panel izquierdo aparece `HTTP ERROR 500` para `cleanops.nuvurent.com/login`; en Network la solicitud `login` está en rojo, con tipo **document**, tamaño 0.0 kB y duración aproximada 40 ms. El campo Status de la captura aparece **truncado** como `(faile...`, por lo que **no puede afirmarse a partir de ese campo** si se obtuvo una respuesta HTTP 500 o un error de red. Tres entradas adicionales son imágenes internas `data:image/png` de la página de error de Chromium y responden 200; no son recursos de CleanOps. Chrome, en cambio, muestra el formulario en el mismo hostname. La emulación móvil no es condición necesaria del problema.
 
 **Diagnóstico pendiente y mínimo (sin mutar el VPS):** en Brave DevTools > Network seleccionar la fila `login`, abrir Headers y leer SOLO la sección **General** (`Request Method`, `Status Code` y, si está presente, código de error `net::ERR_...`), sin enviar capturas que muestren `Request Headers`, `Cookie`, `Set-Cookie`, `Authorization` ni datos de formularios. Si HTTP 500 real, contrastar exclusivamente contadores de errores en **el canary actual** `cleanops360-b1-assets-shadow-296d4ef2` con la petición del navegador, no en el shadow antiguo. Si net error local, revisar Brave Shields/extensiones/proxy/caché solo tras identificarlo. El script curl UI v2 dio HTML 200 y CSS/JS PASS con su propia cabecera y cookie, por lo que no constituye prueba del contexto completo de Brave. Evitar volver a emitir device, reconstruir o rehacer PG/TLS/OpenBao. B1 guard SQL sigue cerrado y AUTH-GATE-05 OPEN.
+
+## 05/11/2026 — Brave confirma GET /login HTTP 500 real en documento
+
+El propietario adjuntó captura DevTools > Network > `login` > Headers > General **con un HTTP 500 confirmado**, en escritorio (sin emulación móvil):
+
+```text
+Request URL: https://cleanops.nuvurent.com/login
+Request Method: GET
+Status Code: 500 Internal Server Error
+Remote Address: 72.61.195.72:443
+Referrer Policy: strict-origin-when-cross-origin
+Console: net::ERR_HTTP_RESPONSE_CODE_FAILURE 500
+Response headers (2): contraídas; valores no examinados aún
+```
+
+El error se produce sobre la solicitud principal de tipo `document` a `/login`, **antes** de que el navegador cargue archivos estáticos; no es fallo CSS/JS ni causada exclusivamente por viewport/emulación. La captura de Chrome anterior muestra el formulario sin error. Se confirma que el 500 no es solo `net::ERR_CONNECTION_...` o navegador sin respuesta. No copiar el contenido del campo `Cookie` visible bajo Request Headers en la captura, ni incluir bearer, nombres/valores de cookies o demás cabeceras sensibles en Git/diagnósticos.
+
+**Diagnóstico mínimo siguiente:** expandir únicamente `Response headers (2)` en DevTools de Brave, sin expandir/mostrar `Request Headers`. Reportar nombres y solo valores no secretos de cabeceras técnicas (`content-type`, `content-length`, `server`, `date`); omitir por completo `set-cookie`, `location` o cualquier encabezado de autenticación. Dos cabeceras de respuesta pueden caracterizar un error generado en la cadena Traefik/ForwardAuth frente al documento de error Next; no atribuir con certeza sin ver las cabeceras y, si hace falta, conteos de logs **del canary nuevo**. No rehacer builds, credenciales, PG, OpenBao ni TLS. Los routers UI v2 estaban `enabled` según API reciente y SQL gate cerrado; `AUTH-GATE-05 OPEN`.
