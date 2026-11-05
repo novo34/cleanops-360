@@ -160,3 +160,24 @@ B1_SECRETOS=NO_EXPUESTOS
 **Próximo paso técnico recomendado (solo lectura y evidencias protegidas):** determinar en la configuración de Traefik y el runtime qué componente generó la respuesta JSON `503`, revisando código del repositorio en SHA fijo `cc51574ad85485728d877efbbb69bcb345469596` y comparando los headers de respuesta no secretos con la firma de `lib/b1/runtime.ts` / `lib/b1/service.ts`. Si requieren logs, extraer solo indicadores categóricos y conteos seguros (no `docker logs` completos, ni requests, headers, bearer, contraseñas, SQL, ni certificados). El error `AUTH_DEPENDENCY_UNAVAILABLE` puede provenir del runtime B1 aun si la cookie pasa ForwardAuth; falta confirmar mediante evidencia. Corregir causa raíz con cambios revisados antes de **nueva activación** de UI. La ruta `/login` del B1 debe pasar bootstrap real de preauth + CSRF; `/auth/login`, TOTP, sesiones, replay y aceptación independiente siguen pendientes.
 
 **Instrucciones de relevo para el próximo chat/agente:** leer esta ficha y `B1-TRAEFIK-DOKPLOY-HANDOFF-20261104.md` en la rama `prep/b1-final-closure-20261102`, consultar SHA de HEAD antes de escribir. No repetir los PASS ya auditados (24 test trusted-migrations, SQL0002/0003, operador, mTLS, Traefik, shadow, router principal, rollback UI). Aceptar solo evidencias nuevas y distinguir hechos ejecutados de hipótesis. No tocar `staging`/`main` ni producción y no declarar B1 cerrado.
+
+## 05/11/2026 — clasificación de la respuesta 503 y salud del shadow
+
+**Salidas literales del propietario, posterior al checkpoint de continuidad:**
+
+```text
+B1_ORIGEN=BACKEND_O_DEPENDENCIA
+B1_SECRETOS=NO_EXPUESTOS
+B1_CONTENEDOR=running
+B1_REINICIOS=0
+B1_INSTALACION_FALLIDA=NO_DETECTADO
+B1_ARRANQUE_DUPLICADO=NO_DETECTADO
+B1_CONFIGURACION_INVALIDA=NO_DETECTADO
+B1_CIERRE_INCOMPLETO=NO_DETECTADO
+B1_CONEXION_RECHAZADA=NO_DETECTADO
+B1_LOGS_SENSIBLES=NO_EXPUESTOS
+```
+
+Interpretación del código en SHA fijo `cc51574ad85485728d877efbbb69bcb345469596`: el mensaje JSON `No se pudo completar la solicitud.` procede de `createAuthHandler.failure()` en `lib/b1/service.ts`, a diferencia del mensaje `Autenticación no disponible.` que genera el `catch` externo de `handleAuth` en `lib/b1/runtime.ts`. Sin embargo, ese mensaje **no distingue** un `closedBackend` silencioso de un fallo de custodia OpenBao/PG en `createCustodiedBackend`: ambas vías pueden devolver 503 con el mismo código/mensaje. La ausencia de marcadores de arranque en últimos 300 logs tampoco demuestra que `reviewedB1Installation()` instalara el runtime, porque esta función devuelve `undefined` silenciosamente en configuración ausente/inválida. El contenedor no tiene reinicios. Próximo diagnóstico de **solo lectura**: una única petición local sin cookie ni aserción directamente a Next del shadow (`docker exec ... node -e fetch('http://127.0.0.1:3000/auth/me')`), mostrar solo status y clase de mensaje; con `state.activeRequestScope` instalado es esperable respuesta genérica `Autenticación no disponible.`; con backend cerrado o ámbito ausente podría aparecer mensaje del handler o rechazo de origen. Este resultado no autoriza salto del ForwardAuth ni cuenta como prueba positiva de seguridad.
+
+No modificar rutas, no reiniciar, no renovar credenciales automáticamente y no cerrar `AUTH-GATE-05`.
