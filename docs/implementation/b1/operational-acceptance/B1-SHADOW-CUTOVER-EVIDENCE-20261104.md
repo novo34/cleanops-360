@@ -136,3 +136,27 @@ Comprobación de **solo lectura** enviada por el propietario, con API local Trae
 ## 05/11/2026 — GET /auth/me con nuevo bearer devuelve HTTP 503
 
 Desde el VPS, el propietario hizo una única solicitud HTTPS a `/auth/me` a través del router principal B1, alimentando `curl --config -` por stdin con la cookie custodiada en `/run/cleanops-b1-operator/result.json`, sin imprimir ni enviar su valor. Salida exacta: `B1_AUTH_ME_HTTP=503` y `B1_COOKIE=NO_EXPUESTA`. Este **503 no permite aún afirmar que el ForwardAuth autorizó correctamente**: puede ser una respuesta JSON del runtime cerrado/fallo de contexto o un error HTTP del proxy/transporte. Debe clasificarse la respuesta con una solicitud única que proyecte solo `http_code`, `Content-Type` y campo `error.code` validado, nunca cuerpo ni headers/cookies íntegros, y después consultar únicamente indicadores de logs seguros si procede. No repetir emisión, cutover, mTLS, SQL, certificados, ni reenviar tokens a chat/Git. Sigue pendiente login, MFA y sesiones; `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — checkpoint de continuidad verificado: error JSON 503
+
+**Nueva salida literal del propietario (VPS, después de rollback UI):**
+
+```text
+B1_HTTP=503
+B1_CONTENT_TYPE=application/json; charset=utf-8
+B1_ERROR_CODE=AUTH_DEPENDENCY_UNAVAILABLE
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Interpretación acotada:** `GET /auth/me` con la credencial root-only del operador llegó a un componente capaz de devolver el error JSON `AUTH_DEPENDENCY_UNAVAILABLE`, compatible con `handleAuth` del candidato B1; no hay evidencia suficiente para afirmar que el ForwardAuth, el resolvedor de assertions, las credenciales durables o el pool PostgreSQL estén operativos para solicitudes reales. **No hubo un login exitoso; MFA y sesiones no se han probado en navegador.** No se ha demostrado la causa del `503`, por tanto no etiquetar como fallo PostgreSQL/OpenBao sin trazas.
+
+**Estado de operaciones en el VPS confirmado, conservar sin cambios:**
+- Traefik 3.7.17; router B1 `cleanops360-b1-guarded@file` = `enabled`; middlewares ForwardAuth y strip assertion = `PRESENTE`; servicio `cleanops-b1-shadow@file` = `PRESENTE`.
+- Los routers por dispositivo `cleanops360-b1-device-login@file` y `cleanops360-b1-device-assets@file` están `AUSENTE` después de rollback PASS del error HTTP 500 observado en Brave.
+- La web original `/login` devolvió HTTP 200 después de rollback. El shadow B1 está iniciado y supervisado según el último corte PASS; **no reiniciar**.
+- Se emitió una credencial de sustitución con el operador existente (`B1_OPERATOR_RECEIPT_SEALED`), el propietario notificó su instalación manual en Brave; **no pegar bearer, IDs, cuerpo HTTP ni cookies en conversaciones o Git**. El reloj podría haber consumido su TTL; NO emitir otra de forma automática.
+- La primera credencial fue archivada al emitir la segunda; no reejecutar SQL/migraciones, signer, provisionamiento, operador ni generación de dispositivo. PR #33 continúa DRAFT, no merge; `AUTH-GATE-05 OPEN`.
+
+**Próximo paso técnico recomendado (solo lectura y evidencias protegidas):** determinar en la configuración de Traefik y el runtime qué componente generó la respuesta JSON `503`, revisando código del repositorio en SHA fijo `cc51574ad85485728d877efbbb69bcb345469596` y comparando los headers de respuesta no secretos con la firma de `lib/b1/runtime.ts` / `lib/b1/service.ts`. Si requieren logs, extraer solo indicadores categóricos y conteos seguros (no `docker logs` completos, ni requests, headers, bearer, contraseñas, SQL, ni certificados). El error `AUTH_DEPENDENCY_UNAVAILABLE` puede provenir del runtime B1 aun si la cookie pasa ForwardAuth; falta confirmar mediante evidencia. Corregir causa raíz con cambios revisados antes de **nueva activación** de UI. La ruta `/login` del B1 debe pasar bootstrap real de preauth + CSRF; `/auth/login`, TOTP, sesiones, replay y aceptación independiente siguen pendientes.
+
+**Instrucciones de relevo para el próximo chat/agente:** leer esta ficha y `B1-TRAEFIK-DOKPLOY-HANDOFF-20261104.md` en la rama `prep/b1-final-closure-20261102`, consultar SHA de HEAD antes de escribir. No repetir los PASS ya auditados (24 test trusted-migrations, SQL0002/0003, operador, mTLS, Traefik, shadow, router principal, rollback UI). Aceptar solo evidencias nuevas y distinguir hechos ejecutados de hipótesis. No tocar `staging`/`main` ni producción y no declarar B1 cerrado.
