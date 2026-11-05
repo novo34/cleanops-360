@@ -326,3 +326,31 @@ B1_MAIN_ROUTER=INTACTO
 `scripts/b1-device-ui-router.py` contiene una regla `Path("/login") && HeaderRegexp("Cookie", "...__Host-cleanops_b1_ingress_device=")` y otra para `/_next/static/`, ambas con la misma condición de cookie. La cookie B1 real es `SameSite=Strict`. Una navegación cruzando desde ChatGPT puede **no enviar la cookie del dispositivo**, mostrando el login anterior, mientras una navegación directa al dominio la envía y selecciona B1. Por tanto el parámetro `?utm_source=chatgpt.com` no es la causa demostrada de la diferencia; su presencia puede correlacionar con el origen externo de la navegación. Esto aclara las dos capturas pero **no resuelve el HTTP 500**, cuya causa permanece sin verificar. Además, el formulario sin estilizar en la captura no acredita por sí mismo ausencia de CSS: `components/auth-panel.tsx` implementa HTML sencillo y parte del estilo es inline; la mezcla de dos builds Next en el mismo host podría producir errores de assets/RSC, pero no está confirmada.
 
 **Siguiente diagnóstico acotado y read-only**: obtener del contenedor shadow solo clasificación agregada de eventos de error retrospectivos de los últimos 120 minutos (`docker logs --since 2h` capturados localmente y no impresos completos), sin cuerpo de logs, IDs, cookies, cabeceras ni valores de error dinámicos. Si no aparecen indicadores útiles, la próxima aceptación requiere observar DevTools Network (solo URL, método, status y recurso) en un nuevo ensayo explícitamente autorizado, antes de aplicar un cambio de código. No repetir Docker/PostgreSQL/TLS/Bao ni reemitir cookies. `AUTH-GATE-05` sigue OPEN.
+
+## 05/11/2026 — guard SQL revertido; aislamiento estático B1 propuesto en código
+
+El propietario ejecutó `python3 /root/b1-gate-trial-20261105.py rollback`, seguido de una búsqueda agregada de eventos en `docker logs --since 3h --tail 2000 cleanops360-b1-shadow-cc51574a`; proporcionó:
+
+```text
+B1_GATE_SQL=ROLLBACK_PASS
+B1_LOG_ERRORES_NEXT=0
+B1_LOG_RENDERIZADO_RSC=0
+B1_LOG_RECURSOS_JS_CSS=0
+B1_LOG_AUTENTICACION=0
+B1_LOG_HTTP_500=0
+B1_LOG=SOLO_CONTEOS
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Estado seguro actual:** `deployment_enabled=false` conforme al recibo de rollback; UI device-only retirada previamente (`B1_UI_DEVICE=RETIRADO`, `WEB_ORIGINAL_LOGIN=HTTP_200`, `B1_MAIN_ROUTER=INTACTO`). Sin reinicio, destrucción ni nueva migración. Los 0 eventos del filtro sobre **logs del shadow** no desmienten los HTTP 500 observados en Brave; el error puede estar en otro componente o no contener ninguno de esos patrones. No rehacer OpenBao, PG, certificados ni TLS.
+
+**Defecto real de diseño identificado por fuente:** la web original y B1 son **dos compilaciones diferentes de Next.js 16** en el mismo hostname. El router anterior `scripts/b1-device-ui-router.py` desviaba **todas** las solicitudes `/_next/static/` hacia el shadow solo si estaba presente el *nombre* de la cookie B1. La cookie usa `SameSite=Strict`: una navegación inicial desde ChatGPT puede omitir el token, servir HTML del web original y después servir sus assets desde shadow cuando el contexto se vuelve same-site; esas compilaciones no comparten los mismos hashes JS/CSS. Este error de multiplexación es suficiente para causar recursos incorrectos/ausentes y un formulario sin estilos. **No demuestra por sí solo la causa del HTTP 500 de la navegación B1**; puede existir otra incompatibilidad de RSC/cabeceras/browser que requiere una prueba focalizada.
+
+**Corrección preparada solo en la rama, sin despliegue:**
+- `next.config.ts`: incorpora prefijo de assets de compilación `CLEANOPS_B1_ASSET_PREFIX=/b1-static` únicamente cuando la compilación candidata opte explícitamente; con el valor por defecto, los assets de la web anterior no cambian. No selecciona runtime ni habilita auth.
+- `deploy/staging/Dockerfile`: transmite el argumento de compilación `CLEANOPS_B1_ASSET_PREFIX` al paso `npm run build`, sin modificar la imagen final existente.
+- `deploy/staging/traefik/b1-device-ui-assets-v2.review.yaml`: alternativa **REVIEW ONLY** que conserva el router /login con ForwardAuth y enruta solo `/b1-static/_next/static/` al candidato; deja `/_next/static/` exclusivamente a la web anterior. No modifica el servicio existente ni instala un router.
+
+**Próximos criterios verificables antes de otro intento público:** (1) revisar bytes y amenazas de la propuesta y comprobar que no dispara despliegues automáticos; (2) compilar un candidato B1 en aislamiento usando flag explícito y sin cambiar imagen, contenedor o checkout actual; (3) demostrar que referencias CSS/JS generadas por B1 apuntan a `/b1-static/_next/static/`, que esas URLs responden 200 con CSS/JS correctos, y que `/_next/static/` original mantiene 200; (4) revisar UI login con dispositivo y RSC/headers en navegador bajo una activación con rollback; (5) solo entonces reabrir con autorización el guard SQL temporal y probar flujo de usuario sintético, MFA y sesiones. No ejecutar el antiguo `device-ui-router.py activate` sin modificar su regla de assets, no asumir que separar assets corrige 500, no cerrar `AUTH-GATE-05` ni fusionar PR #33.
+
+**Comprobación de GitHub:** PR #33 sigue `open`/`draft`/`merged=false`; commit cabeza de la preparación `65bb021036cd886b26318603731e61d21fc0473b` registraba cero ejecuciones GitHub Actions asociadas en consulta de primer resultado. No se ha ejecutado ensayo nuevo ni cambio en VPS durante este análisis.
