@@ -187,3 +187,22 @@ No modificar rutas, no reiniciar, no renovar credenciales automáticamente y no 
 El propietario ejecutó **una sola vez** un GET directo a `http://127.0.0.1:3000/auth/me` desde dentro del shadow, sin cookie ni aserción. Resultado: `B1_LOCAL_HTTP=503`, `B1_LOCAL_ESTADO=CONTEXTO_PROTEGIDO_ACTIVO`, `B1_SECRETOS=NO_EXPUESTOS`. Esta respuesta es compatible con denegación en el request scope; junto con la respuesta externa de `BACKEND_O_DEPENDENCIA`, se debe investigar backend privado sin repetir forwardauth/credenciales.
 
 **Hipótesis de defecto de integración con evidencia de código:** `lib/b1/openbao-keys.ts`, función `createAgentSinkToken`, exige estrictamente que el directorio del sink sea `TMPFS_MAGIC=0x01021994` mediante `fs.statfs` (además de UID/GID/modos) antes de leer el token; por otro lado, el script realmente ejecutado `scripts/b1-stage-shadow.py` monta el sink en `/run/cleanops-agent` como `type: volume` externo (`cleanops360-f4fxmd_identity_agent_sink`), **no como tmpfs del propio contenedor**. Un volumen Docker local normal no es tmpfs y haría que cada carga de claves OpenBao falle con `AUTH_DEPENDENCY_UNAVAILABLE`. NO dar por demostrada la hipótesis sin comprobar el tipo real de filesystem dentro del contenedor; los volúmenes pueden tener opciones especiales. Próxima comprobación read-only, sin leer token: `docker exec cleanops360-b1-shadow-cc51574a node -e` + `fs.statfsSync('/run/cleanops-agent').type === 0x01021994`; imprimir solamente `TMPFS` / `NO_TMPFS`. Si se confirma discrepancia, planificar corrección de la topología de custodia/sink mediante un delta de código o montaje revisado, con pruebas de aislamiento y sin modificar el servicio Agent existente, ni copiar bearer ni token en logs. `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — shadow rechazó ausencia de aserción; sink confirmado tmpfs
+
+Nuevo resultado directo del propietario:
+
+```text
+B1_LOCAL_HTTP=503
+B1_LOCAL_ESTADO=CONTEXTO_PROTEGIDO_ACTIVO
+B1_SECRETOS=NO_EXPUESTOS
+B1_SINK_FILESYSTEM=TMPFS_CORRECTO
+B1_TOKEN=NO_LEIDO
+B1_CAMBIOS=NINGUNO
+```
+
+Esto **refuta para este contenedor** la hipótesis previa de que `/run/cleanops-agent` no era tmpfs. No modificar mount ni volumen por esa hipótesis. El chequeo sin aserción es compatible con la protección de contexto instalada; no es test de salud de la operación custodiada.
+
+La captura de Brave del propietario enseña `/login` **del router de la web antigua** después del rollback UI; no confirma que B1 funcione, ni que `/auth/me` ya no responda 503. En Brave, la cookie `__Host-cleanops_b1_ingress_device` permanece con `Secure`, `HttpOnly`, `SameSite=Strict` y `Path=/`; no copiar a Git/chat el valor.
+
+**Siguiente lectura acotada:** comprobar dentro del *shadow* (no del agent aparte) que el UID/GID/modos y tamaño del directorio/file token en `/run/cleanops-agent` coinciden con `manifest.sink`. Utilizar solo `fs.statSync` y `fs.statfsSync`, nunca `readFile` del token y nunca imprimir sus atributos completos, credenciales o manifiesto. En caso de pasar, investigar la disponibilidad operacional de la lectura OpenBao y pool PG de modo mínimo, sin cambiar servicios ni probar de nuevo los PASS de instalación. `AUTH-GATE-05 OPEN`.
