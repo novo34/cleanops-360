@@ -128,3 +128,7 @@ Tras la activación con `B1_UI_LOGIN_DEVICE=ROUTER_ACTIVO`, el propietario infor
 ## 05/11/2026 — rollback de UI confirmado
 
 El propietario ejecutó una sola vez `python3 /root/b1-shadow-stage/device-ui-router.py rollback`, con salida exacta: `B1_UI_DEVICE=RETIRADO`, `WEB_ORIGINAL_LOGIN=HTTP_200`, `B1_MAIN_ROUTER=INTACTO`. **Rollback PASS; no repetir**. El HTTP 500 del navegador queda como incidencia abierta de UI device-only; no es autorización para volver a activar sin diagnóstico. PostgreSQL, credencial y principal B1 no se modificaron por ese rollback según alcance del script. `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — estado de proveedor Traefik después del rollback
+
+Comprobación de **solo lectura** enviada por el propietario, con API local Traefik: `cleanops360-b1-guarded@file=enabled`; `cleanops360-b1-device-login@file=AUSENTE`; `cleanops360-b1-device-assets@file=AUSENTE`; `cleanops-b1-forward-auth@file=PRESENTE`; `cleanops-b1-strip-assertion@file=PRESENTE`; `B1_SERVICIO=PRESENTE`. Conclusión: retirada de UI confirmada y principal sigue presente, sin evidencia aún de **admisión positiva del nuevo bearer** ni de origen exacto del 500. Próxima prueba mínima: una sola solicitud GET `/auth/me` pasando bearer root-only al `curl` por stdin (nunca argv ni stdout), comparando 401/403/503, sin modificar routers y sin probar contraseñas. `AUTH-GATE-05 OPEN`.
