@@ -80,7 +80,7 @@ def headroom():
     with open("/proc/meminfo", encoding="utf-8") as f:
         mem = {k.rstrip(":"): int(v.split()[0]) for row in f
                if (v := row.split(maxsplit=1)[1]) and (k := row.split(maxsplit=1)[0])}
-    return mem.get("MemAvailable", 0) >= 3 * 1024 * 1024 and disk.free >= 8 * 1024**3
+    return mem.get("MemAvailable", 0) >= 4608 * 1024 and disk.free >= 8 * 1024**3
 
 def build():
     exists = subprocess.run(["docker", "image", "inspect", TAG],
