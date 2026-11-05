@@ -364,3 +364,21 @@ Para evitar múltiples operaciones manuales y proteger el VPS, se añadió en co
 Estado a esta hora: UI router retirado PASS, web original HTTP200, SQL guard revertido PASS, OpenBao/PG/TLS anteriores PASS, PR #33 draft. No hacer tests repetidos de infraestructura.
 
 **Adenda build control:** el script `scripts/b1-ui-assets-build-smoke-20261105.py` se endureció en commit `0269390e0064a981d3995ec96944ee4287612d29` para exigir los **4608 MiB de MemAvailable** indicados en `deploy/staging/README.md`, y al menos 8 GiB libres antes de construir en el VPS compartido. Su ejecución todavía no está confirmada. Si bloquea por recursos, no saltar el guard; usar un builder externo autorizado o revisar recursos antes de volver a ejecutar. Imagen candidata única, web actual intacta. 
+
+## 05/11/2026 — candidate image build PASS, asset smoke FAIL after HTML
+
+El propietario ejecutó el script `scripts/b1-ui-assets-build-smoke-20261105.py` del commit `0269390e0064a981d3995ec96944ee4287612d29`, verificó el blob Git, y confirmó la imagen Docker `cleanops360-b1-assets-candidate:296d4ef2` con ID `sha256:da7e2fc8369763d51002acdd4b00eb7788ecc603f39275dd36407fe6b6ade332`. Salida final exacta:
+
+```text
+B1_BUILD=INICIADO
+B1_BUILD=PASS
+B1_ASSET_HTML=PASS
+B1_ASSET_SMOKE=FAIL
+B1_ETAPA=SMOKE
+B1_RESULTADO=SMOKE_FALLIDO
+B1_DESPLIEGUE=NINGUNO
+B1_ROUTERS=NO_MODIFICADOS
+B1_SECRETOS=NO_IMPRESOS
+```
+
+**Interpretación estricta:** la compilación de imagen y GET HTML local pasan; la prueba de recursos se detiene antes de registrar `B1_ASSET_CSS=PASS`. El script atrapa excepciones sin distinguir si faltan referencias `/b1-static/_next/static/*.css`/`*.js` en HTML o si la primera petición CSS devolvió estado/MIME incorrecto. No atribuir aún causa. La imagen existe, **NO RECONSTRUIR** ni activar routers. El `next.config.ts` usa variable `CLEANOPS_B1_ASSET_PREFIX` al compilar, pero la etapa runtime de `deploy/staging/Dockerfile` no la declara: **hipótesis a verificar** si Next evalúa el assetPrefix distinto en build y start. Próxima prueba aislada de solo imagen, sin usar el VPS público, imprime exclusivamente prefix en config, conteos de referencias CSS/JS y estado/MIME de un recurso local de cada tipo; no imprime HTML, rutas ni cabeceras completas. Web original 200, SQL gate y UI B1 cerrados.
