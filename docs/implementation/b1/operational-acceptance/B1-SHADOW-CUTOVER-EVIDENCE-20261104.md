@@ -583,3 +583,14 @@ Response headers (2): contraídas; valores no examinados aún
 El error se produce sobre la solicitud principal de tipo `document` a `/login`, **antes** de que el navegador cargue archivos estáticos; no es fallo CSS/JS ni causada exclusivamente por viewport/emulación. La captura de Chrome anterior muestra el formulario sin error. Se confirma que el 500 no es solo `net::ERR_CONNECTION_...` o navegador sin respuesta. No copiar el contenido del campo `Cookie` visible bajo Request Headers en la captura, ni incluir bearer, nombres/valores de cookies o demás cabeceras sensibles en Git/diagnósticos.
 
 **Diagnóstico mínimo siguiente:** expandir únicamente `Response headers (2)` en DevTools de Brave, sin expandir/mostrar `Request Headers`. Reportar nombres y solo valores no secretos de cabeceras técnicas (`content-type`, `content-length`, `server`, `date`); omitir por completo `set-cookie`, `location` o cualquier encabezado de autenticación. Dos cabeceras de respuesta pueden caracterizar un error generado en la cadena Traefik/ForwardAuth frente al documento de error Next; no atribuir con certeza sin ver las cabeceras y, si hace falta, conteos de logs **del canary nuevo**. No rehacer builds, credenciales, PG, OpenBao ni TLS. Los routers UI v2 estaban `enabled` según API reciente y SQL gate cerrado; `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — HTTP 500 Brave, respuesta vacía de dos cabeceras
+
+El propietario amplió únicamente **Response headers** del `GET /login` HTTP 500 de Brave y confirmó:
+
+```text
+content-length: 0
+date: Thu, 05 Nov 2026 17:26:22 GMT
+```
+
+Esto confirma un HTTP 500 **sin cuerpo** desde la cadena HTTPS, distinto del HTTP 200 HTML obtenido en curl y Chrome. La ausencia de `content-type`, `server` y cuerpo es compatible con un fallo generado por proxy/middleware/transport o respuesta vacía de origen; **NO determina de forma única** si la fuente es Traefik, ForwardAuth o Next. El código `lib/b1/ingress-forward-auth.ts` devuelve únicamente 204 (permitir) o 403 (denegar) desde el handler, por lo que un 500 vacío no es su camino nominal. La cadena de Traefik posee el middleware ForwardAuth en `/login`, mientras que el candidato B1 recibe el enrutamiento HTTP. La siguiente comprobación debe mirar **logs de `dokploy-traefik`, `cleanops360-b1-shadow-cc51574a` (ingress ForwardAuth mTLS) y `cleanops360-b1-assets-shadow-296d4ef2` (Next UI)** para una ventana estrecha alrededor de `2026-11-05T17:26:22Z`, y únicamente proyectar conteos/categorías sin imprimir líneas o secretos. No repetir build, TLS, OpenBao, SQL, ni emitir nuevas cookies. Un resultado de 0 logs no es evidencia de ausencia de error; consultar con una única solicitud posterior con correlación si no hay datos. Guard SQL cerrado y AUTH-GATE-05 OPEN.
