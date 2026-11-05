@@ -465,3 +465,21 @@ B1_SECRETOS=NO_IMPRESOS
 **Interpretación:** el guard de vigencia de la cookie privada se ejecuta **antes** de crear `cleanops-b1-device-ui-v2.yaml`. Este intento no instaló ningún router. El canary `cleanops360-b1-assets-shadow-296d4ef2` **ya pasó** HTML/CSS/JS/REF_MIX=ZERO; no hay motivo de recompilar, recrear canary, volver a probar PG/OpenBao/TLS o relajar el guard de expiración. Estado conocido: B1 UI v2 NO ACTIVADA; SQL deployment gate sigue revertido. Falta obtener una credencial B1 nueva y entregarla al mismo perfil del navegador; el problema original HTTP 500 no queda validado aún.
 
 **Procedimiento existente identificado:** `scripts/b1-private-operator.mjs` emite `device.issue` mediante el login de operador `cleanops_b1_operator_login` con materiales privados ya custodiados en `/run/cleanops-b1-operator`. Se había emitido una **sustitución anterior** con nuevo `reference`/`authorizationReference`, sin crear otra cuenta ni operador. Para evitar otra duplicación y exponer credenciales, se preparó `scripts/b1-renew-expired-device-ui-v2-20261105.py` en commit `d7ebaf20eb4c7d7315a3359c45be77ee42a59eed` (**no ejecutado**). Precondiciones: recibo realmente expirado; `request.json` y `result.json` actuales con metadatos root-only exactos; operador existente; `lifetimeMs <= 4h`; ausencia de destino de archivo. Archiva ambos en `/run/cleanops-b1-operator/expired-ui-v2-20261105/`, prepara `device.issue` con etiquetas previas y **nuevas referencias de auditoría específicas de esta renovación sintética**, invoca el operador ya validado con Docker Compose en el servicio shadow y verifica solo estado ENROLLED, nombre de cookie y tiempo restante sin imprimir bearer/identificadores. Ante estado ambiguo **no reintentar**: comprobar recibo/auditoría privada primero. El script no cambia usuarios, roles, SQL gate ni rutas. Después se debe entregar el nuevo bearer al navegador sin imprimirlo, sustituyendo la cookie antigua; solo entonces probar cutover v2. La emisión es para el staging autorizado y no representa aprobación independiente de cierre de `AUTH-GATE-05`.
+
+## 05/11/2026 — renovación B1 v2 mediante operador existente PASS
+
+El propietario ejecutó una sola vez `scripts/b1-renew-expired-device-ui-v2-20261105.py` con bytes Git comprobados en el VPS y reportó literalmente:
+
+```text
+B1_RECIBO_ANTERIOR=ARCHIVADO_PRIVADO
+B1_REEMPLAZO_V2=PREPARADO
+B1_OPERATOR_RECEIPT_SEALED
+B1_CREDENCIAL_V2=ENROLLED
+B1_CREDENCIAL_V2_MINUTOS_RESTANTES=239
+B1_USUARIO_Y_ROLES=NO_MODIFICADOS
+B1_TRAEFIK=NO_MODIFICADO
+B1_GATE_SQL=NO_MODIFICADO
+B1_COOKIE=NO_EXPUESTA
+```
+
+**PASS de emisión única:** la nueva cookie está custodiada en `/run/cleanops-b1-operator/result.json` modo root-only sin revelar el bearer; los antiguos `request.json`/`result.json` están archivados bajo `/run/cleanops-b1-operator/expired-ui-v2-20261105`. El tiempo de 239 minutos era el restante **en ese instante**, no una predicción a futuro. No reejecutar renovación ni el operador. El canary privado continúa preparado y funcional según último PASS; UI v2 todavía no instalada porque el anterior `activate` se detuvo previamente en `DEVICE_CADUCADO`; SQL gate cerrado. Próxima operación: copiar solo el token nuevo mediante el procedimiento anterior Windows PowerShell SSH cifrado a clipboard, sustituir en el **mismo perfil Brave** la cookie `__Host-cleanops_b1_ingress_device` (`Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/`, host-only), vaciar clipboard y confirmar sin mostrar el valor. Solo después activar el script v2 con rollback automático. No repetir build, env, TOTP, SQL, PKI. El HTTP 500 en Brave queda no verificado hasta prueba de navegador.
