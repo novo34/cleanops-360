@@ -55,3 +55,19 @@ B1_SECRETOS=NO_EXPUESTOS
 ```
 
 **Interpretación acotada:** cero otros backends reportados en el instante de muestreo y visibilidad insuficiente para acreditar exclusividad de uso, configuración, conexiones históricas o futuras. Queda `B1_DB_EXCLUSIVIDAD=NO_ACREDITADA`. No promover el gate, ni conceder `pg_read_all_stats`. Próxima lectura: inventariar contenedores Docker (running/stopped) y redes de la base, identificar el contenedor PostgreSQL por el destino/alias del `installation.json`, comparar la red del shadow y la web original, y contar posibles consumidores por nombres de variables (nunca sus valores). Esta evidencia tampoco prueba exclusividad definitiva; contrastar Compose/Dokploy efectivos antes de una decisión operativa. Ninguna configuración ni datos modificados.
+
+## 7. Inventario Docker incompleto — no repetir pruebas de dependencias
+
+El propietario ejecutó las dos variantes de inventario read-only. La primera devolvió `B1_DOCKER_INVENTARIO=ERROR`; la segunda reportó:
+
+```text
+B1_DOCKER_TOTAL=25
+B1_DOCKER_INSPECCIONADOS=18
+B1_DOCKER_OMITIDOS=7
+B1_PG_ESTADO=NO_IDENTIFICADO
+B1_EXCLUSIVIDAD=NO_ACREDITADA
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**No interpretar como ausencia o fallo de PostgreSQL**, que ha respondido con TLS y cuenta de servicio. El inventario propio no inspeccionó siete contenedores y no permite identificar la instancia. No repetir montajes/token/OpenBao/TLS/ACL. Próximo control mínimo: salida de nombres/imágenes/estado de los contenedores PostgreSQL y CleanOps con `docker ps -a --format '{{.Names}}|{{.Image}}|{{.Status}}' | grep -Ei 'postgres|cleanops360'`, sin ningún `docker inspect` de configuración privada. Con ese listado identificar el nombre efectivo del PostgreSQL y comprobar exclusivamente sus redes/consumidores, evitando más scripts generales. Si la exclusividad sigue sin acreditarse, el camino responsable es una instancia aislada y autorizada para prueba B1, sin poner `deployment_enabled=true` en `cleanops_staging`. El gate sigue pendiente de revisión/aceptación independiente. El propietario ha pedido terminar B1 sin más series redundantes de diagnóstico; mantener un único hilo de cierre y criterios de salida finitos.
