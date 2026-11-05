@@ -1,0 +1,31 @@
+# REVIEW ONLY — B1 device-only UI + isolated Next.js assets.
+# This is NOT installed by Traefik or Dokploy.
+# Requires an independently reviewed NEW B1 candidate build:
+#   docker build --build-arg CLEANOPS_B1_ASSET_PREFIX=/b1-static ...
+# Never replace the already running shadow/web with this YAML alone.
+#
+# The original app continues to own ALL /_next/static/* requests.
+# AssetPrefix changes B1-generated references to /b1-static/_next/static/*.
+# Next 16 must be proven to serve those exact URLs in private smoke before activation.
+# Static assets carry NO session secrets; explicit public isolation is reviewed separately.
+#
+# Device cookie is still NOT an authentication decision. The ForwardAuth middleware
+# validates its token and issues the request-bound assertion for /login.
+# Reject any attempt to remove the ForwardAuth / mTLS barrier from /login.
+http:
+  routers:
+    cleanops360-b1-device-login:
+      rule: 'Host("cleanops.nuvurent.com") && Path("/login") && HeaderRegexp("Cookie", "(^|;[ ]*)__Host-cleanops_b1_ingress_device=")'
+      priority: 1200
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+      middlewares: [cleanops-b1-strip-assertion@file, cleanops-b1-forward-auth@file]
+      service: cleanops-b1-shadow@file
+    cleanops360-b1-device-assets:
+      rule: 'Host("cleanops.nuvurent.com") && PathPrefix("/b1-static/_next/static/")'
+      priority: 1200
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+      service: cleanops-b1-shadow@file
