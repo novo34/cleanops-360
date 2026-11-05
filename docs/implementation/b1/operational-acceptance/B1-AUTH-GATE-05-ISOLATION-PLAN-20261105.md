@@ -109,3 +109,15 @@ cleanops360-f4fxmd-postgres-1
 ```
 
 Este resultado confirma **solo tres miembros Docker** en la red privada de PostgreSQL al momento de la consulta. La web original sigue apuntando a `closedBackend` según código/documentación previos, y el shadow B1 es el candidato. No usar el conteo como prueba de ausencia de clientes externos vía host o de acceso futuro; no inventariar otras bases ni repetir pruebas PASS. **Decisión:** mantener PostgreSQL existente para continuar el ensayo sin desplegar uno nuevo, preservando la web original. Próximo control read-only único: consultar con el rol DBA ya existente exclusivamente si está presente la fila singleton de `identity_private.configuration` y si `deployment_enabled` es `true/false`; proyectar solo `AUSENTE`, `CERRADA` o `ABIERTA`. No mostrar el JSON de política ni referencias, no hacer `INSERT/UPDATE/GRANT`. Si falta la fila, planear instalación exacta y revisada del seed; si está cerrada, planear reversión conservadora de ese estado y aprobación específica antes del cambio. El guard SQL `AUTH_GATE_05` es distinto del cierre formal de `AUTH-GATE-05` de producto, que queda OPEN hasta aceptación funcional e independiente.
+
+## 11. Compuerta SQL existente, pero DESHABILITADA (05/11/2026)
+
+El propietario ejecutó lectura en `cleanops360-f4fxmd-postgres-1` con el usuario administrador de esa instalación mediante `psql`, en una transacción `BEGIN READ ONLY; ... ROLLBACK;` y comunicó:
+
+```text
+B1_GATE_CONFIG=DESHABILITADA
+```
+
+**Conclusión confirmada:** existe una fila `identity_private.configuration` con `singleton=true`, `deployment_enabled=false`. La función `auth_api.security_policy()` rechaza por diseño con `AUTH_GATE_05` (`42501`), según la observación directa del runtime y el SQL versionado. No falta esquema, conexión o acceso básico. Red privada `cleanops360_staging_private` tiene exactamente el PG, web original y shadow; ello limita el perímetro Docker observado, no autoriza automáticamente a activar una bandera de base compartida.
+
+**Paso necesario y único anterior a solicitud de autorización de cambio:** verificar *sin imprimir valores* que el `values_json` almacenado, canonizado como JSON con claves ordenadas, coincide con `profile.values` del candidato exacto `cc51574ad85485728d877efbbb69bcb345469596`. SHA-256 esperado sobre el objeto canonizado: `3d582f5099611756473110c69fcddbd2ff76292d277bf01afc86ee854009147a` (60 claves). Comparar la huella, no cambiar contenidos. Si `PASS`, preparar autorización concreta y transacción DBA acotada con precondiciones `singleton=true AND deployment_enabled=false`, recibo de reversión seguro y verificación en staging con acceso bloqueado para terceros; las pruebas de login/MFA/sesiones y revisión independiente permanecen obligatorias. **No realizar `UPDATE` sin esa autorización**, y no atribuir cierre de `AUTH-GATE-05` a cambiar la bandera. No repetir los PASS infraestructurales.
