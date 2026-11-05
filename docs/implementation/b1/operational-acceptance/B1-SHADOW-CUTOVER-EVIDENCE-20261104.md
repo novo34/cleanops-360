@@ -282,3 +282,18 @@ B1_CSRF=PASS
 ```
 
 El bootstrap B1 del shadow responde y entrega las dos cookies requeridas después de habilitar temporalmente la configuración SQL (hash de perfil 60/60 PASS). Este GET pudo crear una preautorización efímera de ensayo. **No acredita todavía que la ruta pública /login device-only funcione**; el ensayo anterior produjo HTTP 500 y el rollback de ambos routers se comprobó. Siguiente operación, separada del guard SQL ya activado: ejecutar el script de router UI existente `/root/b1-shadow-stage/device-ui-router.py activate` bajo comprobación de vigencia de credencial y comprobar `GET https://cleanops.nuvurent.com/login` con el bearer privado por stdin a curl. Éxito solo con `HTTP 200`, HTML y cookies `__Host-cleanops_preauth`/`__Host-cleanops_csrf` en la respuesta. Si falla, invocar **inmediatamente** `device-ui-router.py rollback` para retirar los dos routers con validación de hash y confirmar original /login=200, sin detener shadow, tocar PostgreSQL ni destruir el recibo. Mantener separado el ensayo de usuario sintético y MFA. La duración de la credencial existente debe verificarse antes de la operación; si falta menos de 5 minutos, detener sin activar ni reemitir credencial automáticamente. No repetir pruebas anteriores, no declarar cierre de `AUTH-GATE-05` todavía.
+
+## 05/11/2026 — router UI device-only activo; HTTPS 200 + bootstrap PASS
+
+El propietario ejecutó el procedimiento de activación de UI del dispositivo con validación HTTP y reversión en caso de fallo. Salida exacta:
+
+```text
+B1_UI_HTTP=200
+B1_UI_BOOTSTRAP=PASS
+B1_UI_PUBLICA=PASS
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+Esto acredita que el router de `/login` del dispositivo respondió HTTPS 200, HTML y cookies `__Host-cleanops_preauth` y `__Host-cleanops_csrf`; el router de assets se instaló con el script existente `device-ui-router.py activate`, pero **la carga visual completa de assets en navegador aún no está validada**. El intento anterior de HTTP 500 no se reproduce en esta petición y no se ejecutó el rollback porque todas las verificaciones pasaron. El backend `/auth/me` sin sesión ya respondió 401 `AUTH_INVALID` con cookie durable B1; el guard SQL está habilitado temporalmente bajo autorización y cuenta con recibo de reversión.
+
+**Siguiente paso no redundante:** en el **mismo perfil de Brave/Chrome** que tiene instalada la cookie de dispositivo, abrir `https://cleanops.nuvurent.com/login`, confirmar que aparece la interfaz B1 (no la web original), sin copiar ningún valor de cookie ni introducir todavía contraseña real. Validar que los assets cargan y que aparecen los nombres `__Host-cleanops_preauth` y `__Host-cleanops_csrf` en almacenamiento del sitio. Si vuelve a aparecer 500, usar el rollback UI ya conocido y detener; no reactivar a ciegas. Si el navegador muestra la web antigua pese al PASS por curl, inspeccionar solo presencia/caducidad del nombre de cookie de dispositivo y la pestaña Network, sin divulgar valores. Después usar **solo** usuario sintético que esté realmente provisionado; el estado histórico del primer actor fue ABSENT y no puede asumirse que ya exista. Preparar ceremonia de primer usuario autorizada si falta, sin fabricar cuenta/contraseña ni compartir TOTP/semillas. Completar MFA/sesiones, pruebas negativas y aceptación independiente. `AUTH-GATE-05 OPEN`, PR #33 draft.
