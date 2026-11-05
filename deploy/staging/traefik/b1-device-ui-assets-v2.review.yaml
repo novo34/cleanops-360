@@ -6,13 +6,18 @@
 #
 # The original app continues to own ALL /_next/static/* requests.
 # AssetPrefix changes B1-generated references to /b1-static/_next/static/*.
-# Next 16 must be proven to serve those exact URLs in private smoke before activation.
+# Traefik strips /b1-static before forwarding, since Next serves /_next/static.
+# The candidate's rendered HTML must reference /b1-static/_next/static/... .
 # Static assets carry NO session secrets; explicit public isolation is reviewed separately.
 #
 # Device cookie is still NOT an authentication decision. The ForwardAuth middleware
 # validates its token and issues the request-bound assertion for /login.
 # Reject any attempt to remove the ForwardAuth / mTLS barrier from /login.
 http:
+  middlewares:
+    cleanops-b1-asset-strip-prefix:
+      stripPrefix:
+        prefixes: [/b1-static]
   routers:
     cleanops360-b1-device-login:
       rule: 'Host("cleanops.nuvurent.com") && Path("/login") && HeaderRegexp("Cookie", "(^|;[ ]*)__Host-cleanops_b1_ingress_device=")'
@@ -28,4 +33,5 @@ http:
       entryPoints: [websecure]
       tls:
         certResolver: letsencrypt
+      middlewares: [cleanops-b1-asset-strip-prefix]
       service: cleanops-b1-shadow@file
