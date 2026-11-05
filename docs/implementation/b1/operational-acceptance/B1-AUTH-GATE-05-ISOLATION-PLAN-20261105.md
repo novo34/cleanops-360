@@ -121,3 +121,28 @@ B1_GATE_CONFIG=DESHABILITADA
 **Conclusión confirmada:** existe una fila `identity_private.configuration` con `singleton=true`, `deployment_enabled=false`. La función `auth_api.security_policy()` rechaza por diseño con `AUTH_GATE_05` (`42501`), según la observación directa del runtime y el SQL versionado. No falta esquema, conexión o acceso básico. Red privada `cleanops360_staging_private` tiene exactamente el PG, web original y shadow; ello limita el perímetro Docker observado, no autoriza automáticamente a activar una bandera de base compartida.
 
 **Paso necesario y único anterior a solicitud de autorización de cambio:** verificar *sin imprimir valores* que el `values_json` almacenado, canonizado como JSON con claves ordenadas, coincide con `profile.values` del candidato exacto `cc51574ad85485728d877efbbb69bcb345469596`. SHA-256 esperado sobre el objeto canonizado: `3d582f5099611756473110c69fcddbd2ff76292d277bf01afc86ee854009147a` (60 claves). Comparar la huella, no cambiar contenidos. Si `PASS`, preparar autorización concreta y transacción DBA acotada con precondiciones `singleton=true AND deployment_enabled=false`, recibo de reversión seguro y verificación en staging con acceso bloqueado para terceros; las pruebas de login/MFA/sesiones y revisión independiente permanecen obligatorias. **No realizar `UPDATE` sin esa autorización**, y no atribuir cierre de `AUTH-GATE-05` a cambiar la bandera. No repetir los PASS infraestructurales.
+
+## 12. Política exacta confirmada — preparación del cambio único (05/11/2026)
+
+Salida del propietario de la consulta SHA-256, solo lectura, de `identity_private.configuration.values_json` de `cleanops360-f4fxmd-postgres-1`:
+
+```text
+B1_PERFIL=COINCIDE
+B1_PERFIL_CLAVES=60
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Resultado:** las 60 entradas de la política almacenada coinciden por huella de JSON canonizado con el perfil calculado desde el candidato B1 `cc51574ad85485728d877efbbb69bcb345469596` (SHA-256 `3d582f5099611756473110c69fcddbd2ff76292d277bf01afc86ee854009147a`). La fila existe y `deployment_enabled=false`; este es el origen confirmado de `AUTH_GATE_05` SQLSTATE `42501`. `B1` todavía NO funciona ni se ha habilitado; no reabrir pruebas de OpenBao/TLS/PG/permisos/redes/SQL0003.
+
+### Acción operativa preparada, NO autorizada/ejecutada aún
+
+Conservar PostgreSQL `cleanops360-f4fxmd-postgres-1`, web original `cleanops360-f4fxmd-web-1` intacta y shadow `cleanops360-b1-shadow-cc51574a`. El siguiente cambio candidato modifica **solo** el booleano `identity_private.configuration.deployment_enabled` para la fila `singleton=true` dentro de la base `cleanops_staging`. Debe tener las garantías:
+
+1. Aprobación expresa del propietario para abrir temporalmente el *gate SQL* de staging, no activación de producción ni cierre del *gate de aceptación*.
+2. Recibo privado de preestado del registro, creado con permisos `0600`, con identidad de DB, política hash y condición inicial, sin imprimir JSON ni secretos. Diseñar reversión por comparación CAS que solo vuelva a `false` si el cambio fue nuestro; cualquier deriva debe detener la operación.
+3. Transacción DBA única, con `lock_timeout` acotado, cambio `false→true` sobre una única fila `singleton=true`, comprobar fila afectada=1 y `COMMIT` sin tocar `values_json`, `version` ni `review_reference`. No improvisar grants ni crear roles/usuarios.
+4. Verificación inmediatamente posterior: `auth_api.security_policy()` de solo lectura debe devolver SHA de 60 valores esperados; si no, ejecutar el procedimiento de rollback controlado. El cambio **no** habilita automáticamente un router UI ni provisiona usuario de prueba.
+5. Abrir login de dispositivo solo con credencial del operador vigente, ForwardAuth y router aislados; el intento anterior de UI dio HTTP 500 y su rollback está confirmado. Aceptación de bootstrap CSRF, login sintético, TOTP, sesiones, replay y rutas negativas una sola vez, más reviewer independiente. Ante cualquier fallo, cerrar UI y gate SQL mediante rollback, preservar la web y todas las credenciales/llaves bajo custodia.
+
+La red privada observada incluye solo PG, web original y shadow, pero no demuestra que una cuenta externa no pueda conectarse por otros medios; el control de IAM/PgHBA debe seguir basado en evidencias anteriores. La bandera está a nivel de base, no es un switch por usuario. **AUTH-GATE-05 sigue OPEN**, PR #33 no debe integrarse automáticamente; la apertura es solo un ensayo reversible sujeto a autorización.
