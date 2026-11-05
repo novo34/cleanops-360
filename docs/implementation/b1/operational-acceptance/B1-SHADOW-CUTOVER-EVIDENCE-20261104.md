@@ -520,3 +520,20 @@ Luego aportó una captura del navegador en `cleanops.nuvurent.com/login` con el 
 ## 05/11/2026 — aclaración del propietario: HTTP 500 anterior desapareció tras recargar
 
 El propietario aclaró literalmente que, tras la activación de UI v2, «volvió a aparecer [HTTP 500] pero porque no había actualizado la página, pero actualizándola no salió». **No hay evidencia de HTTP 500 persistente tras recargar**. Tampoco atribuir una causa técnica concluyente a caché sin trazas HTTP; este dato corresponde a una observación del navegador. El propietario había ejecutado previamente `B1_UI_V2_ROLLBACK=PASS` y la captura posterior muestra el formulario con presentación mínima, que es compatible con el CSS y JSX existentes. El script de activación UI v2 sí reportó `B1_UI_V2_HTTP=200`, `B1_UI_V2_CSS=PASS`, `B1_UI_V2_JS=PASS`, `B1_UI_V2_REF_MIX=ZERO`, `B1_UI_V2=ACTIVO_DEVICE_ONLY`. **Estado actual**: routers UI v2 retirados tras rollback, shadow nuevo con prueba privada PASS, guard SQL cerrado. Próxima operación: una única reactivación con script existente `/root/b1-ui-v2-guarded-cutover-20261105.py activate`, sin reemitir dispositivo ni reconstruir; abrir /login directamente en Brave, recargar con Ctrl+Shift+R y comprobar que formulario carga sin 500. No considerar todavía login/TOTP/CSRF/sesiones PASS. Si vuelve el error después de recarga, no repetir; capturar solo código y tipo de solicitud fallida, hacer rollback del v2 y clasificarlo. `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — HTTP 500 reproducido en Brave tras reactivar UI v2
+
+El propietario ejecutó **una reactivación única** del script v2 existente tras el rollback anterior, sin nuevos builds ni credenciales; salida:
+
+```text
+B1_UI_V2_HTTP=200
+B1_UI_V2_CSS=PASS
+B1_UI_V2_JS=PASS
+B1_UI_V2_REF_MIX=ZERO
+B1_UI_V2=ACTIVO_DEVICE_ONLY
+B1_SQL_GATE=NO_MODIFICADO
+B1_ORIGINALES=NO_MODIFICADOS_POR_SCRIPT
+B1_SECRETOS=NO_IMPRESOS
+```
+
+**Fallo real:** el propietario volvió a reportar `HTTP ERROR 500` en Brave después de la reactivación. El `GET` equivalente de curl vía script es 200, CSS/JS 200, cero mezclas; **la validación HTTP sintética no reproduce el contexto del navegador**. El usuario ya había aclarado que en un intento anterior el error desapareció al actualizar, pero en este nuevo intento sí hay 500 informado. No declarar bug resuelto, no atribuir a caché ni gate SQL sin evidencia de la solicitud concreta. Se ha indicado **rollback inmediato** `python3 /root/b1-ui-v2-guarded-cutover-20261105.py rollback`; **resultado todavía no recibido**. Hasta recibir el PASS, no asumir retirado el router. Mantener gate SQL cerrado, no emitir nueva credencial, no rehacer mTLS/PG/OpenBao/TLS, no reconstruir ni volver a activar. Diagnóstico siguiente: identificar en DevTools Network la solicitud que devuelve 500 (tipo `document` vs `fetch`/RSC), código y método sin cabeceras ni cookies; y proyectar logs del **nuevo** contenedor `cleanops360-b1-assets-shadow-296d4ef2` en categorías sin exponer datos. No usar logs del shadow anterior como evidencia de error de este canary. `AUTH-GATE-05` OPEN.
