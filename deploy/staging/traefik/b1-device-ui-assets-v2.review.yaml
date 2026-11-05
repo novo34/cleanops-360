@@ -1,8 +1,10 @@
 # REVIEW ONLY — B1 device-only UI + isolated Next.js assets.
 # This is NOT installed by Traefik or Dokploy.
-# Requires an independently reviewed NEW B1 candidate build:
-#   docker build --build-arg CLEANOPS_B1_ASSET_PREFIX=/b1-static ...
-# Never replace the already running shadow/web with this YAML alone.
+# Requires an independently staged canary built with assetPrefix=/b1-static and
+# started with CLEANOPS_B1_ASSET_PREFIX=/b1-static at RUNTIME as well.
+# Existing pinned image: cleanops360-b1-assets-candidate:296d4ef2.
+# Container is separate, named cleanops360-b1-assets-shadow-296d4ef2.
+# Never replace either already running old shadow/web with this YAML alone.
 #
 # The original app continues to own ALL /_next/static/* requests.
 # AssetPrefix changes B1-generated references to /b1-static/_next/static/*.
@@ -26,7 +28,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares: [cleanops-b1-strip-assertion@file, cleanops-b1-forward-auth@file]
-      service: cleanops-b1-shadow@file
+      service: cleanops-b1-assets-shadow@file
     cleanops360-b1-device-assets:
       rule: 'Host("cleanops.nuvurent.com") && PathPrefix("/b1-static/_next/static/")'
       priority: 1200
@@ -35,3 +37,9 @@ http:
         certResolver: letsencrypt
       middlewares: [cleanops-b1-asset-strip-prefix]
       service: cleanops-b1-shadow@file
+  services:
+    cleanops-b1-assets-shadow:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://cleanops-b1-assets:3000"
