@@ -71,3 +71,15 @@ B1_SECRETOS=NO_EXPUESTOS
 ```
 
 **No interpretar como ausencia o fallo de PostgreSQL**, que ha respondido con TLS y cuenta de servicio. El inventario propio no inspeccionó siete contenedores y no permite identificar la instancia. No repetir montajes/token/OpenBao/TLS/ACL. Próximo control mínimo: salida de nombres/imágenes/estado de los contenedores PostgreSQL y CleanOps con `docker ps -a --format '{{.Names}}|{{.Image}}|{{.Status}}' | grep -Ei 'postgres|cleanops360'`, sin ningún `docker inspect` de configuración privada. Con ese listado identificar el nombre efectivo del PostgreSQL y comprobar exclusivamente sus redes/consumidores, evitando más scripts generales. Si la exclusividad sigue sin acreditarse, el camino responsable es una instancia aislada y autorizada para prueba B1, sin poner `deployment_enabled=true` en `cleanops_staging`. El gate sigue pendiente de revisión/aceptación independiente. El propietario ha pedido terminar B1 sin más series redundantes de diagnóstico; mantener un único hilo de cierre y criterios de salida finitos.
+
+## 8. Identificación exacta del contenedor PostgreSQL (05/11/2026)
+
+El propietario aportó inventario **directo de Docker** (sin secretos ni cambios):
+
+- `cleanops360-f4fxmd-postgres-1 | postgres:16-bookworm | Up 6 days (healthy)`: PostgreSQL del proyecto CleanOps 360, candidato directo para el `manifest.postgres` ya comprobado por TLS (pendiente de reconciliar alias/red de forma inequívoca).
+- `cleanops360-f4fxmd-web-1`: web anterior sana, **no tocar**.
+- `cleanops360-b1-shadow-cc51574a`: candidata B1 en ejecución.
+- `cleanops360-f4fxmd-openbao-1` y `cleanops360-f4fxmd-openbao-agent-1`: componentes de custodia independientes dentro de CleanOps.
+- `cleanops-dcc-postgres-mapq0o... | postgres:16`, `dokploy-postgres... | postgres:16`, `jev-staging-es4gdq-postgres-1 | postgres:16-alpine`: instancias Docker separadas, sin atribuirles conexiones a `cleanops_staging`.
+
+**Avance:** el error `NO_IDENTIFICADO` del inventario automático es un falso negativo de descubrimiento, no un problema operativo de PG. No reconstruir/clonar PostgreSQL: la vía preferente es evaluar primero el almacenamiento existente de CleanOps. Para abrir un gate de base de datos, determinar el alcance mediante comparación puntual de la red/alias y la instalación existente, sin auditorías generales ni repetición de PASS. No es prueba por sí sola de que ninguna otra aplicación use la misma instancia. `AUTH-GATE-05 OPEN`; no aplicar `deployment_enabled=true` ni abrir routers UI sin diseño de reversión y revisión humana.
