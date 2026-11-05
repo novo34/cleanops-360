@@ -401,3 +401,28 @@ B1_SECRETOS=NO_EXPUESTOS
 ```
 
 **Interpretación:** El artefacto `.next/required-server-files.json` conserva el assetPrefix de compilación; la etapa final del Dockerfile no contiene `CLEANOPS_B1_ASSET_PREFIX` en el entorno, tal como revela `B1_RUNTIME_PREFIX=AUSENTE`. El HTML del servidor presenta referencias mezcladas y la primera búsqueda de CSS *prefijado* falló. No se ha confirmado ausencia del CSS en el artefacto ni identificado el estado de referencias CSS no prefijadas. Las referencias CSS/JS se deben clasificar por extensión y prefijo en una única petición local, **sin imprimir rutas completas, tokens, cookies, HTML ni cabeceras**, y comprobar con `-e CLEANOPS_B1_ASSET_PREFIX=/b1-static` en el contenedor aislado **sin reconstruir imagen**. Si con el flag de ejecución las referencias CSS/JS quedan coherentemente prefijadas y archivos pasan 200 MIME, corregir Dockerfile y script para incluir variable no secreta de runtime y recompilar una sola vez en un tag nuevo. Si no, investigar la serialización Next de scripts y el routing de build; no atribuir el problema de manera definitiva a la variable todavía. Guard SQL cerrado, UI routers retirados, web antigua intacta. `AUTH-GATE-05` sigue OPEN.
+
+## 05/11/2026 — asset prefix runtime PASS, reutilizar imagen sin rebuild
+
+El propietario realizó el segundo test `docker run` sobre **la misma imagen ya construida**, con `-e CLEANOPS_B1_ASSET_PREFIX=/b1-static`, sin red externa, sin puertos ni volúmenes de servicios. Resultado literal:
+
+```text
+B1_HTML=PASS
+B1_CSS_PREFIX=1
+B1_CSS_LEGACY=0
+B1_CSS_HTTP=200
+B1_CSS_MIME=PASS
+B1_JS_PREFIX=9
+B1_JS_LEGACY=0
+B1_JS_HTTP=200
+B1_JS_MIME=PASS
+B1_CSS_ARCHIVOS=4
+B1_DESPLIEGUE=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+Esto **cierra exclusivamente el fallo del smoke de assets**: la variable no secreta `CLEANOPS_B1_ASSET_PREFIX=/b1-static` debe estar presente *también en el proceso Next de ejecución*. El prefijo ya fue compilado en la imagen `cleanops360-b1-assets-candidate:296d4ef2` (ID `sha256:da7e2fc8369763d51002acdd4b00eb7788ecc603f39275dd36407fe6b6ade332`). Con la variable de runtime, HTML hace referencia a un CSS y 9 JS exclusivamente namespaced; recursos reales responden 200 MIME. **NO se requiere reconstruir la imagen para este candidato**, solo aplicar variable runtime en un contenedor nuevo. El HTTP 500 de Brave sigue sin causa confirmada y requiere ensayo real de interfaz.
+
+Se ha versionado un procedimiento de staging en `scripts/b1-assets-canary-20261105.py` (commit `a6a31e528438fc61e4ed24b42b3cc0d53c4c5de7`), que **NO se ha ejecutado todavía**. Crea un segundo contenedor privado `cleanops360-b1-assets-shadow-296d4ef2` con la imagen exacta ya compilada, copia únicamente variables públicas de origen del shadow B1 actual, añade `CLEANOPS_B1_ASSET_PREFIX=/b1-static`, conserva UID/GID 999:999, red/límites/montajes read-only y no comparte alias `cleanops-b1-ingress`. Rechaza recursos insuficientes o estados distintos. No modifica el shadow original, routers de Traefik, SQL guard ni el web anterior; su smoke GET /login y /_next/static interno no crea credenciales. Dispone de `rollback` que valida propietario Docker y rechaza retirar un canary ya usado por un router. No usar `docker network connect` ni gestionar certificados manualmente.
+
+**Secuencia pendiente:** validar Python del script y stage canary en el VPS, comprobar salida de smoke y salud original; solo después preparar/autorizar *nuevo* router que dirija `/login` y `/b1-static/_next/static/` **al canary nuevo** (no al antiguo `cleanops-b1-shadow@file` del archivo review), con ForwardAuth obligatorio en login y stripPrefix solo para assets. El plan de public cutover debe tener rollback y pruebas HTTP/browser; evitar usar directamente YAML de review anterior cuyo backend apunta al contenedor antiguo. El gate SQL está cerrado y no se debe reabrir solo para comprobar assets. No declarar AUTH-GATE-05 cerrado.
