@@ -1,0 +1,151 @@
+# B1 ingress DELTA — PREPARED, NOT ACTIVE. Nothing here is read by Dokploy, Traefik or CI.
+# Applying it is a separately authorized staging operation (see the B1 closure execution runbook).
+#
+# This example assumes the separately prepared B1 shadow container:
+# cleanops360-b1-shadow-cc51574a on dokploy-network, with the unique DNS alias
+# cleanops-b1-ingress. It must be started only under an approved runtime and
+# rollback procedure. The old web remains untouched on its existing routers.
+# A NEW higher-priority router handles ONLY B1 paths and forwards to the new
+# file-provider service cleanops-b1-shadow (NOT the OLD @docker web service).
+# Removing the dynamic file restores the original path routing.
+#
+# D3 — why no IP is configured: B1 shadow and Traefik share the existing overlay
+# dokploy-network. The B1 shadow alone owns the alias cleanops-b1-ingress.
+# Its listener resolves the reviewed manifest ingress.binding CIDR against the
+# container interface. Never assign this alias to the OLD web. The listener is
+# never published (no `ports:`), never bound to a wildcard, and mTLS + the pinned proxy certificate
+# are enforced exactly as before: another container on the overlay can open a TCP connection but
+# cannot pass the client-certificate check (denied before any database access).
+#
+# SECURITY HISTORY (03/11/2026); patched proxy active as of 04/11/2026:
+# - Former Dokploy proxy was traefik:v3.6.7, AFFECTED by GHSA-6384-m2mw-rf54
+#   (ForwardAuth X-Forwarded-Prefix spoofing with trustForwardHeader=false
+#   in certain upstream proxy topologies). Upstream fix for v3.6 is v3.6.14.
+#   UPDATE 2026-11-04: the 3.6 line has been OUT of security support since 2026-08-16 and does not
+#   receive the fix for GHSA-hrpp-p4fc-wwf8 (ForwardAuth shared auth connection pool, fixed in >= 3.7.16).
+#   Executed and verified: v3.7.17 image digest sha256:68ae5fe5b64ca166704b746a9e8afcd385e36b3f569a5691401bf652d57b3748.
+#   Five existing HTTPS routes returned 200; Dokploy TRAEFIK_VERSION set to 3.7.17.
+#   The proxy upgrade is CLOSED; do not repeat it. In an isolated run (scripts/traefik-sandbox-check.py) v3.6.7 delivered an
+#   EMPTY body to the auth server despite forwardBody: true, so this template cannot work on the running
+#   proxy; v3.7.17 delivers the exact body. Procedure: docs/implementation/b1/operational-acceptance/
+#   B1-TRAEFIK-UPGRADE-RUNBOOK-20261104.md
+#   Source: https://github.com/traefik/traefik/security/advisories/GHSA-6384-m2mw-rf54
+# - No further proxy version upgrade is required for B1. AUTH-GATE-05 still blocks
+#   ForwardAuth until separate private ingress credential, manifest evidence reference,
+#   effective Compose deployment, security acceptance and independent approval.
+# - Our B1 adapter strips x-forwarded-* before minting an assertion, which limits
+#   direct transfer of X-Forwarded-Prefix into the issuer, but cannot prove
+#   provider-side sanitization or exclude all relevant bypasses.
+# - Require negative tests for spoofed X-Forwarded-Prefix, For/Host/Proto/Uri,
+#   duplicate header handling, assertion injection and malformed/oversized bodies.
+#
+# 03/11/2026 operational reconciliation (PREPARATION ONLY):
+# - The deployed Dokploy Compose is exactly staging SHA d3ea84b38fd1574db1610f03b59c8c4a5050ac72;
+#   sha256 of the effective compose.yaml = 03e2033c7c456b6eded20d68e8babe7af20596b14617f0a86d34997aa407578c.
+# - Existing image sha256:ad632f802c2d0992166f2db7ba7242c2c5b401144244b42fe72a1a8d7b20b290
+#   is still serving /login. Never merge into auto-deployed staging to test this example.
+# - The B1 candidate image cleanops360-b1-candidate:cc51574a has built and passed private loader
+#   checks separately; the first administrator is already COMMITTED in PostgreSQL. Do not re-enroll.
+# - The reviewed install-config validator currently REQUIRES uppercase colon-delimited
+#   SHA-256 (32 octets, 95 characters). The manifest has that shape already. Do NOT normalize
+#   it to lower-case unseparated hex; identify and compare the actual Traefik mTLS client
+#   certificate fingerprint before activation.
+# - ingress.evidenceReference is unfilled; an actual independently reviewed and attributable
+#   network/TLS configuration evidence reference is required. Do NOT invent it.
+# - No ForwardAuth, serversTransport, clientCertificates or rootCAs token was found in
+#   five inspected dynamic configuration files. This is not proof of global absence.
+# - The existing Agent sink is volume cleanops360-f4fxmd_identity_agent_sink. A separate
+#   UID/GID 999:999 read-only container confirmed access. No replacement Agent or new token.
+# - 04/11: owner verified manifest CIDR matches exactly the OLD web's
+#   dokploy-network interface (BINDING_CIDR=PASS). B1 shadow has been staged
+#   with the same network and unique alias, but is not started or accepted.
+#   The shadow process's own CIDR resolution is therefore not yet observed.
+# - 04/11: existing /etc/cleanops360-staging/b1-ingress-pki/traefik-client.crt/key
+#   passed public-key match, root-only key permissions and sslclient chain against
+#   manifest clientCa; prior SHA-256 pin match PASS. No new CA or certificate.
+#   Traefik does NOT currently mount these files; TLS placeholders below remain
+#   deployment STOPs until a reviewed, read-only access path is established.
+# - Do not copy this example into /etc/dokploy/traefik/dynamic until configuration parser,
+#   certificate SAN, header sanitization, routing, prelogin device enrollment and rollback
+#   have passed independent review and owner authorization.
+#
+# Remaining <...> placeholders must be substituted from the protected operator evidence before any activation. The TLS server
+# certificate of the listener MUST carry DNS:cleanops-b1-ingress in its SAN (Traefik verifies the
+# address host name; insecureSkipVerify stays false).
+
+# ---- Part 1: Traefik dynamic configuration (file provider) -------------------------------------
+http:
+  middlewares:
+    cleanops-b1-forward-auth:
+      forwardAuth:
+        address: "https://cleanops-b1-ingress:<ingress.port>/forward-auth"
+        # Original client-supplied forwarding headers are discarded by Traefik and rebuilt once.
+        trustForwardHeader: false
+        # The B1 adapter (lib/b1/ingress-forward-auth.ts) binds the method taken from the
+        # single X-Forwarded-Method header, which Traefik always sets from the original
+        # request; it never reads the method of the ForwardAuth call itself. This option
+        # (default false => the auth call is a GET) is therefore NOT required for POST
+        # compatibility; it only keeps the auth-call method aligned with the original.
+        preserveRequestMethod: true
+        tls:
+          ca: <path of the CA that signed the listener certificate, read-only in Traefik>
+          cert: <path of the pinned Traefik client certificate (SHA-256 = manifest proxyCertificateSha256)>
+          key: <path of its private key, never in Git>
+          insecureSkipVerify: false
+        # The issuer binds the exact request body and selected headers. Traefik
+        # defaults forwardBody=false, which would invalidate every nonempty POST.
+        # The private listener also enforces the reviewed maximumBodyBytes.
+        forwardBody: true
+        maxBodySize: 65536
+        # Keep precisely the request headers covered by requestBinding(), plus
+        # Traefik-rebuilt forwarding metadata. Do not accept untrusted assertions.
+        authRequestHeaders: [Host, Authorization, Cookie, Origin, Content-Type, Content-Encoding, X-CSRF-Token, Idempotency-Key, Sec-Fetch-Site, X-Forwarded-Method, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Uri, X-Forwarded-For]
+        # The only header copied from the ForwardAuth answer onto the upstream request.
+        authResponseHeaders: [X-Cleanops-B1-Assertion]
+    cleanops-b1-strip-assertion:
+      headers:
+        customRequestHeaders:
+          X-Cleanops-B1-Assertion: ""     # an empty value removes any client-supplied assertion first
+  routers:
+    cleanops360-b1-guarded:
+      # All real B1 HTTP operations use handleAuth -> requestScope -> assertion verifier,
+      # including /auth/login and /mfa/* (not just post-login resources).
+      # Do not activate until the independent operator enrolled a valid device
+      # credential and the full private ingress/SQL package is accepted.
+      rule: Host(`cleanops.nuvurent.com`) && (PathPrefix(`/auth/`) || PathPrefix(`/mfa/`) || PathPrefix(`/me/`))
+      entryPoints: [websecure]
+      priority: 1000                    # above the existing websecure router; separate B1 shadow on port 3000
+      tls:
+        certResolver: letsencrypt
+      middlewares: [cleanops-b1-strip-assertion, cleanops-b1-forward-auth]
+      service: cleanops-b1-shadow  # FILE provider below; NEVER route B1 to the old @docker web
+  services:
+    cleanops-b1-shadow:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://cleanops-b1-ingress:3000"  # B1 shadow's private Next.js listener
+
+# ---- Part 2: Already-staged isolated B1 shadow (NOT an overlay on the old web) -------------
+# scripts/b1-stage-shadow.py created a new, STOPPED Compose-owned container:
+#   cleanops360-b1-shadow-cc51574a
+# with a private readonly installation mount and Agent sink volume.
+# Its dokploy-network alias is cleanops-b1-ingress.
+# No additional Dokploy Compose web edits/aliases are necessary for this topology.
+# Do NOT add the same alias to the original cleanops360-f4fxmd-web-1.
+# Ensure the shadow is RUNNING, its trusted runtime and internal listener are READY,
+# and AUTH-GATE-05/security/owner approval is complete before this YAML is installed.
+# Shadow is intentionally staged with restart=no. Once readiness, issuance and the
+# exact cutover authorization are accepted, but BEFORE installing this router,
+# owner must enable its independent restart policy:
+#   docker update --restart=unless-stopped cleanops360-b1-shadow-cc51574a
+# Then reassert it is running. Otherwise a Node crash/host reboot leaves this
+# B1 router pointing to a stopped backend. The old web policy is unchanged.
+# Rollback order: withdraw this YAML FIRST and confirm original routing; THEN
+# disable shadow restart (docker update --restart=no), stop shadow gracefully
+# and preserve durable audit/credentials. Never stop the old web as rollback.
+#
+# Rollback: REMOVE/rename only the new B1 dynamic YAML, verify original B1 paths
+# return to the previous web router, then stop the B1 shadow without destroying
+# any persisted credentials, identity tables or audit evidence. Do not restart
+# Traefik, Dokploy, OpenBao, PostgreSQL or the old web as part of this rollback.

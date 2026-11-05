@@ -1,0 +1,176 @@
+# B1 — plan de aislamiento y habilitación de ensayo tras diagnóstico AUTH_GATE_05
+
+**Fecha:** 2026-11-05 · **Estado:** PREPARACIÓN, SIN ACTIVACIÓN · **Entorno objetivo:** ensayo B1, `cleanops.nuvurent.com`, nunca producción.  
+**No constituye aprobación de corte, cambio SQL, exposición pública ni cierre del gate.**
+
+## 1. Causa demostrada y controles ya resueltos
+
+El propietario ejecutó una consulta `SELECT auth_api.security_policy()` desde el shadow `cleanops360-b1-shadow-cc51574a` con el usuario de servicio, obteniendo error exacto `AUTH_GATE_05`, SQLSTATE `42501`, sin mutaciones. El SQL de `docs/canonical/auth-review/v4/b1-review-only.sql` y `docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql` demuestra que `auth_api.security_policy()` llama a `identity_private.require_enabled()`; este gate exige una fila singleton en `identity_private.configuration` con `deployment_enabled=true` y, de lo contrario, eleva `AUTH_GATE_05` con `42501`. La conclusión está corroborada por el nombre de error real, pero aún debe verificarse el alcance de consumidores de la base antes de modificar el gate.
+
+PASS ya obtenidos; **NO repetir**: shadow running sin reinicios; socket/ingress mTLS y Traefik 3.7.17; rollback de los dos routers UI de dispositivo; original `/login` HTTP 200; ausencia de aserción denegada; sink OpenBao tmpfs + UID/GID/modos; cinco lecturas de claves KV correctas; TLS/usuario y conexión PG, rol contractual, esquema USAGE y función EXECUTE + SECURITY DEFINER. SQL0002/0003 y evidencias de operador, tests aislados y otros antecedentes permanecen en las fichas existentes.
+
+El router B1 principal para `/auth/`, `/mfa/` y `/me/` sigue instalado según último PASS, pero no existe aceptación funcional de login, preauth, CSRF, TOTP, sesiones o replay; `AUTH-GATE-05 OPEN`. La web original usa su backend cerrado y no debe reemplazarse ni redeplegarse.
+
+## 2. Restricción de seguridad derivada del código
+
+El campo `deployment_enabled` en `identity_private.configuration` es un control **por base de datos**, no por navegador, cookie, prefijo de ruta ni usuario. Activarlo en `cleanops_staging` puede abrir operaciones en cualquier consumidor que use esa misma base y el contrato. La aparente ausencia de tráfico ajeno no demuestra aislamiento continuo. Por tanto **prohibido ejecutar** `UPDATE ... SET deployment_enabled=true`, `INSERT` de configuración, `SET ROLE`, `GRANT`, DDL, cambiar `require_enabled()`, o forzar retorno de política en el VPS compartido como atajo.
+
+## 3. Decisión técnica previa
+
+**Camino preferido:** instancia PostgreSQL aislada para B1 de pruebas, no publicada, con roles y SQL autorizados y fixtures sintéticos; manifest B1/credenciales/alcance de red versionados y revisados; separación del runtime B1 respecto de las conexiones y los datos de la web original. El aprovisionamiento y la topología deberán planificarse a partir de inventario, capacidad y procedencia de las migraciones ya auditadas, nunca improvisar una clonación de datos reales. Para OpenBao: cuenta/tenant de pruebas, versiones y permisos de claves explícitos bajo custodia aprobada; no reutilizar ni exportar material secreto sin autorización. Si el objetivo ya usa una base realmente dedicada exclusivamente a B1, evaluar alternativa de activación acotada **solo después de demostrar esa exclusividad con inventario de servicios y permisos, ventana de mantenimiento y rollback**; no presuponerla.
+
+La base PostgreSQL separada no es suficiente si comparte material/confianzas de claves y usuarios sin separación de ámbito. El manifest privado de runtime es un artefacto de autoridad con controles de UID/GID/SHA: nunca modificarlo directamente para cambiar destinatarios o contraseñas.
+
+## 4. Secuencia de trabajo (cada paso tiene autorización y salida propia)
+
+| Fase | Solo acciones autorizables tras revisar | Criterio de salida |
+| --- | --- | --- |
+| A · Inventario read-only | Identificar servicio PG, consumidores del mismo DB/rol en vivo y por configuración aprobada, conexiones y redes; sin mostrar host/identidades/secretos | Se determina si DB es exclusiva, compartida o `NO_ACREDITADO`; no inferir exclusividad de conexiones instantáneas |
+| B · Contrato de ensayo | Especificar PG/roles/fixtures/tenant/baos/ingress/manifest/routers y catálogo, hashes de procedencia, rollback, copia de seguridad y aprobación independiente | Paquete exacto revisable sin tocar VPS |
+| C · Preparación aislada | Solo con autorización explícita: aprovisionar almacenes separados, montar candidato aislado sin puertos públicos, validación negativa | Integridad, readiness y no impacto en original |
+| D · Apertura limitada | Solo en DB de ensayo acreditada y con aprobación de cambio: habilitar configuración bajo identidad DBA autorizada, snapshot reversible | `security_policy()` coincide con `lib/b1/config.ts`; sin abrir otras DB |
+| E · Prueba funcional única | UI B1 separada/corregida, bootstrap preauth/CSRF, password, MFA TOTP, sesiones, revocación, replay y cierres negativos; observación controlada | Test E2E PASS o rollback inmediato |
+| F · Aceptación | Reviewer independiente de los bytes reales, Product Owner y evidencia por SHA | Recién entonces evaluar cambio de estado del gate; PR #33 permanece draft hasta autorización separada |
+
+**Reversión:** retirar únicamente routers B1 añadidos, conservar original `/login` y su backend, cerrar `deployment_enabled` únicamente en la DB de ensayo usando un cambio previamente revisado, invalidar credenciales de prueba mediante canal de operador autorizado y detener solo contenedores del ensayo. No borrar bases, volúmenes, claves ni reconstruir PostgreSQL de producción. No usar el rollback de los routers UI ya ejecutado como procedimiento para futuros archivos diferentes.
+
+## 5. Próxima acción concreta, estrictamente read-only
+
+Obtener un inventario **sin imprimir secretos ni nombres de usuarios** de los clientes actualmente conectados a la misma base desde el contenedor shadow, usando una conexión PG independiente y un `SELECT` sobre `pg_stat_activity` que proyecte únicamente conteos por clase (`cleanops-identity-staging`, otras aplicaciones, sin etiqueta). Esta vista muestra conexiones activas al instante; NO prueba que no haya consumidores desconectados ni conexiones de otros días. Complementar posteriormente con Compose/servicios y credenciales montadas por configuración. Si la consulta requiere privilegios no presentes, marcar `NO_ACREDITADO` y usar al DBA autorizado, sin nuevos grants.
+
+No repetir las pruebas PASS, no emitir nueva cookie, no tocar Traefik, SQL ni OpenBao. Registrar únicamente categorías agregadas y el SHA de este plan. 
+
+## 6. Inventario de sesiones PostgreSQL (05/11/2026)
+
+La lectura de `pg_stat_activity` hecha por el propietario con la identidad real del shadow devolvió:
+
+```text
+B1_DB_CONEXIONES=0
+B1_DB_CONEXIONES_B1=0
+B1_DB_SIN_ETIQUETA=0
+B1_DB_OTRAS_APLICACIONES=0
+B1_DB_VISIBILIDAD=LIMITADA
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Interpretación acotada:** cero otros backends reportados en el instante de muestreo y visibilidad insuficiente para acreditar exclusividad de uso, configuración, conexiones históricas o futuras. Queda `B1_DB_EXCLUSIVIDAD=NO_ACREDITADA`. No promover el gate, ni conceder `pg_read_all_stats`. Próxima lectura: inventariar contenedores Docker (running/stopped) y redes de la base, identificar el contenedor PostgreSQL por el destino/alias del `installation.json`, comparar la red del shadow y la web original, y contar posibles consumidores por nombres de variables (nunca sus valores). Esta evidencia tampoco prueba exclusividad definitiva; contrastar Compose/Dokploy efectivos antes de una decisión operativa. Ninguna configuración ni datos modificados.
+
+## 7. Inventario Docker incompleto — no repetir pruebas de dependencias
+
+El propietario ejecutó las dos variantes de inventario read-only. La primera devolvió `B1_DOCKER_INVENTARIO=ERROR`; la segunda reportó:
+
+```text
+B1_DOCKER_TOTAL=25
+B1_DOCKER_INSPECCIONADOS=18
+B1_DOCKER_OMITIDOS=7
+B1_PG_ESTADO=NO_IDENTIFICADO
+B1_EXCLUSIVIDAD=NO_ACREDITADA
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**No interpretar como ausencia o fallo de PostgreSQL**, que ha respondido con TLS y cuenta de servicio. El inventario propio no inspeccionó siete contenedores y no permite identificar la instancia. No repetir montajes/token/OpenBao/TLS/ACL. Próximo control mínimo: salida de nombres/imágenes/estado de los contenedores PostgreSQL y CleanOps con `docker ps -a --format '{{.Names}}|{{.Image}}|{{.Status}}' | grep -Ei 'postgres|cleanops360'`, sin ningún `docker inspect` de configuración privada. Con ese listado identificar el nombre efectivo del PostgreSQL y comprobar exclusivamente sus redes/consumidores, evitando más scripts generales. Si la exclusividad sigue sin acreditarse, el camino responsable es una instancia aislada y autorizada para prueba B1, sin poner `deployment_enabled=true` en `cleanops_staging`. El gate sigue pendiente de revisión/aceptación independiente. El propietario ha pedido terminar B1 sin más series redundantes de diagnóstico; mantener un único hilo de cierre y criterios de salida finitos.
+
+## 8. Identificación exacta del contenedor PostgreSQL (05/11/2026)
+
+El propietario aportó inventario **directo de Docker** (sin secretos ni cambios):
+
+- `cleanops360-f4fxmd-postgres-1 | postgres:16-bookworm | Up 6 days (healthy)`: PostgreSQL del proyecto CleanOps 360, candidato directo para el `manifest.postgres` ya comprobado por TLS (pendiente de reconciliar alias/red de forma inequívoca).
+- `cleanops360-f4fxmd-web-1`: web anterior sana, **no tocar**.
+- `cleanops360-b1-shadow-cc51574a`: candidata B1 en ejecución.
+- `cleanops360-f4fxmd-openbao-1` y `cleanops360-f4fxmd-openbao-agent-1`: componentes de custodia independientes dentro de CleanOps.
+- `cleanops-dcc-postgres-mapq0o... | postgres:16`, `dokploy-postgres... | postgres:16`, `jev-staging-es4gdq-postgres-1 | postgres:16-alpine`: instancias Docker separadas, sin atribuirles conexiones a `cleanops_staging`.
+
+**Avance:** el error `NO_IDENTIFICADO` del inventario automático es un falso negativo de descubrimiento, no un problema operativo de PG. No reconstruir/clonar PostgreSQL: la vía preferente es evaluar primero el almacenamiento existente de CleanOps. Para abrir un gate de base de datos, determinar el alcance mediante comparación puntual de la red/alias y la instalación existente, sin auditorías generales ni repetición de PASS. No es prueba por sí sola de que ninguna otra aplicación use la misma instancia. `AUTH-GATE-05 OPEN`; no aplicar `deployment_enabled=true` ni abrir routers UI sin diseño de reversión y revisión humana.
+
+## 9. Redes efectivas y plan de cierre acotado — 05/11/2026
+
+Evidencia aportada por el propietario (consultas `docker inspect` read-only):
+
+```text
+/cleanops360-f4fxmd-postgres-1 | REDES=cleanops360_staging_private,
+/cleanops360-f4fxmd-web-1 | REDES=cleanops360-f4fxmd_default,cleanops360_staging_private,dokploy-network,
+/cleanops360-b1-shadow-cc51574a | REDES=cleanops360-f4fxmd_default,cleanops360_staging_custody,cleanops360_staging_private,dokploy-network,
+```
+
+La web original **sí tiene conectividad de red** hacia PostgreSQL de staging, pero su backend registrado es el cerrado `closedBackend`; ello no prueba que no existan otras aplicaciones con credenciales a esta DB. El shadow comparte esa red y es el candidato efectivo de autenticación. Otras instancias PG de Dokploy, JEV y DCC fueron listadas como contenedores distintos, no como destinos de este manifest. Evitar crear PostgreSQL nuevo por defecto o reconstruir datos que ya están. La prueba rápida restante para decidir el perímetro de la base es un listado acotado de los contenedores de `cleanops360_staging_private`; luego un preflight del estado/cantidad de filas de `identity_private.configuration` bajo el rol DBA autorizado sin exponer `values_json`, `review_reference`, roles o contraseñas. Si la configuración está cerrada, **no se debe crear ni habilitar una fila a ciegas**: los 60 valores de política y aprobación del perfil de ensayo deben ser los exactos del commit y tener una reversión que preserve la configuración íntegra.
+
+**Dos puertas distintas:** (1) `deployment_enabled` es un guard SQL de ejecución por base, y su excepción `AUTH_GATE_05` explica el error de runtime; (2) `AUTH-GATE-05` es también la aceptación más amplia de autenticación B1 en producto. Abrir el guard SQL solo bajo un ensayo aprobado no cierra automáticamente la puerta de producto. Exigir validación de /login B1 (UI 500 previo), CSRF/TOTP/sesiones, negaciones del router, backup/restauración del flag y dictamen independiente. `AUTH-GATE-05` del producto permanece OPEN hasta ello. No cambiar la web original, no reemitir dispositivos ni repetir mTLS/OpenBao/SQL0003.
+
+## 10. Red privada compartida: solo tres contenedores (05/11/2026)
+
+El propietario aportó la salida de `docker network inspect cleanops360_staging_private --format '{{range .Containers}}{{.Name}}{{"\\n"}}{{end}}'`:
+
+```text
+cleanops360-b1-shadow-cc51574a
+cleanops360-f4fxmd-web-1
+cleanops360-f4fxmd-postgres-1
+```
+
+Este resultado confirma **solo tres miembros Docker** en la red privada de PostgreSQL al momento de la consulta. La web original sigue apuntando a `closedBackend` según código/documentación previos, y el shadow B1 es el candidato. No usar el conteo como prueba de ausencia de clientes externos vía host o de acceso futuro; no inventariar otras bases ni repetir pruebas PASS. **Decisión:** mantener PostgreSQL existente para continuar el ensayo sin desplegar uno nuevo, preservando la web original. Próximo control read-only único: consultar con el rol DBA ya existente exclusivamente si está presente la fila singleton de `identity_private.configuration` y si `deployment_enabled` es `true/false`; proyectar solo `AUSENTE`, `CERRADA` o `ABIERTA`. No mostrar el JSON de política ni referencias, no hacer `INSERT/UPDATE/GRANT`. Si falta la fila, planear instalación exacta y revisada del seed; si está cerrada, planear reversión conservadora de ese estado y aprobación específica antes del cambio. El guard SQL `AUTH_GATE_05` es distinto del cierre formal de `AUTH-GATE-05` de producto, que queda OPEN hasta aceptación funcional e independiente.
+
+## 11. Compuerta SQL existente, pero DESHABILITADA (05/11/2026)
+
+El propietario ejecutó lectura en `cleanops360-f4fxmd-postgres-1` con el usuario administrador de esa instalación mediante `psql`, en una transacción `BEGIN READ ONLY; ... ROLLBACK;` y comunicó:
+
+```text
+B1_GATE_CONFIG=DESHABILITADA
+```
+
+**Conclusión confirmada:** existe una fila `identity_private.configuration` con `singleton=true`, `deployment_enabled=false`. La función `auth_api.security_policy()` rechaza por diseño con `AUTH_GATE_05` (`42501`), según la observación directa del runtime y el SQL versionado. No falta esquema, conexión o acceso básico. Red privada `cleanops360_staging_private` tiene exactamente el PG, web original y shadow; ello limita el perímetro Docker observado, no autoriza automáticamente a activar una bandera de base compartida.
+
+**Paso necesario y único anterior a solicitud de autorización de cambio:** verificar *sin imprimir valores* que el `values_json` almacenado, canonizado como JSON con claves ordenadas, coincide con `profile.values` del candidato exacto `cc51574ad85485728d877efbbb69bcb345469596`. SHA-256 esperado sobre el objeto canonizado: `3d582f5099611756473110c69fcddbd2ff76292d277bf01afc86ee854009147a` (60 claves). Comparar la huella, no cambiar contenidos. Si `PASS`, preparar autorización concreta y transacción DBA acotada con precondiciones `singleton=true AND deployment_enabled=false`, recibo de reversión seguro y verificación en staging con acceso bloqueado para terceros; las pruebas de login/MFA/sesiones y revisión independiente permanecen obligatorias. **No realizar `UPDATE` sin esa autorización**, y no atribuir cierre de `AUTH-GATE-05` a cambiar la bandera. No repetir los PASS infraestructurales.
+
+## 12. Política exacta confirmada — preparación del cambio único (05/11/2026)
+
+Salida del propietario de la consulta SHA-256, solo lectura, de `identity_private.configuration.values_json` de `cleanops360-f4fxmd-postgres-1`:
+
+```text
+B1_PERFIL=COINCIDE
+B1_PERFIL_CLAVES=60
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+**Resultado:** las 60 entradas de la política almacenada coinciden por huella de JSON canonizado con el perfil calculado desde el candidato B1 `cc51574ad85485728d877efbbb69bcb345469596` (SHA-256 `3d582f5099611756473110c69fcddbd2ff76292d277bf01afc86ee854009147a`). La fila existe y `deployment_enabled=false`; este es el origen confirmado de `AUTH_GATE_05` SQLSTATE `42501`. `B1` todavía NO funciona ni se ha habilitado; no reabrir pruebas de OpenBao/TLS/PG/permisos/redes/SQL0003.
+
+### Acción operativa preparada, NO autorizada/ejecutada aún
+
+Conservar PostgreSQL `cleanops360-f4fxmd-postgres-1`, web original `cleanops360-f4fxmd-web-1` intacta y shadow `cleanops360-b1-shadow-cc51574a`. El siguiente cambio candidato modifica **solo** el booleano `identity_private.configuration.deployment_enabled` para la fila `singleton=true` dentro de la base `cleanops_staging`. Debe tener las garantías:
+
+1. Aprobación expresa del propietario para abrir temporalmente el *gate SQL* de staging, no activación de producción ni cierre del *gate de aceptación*.
+2. Recibo privado de preestado del registro, creado con permisos `0600`, con identidad de DB, política hash y condición inicial, sin imprimir JSON ni secretos. Diseñar reversión por comparación CAS que solo vuelva a `false` si el cambio fue nuestro; cualquier deriva debe detener la operación.
+3. Transacción DBA única, con `lock_timeout` acotado, cambio `false→true` sobre una única fila `singleton=true`, comprobar fila afectada=1 y `COMMIT` sin tocar `values_json`, `version` ni `review_reference`. No improvisar grants ni crear roles/usuarios.
+4. Verificación inmediatamente posterior: `auth_api.security_policy()` de solo lectura debe devolver SHA de 60 valores esperados; si no, ejecutar el procedimiento de rollback controlado. El cambio **no** habilita automáticamente un router UI ni provisiona usuario de prueba.
+5. Abrir login de dispositivo solo con credencial del operador vigente, ForwardAuth y router aislados; el intento anterior de UI dio HTTP 500 y su rollback está confirmado. Aceptación de bootstrap CSRF, login sintético, TOTP, sesiones, replay y rutas negativas una sola vez, más reviewer independiente. Ante cualquier fallo, cerrar UI y gate SQL mediante rollback, preservar la web y todas las credenciales/llaves bajo custodia.
+
+La red privada observada incluye solo PG, web original y shadow, pero no demuestra que una cuenta externa no pueda conectarse por otros medios; el control de IAM/PgHBA debe seguir basado en evidencias anteriores. La bandera está a nivel de base, no es un switch por usuario. **AUTH-GATE-05 sigue OPEN**, PR #33 no debe integrarse automáticamente; la apertura es solo un ensayo reversible sujeto a autorización.
+
+## 13. Autorización explícita de apertura temporal del guard SQL (05/11/2026)
+
+El propietario respondió **«autorizado»** a la pregunta explícita: «¿Autorizas habilitar temporalmente `deployment_enabled` exclusivamente para el ensayo B1 en `cleanops_staging`, con reversión preparada y sin tocar producción?». Alcance autorizado: **un cambio transaccional `false → true` de un booleano** en la fila singleton de `identity_private.configuration` de `cleanops_staging`, siempre que su política y versión permanezcan inalteradas, acompañado por un mecanismo de reversión privada instalado antes del cambio y verificación posterior que revoque el cambio si falla.
+
+Prohibido por esta autorización: modificar `values_json`, `version`, `review_reference`, migraciones, roles, permisos, RLS, credenciales, dispositivos, otros DB, interfaces/routers, web original, producción, reinicios, reconstrucción de imágenes, merge/PR. Este consentimiento **no equivale** al cierre formal de `AUTH-GATE-05`; deberá probarse login/MFA/sesiones con identidades sintéticas y evaluación independiente. El último resultado real es `B1_PERFIL=COINCIDE`, `B1_PERFIL_CLAVES=60`, gate `DESHABILITADA`, junto con la red privada de tres contenedores. 
+
+**Estado de ejecución:** no se ha realizado la mutación a través de GitHub; el procedimiento sobre el VPS ha de ejecutarlo el propietario en shell (el conector Hostinger no dispone de Docker Manager para su SO). No registrar `B1_GATE_SQL=HABILITADO` hasta recibir salida verificable de una ejecución. Si ocurre error, el gate permanece cerrado o se clasifica `DESCONOCIDO` y se investiga desde la fuente antes de repetir.
+
+## 14. Transferencia segura del script al VPS pendiente (05/11/2026)
+
+El primer intento del propietario de ejecutar `chmod 700 /root/b1-gate-trial-20261105.py` y `python3 ... activate` devolvió **No such file or directory**, porque el script adjuntado en ChatGPT no se había transferido al VPS. **Ninguna mutación ejecutada**, gate SQL sigue deshabilitado según último estado verificado.
+
+Para evitar copiar secretos o modificar el checkout operativo, se versionó el script de un solo uso `scripts/b1-gate-trial-20261105.py` en la rama de preparación, commit `1986c001a8da75142c8c6aff309f2aebaf181c2a`, blob Git `73f18fd1e8abac4b0fec5d97c560a9187f987a49`, SHA-256 `3caecdced110cb12e15c63a4f2c6c05998b62461697497c3d0a4d613608fbcc7`, 5127 bytes. La comparación del Git blob confirma que **los bytes coinciden exactamente** con el archivo creado y verificado en el entorno de preparación. El operador puede hacer fetch de solo lectura del repositorio local, `git show COMMIT:scripts/b1-gate-trial-20261105.py > /root/... `, comprobar SHA-256 y activar. `git fetch` solo actualiza objetos/referencias Git, no checkout, Compose ni contenedores. El script no debe ejecutarse automáticamente mediante CI. La ejecución, rollback y salud real **NO están confirmados aún**; no declarar habilitado hasta salida nueva del propietario.
+
+## 15. Activación SQL B1 confirmada por recibo (05/11/2026)
+
+Tras autorización expresa, el propietario importó el script versionado de commit `1986c001a8da75142c8c6aff309f2aebaf181c2a` a `/root/b1-gate-trial-20261105.py`, verificó la huella SHA-256 del contenido y lo ejecutó exactamente una vez con `activate`. Salida reportada:
+
+```text
+/root/b1-gate-trial-20261105.py: OK
+B1_ROLLBACK=RECIBO_PRIVADO_PREPARADO
+B1_GATE_SQL=HABILITADO_VERIFICADO
+B1_OTROS_CAMBIOS=NINGUNO_SOLICITADO
+B1_SECRETOS=NO_IMPRESOS
+```
+
+Esto demuestra apertura **temporal del guard SQL en `cleanops_staging`**, verificación positiva de `auth_api.security_policy()` contra hash de los 60 valores de configuración y presencia del recibo privado en el VPS, sin cambiar la web original ni los routers. **No repetir `activate`**; el operador conserva `python3 /root/b1-gate-trial-20261105.py rollback` para cerrar esta prueba. Este registro no evidencia login B1 ni disponibilidad del backend a través de ForwardAuth. La próxima prueba acotada será una sola solicitud HTTPS `GET /auth/me` por el router B1 existente, usando exclusivamente el recibo vigente de dispositivo de `/run/cleanops-b1-operator/result.json`, con valor transmitido por stdin a curl y no mostrado; si está vencido, informar solo `B1_DEVICE=CADUCADO` sin enviar peticiones y no regenerar a ciegas. Proyectar `HTTP` y `error.code` permitido, no cuerpos completos ni identidades ni Set-Cookie. Si el backend devuelve `401 AUTH_INVALID` sin sesión tras validar el dispositivo, el gate funcional puede estar abierto, pendiente de UI/CSRF/MFA. Si devuelve `503`, no repetir SQL ni OpenBao: aislar el defecto real del backend. Si no se puede continuar la aceptación, volver el guard SQL a false con el procedimiento aprobado; `AUTH-GATE-05` de producto sigue OPEN.

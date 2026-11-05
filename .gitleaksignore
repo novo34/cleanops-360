@@ -6,3 +6,8 @@
 # Official source: https://openbao.org/docs/install/#gpg
 # Exact immutable commit/path/rule/line only; no broader exclusions.
 4a12e31744ce89487f0cba1b4ab50188e4abd0b7:deploy/staging/openbao/OPENBAO-STAGING-01-CHECKS.md:generic-api-key:66
+
+# FP: Spanish operational prose describing short-lived distributor tokens, not
+# a token value. Reviewed historical line contains no assignment or credential.
+# Scope is one immutable commit/path/rule/line, never a pattern-wide exclusion.
+87938c0e1d7e8294bbffc58cec6b301a9370093c:deploy/staging/openbao/OPENBAO-STAGING-01.md:generic-api-key:1226

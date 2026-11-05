@@ -92,7 +92,7 @@ function validateHistory(rows, profile, queue, baseline) {
 export async function runMigrations({ connect, mode = "apply", profile = "foundation", source } = {}) {
   if (!["apply", "plan", "offline-plan"].includes(mode)) fail("UNKNOWN_MIGRATION_MODE")
   const { queue, baseline } = await artifacts(profile) // ALL hashes before any connect.
-  if (mode === "offline-plan") return { profile, registry: "UNKNOWN_NOT_CONNECTED", migrations: queue.map(({ id, sha256 }) => ({ id, sha256 })), baseline: baseline ? { id: baseline.id, sha256: baseline.sha256, sourceFile: baseline.sourceFile, automatic: false } : null }
+  if (mode === "offline-plan") return { profile, registry: "UNKNOWN_NOT_CONNECTED", migrations: queue.map(({ id, sha256 }) => ({ id, sha256 })), proposed: (await loadTrustedMigrations(undefined, profile, true)).map(({id,sha256,sourceFile}) => ({id,sha256,sourceFile,executable:false})), baseline: baseline ? { id: baseline.id, sha256: baseline.sha256, sourceFile: baseline.sourceFile, automatic: false } : null }
   if (mode === "apply") validateSource(source)
   const client = await connect()
   let begun = false, committed = false

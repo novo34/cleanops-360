@@ -63,3 +63,138 @@ Se corrige la invocación del paso CSP a `playwright test e2e/csp.spec.ts`, cons
 Esta delimitación no equivale a aceptación de B1, de sus fixtures de TLS ni de sus suites PG no ejecutadas. La ejecución anterior cancelada no se informa como PASS. No se modifica el runtime, los contratos ni la seguridad de la aplicación.
 
 Quality #288 confirmó otro defecto del runner: usaba Node 22, que rechaza `--test-isolation=none` del comando B1 offline existente. Se alinea únicamente el runner Quality con Node 24, ya utilizado por los workflows B1 y el runtime Docker del proyecto. No se cambia ni elimina el flag, no se relajan tests y no se modifica código B1. La ejecución fallida no se presenta como validación de esos tests.
+
+
+## B1-PI-01 — dictamen independiente comunicado por el propietario, 31-10-2026
+
+Esta entrada NO modifica el manifiesto historico ni reclasifica sus falsos positivos.
+El propietario aporta el dictamen de Claude sobre HEAD
+6a558c39e7abf6f3884243ed4eb6367d8fa9b80b y ordena aplicar exactamente el pin y
+la aceptacion individual del mecanismo. No se atribuye al autor de este cambio
+una revision independiente propia ni se inventa otra acta/autoridad formal.
+El procedimiento vigente no exige una segunda autorizacion formal para esta
+implementacion expresamente solicitada. No se autoriza merge, despliegue, primer
+actor ni contenido futuro de integration.mjs.
+
+- Runtime auditado y comprobado sin cambios: blob Git
+  f0e91a5ec8a799692947000bff10a7743322015b. Se aplica el parche de pin existente.
+- Regla original semgrep.cleanops-code-execution-import; archivo
+  lib/b1/reviewed-site-installation.ts, linea 44, columnas 26–91.
+- SHA-256 del fragmento: cd1691f3d4074fa53f3fc2124bc332d694e86867630045396a01d5805a9360d1.
+- SHA-256 del archivo: 867ea66ddfe950b83aaccce0e29dd50744cdaaf5edfa354f3545976c80a762c6.
+- Clasificacion: **accepted_privileged_dynamic_import**, nunca confirmed_false_positive.
+  Es ejecucion privilegiada deliberada, no una declaracion de ausencia de riesgo.
+
+La reconciliacion canonica agrega B1-PI-01 SOLO en memoria tras verificar el
+ledger historico fijado, los hashes existentes, el archivo y los productores
+privados del HEAD auditado. evaluate exige igualdad de la entrada completa,
+regla/rango/ID/clasificacion, fragmento y contexto de archivo. Un cambio de bytes,
+posicion, regla, archivo, productor, entrada duplicada o coincidencia desaparecida
+hace fallar el guard. No permite actualizar el checksum de un manifest para
+blanquear otro codigo, ni reutilizar la categoria en otro hallazgo.
+
+La salida conserva 16 reviewed_false_positives historicos activos y publica el
+riesgo aceptado en accepted_privileged_findings, con scope
+loader_mechanism_only_not_future_integration_content. Los bytes, efectos e imports
+de cada integration.mjs instalado siguen sujetos a revision y al manifiesto
+privado aprobado, permisos y SHA-256 del cargador; esta entrada no los aprueba.
+La validacion de archivos privados y el comportamiento fail-closed no cambian.
+
+### Verificacion local de la aplicacion del dictamen
+
+- Guard completo Semgrep 1.177.0: **PASS**, 17 resultados visibles (16 FP historicos
+  y 1 import privilegiado aceptado), cero no revisados; warning upstream conocido
+  conservado y verificado. rules_disabled=[], inline_suppressions_enabled=false.
+- Regresiones del guard: **26 PASS**, incluidos otro hallazgo no exceptuado,
+  caducidad por linea/columna/hash/archivo/regla/productores, falsificacion de
+  contexto, duplicados y prohibicion de reclasificar el riesgo como falso positivo.
+- Fixtures de seguridad: las OCHO reglas originales detectan el fixture inseguro;
+  fixture seguro con cero hallazgos. No se cambia el ruleset ni sus exclusiones.
+- SHA-256 del ledger historico inalterado:
+  2605f29d3d2bf8d4bd36d7df5d9f7d501a69bb96410404a3ed01c3dc4eb31448.
+- SHA-256 del ruleset inalterado:
+  30ed5e227fafb8b53a794ec2ebb808447bee752679779fadf82aaa7a44ecd681.
+
+### Los 22 avisos Edge del dictamen y el runtime real
+
+Se conservan como observacion atribuida a Claude los **22 avisos Edge** comunicados
+por el propietario; no se dispone de su texto individual en este encargo y no se
+inventa una lista. En esta ejecucion se repitio npm run build -- --webpack para
+verificar especificamente esa observacion: Next 16.4.3 compilo con exito y el log
+completo stdout/stderr contiene **0 avisos Edge reproducidos**. No hay filtros de
+warnings, no se cambia configuracion ni se ocultan esos avisos reportados.
+
+La conclusion de NO BLOQUEANTE se limita a la ejecucion actual NODE de las rutas:
+las rutas B1 declaran runtime=nodejs o usan el predeterminado Node de Next; el
+manifest compilado asigna /_middleware a nodejs y middleware-manifest no contiene
+funciones Edge. Se ejecuto el servidor Next construido y el harness existente
+scripts/test-b1-proxy-origin.mjs: **PASS, 31 operaciones en dos transportes**,
+mas negativos de origen, headers, CSRF y rutas. /login responde 200 y las rutas
+B1 alcanzan su cierre canonico 503, sin cookie indebida ni error de API Node en
+Edge. El servidor local se detuvo al finalizar. Esto no demuestra compatibilidad
+Edge del backend, ni login/MFA en staging; no se pretende ninguna de las dos cosas.
+
+Las pruebas TS/build se justifican aqui por la verificacion expresa de esos
+avisos y de las rutas reales. No se modifica aplicacion ni contratos y no se
+repiten localmente los 284 tests B1. Quality remoto ejecutara su workflow normal
+sin omitir o reducir pasos.
+
+Evidencia local conservada fuera de Git (logs completos, sin material VPS):
+- `/tmp/b1-claude-semgrep-reviewed.json` — SHA-256 `bea80838b2c4791496c6d05204a7fe26ecd1817a4f676707b2fbcb3c9f6e571f`.
+- `/tmp/b1-claude-webpack.log` — SHA-256 `d83a385204c88c982958e6611def446e4735821685886eb2fc7929c9ffefec79`.
+- `/tmp/b1-claude-route-smoke.log` — SHA-256 `b8c3757ed2278fb24b049ce578684ec2c53eadb7acd8a2c8448d5f13fab94d77`.
+
+
+## B1-PI-01 — reconciliación técnica acotada solicitada por el propietario, 03-11-2026
+
+Esta sección **no modifica ni sustituye el dictamen histórico de 31-10-2026**.
+Ese dictamen cubre el archivo original `867ea66d...` en línea 44. La versión
+actual recibió una auditoría independiente de solo lectura de Claude sobre
+`cba20d8f1620cb9f9205cef904767ca4ff755c26`, cuyo resultado fue **BLOCKED**
+por la caducidad del pin y decisiones pendientes del propietario. **No se
+reescribe BLOCKED como PASS ni se atribuye una autorización humana anterior.**
+El propietario ha solicitado cerrar el bloqueo técnico de B1 sin convertir
+las mejoras futuras en requisitos de entrega.
+
+Datos identificadores de los bytes auditados y fijados:
+
+- Archivo: `lib/b1/reviewed-site-installation.ts` (9253 bytes).
+- Commit: `cba20d8f1620cb9f9205cef904767ca4ff755c26`.
+- Git blob: `f8978653daf54335146dac2b82c76538fa6c05b8`.
+- SHA-256 completo: `50b0c3740cb744905c98c2d49b377a5672c4e693745332a63aec41c121199557`.
+- Import privilegiado: línea 50, columnas 26–91 (fin exclusivo).
+- SHA-256 de línea completa con salto: `cd1691f3d4074fa53f3fc2124bc332d694e86867630045396a01d5805a9360d1`.
+- Los pines de `lib/b1/private-file.ts` e `instrumentation.ts`
+  siguen sin cambiar; la excepción NO cubre contenidos de `integration.mjs`.
+
+Resultados de la auditoría independiente: SHA-256 del módulo verificado antes
+de importar, exports exactos, denegación ante módulo que falla, symlinks y
+metadatos rechazados, identidad incorrecta antes del import y `bindIngress`
+con binding único; sondas P1–P6 efímeras. Las pruebas estándar asociadas al
+cargador pasaron en el alcance declarado. Riesgos y límites **no ocultos**:
+
+- **F2:** el GID numérico puede variar; el despliegue debe usar un grupo
+  dedicado, privado y auditado, sin miembros ajenos. No se aprueba un grupo
+  compartido por ser 999 o 1000.
+- **F3:** el operador root también puede importar el módulo, por diseño y
+  desde la ruta privada custodiada. El proceso web sigue exigiendo UID/GID
+  no-root efectivos. La ejecución del operador requiere autorización y
+  custodia separadas; no se declara sandbox del módulo.
+- **F4:** el código importado tiene permisos del proceso: NO existe aislamiento
+  de sandbox. Solo se admite el ejecutable root-owned, mode 0440,
+  comprobado por SHA-256 y sometido a revisión por contenido en cada versión.
+- **F5:** corpus y otras fuentes son comprobadas mediante metadatos declarados
+  en un manifiesto root-owned; no se asegura que *todas* las fuentes compartan
+  automáticamente root:grupo, a diferencia de la clave de integración/ingress.
+- **F6:** el campo `approval` es referencia declarativa, no verificación
+  criptográfica de firma externa. La autoridad operativa sigue siendo externa.
+- Las sondas independientes aún no reemplazan una suite versionada completa;
+  la aceptación operativa de SQL0002, `AUTH-GATE-05`, ingreso a VPS, claves,
+  identidad/custodia y el módulo privado específico siguen **pendientes**.
+
+Este ajuste **solo reconcilia el hallazgo `B1-PI-01` en Semgrep para los bytes
+anteriores**. No modifica reglas, severidades, exclusiones ni el manifiesto
+histórico y no activa autenticación, SQL, OpenBao, listeners, acceso al VPS,
+merge a `staging` o despliegue. Una edición del cargador o del contexto
+de seguridad deberá volver a bloquear automáticamente el pin. La aceptación
+de cierre de implementación NO se presenta como habilitación productiva.
