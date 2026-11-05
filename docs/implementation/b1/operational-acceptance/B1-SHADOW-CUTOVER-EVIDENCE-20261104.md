@@ -308,3 +308,21 @@ El propietario remitió **dos capturas del navegador** después del último PASS
 La prueba automatizada anterior (`B1_UI_PUBLICA=PASS`) confirmó exclusivamente **una petición curl con la cookie del recibo privado**, HTTPS 200 HTML y cabeceras Set-Cookie PREAUTH/CSRF. **No puede extrapolarse a la navegación real ni autoriza cerrar AUTH-GATE-05.** El query `utm_source` no cambia el pathname que hace match con la regla `Path("/login")`: no atribuir el efecto a la query sin evidencia. El router UI selecciona rutas por presencia del *nombre* de cookie B1, pero el ForwardAuth verifica su valor actual, unicidad, estado durable y assertion. Diferencias de cookies de navegador, duplicación, caducidad, respuesta SSR o enroutamiento de assets son hipótesis a aislar, no conclusiones. La presencia de un formulario sin estilos tampoco demuestra que todo el JS/CSS sea del shadow (la web anterior comparte el dominio y rutas `/_next/`).
 
 **Acción inmediata recomendada:** el propietario debe ejecutar una sola vez `python3 /root/b1-shadow-stage/device-ui-router.py rollback`, ya auditado, para restituir rutas públicas anteriores. **Este nuevo rollback aún no está confirmado por salida**. No repetir activate, no exponer credenciales de dispositivo, cookies ni valores de headers, ni introducir contraseñas reales. Mantener por ahora el gate SQL abierto **solo bajo ventana de ensayo autorizada**; si se suspende el ensayo, cerrar gate SQL con el rollback separado `python3 /root/b1-gate-trial-20261105.py rollback`. Después del rollback UI, investigar el defecto exacto de navegación con evidencia redacted: comprobar por tipo/número, no valor, las cookies del navegador bajo el origen, vencimiento de dispositivo, y en DevTools Network solo status/URL/tipo de recurso (sin encabezados) de `/login` y `/_next/static/`. Corregir causalidad real en branch + pruebas focalizadas antes de reinstalar el UI router. No reabrir PG/OpenBao/TLS/SQL0003 ya PASS.
+
+## 05/11/2026 — segundo rollback UI confirmado y divergencia SameSite Strict
+
+El propietario ejecutó de nuevo el rollback del router device-only tras observar HTTP 500 en Brave, resultado exacto:
+
+```text
+B1_UI_DEVICE=RETIRADO
+WEB_ORIGINAL_LOGIN=HTTP_200
+B1_MAIN_ROUTER=INTACTO
+```
+
+**Rollback UI PASS**. El guard SQL activado temporalmente para ensayo **sigue abierto**, separado del router UI; reversión independiente disponible en `/root/b1-gate-trial-20261105.py rollback`. No volver a ejecutar `device-ui-router.py activate` sin corregir causa raíz.
+
+### Revisión puntual del enrutamiento
+
+`scripts/b1-device-ui-router.py` contiene una regla `Path("/login") && HeaderRegexp("Cookie", "...__Host-cleanops_b1_ingress_device=")` y otra para `/_next/static/`, ambas con la misma condición de cookie. La cookie B1 real es `SameSite=Strict`. Una navegación cruzando desde ChatGPT puede **no enviar la cookie del dispositivo**, mostrando el login anterior, mientras una navegación directa al dominio la envía y selecciona B1. Por tanto el parámetro `?utm_source=chatgpt.com` no es la causa demostrada de la diferencia; su presencia puede correlacionar con el origen externo de la navegación. Esto aclara las dos capturas pero **no resuelve el HTTP 500**, cuya causa permanece sin verificar. Además, el formulario sin estilizar en la captura no acredita por sí mismo ausencia de CSS: `components/auth-panel.tsx` implementa HTML sencillo y parte del estilo es inline; la mezcla de dos builds Next en el mismo host podría producir errores de assets/RSC, pero no está confirmada.
+
+**Siguiente diagnóstico acotado y read-only**: obtener del contenedor shadow solo clasificación agregada de eventos de error retrospectivos de los últimos 120 minutos (`docker logs --since 2h` capturados localmente y no impresos completos), sin cuerpo de logs, IDs, cookies, cabeceras ni valores de error dinámicos. Si no aparecen indicadores útiles, la próxima aceptación requiere observar DevTools Network (solo URL, método, status y recurso) en un nuevo ensayo explícitamente autorizado, antes de aplicar un cambio de código. No repetir Docker/PostgreSQL/TLS/Bao ni reemitir cookies. `AUTH-GATE-05` sigue OPEN.
