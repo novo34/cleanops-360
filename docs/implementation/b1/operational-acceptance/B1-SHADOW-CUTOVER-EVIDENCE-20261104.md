@@ -251,3 +251,20 @@ B1_SECRETOS=NO_EXPUESTOS
 La fuente canónica `docs/canonical/auth-review/v4/b1-review-only.sql` y el SQL consolidado rev14 contienen `auth_api.security_policy()` → `identity_private.require_enabled()` → excepción intencional `AUTH_GATE_05`, SQLSTATE `42501`, cuando no existe configuración singleton habilitada. Es consistente con el `503 AUTH_DEPENDENCY_UNAVAILABLE` del backend en shadow y explica el error de policy sin necesidad de GRANT adicional. No es un fallo del token/PG-TLS ni de su esquema o EXECUTE; anteriores verificaciones OpenBao 5/5 y PG conexión/rol/EXECUTE PASS permanecen válidas. **No demostrar que todos los flujos funcionarán al abrir el gate**; quedan pendientes UI de B1, login, CSRF, TOTP, sesiones y aceptación independiente.
 
 **Decisión operativa:** no establecer `deployment_enabled=true` por SQL manual en `cleanops_staging`, no alterar `require_enabled()`, no introducir un bypass ni redeplegar web original. El flag es una compuerta compartida, no un switch per-request por cookie. La autorización previa de pruebas/documentación no equivale a aprobación de apertura de este gate en la DB compartida; `AUTH-GATE-05 OPEN`. Deben definirse primero el aislamiento del ensayo o perímetro aprobado para staging, identidad de usuario de prueba, snapshot y rollback de configuración, plan de inspección/aceptación y revisión independiente del diff/manifest y evidencias. No repetir pruebas ya PASS. PR #33 comprobado: `open`, `draft`, `merged=false`, destino `staging`. La web original funciona y los routers UI adicionales permanecen retirados por el rollback previo.
+
+## 05/11/2026 — guard SQL abierto y GET /auth/me devuelve 401 AUTH_INVALID
+
+El propietario autorizó y ejecutó `scripts/b1-gate-trial-20261105.py activate` importado del commit `1986c001a8da75142c8c6aff309f2aebaf181c2a` tras comprobar SHA256. Evidencia de ejecución: `B1_ROLLBACK=RECIBO_PRIVADO_PREPARADO`; `B1_GATE_SQL=HABILITADO_VERIFICADO`; política JSON de 60 claves coincidió con perfil B1. El recibo privado de reversión permanece en `/root/b1-gate-trial-20261105.receipt.json`. No repetir `activate`.
+
+A continuación, nueva petición HTTPS única a `/auth/me` desde el VPS con el dispositivo existente root-only vía `curl --config -`, sin exponer bearer:
+
+```text
+B1_HTTP=401
+B1_ERROR=AUTH_INVALID
+B1_CAMBIOS=NINGUNO
+B1_SECRETOS=NO_EXPUESTOS
+```
+
+Esta es una respuesta de autenticación válida para una petición sin sesión de usuario; sustituye al previo `503 AUTH_DEPENDENCY_UNAVAILABLE` y evidencia que el backend B1 procesa la solicitud a través de la ruta de dispositivo. No equivale a login ni a sesión ACTIVE. El router B1 principal ya está instalado; los routers UI de dispositivo **siguen retirados** tras el HTTP 500 anterior. No reactivarlos a ciegas.
+
+**Próximo paso único:** una solicitud local GET `http://127.0.0.1:3000/login` desde dentro del shadow y proyección de **solo status HTTP, HTML y nombres de cookie** `__Host-cleanops_preauth`, `__Host-cleanops_csrf`, sin valores. Este GET puede crear un registro PREAUTH efímero bajo el perfil del ensayo; no es una consulta SQL read-only. No cargar la interfaz pública ni manipular el router. Si ambas cookies están presentes y la página responde 200, preparar una activación UI device-only con autoverificación de GET autenticado y rollback si no responde 200. Si falta alguna cookie, diagnosticar *solo* el bootstrap de proxy/Next antes de activar UI. La web anterior se conserva. `AUTH-GATE-05` aceptación sigue OPEN.
