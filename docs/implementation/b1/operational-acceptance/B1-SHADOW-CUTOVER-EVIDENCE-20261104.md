@@ -223,3 +223,17 @@ El código SHA `cc51574a...` demuestra que `withB1Custody` carga cinco claves ve
 ## 05/11/2026 — SQLSTATE 42501 en security_policy
 
 El propietario informó que cinco lecturas de claves OpenBao terminaron PASS desde shadow y que la conexión PostgreSQL, rol contractual, existencia y EXECUTE de `auth_api.security_policy()` fueron PASS. Una ejecución de esta función dentro de una transacción de solo lectura devolvió `B1_POLITICA=ERROR_CONSULTA`, `B1_SQLSTATE=42501` (privilegio insuficiente). No imprimir mensajes SQL íntegros ni modificar roles. El permiso EXECUTE sobre una función es distinto del USAGE sobre el esquema y de los privilegios usados por su implementación. Próxima verificación read-only: inspeccionar en `pg_catalog` USAGE sobre `auth_api` del rol real de servicio, SECURITY DEFINER de la función y el propietario, sin volver a llamar a la función; contrastar contrato de permisos versionado antes de cualquier corrección. Web original intacta; UI B1 retirada; `AUTH-GATE-05 OPEN`.
+
+## 05/11/2026 — posible 42501 deliberado por AUTH_GATE_05
+
+Última lectura de metadatos PostgreSQL, sin mutaciones, proporcionada por el propietario:
+
+```text
+B1_PG_SCHEMA_USAGE=PASS
+B1_PG_FUNCTION_EXECUTE=PASS
+B1_PG_SECURITY_DEFINER=SI
+B1_PG_OWNER_SCHEMA_USAGE=PASS
+B1_CAMBIOS=NINGUNO
+```
+
+**Nuevo hallazgo de código, no modificar privilegios:** en `docs/canonical/auth-review/v4/b1-review-only.sql`, y en `docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql`, `auth_api.security_policy()` invoca `identity_private.require_enabled()`. Esta última eleva deliberadamente `RAISE EXCEPTION 'AUTH_GATE_05' USING ERRCODE='42501'` cuando no existe fila `identity_private.configuration` singleton con `deployment_enabled = true` (valor inicial por defecto `false`). Es por tanto una **explicación muy probable y específica** para el `SQLSTATE 42501` visto desde shadow, no necesariamente falta de GRANT. Para atribuirlo al SQL *real* del VPS falta verificar el mensaje exacto del error devuelto por la función en una sola consulta de clasificación redacted (booleano literal `AUTH_GATE_05`, no imprimir otras excepciones). Si coincide, el 503 B1 es un fail-closed por gate intencional; no habilitar el flag ni hacer GRANT ni alterar funciones/migraciones hasta aprobación independiente y revisión de los requisitos de AUTH-GATE-05. El PASS de usuario/función NO autoriza el cambio. La UI antigua continúa intacta, el router principal B1 activo y la UI B1 por dispositivo retirada. `AUTH-GATE-05 OPEN`.
