@@ -541,3 +541,15 @@ B1_SECRETOS=NO_IMPRESOS
 ## 05/11/2026 — nueva evidencia visual: Chrome muestra login; Brave reportó 500
 
 El propietario aporta captura de **Chrome**, `https://cleanops.nuvurent.com/login`, donde se visualiza el formulario básico «CleanOps 360 · Acceso» (Email, Contraseña, Continuar, Restablecer contraseña, Reiniciar acceso), sin error 500 visible. En DevTools > Application > Cookies se observa **solo la cookie B1 del dispositivo**, con atributos HttpOnly, Secure y SameSite=Strict; la imagen también muestra parte del valor de una cookie (no reproducir ni pegar datos de cookies en mensajes/documentación). **No se observan las cookies `__Host-cleanops_preauth` y `__Host-cleanops_csrf`** en esa lista. El propietario informó HTTP 500 en Brave inmediatamente después del segundo `B1_UI_V2=ACTIVO_DEVICE_ONLY`. La captura Chrome **no prueba por sí sola qué router sirvió HTML**, ni la presencia de bootstrap o autenticación funcional. El SQL gate permanece cerrado según últimos comandos; en ese estado es esperable que no haya bootstrap. No atribuir causa del 500 a Brave sin código de la solicitud exacta y estado de router. Se había solicitado `python3 /root/b1-ui-v2-guarded-cutover-20261105.py rollback` tras el 500, **pero aún no hay salida nueva del propietario confirmando ese rollback**. Siguiente paso seguro: consultar estado v2 mediante API local de Traefik en solo lectura y, si el router sigue activo, obtener la solicitud HTTP 500 concreta desde Network en Brave (solo método, pathname, status, tipo; nunca cabeceras/cookies/query con tokens) y luego retirar si no está ya retirado. No emitir nueva credencial ni repetir comprobaciones de imagen o TLS. El usuario debe ocultar columna Value de las cookies en futuras capturas. `AUTH-GATE-05` permanece OPEN.
+
+## 05/11/2026 — comprobación de solo lectura: los tres routers B1 siguen enabled
+
+El propietario comprobó por la API local Traefik (sin mutación ni revelar secretos) que:
+
+```text
+cleanops360-b1-device-login@file=enabled
+cleanops360-b1-device-assets@file=enabled
+cleanops360-b1-guarded@file=enabled
+```
+
+Esta evidencia **actualiza** el estado después del HTTP 500 de Brave: no se confirmó rollback tras aquel error; el router UI v2 estaba **activo** al consultar. En Chrome el propietario ha observado el formulario `/login`; en Brave informó HTTP 500, sin identificación de la solicitud que falla ni prueba de estado tras refresh sin caché. El sistema aún necesita clasificar el 500 en navegador. No reactivar routers ya activos ni ejecutar de nuevo cutover, no reemitir device ni reiniciar imagen; SQL gate sigue cerrado según última prueba. Siguiente paso: en Brave DevTools > Network, desactivar caché, recargar una vez y registrar SOLO status, método, tipo y pathname de peticiones fallidas, nunca header Cookie, bearer, query ni cuerpo. Si persiste 500, clasificar fallo de navegación Next/RSC/document frente a datos backend, con rollback v2 disponible. No cerrar AUTH-GATE-05 y no abrir guard SQL mientras haya error sin clasificar.
