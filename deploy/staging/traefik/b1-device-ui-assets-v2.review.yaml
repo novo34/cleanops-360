@@ -36,7 +36,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares: [cleanops-b1-asset-strip-prefix]
-      service: cleanops-b1-shadow@file
+      service: cleanops-b1-assets-shadow@file
   services:
     cleanops-b1-assets-shadow:
       loadBalancer:
