@@ -5,7 +5,6 @@ No SQL changes, no redeploy, no certificate changes, no original web alteration.
 Uses the Git-pinned reviewed UI v2 YAML, not a generated/relaxed middleware.
 """
 import base64
-import hashlib
 import html
 import json
 import os
@@ -116,10 +115,10 @@ def probe(path, cookie=None):
     if not path.startswith("/") or "//" in path[:3] or len(path) > 500:
         raise RuntimeError("URL_INVALIDA")
     args = ["curl", "-q", "--silent", "--show-error", "--noproxy", "*",
-            "--max-time", "12", "--connect-timeout", "4", "--max-filesize", "300000",
+            "--max-time", "12", "--connect-timeout", "4", "--max-filesize", "4000000",
             "--resolve", "cleanops.nuvurent.com:443:127.0.0.1",
             "--header", "Accept: text/html,application/xhtml+xml,*/*;q=0.8",
-            "--output", "-", "--write-out", "\n__B1_HTTP__=%{http_code}",
+            "--output", "-", "--write-out", "\n__B1_HTTP__=%{http_code}:%{content_type}",
             "--config", "-", URL + path]
     payload = ""
     if cookie is not None:
@@ -128,12 +127,13 @@ def probe(path, cookie=None):
     p = run(args, input=payload, timeout=16, check=False)
     if p.returncode != 0 or "\n__B1_HTTP__=" not in p.stdout:
         raise RuntimeError("HTTP_ERROR")
-    body, code = p.stdout.rsplit("\n__B1_HTTP__=", 1)
-    return code.strip(), body
+    body, result = p.stdout.rsplit("\n__B1_HTTP__=", 1)
+    code, content_type = result.strip().split(":", 1)
+    return code, content_type, body
 
 def ensure_original():
-    code, body = probe("/login")
-    if code != "200" or "<html" not in body.lower() or "/b1-static/_next/static/" in body:
+    code, content_type, body = probe("/login")
+    if code != "200" or "text/html" not in content_type or "<html" not in body.lower() or "/b1-static/_next/static/" in body:
         raise RuntimeError("LOGIN_ORIGINAL_ALTERADO")
 
 def inspect_canary():
@@ -166,19 +166,19 @@ def asset_candidates(body):
     return found
 
 def verify_public(cookie):
-    code, body = probe("/login", cookie)
-    if code != "200":
+    code, content_type, body = probe("/login", cookie)
+    if code != "200" or "text/html" not in content_type:
         raise RuntimeError("B1_LOGIN_NO_200")
     refs = asset_candidates(body)
     for ext, path in refs.items():
-        status, data = probe(path)
+        status, content_type, data = probe(path)
         if status != "200":
             raise RuntimeError("B1_ASSET_" + ext.upper() + "_NO_200")
         if ext == "css":
-            if not data.lstrip().startswith(("@", ".", "*", ":", "html", "body", ":root", "/*", "/*!")):
-                raise RuntimeError("B1_CSS_CONTENIDO_INVALIDO")
-        elif len(data) < 500:
-            raise RuntimeError("B1_JS_CONTENIDO_INVALIDO")
+            if "text/css" not in content_type or len(data) < 100:
+                raise RuntimeError("B1_CSS_MIME_O_CONTENIDO_INVALIDO")
+        elif not any(t in content_type for t in ("javascript", "ecmascript")) or len(data) < 100:
+            raise RuntimeError("B1_JS_MIME_O_CONTENIDO_INVALIDO")
     print("B1_UI_V2_HTTP=200",flush=True)
     print("B1_UI_V2_CSS=PASS",flush=True)
     print("B1_UI_V2_JS=PASS",flush=True)
