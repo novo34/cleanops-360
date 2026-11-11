@@ -179,6 +179,19 @@ def cmd_inventory(args, out):
                            capture_output=True, timeout=30)
         if r.returncode == 0:
             out.kv("CONTAINERS", ";".join(l for l in r.stdout.decode().splitlines() if re.search(r"cleanops|traefik|b1", l, re.I)))
+        names = [l.split("|")[0] for l in r.stdout.decode().splitlines() if re.search(r"traefik|b1-shadow|f4fxmd-web", l)]
+        for n in names:
+            i = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", "inspect", n], capture_output=True, timeout=30)
+            if i.returncode:
+                continue
+            c = json.loads(i.stdout)[0]
+            key = re.sub(r"[^A-Za-z0-9]+", "_", n)[:40]
+            # Structure only: mount targets, network names, env VAR NAMES, ports. Never env values, labels' values or contents.
+            out.kv(f"INSPECT_{key}_MOUNTS", ";".join(f"{m.get('Type')}:{m.get('Destination')}:{'ro' if not m.get('RW') else 'rw'}:{m.get('Name') or m.get('Source')}" for m in c.get("Mounts", [])))
+            out.kv(f"INSPECT_{key}_NETWORKS", ",".join(c["NetworkSettings"]["Networks"]))
+            out.kv(f"INSPECT_{key}_ENV_NAMES", ",".join(sorted(e.split("=", 1)[0] for e in c["Config"].get("Env", []))))
+            out.kv(f"INSPECT_{key}_EXPOSED", ",".join(sorted((c["Config"].get("ExposedPorts") or {}))))
+            out.kv(f"INSPECT_{key}_USER_IMAGE", f"{c['Config'].get('User') or 'default'}|{c['Config'].get('Image')}")
     out.finish(True)
 
 
