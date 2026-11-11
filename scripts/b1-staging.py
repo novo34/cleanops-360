@@ -615,6 +615,20 @@ def cmd_diagnose(args, out):
     out.finish(True)
 
 
+def cmd_diagnose_package(args, out):
+    """Run the step-by-step installation loader in an ephemeral, offline, read-only container of the DEPLOYED image."""
+    if not args.private_dir or not Path(args.private_dir).is_absolute():
+        raise Fail("PRIVATE_DIR_REQUIRED")
+    image = json.loads(docker("inspect", "cleanops360-b1-web"))[0]["Config"]["Image"]
+    diag = ROOT / "scripts/diagnose-b1-installation.mjs"
+    result = docker("run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true",
+                    "--user", "999:999", "-w", "/app", "-v", f"{args.private_dir}:/run/cleanops-b1-private:ro",
+                    "-v", f"{diag}:/app/scripts/diagnose-b1-installation.mjs:ro", image, "node", "scripts/diagnose-b1-installation.mjs")
+    for i, line in enumerate(result.splitlines()):
+        out.kv(f"{i:02d}", sanitize_log_line(line))
+    out.finish("STEP_FAIL" not in result)
+
+
 # ---------------------------------------------------------------- smoke
 
 def _get(url, headers=None, timeout=10):
@@ -702,6 +716,7 @@ def parser():
     i.add_argument("--database-url-file")
     sub.add_parser("retire")
     sub.add_parser("package-origin")
+    sub.add_parser("diagnose-package")
     sub.add_parser("diagnose")
     sub.add_parser("stop-legacy")
     sub.add_parser("enable")
@@ -717,7 +732,7 @@ def parser():
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "retire": cmd_retire, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):

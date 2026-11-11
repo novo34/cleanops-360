@@ -388,3 +388,22 @@ def test_inventory_reports_integration_imports_and_audience(tmp_path):
     m.inspect_private_package(out, str(pkg), None)
     text = "\n".join(out.lines)
     assert "old-verifier.ts" in text and "INTEGRATION_AUDIENCE=https://x.example" in text and "zzz" not in text
+
+
+def test_diagnose_package_runs_offline_readonly_container(monkeypatch, tmp_path):
+    m = _module()
+    seen = []
+
+    def fake(*a):
+        seen.append(a)
+        if a[0] == "inspect":
+            return json.dumps([{"Config": {"Image": "img:1"}}])
+        return "IDENTITY uid=999 gid=999\nSTEP_OK manifest-read\nSTEP_FAIL integration INTEGRATION_EXPORTS"
+    monkeypatch.setattr(m, "docker", fake)
+    out = m.Out("t")
+    with pytest.raises(m.Fail):
+        m.cmd_diagnose_package(m.parser().parse_args(["diagnose-package"]), out)
+    m.cmd_diagnose_package(m.parser().parse_args(["--private-dir", str(tmp_path), "diagnose-package"]), out)
+    run = [c for c in seen if c[0] == "run"][0]
+    assert "--network" in run and "none" in run and "--read-only" in run and "--cap-drop" in run
+    assert any(a.endswith(":/run/cleanops-b1-private:ro") for a in run) and "RESULT=FAIL" in out.lines
