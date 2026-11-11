@@ -97,3 +97,19 @@ se detienen con STOP-AND-DESIGN.
 - `tests/static/test_b1_staging.py`: 36 pasan, 1 se salta y `test_inventory_reports_journal_matches_after_install`
   falla en el contenedor de pruebas usado (sin Node 24 ni dependencias del repo); no se comparó contra la rama sin estos cambios.
 - Guardar la contraseña, el TOTP y los códigos de recuperación en un gestor de contraseñas antes de cualquier reinicio del VPS.
+
+## 8. Prueba P5 del PO (2026-11-11, tras el acceso)
+
+| Acción | Resultado | Evidencia (`diagnose-auth`) |
+|---|---|---|
+| Inicio de sesión con contraseña + MFA | PASS | `auth.login SUCCESS`, `auth.mfa.verify SUCCESS` (20:56Z) |
+| Seleccionar empresa | PASS según el PO | sin evento de auditoría propio observado |
+| Revocar mis demás sesiones (con step-up) | PASS | `self_sessions.revoke_other_own_sessions SUCCESS` (21:03Z) |
+| Recordar este dispositivo | **FAIL: `POLICY_DENIED`** (21:04Z, tras step-up correcto) | `TRUSTED_DEVICES_PREFERENCE=no-row` |
+| Acción de las 20:57Z (tras `auth.challenge.issue`) | **FAIL: `DEPENDENCY_FAILURE`** | acción y dependencia sin identificar |
+
+Causa del fallo de dispositivos de confianza: `auth_api.register_trusted_device` exige
+`app.auth_preferences.trusted_devices_enabled = true` para el tenant y esa fila no existe. La regla `B1-SELF-06` sí
+está activa. En esta rama ni la aplicación ni el SQL (SQL14, 0002, 0003) escriben en `app.auth_preferences`: no hay
+forma revisada de activar la preferencia. Activarla es una decisión de diseño del PO (quién la escribe y con qué
+aprobación); no se ha insertado nada a mano.
