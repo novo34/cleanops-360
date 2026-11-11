@@ -376,3 +376,15 @@ def test_inventory_flags_private_file_metadata_problems(tmp_path):
     text = "\n".join(out.lines)
     assert "PRIVATE_FILE_SOURCES_CHECKED=3" in text
     assert "ingress.sources.b:mode" in text and "ingress.sources.c:missing-or-outside-mount" in text and "sources.a:" not in text
+
+
+def test_inventory_reports_integration_imports_and_audience(tmp_path):
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "integration.mjs").write_text('import { a } from "file:///app/lib/b1/old-verifier.ts";\nconst c = {"audience":"https://x.example","secretish":"zzz"};\n')
+    (pkg / "installation.json").write_text(json.dumps({"integration": {"source": {"path": "/run/cleanops-b1-private/integration.mjs"}, "sha256": "0"}}))
+    m = _module()
+    out = m.Out("t")
+    m.inspect_private_package(out, str(pkg), None)
+    text = "\n".join(out.lines)
+    assert "old-verifier.ts" in text and "INTEGRATION_AUDIENCE=https://x.example" in text and "zzz" not in text

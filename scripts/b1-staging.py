@@ -173,6 +173,12 @@ def inspect_private_package(out, private_dir, mtls_dir):
     src = (integ.get("source") or {}).get("path", "")
     if str(src).startswith(PACKAGE_MOUNT) and (Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).is_file():
         out.kv("INTEGRATION_SHA256_MATCHES", str(hashlib.sha256((Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).read_bytes()).hexdigest() == integ.get("sha256")).lower())
+    if str(src).startswith(PACKAGE_MOUNT) and (Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).is_file():
+        text = (Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).read_text(errors="replace")
+        imports = [l.strip()[:200] for l in text.splitlines() if l.lstrip().startswith("import ")]
+        out.kv("INTEGRATION_IMPORTS", " | ".join(re.sub(r"\{[^}]*\}", "{..}", i) for i in imports))  # module specifiers only
+        aud = re.search(r'"audience"\s*:\s*"(https://[A-Za-z0-9.-]+)"', text)
+        out.kv("INTEGRATION_AUDIENCE", aud.group(1) if aud else "not-found")
     d = Path(private_dir).stat()
     out.kv("PACKAGE_DIR", f"uid={d.st_uid},gid={d.st_gid},mode={oct(d.st_mode & 0o7777)}")
     pin = ing.get("proxyCertificateSha256")
