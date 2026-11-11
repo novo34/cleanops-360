@@ -345,3 +345,15 @@ def test_smoke_accepts_b1_host_and_rejects_protected_hosts(monkeypatch):
     for bad in ("https://cleanops.nuvurent.com", "https://82.25.102.171", "http://b1.cleanops.nuvurent.com"):
         with pytest.raises(m.Fail):
             m.cmd_smoke(m.parser().parse_args(["smoke", "--base-url", bad]), m.Out("t"))
+
+
+def test_diagnose_filters_and_redacts(monkeypatch):
+    m = _module()
+    secret = "A" * 40
+    logs = {"dokploy-traefik": f"ok line\nerror calling https://cleanops-b1-ingress:8443/forward-auth: x509: bad token={secret}\nCookie: session=abc",
+            "cleanops360-b1-web": f"B1 start failed code=B1_X {secret}"}
+    monkeypatch.setattr(m, "docker", lambda *a: logs[a[-1]])
+    out = m.Out("t")
+    m.cmd_diagnose(m.parser().parse_args(["diagnose"]), out)
+    text = "\n".join(out.lines)
+    assert "x509" in text and "B1_X" in text and secret not in text and "session=abc" not in text and "ok line" not in text

@@ -554,6 +554,29 @@ def cmd_stop_legacy(args, out):
     out.finish(True)
 
 
+_SECRETISH = re.compile(r"[A-Za-z0-9+/_=-]{32,}|eyJ[A-Za-z0-9._-]+|(?i:cookie|authorization|set-cookie)[^,;]*")
+
+
+def sanitize_log_line(line):
+    """Drop anything token/cookie-like; keep the line short."""
+    return _SECRETISH.sub("<redacted>", line)[:300]
+
+
+def cmd_diagnose(args, out):
+    """Read-only: filtered, sanitized log lines about the b1 route and the b1 web service."""
+    pat = re.compile(r"b1|forward|cleanops-b1-ingress|x509|tls|certificate|handshake|refused|timeout|error|B1_", re.I)
+    for container, tail, only in (("dokploy-traefik", 400, pat), ("cleanops360-b1-web", 60, None)):
+        try:
+            raw = docker("logs", "--tail", str(tail), container)
+        except Fail:
+            out.kv(f"LOGS_{container}", "unavailable")
+            continue
+        lines = [sanitize_log_line(l) for l in raw.splitlines() if only is None or only.search(l)]
+        for i, l in enumerate(lines[-25:]):
+            out.kv(f"LOG_{container}_{i:02d}", l)
+    out.finish(True)
+
+
 # ---------------------------------------------------------------- smoke
 
 def _get(url, headers=None, timeout=10):
@@ -641,6 +664,7 @@ def parser():
     i.add_argument("--database-url-file")
     sub.add_parser("retire")
     sub.add_parser("package-origin")
+    sub.add_parser("diagnose")
     sub.add_parser("stop-legacy")
     sub.add_parser("enable")
     sub.add_parser("seed")
@@ -655,7 +679,7 @@ def parser():
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "retire": cmd_retire, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):
