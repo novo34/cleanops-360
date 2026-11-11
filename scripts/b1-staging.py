@@ -486,6 +486,10 @@ def cmd_package_origin(args, out):
         raise Fail("PRIVATE_DIR_AND_TARGET_DIR_REQUIRED")
 
     def validate(d):  # the repo's own offline validators; prints nothing sensitive
+        if not shutil.which("node"):
+            # No host Node: the new service validates the package at startup and fails closed (no public effect).
+            out.kv("OFFLINE_VALIDATION", "skipped-no-node-on-host")
+            return True
         r = subprocess.run(["node", "--experimental-strip-types", str(ROOT / "scripts/complete-b1-installation.mjs"), str(d)],
                            capture_output=True, cwd=ROOT, timeout=60)
         out.kv("OFFLINE_VALIDATION_EXIT", r.returncode)
@@ -602,7 +606,10 @@ def main(argv=None):
         out.finish(False, str(e))
         return 1
     except (OSError, subprocess.SubprocessError, ValueError, KeyError) as e:
-        out.finish(False, type(e).__name__)
+        detail = type(e).__name__
+        if isinstance(e, OSError) and e.filename:  # the path only, never contents
+            detail += ":" + str(e.filename)
+        out.finish(False, detail)
         return 1
 
 

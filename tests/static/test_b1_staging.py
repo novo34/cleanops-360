@@ -264,3 +264,18 @@ def test_pin_comparison_accepts_colon_uppercase(tmp_path):
     out = m.Out("t")
     m.inspect_private_package(out, str(pkg), str(crt.parent))
     assert "PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT=true" in out.lines
+
+
+def test_package_origin_without_node_skips_validation_and_reports_paths(tmp_path, monkeypatch):
+    m = _module()
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    src.mkdir()
+    (src / "installation.json").write_text(json.dumps({"origin": "https://cleanops.nuvurent.com"}))
+    monkeypatch.setattr(m.shutil, "which", lambda name: None)
+    args = m.parser().parse_args(["--private-dir", str(src), "--target-dir", str(dst), "package-origin"])
+    out = m.Out("t")
+    m.cmd_package_origin(args, out)
+    assert "OFFLINE_VALIDATION=skipped-no-node-on-host" in out.lines and (dst / "installation.json").exists()
+    # A missing source file is reported with its path, not a bare exception name.
+    code, o = run("--private-dir", str(tmp_path / "nope"), "--target-dir", str(tmp_path / "d2"), "package-origin")
+    assert code == 1 and "nope" in o["REASON"] or o["REASON"].startswith("SOURCE_MUST")
