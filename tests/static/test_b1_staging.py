@@ -334,3 +334,14 @@ def test_stop_legacy_verifies_images_and_stops_only_those(monkeypatch):
     calls.clear()
     m.cmd_rollback(m.parser().parse_args(["rollback", "stop-legacy"]), m.Out("t"))
     assert sorted(c[-1] for c in calls if c[0] == "start") == sorted(m.LEGACY_CONTAINERS)
+
+
+def test_smoke_accepts_b1_host_and_rejects_protected_hosts(monkeypatch):
+    m = _module()
+    monkeypatch.setattr(m, "_get", lambda url, headers=None, timeout=10: 403)
+    out = m.Out("t")
+    m.cmd_smoke(m.parser().parse_args(["smoke"]), out)  # default https://b1.cleanops.nuvurent.com
+    assert "RESULT=PASS" in out.lines and "ANONYMOUS_ROOT_STATUS=403" in out.lines
+    for bad in ("https://cleanops.nuvurent.com", "https://82.25.102.171", "http://b1.cleanops.nuvurent.com"):
+        with pytest.raises(m.Fail):
+            m.cmd_smoke(m.parser().parse_args(["smoke", "--base-url", bad]), m.Out("t"))

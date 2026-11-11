@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -566,7 +567,8 @@ def _get(url, headers=None, timeout=10):
 
 def cmd_smoke(args, out):
     base = args.base_url or f"https://{HOST}"
-    if not base.startswith("https://") or any(p in base for p in PROTECTED):
+    host = urllib.parse.urlsplit(base).hostname
+    if not base.startswith("https://") or host in PROTECTED:  # exact host: b1.cleanops... is NOT cleanops...
         raise Fail("BASE_URL_NOT_ALLOWED")
     ok = True
     # Negative checks only: no credentials, forged assertion must never be honoured.
