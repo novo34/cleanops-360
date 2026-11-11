@@ -135,6 +135,8 @@ def inspect_private_package(out, private_dir, mtls_dir):
     m = json.loads(f.read_text())
     ing = m.get("ingress") or {}
     out.kv("PRIVATE_PACKAGE_VERSION", m.get("version"))
+    out.kv("PACKAGE_ORIGIN", m.get("origin"))  # also the assertion audience: must be https://b1.cleanops.nuvurent.com
+    out.kv("PACKAGE_INTERNAL_ORIGINS", json.dumps(m.get("internalOrigins")))
     for k in ("binding", "port", "issuer", "contextLifetimeMs", "drainTimeoutMs"):
         out.kv(f"INGRESS_{k.upper()}", ing.get(k))
     out.kv("INGRESS_ALLOWED_PATHS", ",".join(ing.get("allowedPaths") or []))

@@ -210,3 +210,14 @@ def test_inventory_private_package_and_traefik_names(tmp_path):
     assert "INGRESS_PORT=8443" in text and "PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT=true" in text
     assert "PSEUDONYM_KEY_SOURCE_DECLARED=true" in text and "never-printed" not in text
     assert "TRAEFIK_ENTRYPOINTS=web,websecure" in text and "TRAEFIK_CERT_RESOLVERS=letsencrypt" in text and "a@b" not in text
+
+
+def test_b1_web_service_compose_has_no_public_surface():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load((ROOT / "deploy/staging/compose.b1-web-service.yaml").read_text())
+    svc = doc["services"]["b1-web"]
+    assert "ports" not in svc and svc["labels"] == {"traefik.enable": "false"}
+    assert svc["environment"]["CLEANOPS_AUTH_ORIGIN"] == "https://b1.cleanops.nuvurent.com"
+    assert svc["read_only"] is True and svc["cap_drop"] == ["ALL"] and svc["user"] == "999:999"
+    assert all(n["external"] for n in doc["networks"].values()) and doc["volumes"]["identity_agent_sink"]["external"]
+    assert all(m.get("read_only") for m in svc["volumes"])

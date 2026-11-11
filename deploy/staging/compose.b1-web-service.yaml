@@ -1,0 +1,66 @@
+# B1 staging web (P4), deployed through Dokploy as its OWN compose application (decision: PO 2026-11-11).
+# One service = Next backend (3000) + in-process private mTLS ForwardAuth listener (port from the private package).
+# No published ports, no Traefik labels: the only route is the file-provider router written by
+# `scripts/b1-staging.py route` for Host("b1.cleanops.nuvurent.com") with ipAllowList.
+# Names/networks below are the ones observed read-only on the VPS (inventory 2026-11-11).
+name: cleanops360-b1-web
+services:
+  b1-web:
+    build:
+      context: ../..
+      dockerfile: deploy/staging/Dockerfile
+      args:
+        CLEANOPS_WEB_UID: "999"
+        CLEANOPS_WEB_GID: "999"
+    container_name: cleanops360-b1-web
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "999:999"
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      CLEANOPS_AUTH_ORIGIN: https://b1.cleanops.nuvurent.com
+      CLEANOPS_AUTH_INTERNAL_ORIGINS: '["http://0.0.0.0:3000","https://0.0.0.0:3000","http://127.0.0.1:3000"]'
+    expose:
+      - "3000"
+    volumes:
+      - type: volume
+        source: identity_agent_sink
+        target: /run/cleanops-agent
+        read_only: true
+        volume: {nocopy: true}
+      - type: bind
+        source: /run/cleanops-b1-private
+        target: /run/cleanops-b1-private
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [dokploy, private, custody]
+    labels:
+      traefik.enable: "false"
+    stop_signal: SIGTERM
+    stop_grace_period: 40s
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: "0.65"
+    ulimits:
+      core: {soft: 0, hard: 0}
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
+networks:
+  dokploy: {external: true, name: dokploy-network}
+  private: {external: true, name: cleanops360_staging_private}
+  custody: {external: true, name: cleanops360_staging_custody}
+volumes:
+  identity_agent_sink: {external: true, name: cleanops360-f4fxmd_identity_agent_sink}

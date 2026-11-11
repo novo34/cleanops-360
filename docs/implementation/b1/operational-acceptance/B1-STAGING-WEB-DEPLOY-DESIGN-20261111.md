@@ -19,6 +19,12 @@ El listener mTLS de ForwardAuth corre **dentro del mismo proceso web** (`instrum
 5. `route` con `--backend-url http://<servicio-nuevo>:3000`, `--forward-auth-address https://<servicio-nuevo>:<puerto>/…`, TLS = rutas **vistas desde el contenedor de Traefik**.
 6. `enable` → `smoke`.
 
+## Decisión del PO (2026-11-11): el servicio nuevo se despliega con Dokploy
+Aplicación Compose propia en Dokploy sobre `deploy/staging/compose.b1-web-service.yaml` (sin puertos publicados ni labels de Traefik; solo la ruta de archivo de `b1-staging.py route`). Dokploy construye desde el commit publicado de la rama. No se usa subcomando `deploy`. El shadow antiguo no se toca hasta otro «sí».
+
+## Bloqueo a verificar antes del paso 3: origen del paquete privado
+El audience de la aserción es `new URL(origin).origin` y `origin` sale del paquete privado (root-owned). Si el paquete del shadow declara `https://cleanops.nuvurent.com`, el servicio nuevo NO puede reutilizarlo tal cual (audience incorrecto) y crear un paquete nuevo es decisión de custodia del PO (`complete-b1-installation.mjs` no sobrescribe valores). `inventory --private-dir` informa `PACKAGE_ORIGIN`.
+
 ## Riesgos abiertos
 - Este script no construye ni arranca contenedores; falta decidir si se hace vía Dokploy (recomendado, Compose gestionado) o con un subcomando nuevo `deploy` con las mismas guardas.
 - El paso 4 puede requerir cambiar el paquete privado (custodia de claves): decisión del PO.
