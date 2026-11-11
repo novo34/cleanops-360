@@ -13,6 +13,7 @@ PostgreSQL access: --pg-container NAME (docker exec, default for the VPS) or, wi
 """
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -30,6 +31,7 @@ HOST = "b1.cleanops.nuvurent.com"
 ROUTE_FILE = "b1-staging.yml"
 EXPECTED_MIGRATIONS = ("0002_first_actor", "0003_ingress_persistence")
 PROTECTED = {"cleanops.nuvurent.com", "82.25.102.171"}
+PROTECTED_IPS = ("82.25.102.171",)
 
 
 class Fail(Exception):
@@ -231,14 +233,23 @@ def cmd_seed(args, out):
 
 # ---------------------------------------------------------------- route
 
-_CIDR = re.compile(r"^(\d{1,3}\.){3}\d{1,3}(/(3[0-2]|[12]?\d))?$")
+
+def _valid_allow(entry):
+    """Single host or narrow network only (IPv4 >= /24, IPv6 >= /64); never wildcard or protected hosts."""
+    try:
+        net = ipaddress.ip_network(entry, strict=True)
+    except ValueError:
+        return False
+    if net.is_unspecified or net.prefixlen < (24 if net.version == 4 else 64):
+        return False
+    return not any(ipaddress.ip_address(p) in net for p in PROTECTED_IPS)
 
 
 def render_route(host, backend_url, forward_auth_address, allow_ips, tls_ca, tls_cert, tls_key):
     if host != HOST:
         raise Fail("HOST_NOT_ALLOWED")
     ips = [i.strip() for i in allow_ips.split(",") if i.strip()]
-    if not ips or any(not _CIDR.match(i) or i.startswith("0.") or i.endswith("/0") or i in PROTECTED for i in ips):
+    if not ips or not all(_valid_allow(i) for i in ips):
         raise Fail("ALLOW_IPS_INVALID_OR_WILDCARD")
     for value in (backend_url, forward_auth_address):
         if not re.match(r"^https?://[A-Za-z0-9._-]+(:\d+)?(/[A-Za-z0-9._/-]*)?$", value):

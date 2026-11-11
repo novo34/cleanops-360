@@ -117,7 +117,7 @@ def test_route_renders_single_router_with_allowlist():
     assert doc["http"]["middlewares"]["b1-staging-strip"]["headers"]["customRequestHeaders"]["X-B1-Context"] == ""
 
 
-@pytest.mark.parametrize("bad", ["0.0.0.0/0", "10.0.0.0/0", "", "82.25.102.171", "a.b.c.d", "1.2.3.4/33"])
+@pytest.mark.parametrize("bad", ["0.0.0.0/0", "10.0.0.0/0", "", "82.25.102.171", "a.b.c.d", "1.2.3.4/33", "::/0", "2a02::/16", "203.0.113.0/8"])
 def test_route_rejects_wildcard_or_protected_ips(bad):
     m = _module()
     with pytest.raises(m.Fail):
@@ -134,3 +134,9 @@ def test_route_rejects_other_host_and_writes_atomically(tmp_path):
     assert code == 0 and (tmp_path / "b1-staging.yml").is_file()
     code, out = run("--traefik-dir", str(tmp_path), "rollback", "route")
     assert code == 0 and not (tmp_path / "b1-staging.yml").exists()
+
+
+def test_route_accepts_ipv6_single_host():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(_module().render_route(**{**GOOD, "allow_ips": "2001:db8::1/128"}))
+    assert doc["http"]["middlewares"]["b1-staging-allowlist"]["ipAllowList"]["sourceRange"] == ["2001:db8::1/128"]
