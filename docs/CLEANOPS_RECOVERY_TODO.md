@@ -1006,6 +1006,16 @@ El propietario debe autorizar separadamente UNA ejecución pre-merge por C_act/M
 - [ ] **R8 — Validación integral y aceptación de recuperación.** Ejecutar únicamente suites necesarias y expresamente autorizadas (tipado, lint, tests de seguridad, DB/E2E cuando sus gates lo permitan); verificar multi-tenant, permisos, concurrencia, idempotencia, observabilidad y limpieza; revisar árbol final por duplicados/huérfanos, PR pendientes y runtime. **Cierre:** inventario de deuda residual con propietarios o cero deuda no justificada en alcance, resultados reales por SHA, aprobación explícita del PO. No declarar B1/B2 TECH-READY o ACCEPTED sin sus propios gates.
 - [ ] **R9 — Experimento DeusData/codebase-memory-mcp (separado, condicionado).** **Solo después de R8:** revisión oficial de release/checksums, piloto aislado y de solo lectura, benchmark en copia local, ninguna edición de AGENTS/config sin aprobación. Su adopción necesita valor medido y evaluación de seguridad. No es un componente de CleanOps 360 ni una excusa para crear otra capa.
 
+## B1 / AUTH-GATE-05 — Auditoría de bloqueo y desbloqueo (2026-11-11)
+
+`B1 | BLOCKED (proceso) | main 4f19c36 · PR #33 04070eb | CR-1…CR-6 | sin cambios de código | +1 ficha, TODO | sin pruebas nuevas | requiere firma U-1…U-6 | ver ficha | ver ficha | PENDIENTE`
+
+Ficha completa: `docs/implementation/b1/operational-acceptance/B1-UNBLOCK-AUDIT-20261111.md`. Resumen: el código B1 está acreditado 42/44 en aislamiento; el bloqueo se debe a (1) AUTH-GATE-05 usado a la vez como gate documental, flag runtime en BD y cierre operativo total; (2) flag `deployment_enabled` en base compartida; (3) única cuenta no sintética y prohibición de crear otra; (4) "revisor independiente" sin definición ejecutable pese a §8.4–5 de la política; (5) staging con dos builds Next.js en el mismo host enrutados por cookie; (6) evidencia commit-por-salida (PR #33: 379 commits; 43 commits el 05/11).
+
+- [ ] Firma del propietario de U-1…U-6 (separar estados, BD dedicada, primer actor sintético, hostname propio, definición de revisión independiente, consolidación de scripts).
+- [ ] P0–P6 de la ficha ejecutados en orden, con PASS por paso → B1-STAGING-ACCEPTED (44/44).
+- [ ] P7 B1-OPERATIONAL como precondición de release a producción.
+
 ## Orden de decisión
 **Ahora:** R0 y R1 cerrados con aceptación del propietario; siguiente bloque único R2 (TODO, aún no iniciado). R3 y posteriores únicamente tras el cierre autorizado del bloque precedente. Hallazgos HIGH se pueden elevar a emergencia solo con riesgo de seguridad demostrado y autorización del propietario. Si las comprobaciones bloquean una fase, consignar BLOCKED y su causa; no saltar al siguiente bloque para aparentar progreso.
 
