@@ -72,6 +72,16 @@ def test_install_refuses_foreign_roles_as_stop_and_design(cluster, tmp_path):
     assert psql("SELECT count(*) FROM pg_namespace WHERE nspname='identity_private'", db=DB) == "0"
 
 
+def test_inventory_reports_journal_matches_after_install(cluster, tmp_path):
+    url = tmp_path / "url"
+    url.write_text(f"postgres://cleanops_bootstrap@127.0.0.1:{PORT}/{DB}")
+    code, _ = run("--database", DB, "install", "--approval-reference", "t", "--database-url-file", str(url))
+    assert code == 0
+    code, out = run("--database", DB, "inventory")
+    assert out["JOURNAL_0002_first_actor_MATCHES_REPO"] == "true" and out["JOURNAL_b1_sql14_MATCHES_REPO"] == "true"
+    assert out["JOURNAL_0003_ingress_persistence_MATCHES_REPO"] == "true"
+
+
 def test_install_rejects_other_database_name(cluster, tmp_path):
     code, out = run("--database", "cleanops_b1_staging", "install", "--approval-reference", "t",
                     "--database-url-file", str(tmp_path / "u"))

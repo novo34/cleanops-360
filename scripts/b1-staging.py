@@ -29,6 +29,9 @@ SQL14_SHA = "965dc8a96e70eb9104920916f635239bf8289b937a6c10a63130c203a47e37aa"
 SQL14 = ROOT / "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql"
 HOST = "b1.cleanops.nuvurent.com"
 ROUTE_FILE = "b1-staging.yml"
+PINNED = {"b1_sql14": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
+          "0002_first_actor": "db/migrations/0002_first_actor.review.sql",
+          "0003_ingress_persistence": "db/migrations/0003_ingress_persistence.review.sql"}
 EXPECTED_MIGRATIONS = ("0002_first_actor", "0003_ingress_persistence")
 PROTECTED = {"cleanops.nuvurent.com", "82.25.102.171"}
 PROTECTED_IPS = ("82.25.102.171",)
@@ -141,6 +144,12 @@ def cmd_inventory(args, out):
         out.kv("MIGRATION_JOURNAL", "present" if reg == "t" else "absent")
         if reg == "t":
             out.kv("MIGRATIONS", t.run("SELECT string_agg(id,',' ORDER BY id) FROM public._migrations") or "none")
+            for mid, path in PINNED.items():
+                row = t.run(f"SELECT checksum||'|'||source_commit FROM public._migrations WHERE id='{mid}'")
+                if row:
+                    checksum, commit = row.split("|", 1)
+                    out.kv(f"JOURNAL_{mid}_MATCHES_REPO", str(checksum == hashlib.sha256((ROOT / path).read_bytes()).hexdigest()).lower())
+                    out.kv(f"JOURNAL_{mid}_SOURCE_COMMIT", commit)
         cfg = t.run("SELECT CASE WHEN to_regclass('identity_private.configuration') IS NULL THEN 'absent' ELSE 'present' END")
         out.kv("CONFIGURATION_TABLE", cfg)
         if cfg == "present":
@@ -152,6 +161,11 @@ def cmd_inventory(args, out):
         names = sorted(p.name for p in d.iterdir()) if d.is_dir() else []
         out.kv("TRAEFIK_DYNAMIC_FILES", ",".join(names) or "none")
         out.kv("B1_ROUTE_PRESENT", str(ROUTE_FILE in names).lower())
+        for n in names:
+            if n.startswith("cleanops-b1") and (d / n).is_file():
+                out.kv(f"TRAEFIK_{n}_SHA256", hashlib.sha256((d / n).read_bytes()).hexdigest())
+                text = (d / n).read_text(errors="replace")
+                out.kv(f"TRAEFIK_{n}_ROUTER_RULES", ";".join(re.findall(r"rule:\s*(.+)", text))[:300])
     out.finish(True)
 
 
