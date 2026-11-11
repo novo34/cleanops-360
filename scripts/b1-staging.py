@@ -442,6 +442,7 @@ def cmd_retire(args, out):
     out.finish(True)
 
 
+PACKAGE_MOUNT = "/run/cleanops-b1-private/"
 OLD_ORIGIN, NEW_ORIGIN = "https://cleanops.nuvurent.com", "https://b1.cleanops.nuvurent.com"
 
 
@@ -458,9 +459,23 @@ def derive_package(src, dst, validate=None):
     dst.mkdir(mode=0o700, parents=True)
     try:
         st = src.stat()
-        for f in sorted(src.iterdir()):
-            if f.is_symlink() or not f.is_file():
-                raise Stop(f"UNSUPPORTED_ENTRY:{f.name}")
+        # Copy ONLY what the manifest references (no stale backups/pending files from the old package).
+        wanted = {"installation.json"}
+
+        def walk(v):
+            if isinstance(v, str) and v.startswith(PACKAGE_MOUNT):
+                wanted.add(v[len(PACKAGE_MOUNT):].split("/")[0])
+            elif isinstance(v, dict):
+                for x in v.values():
+                    walk(x)
+            elif isinstance(v, list):
+                for x in v:
+                    walk(x)
+        walk(manifest)
+        missing = sorted(n for n in wanted if not (src / n).is_file() or (src / n).is_symlink())
+        if missing:
+            raise Stop("REFERENCED_FILE_MISSING_OR_NOT_REGULAR:" + ",".join(missing))
+        for f in sorted(src / n for n in wanted):
             data = f.read_bytes()
             if f.name == "installation.json":
                 manifest["origin"] = NEW_ORIGIN
@@ -544,6 +559,16 @@ def cmd_rollback(args, out):
             if src.is_file() and not dst.exists():
                 shutil.copy2(src, dst)
                 out.kv(f"RESTORED_{n}", "true")
+    elif stage == "package-origin":
+        t = Path(args.target_dir or "")
+        try:
+            ok = t.is_absolute() and json.loads((t / "installation.json").read_text()).get("origin") == NEW_ORIGIN
+        except (OSError, ValueError):
+            ok = False
+        if not ok:
+            raise Stop("TARGET_IS_NOT_A_DERIVED_B1_HOST_PACKAGE")
+        shutil.rmtree(t)
+        out.kv("DERIVED_PACKAGE_REMOVED", "true")
     elif stage == "enable":
         pg = _target(args)
         pg.run("UPDATE identity_private.configuration SET deployment_enabled=false WHERE singleton")
@@ -580,7 +605,7 @@ def parser():
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
-    b.add_argument("stage", choices=["route", "retire", "enable", "seed", "install"])
+    b.add_argument("stage", choices=["route", "retire", "package-origin", "enable", "seed", "install"])
     return p
 
 

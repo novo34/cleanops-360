@@ -228,7 +228,9 @@ def test_derive_package_changes_only_origin(tmp_path):
     src, dst = tmp_path / "src", tmp_path / "dst"
     src.mkdir()
     manifest = {"version": 2, "origin": "https://cleanops.nuvurent.com", "internalOrigins": ["http://127.0.0.1:3000"], "x": {"y": 1}}
+    manifest["sources"] = {"key": {"path": "/run/cleanops-b1-private/k.key"}}
     (src / "installation.json").write_text(json.dumps(manifest))
+    (src / "stale.json.before-1").write_text("old")
     (src / "k.key").write_bytes(b"secret")
     os.chmod(src / "k.key", 0o440)
     m.derive_package(src, dst)
@@ -236,6 +238,7 @@ def test_derive_package_changes_only_origin(tmp_path):
     assert new.pop("origin") == "https://b1.cleanops.nuvurent.com"
     manifest.pop("origin")
     assert new == manifest and (dst / "k.key").read_bytes() == b"secret"
+    assert sorted(p.name for p in dst.iterdir()) == ["installation.json", "k.key"]  # stale backups not copied
     assert (dst / "k.key").stat().st_mode & 0o777 == 0o440
     with pytest.raises(m.Fail):
         m.derive_package(src, dst)  # target exists
@@ -279,3 +282,14 @@ def test_package_origin_without_node_skips_validation_and_reports_paths(tmp_path
     # A missing source file is reported with its path, not a bare exception name.
     code, o = run("--private-dir", str(tmp_path / "nope"), "--target-dir", str(tmp_path / "d2"), "package-origin")
     assert code == 1 and "nope" in o["REASON"] or o["REASON"].startswith("SOURCE_MUST")
+
+
+def test_rollback_package_origin_only_removes_derived_package(tmp_path):
+    d = tmp_path / "d"
+    d.mkdir()
+    (d / "installation.json").write_text(json.dumps({"origin": "https://cleanops.nuvurent.com"}))
+    code, out = run("--target-dir", str(d), "rollback", "package-origin")
+    assert code == 3 and d.exists()  # the ORIGINAL package must never be removable this way
+    (d / "installation.json").write_text(json.dumps({"origin": "https://b1.cleanops.nuvurent.com"}))
+    code, out = run("--target-dir", str(d), "rollback", "package-origin")
+    assert code == 0 and not d.exists()
