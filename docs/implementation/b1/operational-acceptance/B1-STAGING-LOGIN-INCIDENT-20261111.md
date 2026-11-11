@@ -113,3 +113,14 @@ Causa del fallo de dispositivos de confianza: `auth_api.register_trusted_device`
 está activa. En esta rama ni la aplicación ni el SQL (SQL14, 0002, 0003) escriben en `app.auth_preferences`: no hay
 forma revisada de activar la preferencia. Activarla es una decisión de diseño del PO (quién la escribe y con qué
 aprobación); no se ha insertado nada a mano.
+
+### Segunda tanda de la prueba P5 del PO (2026-11-11, 21:11Z en adelante)
+
+| Acción | Resultado | Evidencia |
+|---|---|---|
+| Cerrar sesión y volver a entrar | PASS | `self_sessions.revoke_self_session SUCCESS` (21:11:03Z), `auth.login SUCCESS` (21:11:28Z) |
+| Mis sesiones | PASS según el PO | — |
+| Mi identidad | PASS según el PO | — |
+| Añadir autenticador | **FAIL: `DEPENDENCY_FAILURE`** un segundo después del step-up correcto (21:11:41Z → 21:11:42Z). Mismo patrón a las 20:57Z. La UI vuelve al menú sin mostrar el QR | causa sin determinar: `enrollTotp` lanza `unavailable()` (candidatos: `deps.enrollment` ausente, límite de métodos sin definir, alias de cuenta, o clave de escritura de custodia/OpenBao) |
+| Reintentos posteriores | `RATE_LIMITED` ×3 (21:12Z) | límite de emisión de desafíos; se libera solo |
+| Usuarios y permisos | NO PROBADO: el formulario exige el UUID (36 caracteres) del usuario destino y la UI no lo muestra ni lista usuarios | hueco de usabilidad; `first-actor-info` no imprime el `userId` |
