@@ -146,7 +146,7 @@ def inspect_private_package(out, private_dir, mtls_dir):
     crt = Path(mtls_dir) / "traefik-client.crt" if mtls_dir else None
     if pin and crt and crt.is_file():
         der = ssl.PEM_cert_to_DER_cert(crt.read_text())
-        out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", str(hashlib.sha256(der).hexdigest() == str(pin).lower()).lower())
+        out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", str(hashlib.sha256(der).hexdigest() == re.sub(r"[^0-9a-f]", "", str(pin).lower())).lower())
     else:
         out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", "unknown")
     out.kv("PROXY_CERT_PIN", pin)  # a public pin, not a secret
@@ -442,6 +442,60 @@ def cmd_retire(args, out):
     out.finish(True)
 
 
+OLD_ORIGIN, NEW_ORIGIN = "https://cleanops.nuvurent.com", "https://b1.cleanops.nuvurent.com"
+
+
+def derive_package(src, dst, validate=None):
+    """New private package = exact copy of the reviewed one (owner/mode kept) with ONLY `origin` changed."""
+    src, dst = Path(src), Path(dst)
+    if not src.is_dir() or not src.is_absolute() or not dst.is_absolute() or dst.exists():
+        raise Fail("SOURCE_MUST_EXIST_TARGET_MUST_NOT")
+    if dst == src or src in dst.parents or dst in src.parents:
+        raise Fail("TARGET_MUST_BE_SEPARATE_DIRECTORY")
+    manifest = json.loads((src / "installation.json").read_text())
+    if manifest.get("origin") != OLD_ORIGIN:
+        raise Stop("SOURCE_ORIGIN_NOT_AS_INVENTORIED")
+    dst.mkdir(mode=0o700, parents=True)
+    try:
+        st = src.stat()
+        for f in sorted(src.iterdir()):
+            if f.is_symlink() or not f.is_file():
+                raise Stop(f"UNSUPPORTED_ENTRY:{f.name}")
+            data = f.read_bytes()
+            if f.name == "installation.json":
+                manifest["origin"] = NEW_ORIGIN
+                data = (json.dumps(manifest, indent=2) + "\n").encode()
+            t = dst / f.name
+            fd = os.open(t, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "wb") as h:
+                h.write(data)
+            fs = f.stat()
+            os.chown(t, fs.st_uid, fs.st_gid)
+            os.chmod(t, fs.st_mode & 0o7777)
+        os.chown(dst, st.st_uid, st.st_gid)
+        os.chmod(dst, st.st_mode & 0o7777)
+        if validate and not validate(dst):
+            raise Stop("OFFLINE_VALIDATION_FAILED")
+    except Exception:
+        shutil.rmtree(dst, ignore_errors=True)
+        raise
+
+
+def cmd_package_origin(args, out):
+    if not args.private_dir or not args.target_dir:
+        raise Fail("PRIVATE_DIR_AND_TARGET_DIR_REQUIRED")
+
+    def validate(d):  # the repo's own offline validators; prints nothing sensitive
+        r = subprocess.run(["node", "--experimental-strip-types", str(ROOT / "scripts/complete-b1-installation.mjs"), str(d)],
+                           capture_output=True, cwd=ROOT, timeout=60)
+        out.kv("OFFLINE_VALIDATION_EXIT", r.returncode)
+        return r.returncode == 0
+    derive_package(args.private_dir, args.target_dir, validate)
+    out.kv("NEW_PACKAGE_ORIGIN", NEW_ORIGIN)
+    out.kv("NEW_MANIFEST_SHA256", hashlib.sha256((Path(args.target_dir) / "installation.json").read_bytes()).hexdigest())
+    out.finish(True)
+
+
 # ---------------------------------------------------------------- smoke
 
 def _get(url, headers=None, timeout=10):
@@ -505,6 +559,7 @@ def parser():
     p.add_argument("--traefik-dir")
     p.add_argument("--backup-dir")
     p.add_argument("--private-dir")
+    p.add_argument("--target-dir")
     p.add_argument("--traefik-static")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("inventory")
@@ -512,6 +567,7 @@ def parser():
     i.add_argument("--approval-reference")
     i.add_argument("--database-url-file")
     sub.add_parser("retire")
+    sub.add_parser("package-origin")
     sub.add_parser("enable")
     sub.add_parser("seed")
     r = sub.add_parser("route")
@@ -525,7 +581,7 @@ def parser():
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "retire": cmd_retire, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):

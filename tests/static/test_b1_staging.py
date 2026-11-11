@@ -221,3 +221,46 @@ def test_b1_web_service_compose_has_no_public_surface():
     assert svc["read_only"] is True and svc["cap_drop"] == ["ALL"] and svc["user"] == "999:999"
     assert all(n["external"] for n in doc["networks"].values()) and doc["volumes"]["identity_agent_sink"]["external"]
     assert all(m.get("read_only") for m in svc["volumes"])
+
+
+def test_derive_package_changes_only_origin(tmp_path):
+    m = _module()
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    src.mkdir()
+    manifest = {"version": 2, "origin": "https://cleanops.nuvurent.com", "internalOrigins": ["http://127.0.0.1:3000"], "x": {"y": 1}}
+    (src / "installation.json").write_text(json.dumps(manifest))
+    (src / "k.key").write_bytes(b"secret")
+    os.chmod(src / "k.key", 0o440)
+    m.derive_package(src, dst)
+    new = json.loads((dst / "installation.json").read_text())
+    assert new.pop("origin") == "https://b1.cleanops.nuvurent.com"
+    manifest.pop("origin")
+    assert new == manifest and (dst / "k.key").read_bytes() == b"secret"
+    assert (dst / "k.key").stat().st_mode & 0o777 == 0o440
+    with pytest.raises(m.Fail):
+        m.derive_package(src, dst)  # target exists
+    (src / "installation.json").write_text(json.dumps({**manifest, "origin": "https://other"}))
+    with pytest.raises(m.Stop):
+        m.derive_package(src, tmp_path / "dst2")
+    assert not (tmp_path / "dst2").exists()
+    (src / "installation.json").write_text(json.dumps({**manifest, "origin": "https://cleanops.nuvurent.com"}))
+    with pytest.raises(m.Stop):
+        m.derive_package(src, tmp_path / "dst3", validate=lambda d: False)
+    assert not (tmp_path / "dst3").exists()
+
+
+def test_pin_comparison_accepts_colon_uppercase(tmp_path):
+    import hashlib, ssl, subprocess as sp
+    crt = tmp_path / "m/traefik-client.crt"
+    crt.parent.mkdir()
+    sp.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-keyout", str(tmp_path / "k"),
+            "-out", str(crt), "-subj", "/CN=t", "-days", "1"], check=True, capture_output=True)
+    h = hashlib.sha256(ssl.PEM_cert_to_DER_cert(crt.read_text())).hexdigest().upper()
+    pin = ":".join(h[i:i + 2] for i in range(0, 64, 2))
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "installation.json").write_text(json.dumps({"ingress": {"proxyCertificateSha256": pin}}))
+    m = _module()
+    out = m.Out("t")
+    m.inspect_private_package(out, str(pkg), str(crt.parent))
+    assert "PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT=true" in out.lines

@@ -33,7 +33,7 @@ services:
         read_only: true
         volume: {nocopy: true}
       - type: bind
-        source: /run/cleanops-b1-private
+        source: ${CLEANOPS_B1_PRIVATE_DIR:?Absolute path of the derived b1-host private package (b1-staging.py package-origin)}
         target: /run/cleanops-b1-private
         read_only: true
         bind: {create_host_path: false}
