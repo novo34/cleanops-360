@@ -221,6 +221,7 @@ def test_b1_web_service_compose_has_no_public_surface():
     assert svc["read_only"] is True and svc["cap_drop"] == ["ALL"] and svc["user"] == "999:999"
     assert all(n["external"] for n in doc["networks"].values()) and doc["volumes"]["identity_agent_sink"]["external"]
     assert all(m.get("read_only") for m in svc["volumes"])
+    assert svc["networks"]["dokploy"]["aliases"] == ["cleanops-b1-ingress"]
 
 
 def test_derive_package_changes_only_origin(tmp_path):

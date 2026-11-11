@@ -37,7 +37,13 @@ services:
         target: /run/cleanops-b1-private
         read_only: true
         bind: {create_host_path: false}
-    networks: [dokploy, private, custody]
+    networks:
+      dokploy:
+        # Must equal the SAN of ingress-server.crt (Traefik verifies the ForwardAuth server by this name).
+        # Do not deploy while another container holds the same alias on dokploy-network.
+        aliases: [cleanops-b1-ingress]
+      private: {}
+      custody: {}
     labels:
       traefik.enable: "false"
     stop_signal: SIGTERM

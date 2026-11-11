@@ -251,6 +251,7 @@ def cmd_inventory(args, out):
             # Structure only: mount targets, network names, env VAR NAMES, ports. Never env values, labels' values or contents.
             out.kv(f"INSPECT_{key}_MOUNTS", ";".join(f"{m.get('Type')}:{m.get('Destination')}:{'ro' if not m.get('RW') else 'rw'}:{m.get('Name') or m.get('Source')}" for m in c.get("Mounts", [])))
             out.kv(f"INSPECT_{key}_NETWORKS", ",".join(c["NetworkSettings"]["Networks"]))
+            out.kv(f"INSPECT_{key}_ALIASES", ";".join(f"{n}:{'/'.join(v.get('Aliases') or [])}" for n, v in c["NetworkSettings"]["Networks"].items()))
             out.kv(f"INSPECT_{key}_ENV_NAMES", ",".join(sorted(e.split("=", 1)[0] for e in c["Config"].get("Env", []))))
             out.kv(f"INSPECT_{key}_EXPOSED", ",".join(sorted((c["Config"].get("ExposedPorts") or {}))))
             for net in c["NetworkSettings"]["Networks"]:
