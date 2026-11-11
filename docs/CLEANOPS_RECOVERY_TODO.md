@@ -1012,7 +1012,7 @@ El propietario debe autorizar separadamente UNA ejecución pre-merge por C_act/M
 
 Ficha completa: `docs/implementation/b1/operational-acceptance/B1-UNBLOCK-AUDIT-20261111.md`. Resumen: el código B1 está acreditado 42/44 en aislamiento; el bloqueo se debe a (1) AUTH-GATE-05 usado a la vez como gate documental, flag runtime en BD y cierre operativo total; (2) flag `deployment_enabled` en base compartida; (3) única cuenta no sintética y prohibición de crear otra; (4) "revisor independiente" sin definición ejecutable pese a §8.4–5 de la política; (5) staging con dos builds Next.js en el mismo host enrutados por cookie; (6) evidencia commit-por-salida (PR #33: 379 commits; 43 commits el 05/11).
 
-- [ ] Firma del propietario de U-1…U-6 (separar estados, BD dedicada, primer actor sintético, hostname propio, definición de revisión independiente, consolidación de scripts).
+- [x] Firma del propietario de U-1…U-6 (2026-11-11, registradas en la ficha §7: tres estados, BD dedicada en el mismo PostgreSQL, juego sintético completo .test, `b1.cleanops.nuvurent.com` + lista de IPs y retirada del pase de dispositivo, revisión cruzada entre modelos, script único por bloques y rama limpia).
 - [ ] P0–P6 de la ficha ejecutados en orden, con PASS por paso → B1-STAGING-ACCEPTED (44/44).
 - [ ] P7 B1-OPERATIONAL como precondición de release a producción.
 
