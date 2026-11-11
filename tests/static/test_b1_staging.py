@@ -125,7 +125,14 @@ def test_route_renders_single_router_with_allowlist():
     assert doc["http"]["middlewares"]["b1-staging-allowlist"]["ipAllowList"]["sourceRange"] == ["203.0.113.7/32"]
     fa = doc["http"]["middlewares"]["b1-staging-auth"]["forwardAuth"]
     assert fa["trustForwardHeader"] is False and fa["tls"]["ca"] == "/certs/ca.pem"
-    assert doc["http"]["middlewares"]["b1-staging-strip"]["headers"]["customRequestHeaders"]["X-B1-Context"] == ""
+    assert doc["http"]["middlewares"]["b1-staging-strip"]["headers"]["customRequestHeaders"] == {"X-Cleanops-B1-Assertion": ""}
+    # The header Traefik copies must be the one the app verifies; POST bodies must reach the issuer.
+    source = (ROOT / "lib/b1/ingress-assertion.ts").read_text()
+    assert "export const assertionHeader = 'x-cleanops-b1-assertion'" in source
+    assert fa["authResponseHeaders"] == ["X-Cleanops-B1-Assertion"] and fa["forwardBody"] is True
+    assert fa["maxBodySize"] == 65536 and fa["preserveRequestMethod"] is True and fa["tls"]["insecureSkipVerify"] is False
+    bound = source.split("const bindingHeaders = [")[1].split("]")[0].replace("'", "").replace(" ", "").split(",")
+    assert set(bound) <= {h.lower() for h in fa["authRequestHeaders"]}
 
 
 @pytest.mark.parametrize("bad", ["0.0.0.0/0", "10.0.0.0/0", "", "82.25.102.171", "a.b.c.d", "1.2.3.4/33", "::/0", "2a02::/16", "203.0.113.0/8"])
@@ -537,3 +544,20 @@ def test_first_actor_info_prints_only_public_request_fields(monkeypatch):
     assert "FIRST_ACTOR_EMAIL=owner@example.test" in text and "FIRST_ACTOR_TENANT_NAME=Acme" in text
     assert "FIRST_ACTOR_DISPLAY_NAME=not-recorded" in text and "RESULT=PASS" in text
     assert not any("material" in s or "receipt" in s for s in seen)
+
+
+def test_route_reuse_current_keeps_parameters_and_changes_only_the_template(tmp_path):
+    m = _module()
+    old = m.render_route(**{**GOOD, "allow_ips": "203.0.113.7/32,2001:db8::1/128"})
+    legacy = old.replace("X-Cleanops-B1-Assertion", "X-B1-Context")  # a file written by the earlier template
+    (tmp_path / "dynamic").mkdir()
+    target = tmp_path / "dynamic" / "b1-staging.yml"
+    target.write_text(legacy)
+    code, out = run("--traefik-dir", str(target.parent), "route", "--reuse-current", "--allow-ips", "203.0.113.9/32")
+    assert code == 1 and target.read_text() == legacy  # reuse never mixes with retyped values
+    code, out = run("--traefik-dir", str(target.parent), "route", "--reuse-current")
+    assert code == 0 and out["ROUTE_ALLOW_ENTRIES"] == "2" and target.read_text() == old
+    assert (tmp_path / ".b1-staging.yml.prev").read_text() == legacy
+    target.write_text("http: {}\n")
+    code, out = run("--traefik-dir", str(target.parent), "route", "--reuse-current")
+    assert code == 3 and target.read_text() == "http: {}\n"

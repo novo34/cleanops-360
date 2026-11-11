@@ -409,6 +409,26 @@ def _valid_allow(entry):
     return not any(ipaddress.ip_address(p) in net for p in PROTECTED_IPS)
 
 
+# Must equal assertionHeader in lib/b1/ingress-assertion.ts: the ONLY header copied from the ForwardAuth answer.
+ASSERTION_HEADER = "X-Cleanops-B1-Assertion"
+# Exactly the headers covered by requestBinding() plus the forwarding metadata Traefik rebuilds (single hop).
+AUTH_REQUEST_HEADERS = ("Host, Authorization, Cookie, Origin, Content-Type, Content-Encoding, X-CSRF-Token, Idempotency-Key, "
+                        "Sec-Fetch-Site, X-Forwarded-Method, X-Forwarded-Proto, X-Forwarded-Host, X-Forwarded-Uri, X-Forwarded-For")
+
+
+def current_route_parameters(text):
+    """Parameters of the route file this script wrote earlier, to re-render it without retyping any value."""
+    if not text.startswith("# Managed by scripts/b1-staging.py (route)."):
+        raise Stop("CURRENT_ROUTE_NOT_MANAGED_BY_THIS_SCRIPT")
+    one = {"backend_url": r'^\s+- url: "([^"]+)"$', "forward_auth_address": r'^\s+address: "([^"]+)"$',
+           "tls_ca": r'^\s+ca: "([^"]+)"$', "tls_cert": r'^\s+cert: "([^"]+)"$', "tls_key": r'^\s+key: "([^"]+)"$'}
+    found = {k: re.findall(v, text, re.M) for k, v in one.items()}
+    ips = re.findall(r'^\s+- "([0-9A-Fa-f:./]+)"$', text, re.M)
+    if not ips or any(len(v) != 1 for v in found.values()):
+        raise Stop("CURRENT_ROUTE_NOT_PARSEABLE")
+    return {**{k: v[0] for k, v in found.items()}, "allow_ips": ",".join(ips)}
+
+
 def render_route(host, backend_url, forward_auth_address, allow_ips, tls_ca, tls_cert, tls_key):
     if host != HOST:
         raise Fail("HOST_NOT_ALLOWED")
@@ -440,16 +460,21 @@ http:
     b1-staging-strip:
       headers:
         customRequestHeaders:
-          X-B1-Context: ""
+          {ASSERTION_HEADER}: ""
     b1-staging-auth:
       forwardAuth:
         address: "{forward_auth_address}"
         trustForwardHeader: false
-        authResponseHeaders: [X-B1-Context]
+        preserveRequestMethod: true
+        forwardBody: true
+        maxBodySize: 65536
+        authRequestHeaders: [{AUTH_REQUEST_HEADERS}]
+        authResponseHeaders: [{ASSERTION_HEADER}]
         tls:
           ca: "{tls_ca}"
           cert: "{tls_cert}"
           key: "{tls_key}"
+          insecureSkipVerify: false
   services:
     b1-staging:
       loadBalancer:
@@ -469,6 +494,16 @@ def _atomic_write(path, text):
 def cmd_route(args, out):
     if not args.traefik_dir:
         raise Fail("TRAEFIK_DIR_REQUIRED")
+    if args.reuse_current:  # same backend, address, allowlist and TLS paths; only the template changes
+        current = Path(args.traefik_dir) / ROUTE_FILE
+        if not current.is_file() or current.is_symlink():
+            raise Stop("NO_CURRENT_ROUTE_TO_REUSE")
+        for key, value in current_route_parameters(current.read_text()).items():
+            if getattr(args, key):
+                raise Fail(f"FLAG_NOT_ALLOWED_WITH_REUSE_CURRENT:{key}")
+            setattr(args, key, value)
+        out.kv("ROUTE_PARAMETERS", "reused-from-current-file")
+        out.kv("ROUTE_PREVIOUS_SHA256", hashlib.sha256(current.read_bytes()).hexdigest())
     for need in ("backend_url", "forward_auth_address", "allow_ips", "tls_ca", "tls_cert", "tls_key"):
         if not getattr(args, need):
             raise Fail(f"MISSING_FLAG:{need}")
@@ -483,6 +518,8 @@ def cmd_route(args, out):
     _atomic_write(target, text)
     out.kv("ROUTE_FILE", ROUTE_FILE)
     out.kv("ROUTE_SHA256", hashlib.sha256(text.encode()).hexdigest())
+    out.kv("ROUTE_ALLOW_ENTRIES", len([i for i in args.allow_ips.split(",") if i.strip()]))
+    out.kv("ROUTE_ASSERTION_HEADER", ASSERTION_HEADER)
     out.finish(True)
 
 
@@ -810,7 +847,7 @@ def cmd_smoke(args, out):
     # Negative checks only: no credentials, forged assertion must never be honoured.
     anon = _get(base + "/")
     out.kv("ANONYMOUS_ROOT_STATUS", anon)
-    forged = _get(base + "/", {"X-B1-Context": "forged"})
+    forged = _get(base + "/", {ASSERTION_HEADER: "forged", "X-B1-Context": "forged"})
     out.kv("FORGED_ASSERTION_STATUS", forged)
     ok = anon < 500 and forged < 500 and forged == anon
     out.finish(ok, None if ok else "FORGED_HEADER_CHANGES_BEHAVIOUR_OR_5XX")
@@ -896,6 +933,7 @@ def parser():
     r = sub.add_parser("route")
     for n in ("backend-url", "forward-auth-address", "allow-ips", "tls-ca", "tls-cert", "tls-key"):
         r.add_argument("--" + n)
+    r.add_argument("--reuse-current", action="store_true")
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
