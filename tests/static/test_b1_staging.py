@@ -516,3 +516,24 @@ def test_approve_integration_requires_exact_digest_and_owner_reference_then_roll
     assert not Path(str(pkg) + ".integration-backup").exists()
     code, out = run("--private-dir", str(pkg), "rollback", "render-integration")
     assert code == 3
+
+
+def test_first_actor_info_prints_only_public_request_fields(monkeypatch):
+    m = _module()
+    seen = []
+
+    class FakePg:
+        def run(self, sql, database=None, stdin=None):
+            seen.append(sql)
+            if "to_regclass" in sql:
+                return "t"
+            if "coalesce((SELECT state" in sql:
+                return "COMMITTED"
+            return json.dumps({"email": "owner@example.test", "tenantName": "Acme", "displayName": None})
+    monkeypatch.setattr(m, "pg_from", lambda args, database=None, read_only=False: FakePg() if read_only else None)
+    out = m.Out("t")
+    m.cmd_first_actor_info(m.parser().parse_args(["--database", DB, "first-actor-info"]), out)
+    text = " ".join(out.lines)
+    assert "FIRST_ACTOR_EMAIL=owner@example.test" in text and "FIRST_ACTOR_TENANT_NAME=Acme" in text
+    assert "FIRST_ACTOR_DISPLAY_NAME=not-recorded" in text and "RESULT=PASS" in text
+    assert not any("material" in s or "receipt" in s for s in seen)

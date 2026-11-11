@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Single operator entry point for the B1 staging environment (decision U-6/U-6.1).
 
-Subcommands: inventory | diagnose | diagnose-package (read-only) | install | enable | seed | route | smoke |
+Subcommands: inventory | diagnose | diagnose-package | first-actor-info (read-only) | install | enable | seed | route | smoke |
 retire | stop-legacy | package-origin | render-integration | approve-integration | rollback.
 Stdlib only. Wraps the OFFICIAL artifacts (scripts/migrate-postgres.mjs, SQL14/0002/0003); it never
 edits manifests, Compose, Traefik or SQL by hand and never prints secrets (URLs, passwords, cookies, keys).
@@ -376,6 +376,22 @@ def cmd_seed(args, out):
     out.kv("FIRST_ACTOR_STATE", first_actor_state(pg))
     out.kv("OPERATOR", "scripts/b1-private-operator.mjs first-actor.prepare|confirm|commit|status|abort (owner runs it; secrets never via chat)")
     out.kv("SEED_LIMIT", "one first actor only (one tenant, one user); further identities need a separate design")
+    out.finish(True)
+
+
+def cmd_first_actor_info(args, out):
+    """Read-only: WHO the single seeded identity is (public request fields only; never material or receipt)."""
+    pg = _target(args, read_only=True)
+    state = first_actor_state(pg)
+    out.kv("FIRST_ACTOR_STATE", state)
+    if state in ("absent", "no-row"):
+        out.finish(True)
+        return
+    row = pg.run("SELECT jsonb_build_object('email',manifest->>'email','tenantName',manifest->>'tenantName',"
+                 "'displayName',manifest->>'displayName')::text FROM identity_provision.first_actor WHERE singleton")
+    info = json.loads(row)
+    for key, name in (("FIRST_ACTOR_EMAIL", "email"), ("FIRST_ACTOR_TENANT_NAME", "tenantName"), ("FIRST_ACTOR_DISPLAY_NAME", "displayName")):
+        out.kv(key, re.sub(r"[^\w .@+'-]", "?", str(info.get(name) or "not-recorded"))[:254])
     out.finish(True)
 
 
@@ -876,6 +892,7 @@ def parser():
     sub.add_parser("stop-legacy")
     sub.add_parser("enable")
     sub.add_parser("seed")
+    sub.add_parser("first-actor-info")
     r = sub.add_parser("route")
     for n in ("backend-url", "forward-auth-address", "allow-ips", "tls-ca", "tls-cert", "tls-key"):
         r.add_argument("--" + n)
@@ -886,14 +903,14 @@ def parser():
     return p
 
 
-COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
+COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed, "first-actor-info": cmd_first_actor_info,
             "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package,
             "render-integration": cmd_render_integration, "approve-integration": cmd_approve_integration, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "rollback"):
+    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "first-actor-info", "rollback"):
         if not (args.command == "rollback" and args.stage == "route"):
             args.database = canonical_record()["databaseName"]
     out = Out(args.command)
