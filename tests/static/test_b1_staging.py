@@ -571,3 +571,23 @@ def test_route_reuse_current_keeps_parameters_and_changes_only_the_template(tmp_
     target.write_text("http: {}\n")
     code, out = run("--traefik-dir", str(target.parent), "route", "--reuse-current")
     assert code == 3 and target.read_text() == "http: {}\n"
+
+
+def test_diagnose_auth_reports_codes_and_counters_only(monkeypatch):
+    m = _module()
+    seen = []
+
+    class FakePg:
+        def run(self, sql, database=None, stdin=None):
+            seen.append(sql)
+            if "security_log" in sql:
+                return "2026-11-11T20:30:00Z LOGIN_DENIED\n2026-11-11T20:29:00Z weird<script>"
+            return ""
+    monkeypatch.setattr(m, "pg_from", lambda args, database=None, read_only=False: FakePg() if read_only else None)
+    out = m.Out("t")
+    m.cmd_diagnose_auth(m.parser().parse_args(["--database", DB, "diagnose-auth"]), out)
+    text = " ".join(out.lines)
+    assert "SECURITY_EVENT_00=2026-11-11T20:30:00Z LOGIN_DENIED" in text and "<script>" not in text
+    assert "AUDIT_ROWS=0" in text and "RATE_BUCKET_ROWS=0" in text and "RESULT=PASS" in text
+    joined = " ".join(seen)
+    assert "_digest" not in joined.replace("key_digest", "") and "safe_metadata" not in joined and "key_digest" not in joined

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Single operator entry point for the B1 staging environment (decision U-6/U-6.1).
 
-Subcommands: inventory | diagnose | diagnose-package | first-actor-info (read-only) | install | enable | seed | route | smoke |
+Subcommands: inventory | diagnose | diagnose-package | diagnose-auth | first-actor-info (read-only) | install | enable | seed | route | smoke |
 retire | stop-legacy | package-origin | render-integration | approve-integration | rollback.
 Stdlib only. Wraps the OFFICIAL artifacts (scripts/migrate-postgres.mjs, SQL14/0002/0003); it never
 edits manifests, Compose, Traefik or SQL by hand and never prints secrets (URLs, passwords, cookies, keys).
@@ -392,6 +392,28 @@ def cmd_first_actor_info(args, out):
     info = json.loads(row)
     for key, name in (("FIRST_ACTOR_EMAIL", "email"), ("FIRST_ACTOR_TENANT_NAME", "tenantName"), ("FIRST_ACTOR_DISPLAY_NAME", "displayName")):
         out.kv(key, re.sub(r"[^\w .@+'-]", "?", str(info.get(name) or "not-recorded"))[:254])
+    out.finish(True)
+
+
+def cmd_diagnose_auth(args, out):
+    """Read-only: WHY recent sign-ins were refused. Event codes, outcomes, counters and timestamps only;
+    never digests, identifiers, metadata or any credential material."""
+    pg = _target(args, read_only=True)
+    stamp = "to_char(%s AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')"
+    queries = (
+        ("SECURITY_EVENT", f"SELECT {stamp % 'occurred_at'}||' '||event_code FROM identity_private.security_log "
+                           "ORDER BY occurred_at DESC LIMIT 12"),
+        ("AUDIT", f"SELECT {stamp % 'occurred_at'}||' '||action||' '||outcome FROM app.audit_logs "
+                  "ORDER BY occurred_at DESC LIMIT 8"),
+        ("RATE_BUCKET", f"SELECT {stamp % 'window_start'}||' '||dimension||' '||purpose||' count='||count||' blocked='||"
+                        "(blocked_until IS NOT NULL AND blocked_until>clock_timestamp())::text "
+                        "FROM identity_private.rate_buckets ORDER BY window_start DESC LIMIT 8"),
+    )
+    for name, sql in queries:
+        rows = [r for r in pg.run(sql).splitlines() if r]
+        out.kv(f"{name}_ROWS", len(rows))
+        for i, row in enumerate(rows):
+            out.kv(f"{name}_{i:02d}", re.sub(r"[^A-Za-z0-9_.:= -]", "?", row)[:160])
     out.finish(True)
 
 
@@ -954,6 +976,7 @@ def parser():
     sub.add_parser("enable")
     sub.add_parser("seed")
     sub.add_parser("first-actor-info")
+    sub.add_parser("diagnose-auth")
     r = sub.add_parser("route")
     for n in ("backend-url", "forward-auth-address", "allow-ips", "tls-ca", "tls-cert", "tls-key"):
         r.add_argument("--" + n)
@@ -965,14 +988,14 @@ def parser():
     return p
 
 
-COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed, "first-actor-info": cmd_first_actor_info,
+COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed, "first-actor-info": cmd_first_actor_info, "diagnose-auth": cmd_diagnose_auth,
             "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package,
             "render-integration": cmd_render_integration, "approve-integration": cmd_approve_integration, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "first-actor-info", "rollback"):
+    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "first-actor-info", "diagnose-auth", "rollback"):
         if not (args.command == "rollback" and args.stage == "route"):
             args.database = canonical_record()["databaseName"]
     out = Out(args.command)
