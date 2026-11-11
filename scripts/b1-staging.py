@@ -150,6 +150,15 @@ def inspect_private_package(out, private_dir, mtls_dir):
     else:
         out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", "unknown")
     out.kv("PROXY_CERT_PIN", pin)  # a public pin, not a secret
+    for name in ("ingress-server.crt",):  # listener certificate: public SANs Traefik must be able to verify
+        cf = Path(private_dir) / name
+        if cf.is_file():
+            try:
+                d = ssl._ssl._test_decode_cert(str(cf))
+                out.kv("INGRESS_SERVER_CERT_SANS", ",".join(v for _, v in d.get("subjectAltName", ())))
+                out.kv("INGRESS_SERVER_CERT_SUBJECT", str(d.get("subject")))
+            except Exception:
+                out.kv("INGRESS_SERVER_CERT_SANS", "unreadable")
     if mtls_dir and Path(mtls_dir).is_dir():
         for c in sorted(Path(mtls_dir).glob("*.crt")):
             try:
@@ -232,7 +241,7 @@ def cmd_inventory(args, out):
                            capture_output=True, timeout=30)
         if r.returncode == 0:
             out.kv("CONTAINERS", ";".join(l for l in r.stdout.decode().splitlines() if re.search(r"cleanops|traefik|b1", l, re.I)))
-        names = [l.split("|")[0] for l in r.stdout.decode().splitlines() if re.search(r"traefik|b1-shadow|f4fxmd-web", l)]
+        names = [l.split("|")[0] for l in r.stdout.decode().splitlines() if re.search(r"traefik|b1-shadow|f4fxmd-web|cleanops360-b1-web", l)]
         for n in names:
             i = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", "inspect", n], capture_output=True, timeout=30)
             if i.returncode:

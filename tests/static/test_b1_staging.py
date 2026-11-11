@@ -293,3 +293,17 @@ def test_rollback_package_origin_only_removes_derived_package(tmp_path):
     (d / "installation.json").write_text(json.dumps({"origin": "https://b1.cleanops.nuvurent.com"}))
     code, out = run("--target-dir", str(d), "rollback", "package-origin")
     assert code == 0 and not d.exists()
+
+
+def test_inventory_reports_listener_cert_sans(tmp_path):
+    import subprocess as sp
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "installation.json").write_text(json.dumps({"ingress": {}}))
+    sp.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-keyout", str(tmp_path / "k"),
+            "-out", str(pkg / "ingress-server.crt"), "-subj", "/CN=svc", "-days", "1", "-addext", "subjectAltName=DNS:svc-a,DNS:svc-b"],
+           check=True, capture_output=True)
+    m = _module()
+    out = m.Out("t")
+    m.inspect_private_package(out, str(pkg), None)
+    assert "INGRESS_SERVER_CERT_SANS=svc-a,svc-b" in out.lines
