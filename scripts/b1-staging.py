@@ -143,6 +143,38 @@ def inspect_private_package(out, private_dir, mtls_dir):
     out.kv("INGRESS_ALLOWED_PATHS", ",".join(ing.get("allowedPaths") or []))
     out.kv("INGRESS_SOURCE_NAMES", ",".join(sorted((ing.get("sources") or {}))))
     out.kv("PSEUDONYM_KEY_SOURCE_DECLARED", str("pseudonymKey" in (ing.get("sources") or {})).lower())
+    # Emulate lib/b1/private-file.ts metadata checks (declared vs actual); metadata only, never contents.
+    problems, checked = [], 0
+
+    def check(v, trail):
+        nonlocal checked
+        if isinstance(v, dict):
+            if {"path", "uid", "gid", "mode", "maxBytes"} <= set(v):
+                checked += 1
+                rel = str(v["path"])[len(PACKAGE_MOUNT):] if str(v["path"]).startswith(PACKAGE_MOUNT) else None
+                f = Path(private_dir) / rel if rel else None
+                if f is None or not f.exists():
+                    problems.append(f"{trail}:missing-or-outside-mount")
+                else:
+                    st = f.lstat()
+                    bad = [n for n, ok in (("uid", st.st_uid == v["uid"]), ("gid", st.st_gid == v["gid"]),
+                           ("mode", (st.st_mode & 0o7777) == v["mode"]), ("nlink", st.st_nlink == 1),
+                           ("size", 1 <= st.st_size <= v["maxBytes"]), ("regular", f.is_file() and not f.is_symlink())) if not ok]
+                    if bad:
+                        problems.append(f"{trail}:{'+'.join(bad)}")
+            for k, x in v.items():
+                check(x, f"{trail}.{k}" if trail else k)
+    check(m, "")
+    out.kv("PRIVATE_FILE_SOURCES_CHECKED", checked)
+    out.kv("PRIVATE_FILE_SOURCE_PROBLEMS", ";".join(problems) or "none")
+    sink = m.get("sink") or {}
+    out.kv("SINK_DECLARED", f"uid={sink.get('uid')},gid={sink.get('gid')},path={sink.get('path')},dirUid={sink.get('directoryUid')},dirGid={sink.get('directoryGid')},mode={oct(sink.get('mode') or 0)},dirMode={oct(sink.get('directoryMode') or 0)}")
+    integ = m.get("integration") or {}
+    src = (integ.get("source") or {}).get("path", "")
+    if str(src).startswith(PACKAGE_MOUNT) and (Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).is_file():
+        out.kv("INTEGRATION_SHA256_MATCHES", str(hashlib.sha256((Path(private_dir) / str(src)[len(PACKAGE_MOUNT):]).read_bytes()).hexdigest() == integ.get("sha256")).lower())
+    d = Path(private_dir).stat()
+    out.kv("PACKAGE_DIR", f"uid={d.st_uid},gid={d.st_gid},mode={oct(d.st_mode & 0o7777)}")
     pin = ing.get("proxyCertificateSha256")
     crt = Path(mtls_dir) / "traefik-client.crt" if mtls_dir else None
     if pin and crt and crt.is_file():

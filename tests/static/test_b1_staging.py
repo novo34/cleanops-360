@@ -357,3 +357,22 @@ def test_diagnose_filters_and_redacts(monkeypatch):
     m.cmd_diagnose(m.parser().parse_args(["diagnose"]), out)
     text = "\n".join(out.lines)
     assert "x509" in text and "B1_X" in text and secret not in text and "session=abc" not in text and "ok line" not in text
+
+
+def test_inventory_flags_private_file_metadata_problems(tmp_path):
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    good, bad = pkg / "good.key", pkg / "bad.key"
+    good.write_bytes(b"x")
+    bad.write_bytes(b"x")
+    os.chmod(good, 0o440)
+    os.chmod(bad, 0o600)
+    uid, gid = good.stat().st_uid, good.stat().st_gid
+    src = lambda n, mode: {"path": f"/run/cleanops-b1-private/{n}", "uid": uid, "gid": gid, "mode": mode, "maxBytes": 10}
+    (pkg / "installation.json").write_text(json.dumps({"ingress": {"sources": {"a": src("good.key", 0o440), "b": src("bad.key", 0o440), "c": src("gone.key", 0o440)}}}))
+    m = _module()
+    out = m.Out("t")
+    m.inspect_private_package(out, str(pkg), None)
+    text = "\n".join(out.lines)
+    assert "PRIVATE_FILE_SOURCES_CHECKED=3" in text
+    assert "ingress.sources.b:mode" in text and "ingress.sources.c:missing-or-outside-mount" in text and "sources.a:" not in text
