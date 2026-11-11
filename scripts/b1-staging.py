@@ -149,6 +149,13 @@ def inspect_private_package(out, private_dir, mtls_dir):
         out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", str(hashlib.sha256(der).hexdigest() == str(pin).lower()).lower())
     else:
         out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", "unknown")
+    out.kv("PROXY_CERT_PIN", pin)  # a public pin, not a secret
+    if mtls_dir and Path(mtls_dir).is_dir():
+        for c in sorted(Path(mtls_dir).glob("*.crt")):
+            try:
+                out.kv(f"MTLS_{c.name}_DER_SHA256", hashlib.sha256(ssl.PEM_cert_to_DER_cert(c.read_text())).hexdigest())
+            except ValueError:
+                out.kv(f"MTLS_{c.name}_DER_SHA256", "unparseable-or-chain")
 
 
 def traefik_static_names(out, path):
@@ -237,6 +244,11 @@ def cmd_inventory(args, out):
             out.kv(f"INSPECT_{key}_NETWORKS", ",".join(c["NetworkSettings"]["Networks"]))
             out.kv(f"INSPECT_{key}_ENV_NAMES", ",".join(sorted(e.split("=", 1)[0] for e in c["Config"].get("Env", []))))
             out.kv(f"INSPECT_{key}_EXPOSED", ",".join(sorted((c["Config"].get("ExposedPorts") or {}))))
+            for net in c["NetworkSettings"]["Networks"]:
+                ni = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", "network", "inspect", net], capture_output=True, timeout=30)
+                if ni.returncode == 0:
+                    subnets = [x.get("Subnet") for x in (json.loads(ni.stdout)[0].get("IPAM", {}).get("Config") or [])]
+                    out.kv(f"NETWORK_{re.sub(r'[^A-Za-z0-9]+', '_', net)[:40]}_SUBNETS", ",".join(filter(None, subnets)))
             out.kv(f"INSPECT_{key}_USER_IMAGE", f"{c['Config'].get('User') or 'default'}|{c['Config'].get('Image')}")
     out.finish(True)
 
