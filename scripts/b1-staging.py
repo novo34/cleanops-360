@@ -17,6 +17,7 @@ import ipaddress
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,6 +33,9 @@ ROUTE_FILE = "b1-staging.yml"
 PINNED = {"b1_sql14": "docs/proposals/b1-consolidated-sql/revisions/14/schema.review.sql",
           "0002_first_actor": "db/migrations/0002_first_actor.review.sql",
           "0003_ingress_persistence": "db/migrations/0003_ingress_persistence.review.sql"}
+RETIRE_PINS = {  # exact files seen by inventory on 2026-11-11 (U-4: cookie router, /b1-static canary, guarded router)
+    "cleanops-b1-device-ui-v2.yaml": "9a29b3942a8a7eb582125dccebae1c5ce3dc6bc74ec267b264bf5a65ea27a979",
+    "cleanops-b1-guarded.yaml": "329a12f860d06bffe52825b2dc681db589ee6111d74a35ff36c0505466c487ee"}
 EXPECTED_MIGRATIONS = ("0002_first_actor", "0003_ingress_persistence")
 PROTECTED = {"cleanops.nuvurent.com", "82.25.102.171"}
 PROTECTED_IPS = ("82.25.102.171",)
@@ -166,6 +170,15 @@ def cmd_inventory(args, out):
                 out.kv(f"TRAEFIK_{n}_SHA256", hashlib.sha256((d / n).read_bytes()).hexdigest())
                 text = (d / n).read_text(errors="replace")
                 out.kv(f"TRAEFIK_{n}_ROUTER_RULES", ";".join(re.findall(r"rule:\s*(.+)", text))[:300])
+    if args.traefik_dir:
+        m = Path(args.traefik_dir) / "cleanops-b1-mtls"
+        if m.is_dir():  # names, sizes and modes only; never contents
+            out.kv("MTLS_DIR_ENTRIES", ";".join(f"{p.name}:{'d' if p.is_dir() else p.stat().st_size}:{oct(p.stat().st_mode & 0o777)}" for p in sorted(m.iterdir())))
+    if args.pg_container:
+        r = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", "ps", "--format", "{{.Names}}|{{.Image}}|{{.Status}}"],
+                           capture_output=True, timeout=30)
+        if r.returncode == 0:
+            out.kv("CONTAINERS", ";".join(l for l in r.stdout.decode().splitlines() if re.search(r"cleanops|traefik|b1", l, re.I)))
     out.finish(True)
 
 
@@ -336,6 +349,28 @@ def cmd_route(args, out):
     out.finish(True)
 
 
+def cmd_retire(args, out):
+    """Move ONLY the two pinned legacy router files out of the Traefik dynamic dir into a backup dir."""
+    if not args.traefik_dir or not args.backup_dir:
+        raise Fail("TRAEFIK_DIR_AND_BACKUP_DIR_REQUIRED")
+    d, b = Path(args.traefik_dir).resolve(), Path(args.backup_dir)
+    if not b.is_absolute() or b.resolve() == d or d in b.resolve().parents:
+        raise Fail("BACKUP_DIR_MUST_BE_ABSOLUTE_AND_OUTSIDE_TRAEFIK_DIR")
+    present = {n: d / n for n in RETIRE_PINS if (d / n).exists()}
+    for n, f in present.items():
+        if f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != RETIRE_PINS[n]:
+            raise Stop(f"LEGACY_ROUTER_FILE_CHANGED_SINCE_INVENTORY:{n}")
+    b.mkdir(parents=True, exist_ok=True)
+    for n, f in present.items():
+        shutil.copy2(f, b / n)
+        if hashlib.sha256((b / n).read_bytes()).hexdigest() != RETIRE_PINS[n]:
+            raise Fail("BACKUP_VERIFY_FAILED")
+        f.unlink()
+        out.kv(f"RETIRED_{n}", "true")
+    out.kv("ALREADY_ABSENT", ",".join(n for n in RETIRE_PINS if n not in present) or "none")
+    out.finish(True)
+
+
 # ---------------------------------------------------------------- smoke
 
 def _get(url, headers=None, timeout=10):
@@ -372,6 +407,14 @@ def cmd_rollback(args, out):
         if t.exists():
             t.unlink()
         out.kv("ROUTE_REMOVED", "true")
+    elif stage == "retire":
+        if not args.traefik_dir or not args.backup_dir:
+            raise Fail("TRAEFIK_DIR_AND_BACKUP_DIR_REQUIRED")
+        for n in RETIRE_PINS:
+            src, dst = Path(args.backup_dir) / n, Path(args.traefik_dir) / n
+            if src.is_file() and not dst.exists():
+                shutil.copy2(src, dst)
+                out.kv(f"RESTORED_{n}", "true")
     elif stage == "enable":
         pg = _target(args)
         pg.run("UPDATE identity_private.configuration SET deployment_enabled=false WHERE singleton")
@@ -389,11 +432,13 @@ def parser():
     p.add_argument("--pg-user", default="cleanops_bootstrap")
     p.add_argument("--database", default="postgres")
     p.add_argument("--traefik-dir")
+    p.add_argument("--backup-dir")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("inventory")
     i = sub.add_parser("install")
     i.add_argument("--approval-reference")
     i.add_argument("--database-url-file")
+    sub.add_parser("retire")
     sub.add_parser("enable")
     sub.add_parser("seed")
     r = sub.add_parser("route")
@@ -402,12 +447,12 @@ def parser():
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
-    b.add_argument("stage", choices=["route", "enable", "seed", "install"])
+    b.add_argument("stage", choices=["route", "retire", "enable", "seed", "install"])
     return p
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):

@@ -150,3 +150,39 @@ def test_route_accepts_ipv6_single_host():
     yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(_module().render_route(**{**GOOD, "allow_ips": "2001:db8::1/128"}))
     assert doc["http"]["middlewares"]["b1-staging-allowlist"]["ipAllowList"]["sourceRange"] == ["2001:db8::1/128"]
+
+
+def test_retire_moves_only_pinned_files_and_rollback_restores(tmp_path):
+    m = _module()
+    d, b = tmp_path / "dyn", tmp_path / "bak"
+    d.mkdir()
+    (d / "keep.yml").write_text("keep")
+    # Files whose hash does not match the inventory pin must be refused (STOP-AND-DESIGN).
+    (d / "cleanops-b1-guarded.yaml").write_text("changed")
+    code, out = run("--traefik-dir", str(d), "--backup-dir", str(b), "retire")
+    assert code == 3 and (d / "cleanops-b1-guarded.yaml").exists()
+    # Absent pinned files: no-op PASS; unrelated files untouched.
+    (d / "cleanops-b1-guarded.yaml").unlink()
+    code, out = run("--traefik-dir", str(d), "--backup-dir", str(b), "retire")
+    assert code == 0 and (d / "keep.yml").exists()
+    # Backup dir inside the Traefik dir is refused.
+    code, out = run("--traefik-dir", str(d), "--backup-dir", str(d / "bak"), "retire")
+    assert code == 1
+
+
+def test_retire_with_matching_pins(tmp_path, monkeypatch):
+    m = _module()
+    import hashlib
+    d, b = tmp_path / "dyn", tmp_path / "bak"
+    d.mkdir()
+    content = b"x: 1\n"
+    name = "cleanops-b1-guarded.yaml"
+    (d / name).write_bytes(content)
+    monkeypatch.setitem(m.RETIRE_PINS, name, hashlib.sha256(content).hexdigest())
+    args = m.parser().parse_args(["--traefik-dir", str(d), "--backup-dir", str(b), "retire"])
+    out = m.Out("retire")
+    m.cmd_retire(args, out)
+    assert not (d / name).exists() and (b / name).read_bytes() == content
+    args = m.parser().parse_args(["--traefik-dir", str(d), "--backup-dir", str(b), "rollback", "retire"])
+    m.cmd_rollback(args, m.Out("rollback"))
+    assert (d / name).read_bytes() == content
