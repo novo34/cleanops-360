@@ -18,6 +18,7 @@ import json
 import os
 import re
 import shutil
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -125,6 +126,45 @@ def first_actor_state(pg):
     return pg.run("SELECT coalesce((SELECT state FROM identity_provision.first_actor WHERE singleton),'no-row')")
 
 
+def inspect_private_package(out, private_dir, mtls_dir):
+    """Non-secret facts only: listener binding/port/paths/issuer, pin match, key-source NAMES. Never key material."""
+    f = Path(private_dir) / "installation.json"
+    if not f.is_file():
+        out.kv("PRIVATE_PACKAGE", "installation.json-absent")
+        return
+    m = json.loads(f.read_text())
+    ing = m.get("ingress") or {}
+    out.kv("PRIVATE_PACKAGE_VERSION", m.get("version"))
+    for k in ("binding", "port", "issuer", "contextLifetimeMs", "drainTimeoutMs"):
+        out.kv(f"INGRESS_{k.upper()}", ing.get(k))
+    out.kv("INGRESS_ALLOWED_PATHS", ",".join(ing.get("allowedPaths") or []))
+    out.kv("INGRESS_SOURCE_NAMES", ",".join(sorted((ing.get("sources") or {}))))
+    out.kv("PSEUDONYM_KEY_SOURCE_DECLARED", str("pseudonymKey" in (ing.get("sources") or {})).lower())
+    pin = ing.get("proxyCertificateSha256")
+    crt = Path(mtls_dir) / "traefik-client.crt" if mtls_dir else None
+    if pin and crt and crt.is_file():
+        der = ssl.PEM_cert_to_DER_cert(crt.read_text())
+        out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", str(hashlib.sha256(der).hexdigest() == str(pin).lower()).lower())
+    else:
+        out.kv("PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT", "unknown")
+
+
+def traefik_static_names(out, path):
+    """Entrypoint and cert-resolver NAMES only from traefik.yml."""
+    f = Path(path)
+    if not f.is_file():
+        out.kv("TRAEFIK_STATIC", "absent")
+        return
+    names, section = {"entryPoints": [], "certificatesResolvers": []}, None
+    for line in f.read_text().splitlines():
+        if re.match(r"^\S", line):
+            section = line.split(":")[0] if line.split(":")[0] in names else None
+        elif section and (mm := re.match(r"^  ([A-Za-z0-9_-]+):\s*$", line)):
+            names[section].append(mm.group(1))
+    out.kv("TRAEFIK_ENTRYPOINTS", ",".join(names["entryPoints"]))
+    out.kv("TRAEFIK_CERT_RESOLVERS", ",".join(names["certificatesResolvers"]))
+
+
 # ---------------------------------------------------------------- inventory
 
 def cmd_inventory(args, out):
@@ -174,6 +214,10 @@ def cmd_inventory(args, out):
         m = Path(args.traefik_dir) / "cleanops-b1-mtls"
         if m.is_dir():  # names, sizes and modes only; never contents
             out.kv("MTLS_DIR_ENTRIES", ";".join(f"{p.name}:{'d' if p.is_dir() else p.stat().st_size}:{oct(p.stat().st_mode & 0o777)}" for p in sorted(m.iterdir())))
+    if args.private_dir:
+        inspect_private_package(out, args.private_dir, str(Path(args.traefik_dir) / "cleanops-b1-mtls") if args.traefik_dir else None)
+    if args.traefik_static:
+        traefik_static_names(out, args.traefik_static)
     if args.pg_container:
         r = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", "ps", "--format", "{{.Names}}|{{.Image}}|{{.Status}}"],
                            capture_output=True, timeout=30)
@@ -446,6 +490,8 @@ def parser():
     p.add_argument("--database", default="postgres")
     p.add_argument("--traefik-dir")
     p.add_argument("--backup-dir")
+    p.add_argument("--private-dir")
+    p.add_argument("--traefik-static")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("inventory")
     i = sub.add_parser("install")

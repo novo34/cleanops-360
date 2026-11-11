@@ -186,3 +186,27 @@ def test_retire_with_matching_pins(tmp_path, monkeypatch):
     args = m.parser().parse_args(["--traefik-dir", str(d), "--backup-dir", str(b), "rollback", "retire"])
     m.cmd_rollback(args, m.Out("rollback"))
     assert (d / name).read_bytes() == content
+
+
+def test_inventory_private_package_and_traefik_names(tmp_path):
+    import hashlib, ssl, subprocess as sp
+    key, crt = tmp_path / "k", tmp_path / "dyn/cleanops-b1-mtls/traefik-client.crt"
+    crt.parent.mkdir(parents=True)
+    sp.run(["openssl", "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-keyout", str(key),
+            "-out", str(crt), "-subj", "/CN=t", "-days", "1"], check=True, capture_output=True)
+    pin = hashlib.sha256(ssl.PEM_cert_to_DER_cert(crt.read_text())).hexdigest()
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "installation.json").write_text(json.dumps({"version": 2, "ingress": {"binding": "0.0.0.0", "port": 8443,
+        "allowedPaths": ["/forward-auth"], "issuer": "x", "proxyCertificateSha256": pin,
+        "sources": {"signingKey": {"path": "/secret/never-printed"}, "pseudonymKey": {"path": "/secret/never-printed"}}}}))
+    ts = tmp_path / "traefik.yml"
+    ts.write_text("entryPoints:\n  web:\n    address: :80\n  websecure:\n    address: :443\ncertificatesResolvers:\n  letsencrypt:\n    acme:\n      email: a@b\n")
+    m = _module()
+    out = m.Out("t")
+    m.inspect_private_package(out, str(pkg), str(crt.parent))
+    m.traefik_static_names(out, str(ts))
+    text = "\n".join(out.lines)
+    assert "INGRESS_PORT=8443" in text and "PROXY_CERT_PIN_MATCHES_TRAEFIK_CLIENT_CRT=true" in text
+    assert "PSEUDONYM_KEY_SOURCE_DECLARED=true" in text and "never-printed" not in text
+    assert "TRAEFIK_ENTRYPOINTS=web,websecure" in text and "TRAEFIK_CERT_RESOLVERS=letsencrypt" in text and "a@b" not in text
