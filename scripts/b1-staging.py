@@ -525,6 +525,34 @@ def cmd_package_origin(args, out):
     out.finish(True)
 
 
+LEGACY_CONTAINERS = {  # exact names/images inventoried 2026-11-11; no traffic since `retire`
+    "cleanops360-b1-shadow-cc51574a": "cleanops360-b1-candidate:cc51574a",
+    "cleanops360-b1-assets-shadow-296d4ef2": "cleanops360-b1-assets-candidate:296d4ef2"}
+
+
+def docker(*args):
+    r = subprocess.run(["docker", "--host=unix:///var/run/docker.sock", *args], capture_output=True, timeout=120)
+    if r.returncode:
+        raise Fail("DOCKER_OPERATION_FAILED:" + args[0])
+    return r.stdout.decode().strip()
+
+
+def cmd_stop_legacy(args, out):
+    """Stop (not remove) ONLY the two legacy shadow containers, after verifying their exact image."""
+    for name, image in LEGACY_CONTAINERS.items():
+        try:
+            current = json.loads(docker("inspect", name))[0]
+        except Fail:
+            out.kv(f"{name}", "absent")
+            continue
+        if current["Config"]["Image"] != image:
+            raise Stop(f"LEGACY_CONTAINER_IMAGE_CHANGED:{name}")
+        if current["State"]["Running"]:
+            docker("stop", "--time", "30", name)
+        out.kv(f"STOPPED_{name}", "true")
+    out.finish(True)
+
+
 # ---------------------------------------------------------------- smoke
 
 def _get(url, headers=None, timeout=10):
@@ -569,6 +597,10 @@ def cmd_rollback(args, out):
             if src.is_file() and not dst.exists():
                 shutil.copy2(src, dst)
                 out.kv(f"RESTORED_{n}", "true")
+    elif stage == "stop-legacy":
+        for name in LEGACY_CONTAINERS:
+            docker("start", name)
+            out.kv(f"STARTED_{name}", "true")
     elif stage == "package-origin":
         t = Path(args.target_dir or "")
         try:
@@ -607,6 +639,7 @@ def parser():
     i.add_argument("--database-url-file")
     sub.add_parser("retire")
     sub.add_parser("package-origin")
+    sub.add_parser("stop-legacy")
     sub.add_parser("enable")
     sub.add_parser("seed")
     r = sub.add_parser("route")
@@ -615,12 +648,12 @@ def parser():
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
-    b.add_argument("stage", choices=["route", "retire", "package-origin", "enable", "seed", "install"])
+    b.add_argument("stage", choices=["route", "retire", "package-origin", "stop-legacy", "enable", "seed", "install"])
     return p
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "retire": cmd_retire, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):

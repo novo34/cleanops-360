@@ -308,3 +308,29 @@ def test_inventory_reports_listener_cert_sans(tmp_path):
     out = m.Out("t")
     m.inspect_private_package(out, str(pkg), None)
     assert "INGRESS_SERVER_CERT_SANS=svc-a,svc-b" in out.lines
+
+
+def test_stop_legacy_verifies_images_and_stops_only_those(monkeypatch):
+    m = _module()
+    calls = []
+    state = {n: {"Config": {"Image": i}, "State": {"Running": True}} for n, i in m.LEGACY_CONTAINERS.items()}
+
+    def fake(*a):
+        calls.append(a)
+        if a[0] == "inspect":
+            if a[1] not in state:
+                raise m.Fail("x")
+            return json.dumps([state[a[1]]])
+        return ""
+    monkeypatch.setattr(m, "docker", fake)
+    args = m.parser().parse_args(["stop-legacy"])
+    m.cmd_stop_legacy(args, m.Out("t"))
+    assert sorted(c[-1] for c in calls if c[0] == "stop") == sorted(m.LEGACY_CONTAINERS)
+    calls.clear()
+    state["cleanops360-b1-shadow-cc51574a"]["Config"]["Image"] = "other:1"
+    with pytest.raises(m.Stop):
+        m.cmd_stop_legacy(args, m.Out("t"))
+    assert not [c for c in calls if c[0] == "stop"]
+    calls.clear()
+    m.cmd_rollback(m.parser().parse_args(["rollback", "stop-legacy"]), m.Out("t"))
+    assert sorted(c[-1] for c in calls if c[0] == "start") == sorted(m.LEGACY_CONTAINERS)
