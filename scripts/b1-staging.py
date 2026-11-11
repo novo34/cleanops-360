@@ -422,7 +422,7 @@ def current_route_parameters(text):
         raise Stop("CURRENT_ROUTE_NOT_MANAGED_BY_THIS_SCRIPT")
     one = {"backend_url": r'^\s+- url: "([^"]+)"$', "forward_auth_address": r'^\s+address: "([^"]+)"$',
            "tls_ca": r'^\s+ca: "([^"]+)"$', "tls_cert": r'^\s+cert: "([^"]+)"$', "tls_key": r'^\s+key: "([^"]+)"$'}
-    found = {k: re.findall(v, text, re.M) for k, v in one.items()}
+    found = {k: sorted(set(re.findall(v, text, re.M))) for k, v in one.items()}
     ips = re.findall(r'^\s+- "([0-9A-Fa-f:./]+)"$', text, re.M)
     if not ips or any(len(v) != 1 for v in found.values()):
         raise Stop("CURRENT_ROUTE_NOT_PARSEABLE")
@@ -445,11 +445,23 @@ def render_route(host, backend_url, forward_auth_address, allow_ips, tls_ca, tls
     return f"""# Managed by scripts/b1-staging.py (route). Do not edit by hand.
 http:
   routers:
+    # Body-less methods: Traefik fails the auth call (HTTP 500, "ContentLength=-1 with nil Body") when
+    # forwardBody is on and an HTTP/3 request carries no body, so GET/HEAD use the auth without forwardBody.
     b1-staging:
-      rule: Host(`{host}`)
+      rule: Host(`{host}`) && (Method(`GET`) || Method(`HEAD`))
+      priority: 20
       entryPoints: [websecure]
       service: b1-staging
       middlewares: [b1-staging-allowlist, b1-staging-strip, b1-staging-auth]
+      tls:
+        certResolver: letsencrypt
+    # Every other method: the issuer binds the exact body, so it must reach the ForwardAuth listener.
+    b1-staging-body:
+      rule: Host(`{host}`)
+      priority: 10
+      entryPoints: [websecure]
+      service: b1-staging
+      middlewares: [b1-staging-allowlist, b1-staging-strip, b1-staging-auth-body]
       tls:
         certResolver: letsencrypt
   middlewares:
@@ -462,6 +474,18 @@ http:
         customRequestHeaders:
           {ASSERTION_HEADER}: ""
     b1-staging-auth:
+      forwardAuth:
+        address: "{forward_auth_address}"
+        trustForwardHeader: false
+        preserveRequestMethod: true
+        authRequestHeaders: [{AUTH_REQUEST_HEADERS}]
+        authResponseHeaders: [{ASSERTION_HEADER}]
+        tls:
+          ca: "{tls_ca}"
+          cert: "{tls_cert}"
+          key: "{tls_key}"
+          insecureSkipVerify: false
+    b1-staging-auth-body:
       forwardAuth:
         address: "{forward_auth_address}"
         trustForwardHeader: false

@@ -120,8 +120,14 @@ GOOD = dict(host="b1.cleanops.nuvurent.com", backend_url="http://cleanops-web:30
 def test_route_renders_single_router_with_allowlist():
     yaml = pytest.importorskip("yaml")
     doc = yaml.safe_load(_module().render_route(**GOOD))
-    assert list(doc["http"]["routers"]) == ["b1-staging"]
-    assert doc["http"]["routers"]["b1-staging"]["rule"] == "Host(`b1.cleanops.nuvurent.com`)"
+    routers = doc["http"]["routers"]
+    assert list(routers) == ["b1-staging", "b1-staging-body"]
+    assert routers["b1-staging"]["rule"] == "Host(`b1.cleanops.nuvurent.com`) && (Method(`GET`) || Method(`HEAD`))"
+    assert routers["b1-staging-body"]["rule"] == "Host(`b1.cleanops.nuvurent.com`)"
+    assert routers["b1-staging"]["priority"] > routers["b1-staging-body"]["priority"]
+    assert routers["b1-staging"]["middlewares"] == ["b1-staging-allowlist", "b1-staging-strip", "b1-staging-auth"]
+    assert routers["b1-staging-body"]["middlewares"] == ["b1-staging-allowlist", "b1-staging-strip", "b1-staging-auth-body"]
+    assert all(r["service"] == "b1-staging" and r["entryPoints"] == ["websecure"] for r in routers.values())
     assert doc["http"]["middlewares"]["b1-staging-allowlist"]["ipAllowList"]["sourceRange"] == ["203.0.113.7/32"]
     fa = doc["http"]["middlewares"]["b1-staging-auth"]["forwardAuth"]
     assert fa["trustForwardHeader"] is False and fa["tls"]["ca"] == "/certs/ca.pem"
@@ -129,8 +135,12 @@ def test_route_renders_single_router_with_allowlist():
     # The header Traefik copies must be the one the app verifies; POST bodies must reach the issuer.
     source = (ROOT / "lib/b1/ingress-assertion.ts").read_text()
     assert "export const assertionHeader = 'x-cleanops-b1-assertion'" in source
-    assert fa["authResponseHeaders"] == ["X-Cleanops-B1-Assertion"] and fa["forwardBody"] is True
-    assert fa["maxBodySize"] == 65536 and fa["preserveRequestMethod"] is True and fa["tls"]["insecureSkipVerify"] is False
+    body = doc["http"]["middlewares"]["b1-staging-auth-body"]["forwardAuth"]
+    # Body-less GET/HEAD must not use forwardBody (Traefik 500 over HTTP/3); everything else must forward the body.
+    assert "forwardBody" not in fa and body["forwardBody"] is True and body["maxBodySize"] == 65536
+    assert {k: v for k, v in body.items() if k not in ("forwardBody", "maxBodySize")} == fa
+    assert fa["authResponseHeaders"] == ["X-Cleanops-B1-Assertion"]
+    assert fa["preserveRequestMethod"] is True and fa["tls"]["insecureSkipVerify"] is False
     bound = source.split("const bindingHeaders = [")[1].split("]")[0].replace("'", "").replace(" ", "").split(",")
     assert set(bound) <= {h.lower() for h in fa["authRequestHeaders"]}
 
