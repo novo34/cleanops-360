@@ -1,4 +1,5 @@
 """b1-staging.py against a DISPOSABLE PostgreSQL (CLEANOPS_B1_TEST_PG_PORT, default 54329). Skipped if absent."""
+import hashlib
 import importlib.util
 import json
 import os
@@ -407,3 +408,111 @@ def test_diagnose_package_runs_offline_readonly_container(monkeypatch, tmp_path)
     run = [c for c in seen if c[0] == "run"][0]
     assert "--network" in run and "none" in run and "--read-only" in run and "--cap-drop" in run
     assert any(a.endswith(":/run/cleanops-b1-private:ro") for a in run) and "RESULT=FAIL" in out.lines
+
+
+OLD_MODULE = ('import { createDurableCandidateVerifier } from "file:///app/lib/b1/ingress-assertion.ts";\n'
+              'const configuration = {"report":{"policyVersion":"p1","rows":0},"approval":{"reference":"owner-ref"},'
+              '"verifier":{"audience":"https://cleanops.nuvurent.com"}};\nexport {};\n')
+NEW_MODULE = ('import { createIngressVerifier } from "file:///app/lib/b1/ingress-assertion.ts";\n'
+              'const configuration = {"report":{},"approval":{},"verifier":{"audience":"https://b1.cleanops.nuvurent.com"}};\n')
+NEW_DIGEST = hashlib.sha256(NEW_MODULE.encode()).hexdigest()
+
+
+def _derived_package(parent, origin="https://b1.cleanops.nuvurent.com"):
+    pkg = parent / "pkg"
+    pkg.mkdir(parents=True)
+    (pkg / "integration.mjs").write_text(OLD_MODULE)
+    os.chmod(pkg / "integration.mjs", 0o440)
+    (pkg / "installation.json").write_text(json.dumps({"origin": origin, "other": {"kept": 1}, "integration": {
+        "source": {"path": "/run/cleanops-b1-private/integration.mjs"}, "sha256": "0" * 64, "approval": "old-ref"}}))
+    os.chmod(pkg / "installation.json", 0o440)
+    return pkg
+
+
+def _fake_renderer(m, pkg, seen, fail=False):
+    def fake(*a):
+        seen.append(a)
+        if a[0] == "inspect":
+            return json.dumps([{"Config": {"Image": "img:1"}}])
+        assert not (pkg / "integration.mjs").exists()  # the renderer never overwrites
+        inputs = Path([x for x in a if x.endswith(":/run/b1-render-inputs:ro")][0].rsplit(":", 2)[0])
+        assert json.loads((inputs / "report.json").read_text()) == {"policyVersion": "p1", "rows": 0}
+        assert json.loads((inputs / "approval.json").read_text()) == {"reference": "owner-ref"}
+        seen.append(("inputs", inputs))
+        if fail:
+            raise m.Fail("DOCKER_OPERATION_FAILED:run")
+        (pkg / "integration.mjs").write_text(NEW_MODULE)
+        os.chmod(pkg / "integration.mjs", 0o440)
+        return json.dumps({"path": "x", "sha256": NEW_DIGEST, "manifestMatches": False})
+    return fake
+
+
+def _render(m, pkg):
+    out = m.Out("t")
+    m.cmd_render_integration(m.parser().parse_args(["--private-dir", str(pkg), "render-integration"]), out)
+    return "\n".join(out.lines)
+
+
+def test_render_integration_rerenders_offline_and_leaves_manifest_for_owner_approval(monkeypatch, tmp_path):
+    m = _module()
+    pkg, seen = _derived_package(tmp_path), []
+    manifest_before = (pkg / "installation.json").read_bytes()
+    monkeypatch.setattr(m, "docker", _fake_renderer(m, pkg, seen))
+    text = _render(m, pkg)
+    assert f"NEW_INTEGRATION_SHA256={NEW_DIGEST}" in text and "MANIFEST_UPDATED=false" in text and "RESULT=PASS" in text
+    assert "owner-ref" not in text and "policyVersion" not in text  # embedded report/approval never printed
+    assert (pkg / "installation.json").read_bytes() == manifest_before
+    assert (pkg / "integration.mjs").read_text() == NEW_MODULE
+    backup = Path(str(pkg) + ".integration-backup")
+    assert (backup / "integration.mjs").read_text() == OLD_MODULE
+    assert (backup / "installation.json").read_bytes() == manifest_before
+    run_args = [c for c in seen if c[0] == "run"][0]
+    assert "--network" in run_args and "none" in run_args and "--read-only" in run_args and "--cap-drop" in run_args
+    assert f"{pkg}:/run/cleanops-b1-private" in run_args and "--privileged" not in run_args and "--cap-add" not in run_args
+    assert not [c for c in seen if c[0] == "inputs"][0][1].exists()  # temporary inputs removed
+    with pytest.raises(m.Stop):  # a second render needs rollback or approval first
+        _render(m, pkg)
+
+
+def test_render_integration_failure_restores_module_and_refuses_original_package(monkeypatch, tmp_path):
+    m = _module()
+    pkg, seen = _derived_package(tmp_path), []
+    monkeypatch.setattr(m, "docker", _fake_renderer(m, pkg, seen, fail=True))
+    with pytest.raises(m.Fail):
+        _render(m, pkg)
+    assert (pkg / "integration.mjs").read_text() == OLD_MODULE
+    assert (pkg / "integration.mjs").stat().st_mode & 0o777 == 0o440
+    assert not Path(str(pkg) + ".integration-backup").exists()
+    assert not [c for c in seen if c[0] == "inputs"][0][1].exists()
+    original = _derived_package(tmp_path / "o", origin="https://cleanops.nuvurent.com")
+    with pytest.raises(m.Stop):
+        _render(m, original)
+    assert (original / "integration.mjs").read_text() == OLD_MODULE
+
+
+def test_approve_integration_requires_exact_digest_and_owner_reference_then_rollback_restores(monkeypatch, tmp_path):
+    m = _module()
+    pkg, seen = _derived_package(tmp_path), []
+    manifest_before = (pkg / "installation.json").read_bytes()
+    approve = ("--private-dir", str(pkg), "approve-integration", "--sha256")
+    code, out = run(*approve, NEW_DIGEST, "--approval-reference", "ref")
+    assert code == 3 and "NO_RENDERED_MODULE_PENDING_APPROVAL" in out["REASON"]
+    monkeypatch.setattr(m, "docker", _fake_renderer(m, pkg, seen))
+    _render(m, pkg)
+    code, out = run(*approve, NEW_DIGEST)
+    assert code == 1 and "APPROVAL_REFERENCE_REQUIRED" in out["REASON"]
+    code, out = run(*approve, "a" * 64, "--approval-reference", "ref")
+    assert code == 3 and (pkg / "installation.json").read_bytes() == manifest_before
+    code, out = run(*approve, NEW_DIGEST, "--approval-reference", "PO 2026-11-11")
+    assert code == 0 and out["RESULT"] == "PASS"
+    new = json.loads((pkg / "installation.json").read_text())
+    assert new["integration"] == {"source": {"path": "/run/cleanops-b1-private/integration.mjs"},
+                                  "sha256": NEW_DIGEST, "approval": "PO 2026-11-11"}
+    assert new["other"] == {"kept": 1} and (pkg / "installation.json").stat().st_mode & 0o777 == 0o440
+    assert (pkg / "installation.json").stat().st_nlink == 1
+    code, out = run("--private-dir", str(pkg), "rollback", "render-integration")
+    assert code == 0 and (pkg / "integration.mjs").read_text() == OLD_MODULE
+    assert (pkg / "installation.json").read_bytes() == manifest_before
+    assert not Path(str(pkg) + ".integration-backup").exists()
+    code, out = run("--private-dir", str(pkg), "rollback", "render-integration")
+    assert code == 3

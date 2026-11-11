@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Single operator entry point for the B1 staging environment (decision U-6/U-6.1).
 
-Subcommands: inventory (read-only) | install | enable | seed | route | smoke | rollback.
+Subcommands: inventory | diagnose | diagnose-package (read-only) | install | enable | seed | route | smoke |
+retire | stop-legacy | package-origin | render-integration | approve-integration | rollback.
 Stdlib only. Wraps the OFFICIAL artifacts (scripts/migrate-postgres.mjs, SQL14/0002/0003); it never
 edits manifests, Compose, Traefik or SQL by hand and never prints secrets (URLs, passwords, cookies, keys).
 
@@ -564,6 +565,150 @@ def cmd_package_origin(args, out):
     out.finish(True)
 
 
+# ---------------------------------------------------------------- private integration module
+
+RENDER_SCRIPT = "scripts/render-b1-integration.mjs"
+_CONFIG_LINE = re.compile(r"^const configuration = (\{.*\});$", re.M)
+_REFERENCE_BAD = re.compile(r"[\x00-\x1f\x7f-\x9f​-‏ -‮⁠-⁤﻿]")
+
+
+def _integration_package(private_dir):
+    """The DERIVED b1-host package only (never the original one): (dir, manifest, module path, backup dir)."""
+    if not private_dir or not Path(private_dir).is_absolute():
+        raise Fail("PRIVATE_DIR_REQUIRED")
+    d = Path(private_dir)
+    try:
+        manifest = json.loads((d / "installation.json").read_text())
+    except (OSError, ValueError):
+        raise Stop("PRIVATE_PACKAGE_MANIFEST_UNREADABLE")
+    if manifest.get("origin") != NEW_ORIGIN:
+        raise Stop("NOT_A_DERIVED_B1_HOST_PACKAGE")
+    src = str(((manifest.get("integration") or {}).get("source") or {}).get("path", ""))
+    name = src[len(PACKAGE_MOUNT):]
+    if not src.startswith(PACKAGE_MOUNT) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", name):
+        raise Stop("INTEGRATION_SOURCE_NOT_IN_PACKAGE")
+    return d, manifest, d / name, Path(str(d).rstrip("/") + ".integration-backup")
+
+
+def _write_like(target, data, st):
+    """Replace `target` atomically with a single-link file carrying the owner/mode of `st`."""
+    tmp = target.with_name(target.name + ".b1-staging-tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as h:
+            h.write(data)
+            h.flush()
+            os.fsync(h.fileno())
+        os.chown(tmp, st.st_uid, st.st_gid)
+        os.chmod(tmp, st.st_mode & 0o7777)
+        os.replace(tmp, target)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def _restore_integration(d, module, backup):
+    for f in (module, d / "installation.json"):
+        b = backup / f.name
+        if b.is_file():
+            _write_like(f, b.read_bytes(), b.stat())
+    shutil.rmtree(backup)
+
+
+def cmd_render_integration(args, out):
+    """Re-render integration.mjs of the DERIVED package with the branch renderer, inside an ephemeral offline
+    container of the DEPLOYED image. Reuses the email report/approval already embedded in the current module
+    (never printed). Does NOT touch installation.json: the owner approves the printed digest (approve-integration)."""
+    d, manifest, module, backup = _integration_package(args.private_dir)
+    if backup.exists():
+        raise Stop("INTEGRATION_BACKUP_EXISTS_ROLLBACK_OR_APPROVE_FIRST")
+    if not module.is_file() or module.is_symlink() or (d / "installation.json").is_symlink():
+        raise Stop("INTEGRATION_MODULE_MISSING_OR_NOT_REGULAR")
+    old = module.read_bytes()
+    found = _CONFIG_LINE.search(old.decode("utf-8", errors="replace"))
+    try:
+        config = json.loads(found.group(1)) if found else None
+    except ValueError:
+        config = None
+    if not isinstance(config, dict) or not isinstance(config.get("report"), dict) or not isinstance(config.get("approval"), dict):
+        raise Stop("EMBEDDED_EMAIL_REPORT_OR_APPROVAL_NOT_FOUND")
+    image = json.loads(docker("inspect", "cleanops360-b1-web"))[0]["Config"]["Image"]
+    mst, gid = module.stat(), (d / "installation.json").stat().st_gid
+    dst = d.stat()
+    if dst.st_uid != os.getuid() or dst.st_mode & 0o300 != 0o300:
+        raise Stop("PACKAGE_DIR_NOT_OWNER_WRITABLE")
+    # The renderer derives the public half from the signing key. Root has no capabilities in the container,
+    # so add the read-only bypass ONLY when plain owner/group bits would not let uid 0 / the sink gid read it.
+    caps = []
+    key = str((((manifest.get("ingress") or {}).get("sources") or {}).get("signingKey") or {}).get("path", ""))
+    if key.startswith(PACKAGE_MOUNT) and (d / key[len(PACKAGE_MOUNT):]).is_file():
+        ks = (d / key[len(PACKAGE_MOUNT):]).stat()
+        if not ((ks.st_uid == 0 and ks.st_mode & 0o400) or (ks.st_gid == gid and ks.st_mode & 0o040)):
+            caps = ["--cap-add", "DAC_READ_SEARCH"]
+    out.kv("RENDER_EXTRA_CAPABILITIES", caps[1] if caps else "none")
+    out.kv("OLD_INTEGRATION_SHA256", hashlib.sha256(old).hexdigest())
+    backup.mkdir(mode=0o700)
+    inputs = Path(tempfile.mkdtemp(prefix="b1-render-inputs-"))
+    try:
+        for f in (module, d / "installation.json"):
+            _write_like(backup / f.name, f.read_bytes(), f.stat())
+        for name in ("report", "approval"):
+            fd = os.open(inputs / f"{name}.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
+            with os.fdopen(fd, "w") as h:
+                json.dump(config[name], h)
+        os.chmod(inputs, 0o700)
+        module.unlink()  # the renderer creates the module with O_EXCL and never overwrites
+        # Root is required by the renderer (module is root:<sink gid> 0440); no network.
+        result = docker("run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL", *caps,
+                        "--security-opt", "no-new-privileges:true", "--user", f"0:{gid}", "-w", "/app",
+                        "-v", f"{d}:/run/cleanops-b1-private",
+                        "-v", f"{inputs}:/run/b1-render-inputs:ro",
+                        "-v", f"{ROOT / RENDER_SCRIPT}:/app/{RENDER_SCRIPT}:ro", image, "node", RENDER_SCRIPT,
+                        "/run/cleanops-b1-private", "/run/b1-render-inputs/report.json", "/run/b1-render-inputs/approval.json",
+                        str(os.getuid()), str(os.getgid()), "0400")
+        rendered = json.loads(result[result.index("{"):])
+        new = module.read_bytes()
+        text = new.decode("utf-8", errors="replace")
+        st = module.stat()
+        if (hashlib.sha256(new).hexdigest() != rendered.get("sha256") or module.is_symlink() or st.st_nlink != 1 or
+                (st.st_uid, st.st_gid, st.st_mode & 0o7777) != (mst.st_uid, mst.st_gid, mst.st_mode & 0o7777) or
+                f'"audience":"{NEW_ORIGIN}"' not in text or "createIngressVerifier" not in text):
+            raise Fail("RENDERED_MODULE_NOT_AS_EXPECTED")
+    except Exception:
+        _restore_integration(d, module, backup)
+        raise
+    finally:
+        shutil.rmtree(inputs, ignore_errors=True)
+    out.kv("NEW_INTEGRATION_SHA256", rendered["sha256"])
+    out.kv("NEW_INTEGRATION_BYTES", len(new))
+    out.kv("NEW_INTEGRATION_AUDIENCE", NEW_ORIGIN)
+    out.kv("BACKUP_DIR", backup)
+    out.kv("MANIFEST_UPDATED", "false")  # fail-closed until the owner approves this exact digest
+    out.kv("NEXT", "approve-integration --sha256 <digest above> --approval-reference <owner reference>")
+    out.finish(True)
+
+
+def cmd_approve_integration(args, out):
+    """Record the OWNER's approval of the rendered module: sets integration.sha256/approval in the derived manifest."""
+    d, manifest, module, backup = _integration_package(args.private_dir)
+    reference = args.approval_reference or ""
+    if not reference.strip() or len(reference) > 512 or _REFERENCE_BAD.search(reference):
+        raise Fail("APPROVAL_REFERENCE_REQUIRED")
+    if not re.fullmatch(r"[0-9a-f]{64}", args.sha256 or ""):
+        raise Fail("SHA256_REQUIRED")
+    if not backup.is_dir():
+        raise Stop("NO_RENDERED_MODULE_PENDING_APPROVAL")
+    if not module.is_file() or module.is_symlink() or hashlib.sha256(module.read_bytes()).hexdigest() != args.sha256:
+        raise Stop("MODULE_DIGEST_DIFFERS_FROM_APPROVED_DIGEST")
+    target = d / "installation.json"
+    manifest["integration"]["sha256"], manifest["integration"]["approval"] = args.sha256, reference
+    _write_like(target, (json.dumps(manifest, indent=2) + "\n").encode(), target.stat())
+    out.kv("INTEGRATION_SHA256", args.sha256)
+    out.kv("NEW_MANIFEST_SHA256", hashlib.sha256(target.read_bytes()).hexdigest())
+    out.kv("BACKUP_DIR", backup)
+    out.finish(True)
+
+
 LEGACY_CONTAINERS = {  # exact names/images inventoried 2026-11-11; no traffic since `retire`
     "cleanops360-b1-shadow-cc51574a": "cleanops360-b1-candidate:cc51574a",
     "cleanops360-b1-assets-shadow-296d4ef2": "cleanops360-b1-assets-candidate:296d4ef2"}
@@ -688,6 +833,12 @@ def cmd_rollback(args, out):
             raise Stop("TARGET_IS_NOT_A_DERIVED_B1_HOST_PACKAGE")
         shutil.rmtree(t)
         out.kv("DERIVED_PACKAGE_REMOVED", "true")
+    elif stage == "render-integration":
+        d, _, module, backup = _integration_package(args.private_dir)
+        if not backup.is_dir() or not (backup / module.name).is_file() or not (backup / "installation.json").is_file():
+            raise Stop("NO_INTEGRATION_BACKUP")
+        _restore_integration(d, module, backup)
+        out.kv("INTEGRATION_RESTORED_SHA256", hashlib.sha256(module.read_bytes()).hexdigest())
     elif stage == "enable":
         pg = _target(args)
         pg.run("UPDATE identity_private.configuration SET deployment_enabled=false WHERE singleton")
@@ -717,6 +868,10 @@ def parser():
     sub.add_parser("retire")
     sub.add_parser("package-origin")
     sub.add_parser("diagnose-package")
+    sub.add_parser("render-integration")
+    a = sub.add_parser("approve-integration")
+    a.add_argument("--sha256")
+    a.add_argument("--approval-reference")
     sub.add_parser("diagnose")
     sub.add_parser("stop-legacy")
     sub.add_parser("enable")
@@ -727,12 +882,13 @@ def parser():
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
-    b.add_argument("stage", choices=["route", "retire", "package-origin", "stop-legacy", "enable", "seed", "install"])
+    b.add_argument("stage", choices=["route", "retire", "package-origin", "render-integration", "stop-legacy", "enable", "seed", "install"])
     return p
 
 
 COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed,
-            "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
+            "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package,
+            "render-integration": cmd_render_integration, "approve-integration": cmd_approve_integration, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):
