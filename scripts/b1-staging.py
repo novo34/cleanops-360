@@ -414,6 +414,12 @@ def cmd_diagnose_auth(args, out):
         out.kv(f"{name}_ROWS", len(rows))
         for i, row in enumerate(rows):
             out.kv(f"{name}_{i:02d}", re.sub(r"[^A-Za-z0-9_.:= -]", "?", row)[:160])
+    # Tenant-level switches that turn a correct request into POLICY_DENIED (single-tenant staging).
+    out.kv("TRUSTED_DEVICES_PREFERENCE", pg.run(
+        "SELECT coalesce((SELECT string_agg(trusted_devices_enabled::text,',') FROM app.auth_preferences),'no-row')"))
+    out.kv("ACTIVE_SELF_SERVICE_RULES", re.sub(r"[^A-Z0-9,-]", "?", pg.run(
+        "SELECT coalesce(string_agg(DISTINCT rule_key,',' ORDER BY rule_key),'none') FROM app.self_service_rules "
+        "WHERE state='ACTIVE' AND effect='ALLOW' AND (expires_at IS NULL OR expires_at>clock_timestamp())"))[:200])
     out.finish(True)
 
 

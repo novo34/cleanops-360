@@ -580,6 +580,10 @@ def test_diagnose_auth_reports_codes_and_counters_only(monkeypatch):
     class FakePg:
         def run(self, sql, database=None, stdin=None):
             seen.append(sql)
+            if "auth_preferences" in sql:
+                return "no-row"
+            if "self_service_rules" in sql:
+                return "B1-SELF-01,B1-SELF-06"
             if "security_log" in sql:
                 return "2026-11-11T20:30:00Z LOGIN_DENIED\n2026-11-11T20:29:00Z weird<script>"
             return ""
@@ -589,5 +593,6 @@ def test_diagnose_auth_reports_codes_and_counters_only(monkeypatch):
     text = " ".join(out.lines)
     assert "SECURITY_EVENT_00=2026-11-11T20:30:00Z LOGIN_DENIED" in text and "<script>" not in text
     assert "AUDIT_ROWS=0" in text and "RATE_BUCKET_ROWS=0" in text and "RESULT=PASS" in text
+    assert "TRUSTED_DEVICES_PREFERENCE=no-row" in text and "ACTIVE_SELF_SERVICE_RULES=B1-SELF-01,B1-SELF-06" in text
     joined = " ".join(seen)
     assert "_digest" not in joined.replace("key_digest", "") and "safe_metadata" not in joined and "key_digest" not in joined
