@@ -1,0 +1,20 @@
+# Keep approval-pinned B1 source artifacts byte-stable across Windows and Linux.
+# Historical SHA-1 Git blobs and SHA-256 manifests cover raw file bytes.
+/docs/canonical/auth-review/v4/** text eol=lf
+/docs/implementation/b1/** text eol=lf
+/docs/proposals/** text eol=lf
+/lib/b1/openapi.json text eol=lf
+/lib/b1/reviewed-site-installation.ts text eol=lf
+/lib/b1/private-file.ts text eol=lf
+/lib/b1/approved-backend.ts text eol=lf
+/lib/b1/runtime.ts text eol=lf
+/instrumentation.ts text eol=lf
+/.semgrep/reviewed-findings.json text eol=lf
+/package-lock.json text eol=lf
+# Custody exceptions: preserve the five recovered working-tree CSVs byte for byte.
+# These exact files have inherited CRLF/LF differences; do not normalize on add/clone.
+/docs/canonical/auth-review/v4/baseline-v3/block-1-grants-requiring-approval.csv -text
+/docs/canonical/auth-review/v4/baseline-v3/block-1-role-projection.csv -text
+/docs/canonical/auth-review/v4/block-1-grants-functional-approved.csv -text
+/docs/canonical/auth-review/v4/block-1-role-projection.csv -text
+/docs/canonical/auth-review/v4/security-values.csv -text

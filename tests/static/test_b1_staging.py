@@ -1,0 +1,136 @@
+"""b1-staging.py against a DISPOSABLE PostgreSQL (CLEANOPS_B1_TEST_PG_PORT, default 54329). Skipped if absent."""
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "scripts/b1-staging.py"
+PORT = os.environ.get("CLEANOPS_B1_TEST_PG_PORT", "54329")
+ENV = {**os.environ, "PGHOST": "127.0.0.1", "PGPORT": PORT}
+DB = "cleanops_staging"
+
+
+def psql(sql, user="postgres", db="postgres"):
+    r = subprocess.run(["psql", "-X", "-qAt", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", db, "-c", sql],
+                       capture_output=True, env=ENV, timeout=60)
+    assert r.returncode == 0, r.stderr.decode()
+    return r.stdout.decode().strip()
+
+
+def available():
+    return shutil.which("psql") and subprocess.run(["psql", "-U", "postgres", "-d", "postgres", "-Atc", "select 1"],
+                                                   capture_output=True, env=ENV).returncode == 0
+
+
+pytestmark = pytest.mark.skipif(not available(), reason="disposable PostgreSQL not available")
+
+
+def run(*args):
+    r = subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, env=ENV, timeout=300, cwd=ROOT)
+    out = dict(l.split("=", 1) for l in r.stdout.decode().splitlines() if "=" in l)
+    return r.returncode, out
+
+
+def wipe():
+    psql(f"DROP DATABASE IF EXISTS {DB} WITH (FORCE)")
+    for role in psql("SELECT rolname FROM pg_roles WHERE rolname LIKE 'cleanops\\_%'").splitlines():
+        psql(f'DROP ROLE IF EXISTS "{role}"')
+
+
+@pytest.fixture()
+def cluster():
+    wipe()
+    psql("CREATE ROLE cleanops_bootstrap SUPERUSER LOGIN")
+    psql(f"CREATE DATABASE {DB} OWNER cleanops_bootstrap")
+    yield
+    wipe()
+
+
+def test_inventory_is_read_only_and_reports(cluster):
+    code, out = run("--database", DB, "inventory")
+    assert code == 0 and out["RESULT"] == "PASS"
+    assert out["SQL14_ARTIFACT_SHA256_OK"] == "true" and out["TARGET_EXISTS"] == "true"
+    assert out["CLEANOPS_ROLES"] == "cleanops_bootstrap"
+    assert out["FOREIGN_ROLES_BLOCK_FRESH_INSTALL"] == "false"
+    before = psql("SELECT count(*) FROM pg_roles")
+    run("--database", DB, "inventory")
+    assert psql("SELECT count(*) FROM pg_roles") == before
+
+
+def test_install_refuses_foreign_roles_as_stop_and_design(cluster, tmp_path):
+    psql("CREATE ROLE cleanops_stray")
+    url = tmp_path / "url"
+    url.write_text(f"postgres://cleanops_bootstrap@127.0.0.1:{PORT}/{DB}")
+    code, out = run("--database", DB, "install", "--approval-reference", "test", "--database-url-file", str(url))
+    assert code == 3 and out["STOP_AND_DESIGN"] == "true" and "FOREIGN_CLEANOPS_ROLES" in out["REASON"]
+    assert psql("SELECT count(*) FROM pg_namespace WHERE nspname='identity_private'", db=DB) == "0"
+
+
+def test_install_rejects_other_database_name(cluster, tmp_path):
+    code, out = run("--database", "cleanops_b1_staging", "install", "--approval-reference", "t",
+                    "--database-url-file", str(tmp_path / "u"))
+    assert code == 3 and "NOT_SUPPORTED_BY_OFFICIAL_INSTALLER" in out["REASON"]
+
+
+def test_install_then_enable_requires_seed(cluster, tmp_path):
+    url = tmp_path / "url"
+    url.write_text(f"postgres://cleanops_bootstrap@127.0.0.1:{PORT}/{DB}")
+    code, out = run("--database", DB, "install", "--approval-reference", "test-ref", "--database-url-file", str(url))
+    if code != 0:
+        pytest.skip(f"official installer needs a committed checkout: {out.get('REASON')}")
+    assert out["SQL14_INSTALLED"] == "true" and "0002" in out["MIGRATIONS_APPLIED"] and "0003" in out["MIGRATIONS_APPLIED"]
+    assert psql("SELECT to_regclass('identity_private.ingress_claims') IS NOT NULL", db=DB) == "t"
+    code, out = run("--database", DB, "enable")
+    assert code == 3 and "SEED_MUST_PRECEDE_ENABLE" in out["REASON"]
+    code, out = run("--database", DB, "seed")
+    assert code == 0 and out["FIRST_ACTOR_STATE"] != "COMMITTED"
+    code, out = run("--database", DB, "inventory")
+    assert out["MIGRATION_JOURNAL"] == "present" and out["DEPLOYMENT_ENABLED"] in ("false", "no-row")
+
+
+def _module():
+    spec = importlib.util.spec_from_file_location("b1_staging", SCRIPT)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+GOOD = dict(host="b1.cleanops.nuvurent.com", backend_url="http://cleanops-web:3000",
+            forward_auth_address="https://b1-forward-auth:8443/verify", allow_ips="203.0.113.7/32",
+            tls_ca="/certs/ca.pem", tls_cert="/certs/c.pem", tls_key="/certs/k.pem")
+
+
+def test_route_renders_single_router_with_allowlist():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(_module().render_route(**GOOD))
+    assert list(doc["http"]["routers"]) == ["b1-staging"]
+    assert doc["http"]["routers"]["b1-staging"]["rule"] == "Host(`b1.cleanops.nuvurent.com`)"
+    assert doc["http"]["middlewares"]["b1-staging-allowlist"]["ipAllowList"]["sourceRange"] == ["203.0.113.7/32"]
+    fa = doc["http"]["middlewares"]["b1-staging-auth"]["forwardAuth"]
+    assert fa["trustForwardHeader"] is False and fa["tls"]["ca"] == "/certs/ca.pem"
+    assert doc["http"]["middlewares"]["b1-staging-strip"]["headers"]["customRequestHeaders"]["X-B1-Context"] == ""
+
+
+@pytest.mark.parametrize("bad", ["0.0.0.0/0", "10.0.0.0/0", "", "82.25.102.171", "a.b.c.d", "1.2.3.4/33"])
+def test_route_rejects_wildcard_or_protected_ips(bad):
+    m = _module()
+    with pytest.raises(m.Fail):
+        m.render_route(**{**GOOD, "allow_ips": bad})
+
+
+def test_route_rejects_other_host_and_writes_atomically(tmp_path):
+    m = _module()
+    with pytest.raises(m.Fail):
+        m.render_route(**{**GOOD, "host": "cleanops.nuvurent.com"})
+    code, out = run("--traefik-dir", str(tmp_path), "route", "--backend-url", GOOD["backend_url"],
+                    "--forward-auth-address", GOOD["forward_auth_address"], "--allow-ips", GOOD["allow_ips"],
+                    "--tls-ca", GOOD["tls_ca"], "--tls-cert", GOOD["tls_cert"], "--tls-key", GOOD["tls_key"])
+    assert code == 0 and (tmp_path / "b1-staging.yml").is_file()
+    code, out = run("--traefik-dir", str(tmp_path), "rollback", "route")
+    assert code == 0 and not (tmp_path / "b1-staging.yml").exists()

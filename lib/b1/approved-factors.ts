@@ -28,15 +28,20 @@ export interface PrivateFactorKeys {
 export type CredentialProof = Readonly<{ principalId: string; version: string }>
 /** Transaction-local proof capabilities. No browser-supplied password_verified/counter is accepted.
  * This object must be created inside the scoped broker transaction, never cached globally. */
-export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys, correlation: string, now = Date.now) {
-  if (!uuid(correlation) || !Buffer.isBuffer(keys.auditKey) || keys.auditKey.length < 32 ||
-      !Buffer.isBuffer(keys.otpKey) || keys.otpKey.length < 32 || !keys.dummyPasswordHash.startsWith('$argon2id$')) throw unavailable()
-  const dummy = /^\$argon2id\$v=19\$m=([0-9]+),t=([0-9]+),p=([0-9]+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/.exec(keys.dummyPasswordHash)
+export function validateDummyPasswordHash(value: string): void {
+  if (typeof value !== 'string') throw unavailable()
+  const dummy = /^\$argon2id\$v=19\$m=([0-9]+),t=([0-9]+),p=([0-9]+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/.exec(value)
   if (!dummy || Number(dummy[1]) !== numeric('argon_memory') || Number(dummy[2]) !== numeric('argon_iterations') ||
       Number(dummy[3]) !== numeric('argon_parallelism') ||
       Buffer.from(dummy[4], 'base64').length !== numeric('argon_salt') ||
       Buffer.from(dummy[5], 'base64').length !== 32 ||
       [dummy[4], dummy[5]].some(v => Buffer.from(v, 'base64').toString('base64').replace(/=+$/, '') !== v)) throw unavailable()
+}
+
+export function createApprovedFactors(broker: V4Broker, keys: PrivateFactorKeys, correlation: string, now = Date.now) {
+  if (!uuid(correlation) || !Buffer.isBuffer(keys.auditKey) || keys.auditKey.length < 32 ||
+      !Buffer.isBuffer(keys.otpKey) || keys.otpKey.length < 32 || !keys.dummyPasswordHash.startsWith('$argon2id$')) throw unavailable()
+  validateDummyPasswordHash(keys.dummyPasswordHash)
   const proofs = new WeakMap<CredentialProof, string>()
   async function denied(code: 'LOGIN_DENIED' | 'MFA_DENIED', subject: string) {
     const pseudonym = createHmac('sha256', keys.auditKey).update(canonical([code, subject])).digest()

@@ -119,6 +119,12 @@ jobs:
         run: npm run db:migrate
       - name: Unit and PostgreSQL integration tests
         run: npm test
+      - name: B1 ingress SQL0003 real PostgreSQL 16 regression (disposable CI DB)
+        env:
+          CLEANOPS_B1_TEST_PG_PORT: '5433'
+          CLEANOPS_B1_TEST_PG_USER: cleanops
+          CLEANOPS_B1_TEST_PG_PASSWORD: cleanops_dev_only
+        run: node --experimental-strip-types --test --test-isolation=none tests/b1/pg-ingress-repositories.test.ts
       - name: Production build
         run: npm run build
       - name: Install Chromium Firefox WebKit browser engines
