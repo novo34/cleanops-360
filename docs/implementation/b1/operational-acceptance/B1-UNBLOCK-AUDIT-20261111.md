@@ -89,3 +89,11 @@ Cada paso termina en PASS/FAIL; un FAIL repetido activa STOP-AND-DESIGN en vez d
 - U-4 requiere DNS y certificado; si no hay subdominio disponible, alternativa: puerto/hostname interno accesible solo vía VPN/SSH tunnel.
 - La base dedicada comparte clúster PostgreSQL con otras bases: aislar por base + roles propios + `REVOKE CONNECT FROM PUBLIC`; contenedor propio si el propietario lo prefiere.
 - Brave quedó fuera de alcance por decisión del 05/11; con hostname propio la causa probable (mezcla de builds) desaparece, pero debe verificarse.
+
+## 7. Registro de decisiones del propietario
+
+Decisiones tomadas por el propietario único (Klever / novo34) en conversación del 2026-11-11, una a una, tras explicación. Cada fila es la firma expresa requerida por §3.
+
+| ID | Fecha | Decisión | Efecto |
+|---|---|---|---|
+| U-1 | 2026-11-11 | **APROBADA.** B1 se separa en tres estados: AUTH-GATE-05 (esquema y endpoints congelados), B1-STAGING-ACCEPTED (E2E real en staging + prueba manual PO) y B1-OPERATIONAL (custodia OpenBao suiza, RPO≤15min/RTO≤4h, SMTP real, carga). | B1-OPERATIONAL pasa a ser precondición de release a producción, no de aceptación funcional de B1 ni de inicio de B2/B3. No se elimina ninguna funcionalidad ni requisito. Adenda a `closure/PLAN.md` §6 limitada a lo operativo. |
