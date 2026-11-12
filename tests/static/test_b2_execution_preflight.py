@@ -587,7 +587,9 @@ class R3SqlArtifactTests(unittest.TestCase):
         self.assertTrue(runner.R3_NATIVE_ENABLED)
         self.assertIn('R3 capability requires a new exact C/M/W/B review',text)
         self.assertEqual(text.count('python scripts/b2-directory-postgres.py --package sql5-r3'),1)
-        self.assertNotIn('pull_request_target:',text);self.assertNotIn('workflow_dispatch:',text)
+        self.assertNotIn('pull_request_target:',text)
+        native=text.split('  acceptance-r2:',1)[1].split('  aud031-reservation-probe:',1)[0]
+        self.assertIn("github.event_name == 'pull_request_review'",native)
 
 
 class R3MergeObjectAvailabilityTests(unittest.TestCase):
@@ -1088,7 +1090,6 @@ class Aud031ContractTests(unittest.TestCase):
 
     def test_push_PR_open_and_R3_review_cannot_start_R4_job(self):
         source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
-        self.assertNotIn('workflow_dispatch:',source)
         self.assertNotIn('pull_request_target:',source)
         self.assertNotIn('\n  push:',source)
         self.assertNotIn('\n  pull_request:',source)
@@ -1521,5 +1522,57 @@ os._exit(int(sys.argv[4]))
         # its reviewer/ref policy cannot be proved by this local syntax check.
         self.assertIn('environment: cleanops-native-auth-probe',workflow)
         self.assertIn('required: true',workflow.split('  pull_request_review:',1)[0])
+
+class Aud031TrustedCallerCompositionTests(unittest.TestCase):
+    """Compose the published caller with the reusable workflow; NO API/SQL."""
+    TRUSTED='4f19c36f8eda2c846c6e3c7164814f26841b3bce'
+    CANDIDATE='3f9d7a03ca9a96daa7d2541fc678e95af24489d3'
+
+    def test_composition_preserves_exact_trusted_dispatch_and_caller(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text()
+        trusted=subprocess.check_output(['git','show',self.TRUSTED+':'+runner.R3_WORKFLOW],cwd=ROOT).decode()
+        previous=subprocess.check_output(['git','show',self.CANDIDATE+':'+runner.R3_WORKFLOW],cwd=ROOT).decode()
+        dispatch='  workflow_dispatch:\n'+trusted.split('  workflow_dispatch:\n',1)[1].split('  pull_request_review:',1)[0]
+        caller='  aud031-probe-caller:\n'+trusted.split('  aud031-probe-caller:\n',1)[1]
+        expected=previous.replace('  pull_request_review:',dispatch+'  pull_request_review:',1).rstrip()+'\n'+caller
+        self.assertEqual(source,expected)
+        self.assertEqual(source.count('  workflow_dispatch:'),1)
+        self.assertEqual(source.count('  workflow_call:'),1)
+        self.assertEqual(source.count('  aud031-probe-caller:'),1)
+        self.assertIn('uses: novo34/cleanops-360/'+runner.R3_WORKFLOW+'@9a4c8b90a159f2853f040dc5597042c17408da00',caller)
+
+    def test_manual_dispatch_cannot_start_native_validation_even_with_probe_inputs(self):
+        import re
+        source=(ROOT/runner.R3_WORKFLOW).read_text()
+        native=source.split('  acceptance-r2:',1)[1].split('  aud031-reservation-probe:',1)[0]
+        condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',native).group(1).split())
+        for event in ('workflow_dispatch','push','pull_request','issue_comment','workflow_call'):
+            for ref in ('refs/heads/main','refs/pull/23/merge','refs/tags/cleanops-native-auth-probe-caller-fixed1'):
+                for enabled in (False,True):
+                    context={'inputs':{'confirm_reservation_probe':enabled,'reservation_probe':enabled},'github':{
+                        'event_name':event,'ref':ref,'workflow_ref':'novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+ref,
+                        'repository':'novo34/cleanops-360','repository_id':'1412999204','repository_owner':'novo34',
+                        'actor':'novo34','actor_id':'17856013','triggering_actor':'novo34','run_attempt':1,'event':{}}}
+                    with self.subTest(event=event,ref=ref,enabled=enabled):
+                        self.assertFalse(ActionsCondition(condition,context).evaluate())
+        self.assertFalse(runner.AUD031_NATIVE_ENABLED)
+
+    def test_trusted_caller_still_requires_approved_tag_and_SHA(self):
+        import re
+        source=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-probe-caller:',1)[1]
+        condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',source).group(1).split())
+        ref='refs/tags/cleanops-native-auth-probe-caller-fixed1'
+        github={'event_name':'workflow_dispatch','repository':'novo34/cleanops-360','repository_id':'1412999204',
+                'actor':'novo34','actor_id':'17856013','triggering_actor':'novo34','run_attempt':1,'ref':ref,
+                'workflow_ref':'novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+ref,'sha':self.TRUSTED,'workflow_sha':self.TRUSTED}
+        context={'github':github,'inputs':{'confirm_reservation_probe':True},'vars':{'CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA':self.TRUSTED}}
+        self.assertTrue(ActionsCondition(condition,context).evaluate())
+        for key in github:
+            with self.subTest(key=key):
+                self.assertFalse(ActionsCondition(condition,dict(context,github=dict(github,**{key:'unapproved'}))).evaluate())
+        for value in ('',self.CANDIDATE):
+            self.assertFalse(ActionsCondition(condition,dict(context,vars={'CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA':value})).evaluate())
+        self.assertFalse(ActionsCondition(condition,dict(context,inputs={'confirm_reservation_probe':False})).evaluate())
+
 
 if __name__=='__main__':unittest.main()
