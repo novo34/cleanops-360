@@ -52,3 +52,16 @@ fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-c
 fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:35
 fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:46
 fceffc302f44819cca19196ba3adc84878e7e5f2:docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json:generic-api-key:49
+
+# AUD031: eight verified public artifact hashes and two test-label lists.
+# Exact immutable commit/file/rule/line only; owner review required before merge.
+e31e866c4058e747def14ebbb9cfb794965d1cda:tests/static/test_b2_execution_preflight.py:generic-api-key:1084
+f79056811026b04d669281d7c8366104fd7b6fe3:tests/static/test_b2_execution_preflight.py:generic-api-key:1082
+f79056811026b04d669281d7c8366104fd7b6fe3:docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json:generic-api-key:35
+f79056811026b04d669281d7c8366104fd7b6fe3:docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json:generic-api-key:36
+f79056811026b04d669281d7c8366104fd7b6fe3:docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json:generic-api-key:50
+f79056811026b04d669281d7c8366104fd7b6fe3:docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json:generic-api-key:56
+f79056811026b04d669281d7c8366104fd7b6fe3:scripts/b2-directory-postgres.py:generic-api-key:121
+f79056811026b04d669281d7c8366104fd7b6fe3:scripts/b2-directory-postgres.py:generic-api-key:122
+f79056811026b04d669281d7c8366104fd7b6fe3:scripts/b2-directory-postgres.py:generic-api-key:134
+f79056811026b04d669281d7c8366104fd7b6fe3:scripts/b2-directory-postgres.py:generic-api-key:137
