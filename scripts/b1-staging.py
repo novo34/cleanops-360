@@ -2,7 +2,7 @@
 """Single operator entry point for the B1 staging environment (decision U-6/U-6.1).
 
 Subcommands: inventory | diagnose | diagnose-package | diagnose-auth | first-actor-info (read-only) | install | enable | seed | route | smoke |
-retire | stop-legacy | package-origin | render-integration | approve-integration | rollback.
+retire | stop-legacy | package-origin | render-integration | approve-integration | enable-trusted-devices | rollback.
 Stdlib only. Wraps the OFFICIAL artifacts (scripts/migrate-postgres.mjs, SQL14/0002/0003); it never
 edits manifests, Compose, Traefik or SQL by hand and never prints secrets (URLs, passwords, cookies, keys).
 
@@ -388,11 +388,41 @@ def cmd_first_actor_info(args, out):
         out.finish(True)
         return
     row = pg.run("SELECT jsonb_build_object('email',manifest->>'email','tenantName',manifest->>'tenantName',"
-                 "'displayName',manifest->>'displayName')::text FROM identity_provision.first_actor WHERE singleton")
+                 "'displayName',manifest->>'displayName','userId',manifest->>'userId')::text "
+                 "FROM identity_provision.first_actor WHERE singleton")
     info = json.loads(row)
-    for key, name in (("FIRST_ACTOR_EMAIL", "email"), ("FIRST_ACTOR_TENANT_NAME", "tenantName"), ("FIRST_ACTOR_DISPLAY_NAME", "displayName")):
+    # The user id is an identifier, not a credential: the Manage Access form asks for it and no screen shows it.
+    for key, name in (("FIRST_ACTOR_EMAIL", "email"), ("FIRST_ACTOR_TENANT_NAME", "tenantName"),
+                      ("FIRST_ACTOR_DISPLAY_NAME", "displayName"), ("FIRST_ACTOR_USER_ID", "userId")):
         out.kv(key, re.sub(r"[^\w .@+'-]", "?", str(info.get(name) or "not-recorded"))[:254])
     out.finish(True)
+
+
+def _single_tenant(pg):
+    """The one tenant of this staging (first actor COMMITTED, exactly one organization)."""
+    if first_actor_state(pg) != "COMMITTED":
+        raise Stop("FIRST_ACTOR_NOT_COMMITTED")
+    tenant = pg.run("SELECT manifest->>'tenantId' FROM identity_provision.first_actor WHERE singleton")
+    if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", tenant) or \
+            pg.run(f"SELECT count(*)::text||':'||count(*) FILTER (WHERE id='{tenant}')::text FROM app.organizations") != "1:1":
+        raise Stop("NOT_A_SINGLE_TENANT_STAGING")
+    return tenant
+
+
+def _trusted_devices(pg, tenant, enabled):
+    pg.run("INSERT INTO app.auth_preferences(tenant_id,trusted_devices_enabled) "
+           f"VALUES('{tenant}',{'true' if enabled else 'false'}) "
+           "ON CONFLICT (tenant_id) DO UPDATE SET trusted_devices_enabled=EXCLUDED.trusted_devices_enabled")
+    return pg.run(f"SELECT trusted_devices_enabled::text FROM app.auth_preferences WHERE tenant_id='{tenant}'")
+
+
+def cmd_enable_trusted_devices(args, out):
+    """Owner-authorized tenant preference: no application path writes app.auth_preferences, so trusted
+    devices stay POLICY_DENIED until this row says true. It never changes MFA, sessions or step-up rules."""
+    pg = _target(args)
+    state = _trusted_devices(pg, _single_tenant(pg), True)
+    out.kv("TRUSTED_DEVICES_PREFERENCE", state)
+    out.finish(state == "true")
 
 
 def cmd_diagnose_auth(args, out):
@@ -944,6 +974,9 @@ def cmd_rollback(args, out):
             raise Stop("NO_INTEGRATION_BACKUP")
         _restore_integration(d, module, backup)
         out.kv("INTEGRATION_RESTORED_SHA256", hashlib.sha256(module.read_bytes()).hexdigest())
+    elif stage == "enable-trusted-devices":
+        pg = _target(args)
+        out.kv("TRUSTED_DEVICES_PREFERENCE", _trusted_devices(pg, _single_tenant(pg), False))
     elif stage == "enable":
         pg = _target(args)
         pg.run("UPDATE identity_private.configuration SET deployment_enabled=false WHERE singleton")
@@ -983,6 +1016,7 @@ def parser():
     sub.add_parser("seed")
     sub.add_parser("first-actor-info")
     sub.add_parser("diagnose-auth")
+    sub.add_parser("enable-trusted-devices")
     r = sub.add_parser("route")
     for n in ("backend-url", "forward-auth-address", "allow-ips", "tls-ca", "tls-cert", "tls-key"):
         r.add_argument("--" + n)
@@ -990,18 +1024,18 @@ def parser():
     s = sub.add_parser("smoke")
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
-    b.add_argument("stage", choices=["route", "retire", "package-origin", "render-integration", "stop-legacy", "enable", "seed", "install"])
+    b.add_argument("stage", choices=["route", "retire", "package-origin", "render-integration", "enable-trusted-devices", "stop-legacy", "enable", "seed", "install"])
     return p
 
 
-COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed, "first-actor-info": cmd_first_actor_info, "diagnose-auth": cmd_diagnose_auth,
+COMMANDS = {"inventory": cmd_inventory, "install": cmd_install, "enable": cmd_enable, "seed": cmd_seed, "first-actor-info": cmd_first_actor_info, "diagnose-auth": cmd_diagnose_auth, "enable-trusted-devices": cmd_enable_trusted_devices,
             "route": cmd_route, "retire": cmd_retire, "diagnose-package": cmd_diagnose_package,
             "render-integration": cmd_render_integration, "approve-integration": cmd_approve_integration, "diagnose": cmd_diagnose, "stop-legacy": cmd_stop_legacy, "package-origin": cmd_package_origin, "smoke": cmd_smoke, "rollback": cmd_rollback}
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "first-actor-info", "diagnose-auth", "rollback"):
+    if args.command != "inventory" and args.database == "postgres" and args.command in ("install", "enable", "seed", "first-actor-info", "diagnose-auth", "enable-trusted-devices", "rollback"):
         if not (args.command == "rollback" and args.stage == "route"):
             args.database = canonical_record()["databaseName"]
     out = Out(args.command)

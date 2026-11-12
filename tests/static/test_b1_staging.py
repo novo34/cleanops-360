@@ -546,13 +546,15 @@ def test_first_actor_info_prints_only_public_request_fields(monkeypatch):
                 return "t"
             if "coalesce((SELECT state" in sql:
                 return "COMMITTED"
-            return json.dumps({"email": "owner@example.test", "tenantName": "Acme", "displayName": None})
+            return json.dumps({"email": "owner@example.test", "tenantName": "Acme", "displayName": None,
+                               "userId": "22222222-2222-4222-8222-222222222222"})
     monkeypatch.setattr(m, "pg_from", lambda args, database=None, read_only=False: FakePg() if read_only else None)
     out = m.Out("t")
     m.cmd_first_actor_info(m.parser().parse_args(["--database", DB, "first-actor-info"]), out)
     text = " ".join(out.lines)
     assert "FIRST_ACTOR_EMAIL=owner@example.test" in text and "FIRST_ACTOR_TENANT_NAME=Acme" in text
     assert "FIRST_ACTOR_DISPLAY_NAME=not-recorded" in text and "RESULT=PASS" in text
+    assert "FIRST_ACTOR_USER_ID=22222222-2222-4222-8222-222222222222" in text
     assert not any("material" in s or "receipt" in s for s in seen)
 
 
@@ -596,3 +598,45 @@ def test_diagnose_auth_reports_codes_and_counters_only(monkeypatch):
     assert "TRUSTED_DEVICES_PREFERENCE=no-row" in text and "ACTIVE_SELF_SERVICE_RULES=B1-SELF-01,B1-SELF-06" in text
     joined = " ".join(seen)
     assert "_digest" not in joined.replace("key_digest", "") and "safe_metadata" not in joined and "key_digest" not in joined
+
+
+def test_enable_trusted_devices_only_for_the_single_committed_tenant(monkeypatch):
+    m = _module()
+    tenant = "11111111-1111-4111-8111-111111111111"
+
+    class FakePg:
+        def __init__(self, state="COMMITTED", orgs="1:1"):
+            self.state, self.orgs, self.sql, self.value = state, orgs, [], None
+
+        def run(self, sql, database=None, stdin=None):
+            self.sql.append(sql)
+            if "to_regclass" in sql:
+                return "t"
+            if "coalesce((SELECT state" in sql:
+                return self.state
+            if "manifest->>'tenantId'" in sql:
+                return tenant
+            if "FROM app.organizations" in sql:
+                return self.orgs
+            if sql.startswith("INSERT INTO app.auth_preferences"):
+                self.value = "true" if ",true)" in sql else "false"
+                return ""
+            return self.value
+
+    def use(pg):
+        monkeypatch.setattr(m, "pg_from", lambda args, database=None, read_only=False: pg)
+        return pg
+    pg = use(FakePg())
+    out = m.Out("t")
+    m.cmd_enable_trusted_devices(m.parser().parse_args(["--database", DB, "enable-trusted-devices"]), out)
+    assert "TRUSTED_DEVICES_PREFERENCE=true" in out.lines and "RESULT=PASS" in out.lines
+    writes = [q for q in pg.sql if not q.lstrip().upper().startswith("SELECT")]
+    assert len(writes) == 1 and "app.auth_preferences" in writes[0] and tenant in writes[0]
+    out = m.Out("t")
+    m.cmd_rollback(m.parser().parse_args(["--database", DB, "rollback", "enable-trusted-devices"]), out)
+    assert "TRUSTED_DEVICES_PREFERENCE=false" in out.lines
+    for bad in (FakePg(state="PREPARED"), FakePg(orgs="2:1"), FakePg(orgs="1:0")):
+        use(bad)
+        with pytest.raises(m.Stop):
+            m.cmd_enable_trusted_devices(m.parser().parse_args(["--database", DB, "enable-trusted-devices"]), m.Out("t"))
+        assert not [q for q in bad.sql if q.startswith("INSERT")]
