@@ -161,7 +161,26 @@ def test_route_rejects_other_host_and_writes_atomically(tmp_path):
                     "--tls-ca", GOOD["tls_ca"], "--tls-cert", GOOD["tls_cert"], "--tls-key", GOOD["tls_key"])
     assert code == 0 and (tmp_path / "b1-staging.yml").is_file()
     code, out = run("--traefik-dir", str(tmp_path), "rollback", "route")
-    assert code == 0 and not (tmp_path / "b1-staging.yml").exists()
+    assert code == 0 and not (tmp_path / "b1-staging.yml").exists() and out["ROUTE_REMOVED"] == "true"
+    code, out = run("--traefik-dir", str(tmp_path), "rollback", "route")
+    assert code != 0 and out["REASON"] == "NO_ROUTE_UNDO_STATE"  # nothing recorded: never guess
+
+
+def test_rollback_route_restores_the_file_the_last_route_replaced(tmp_path):
+    m = _module()
+    old = m.render_route(**{**GOOD, "allow_ips": "203.0.113.7/32"})
+    legacy = old.replace("X-Cleanops-B1-Assertion", "X-B1-Context")
+    d = tmp_path / "dynamic"
+    d.mkdir()
+    target = d / "b1-staging.yml"
+    target.write_text(legacy)
+    (tmp_path / ".b1-staging.yml.prev-absent").write_text("")  # stale marker from an older fresh install
+    assert run("--traefik-dir", str(d), "route", "--reuse-current")[0] == 0 and target.read_text() == old
+    assert run("--traefik-dir", str(d), "route", "--reuse-current")[0] == 0  # unchanged re-run keeps the undo state
+    code, out = run("--traefik-dir", str(d), "rollback", "route")
+    assert code == 0 and target.read_text() == legacy and "ROUTE_REMOVED" not in out
+    assert out["ROUTE_RESTORED_SHA256"] == hashlib.sha256(legacy.encode()).hexdigest()
+    assert not (tmp_path / ".b1-staging.yml.prev").exists() and not (tmp_path / ".b1-staging.yml.prev-absent").exists()
 
 
 def test_route_accepts_ipv6_single_host():
@@ -621,6 +640,11 @@ def test_enable_trusted_devices_only_for_the_single_committed_tenant(monkeypatch
             if sql.startswith("INSERT INTO app.auth_preferences"):
                 self.value = "true" if ",true)" in sql else "false"
                 return ""
+            if sql.startswith("DELETE FROM app.auth_preferences"):
+                self.value = None
+                return ""
+            if "coalesce((SELECT trusted_devices_enabled" in sql:
+                return self.value or "absent"
             return self.value
 
     def use(pg):
@@ -630,11 +654,17 @@ def test_enable_trusted_devices_only_for_the_single_committed_tenant(monkeypatch
     out = m.Out("t")
     m.cmd_enable_trusted_devices(m.parser().parse_args(["--database", DB, "enable-trusted-devices"]), out)
     assert "TRUSTED_DEVICES_PREFERENCE=true" in out.lines and "RESULT=PASS" in out.lines
+    assert "TRUSTED_DEVICES_PREVIOUS=absent" in out.lines
     writes = [q for q in pg.sql if not q.lstrip().upper().startswith("SELECT")]
     assert len(writes) == 1 and "app.auth_preferences" in writes[0] and tenant in writes[0]
-    out = m.Out("t")
-    m.cmd_rollback(m.parser().parse_args(["--database", DB, "rollback", "enable-trusted-devices"]), out)
-    assert "TRUSTED_DEVICES_PREFERENCE=false" in out.lines
+    with pytest.raises(m.Stop):  # the previous state is never assumed
+        m.cmd_rollback(m.parser().parse_args(["--database", DB, "rollback", "enable-trusted-devices"]), m.Out("t"))
+    assert pg.value == "true"
+    for previous in ("false", "true", "absent"):
+        out = m.Out("t")
+        m.cmd_rollback(m.parser().parse_args(["--database", DB, "rollback", "enable-trusted-devices", "--previous", previous]), out)
+        assert f"TRUSTED_DEVICES_PREFERENCE={previous}" in out.lines
+    assert pg.value is None and any(q.startswith("DELETE FROM app.auth_preferences") and tenant in q for q in pg.sql)
     for bad in (FakePg(state="PREPARED"), FakePg(orgs="2:1"), FakePg(orgs="1:0")):
         use(bad)
         with pytest.raises(m.Stop):

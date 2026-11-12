@@ -409,6 +409,11 @@ def _single_tenant(pg):
     return tenant
 
 
+def _trusted_devices_state(pg, tenant):
+    return pg.run("SELECT coalesce((SELECT trusted_devices_enabled::text FROM app.auth_preferences "
+                  f"WHERE tenant_id='{tenant}'),'absent')")
+
+
 def _trusted_devices(pg, tenant, enabled):
     pg.run("INSERT INTO app.auth_preferences(tenant_id,trusted_devices_enabled) "
            f"VALUES('{tenant}',{'true' if enabled else 'false'}) "
@@ -420,7 +425,10 @@ def cmd_enable_trusted_devices(args, out):
     """Owner-authorized tenant preference: no application path writes app.auth_preferences, so trusted
     devices stay POLICY_DENIED until this row says true. It never changes MFA, sessions or step-up rules."""
     pg = _target(args)
-    state = _trusted_devices(pg, _single_tenant(pg), True)
+    tenant = _single_tenant(pg)
+    # The operator passes this value back to `rollback enable-trusted-devices --previous`.
+    out.kv("TRUSTED_DEVICES_PREVIOUS", _trusted_devices_state(pg, tenant))
+    state = _trusted_devices(pg, tenant, True)
     out.kv("TRUSTED_DEVICES_PREFERENCE", state)
     out.finish(state == "true")
 
@@ -565,6 +573,10 @@ http:
 """
 
 
+def _route_undo(d):
+    return d.parent / f".{ROUTE_FILE}.prev", d.parent / f".{ROUTE_FILE}.prev-absent"
+
+
 def _atomic_write(path, text):
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".b1-route-")
     with os.fdopen(fd, "w") as f:
@@ -595,8 +607,15 @@ def cmd_route(args, out):
     if not d.is_dir():
         raise Fail("TRAEFIK_DIR_MISSING")
     target = d / ROUTE_FILE
-    if target.exists() and target.read_text() != text:
-        (d.parent / f".{ROUTE_FILE}.prev").write_text(target.read_text())
+    # Exactly one undo level, kept outside the watched directory: either the previous file or the
+    # fact that there was none. An unchanged re-run keeps the recorded state.
+    prev, absent = _route_undo(d)
+    if not target.exists():
+        prev.unlink(missing_ok=True)
+        absent.write_text("")
+    elif target.read_text() != text:
+        absent.unlink(missing_ok=True)
+        prev.write_text(target.read_text())
     _atomic_write(target, text)
     out.kv("ROUTE_FILE", ROUTE_FILE)
     out.kv("ROUTE_SHA256", hashlib.sha256(text.encode()).hexdigest())
@@ -942,10 +961,21 @@ def cmd_rollback(args, out):
     if stage == "route":
         if not args.traefik_dir:
             raise Fail("TRAEFIK_DIR_REQUIRED")
-        t = Path(args.traefik_dir) / ROUTE_FILE
-        if t.exists():
-            t.unlink()
-        out.kv("ROUTE_REMOVED", "true")
+        d = Path(args.traefik_dir)
+        t = d / ROUTE_FILE
+        prev, absent = _route_undo(d)
+        if prev.is_file():
+            # Restore what the last `route` replaced; never guess from an older copy.
+            text = prev.read_text()
+            _atomic_write(t, text)
+            prev.unlink()
+            out.kv("ROUTE_RESTORED_SHA256", hashlib.sha256(text.encode()).hexdigest())
+        elif absent.is_file():
+            t.unlink(missing_ok=True)
+            absent.unlink()
+            out.kv("ROUTE_REMOVED", "true")
+        else:
+            raise Stop("NO_ROUTE_UNDO_STATE")
     elif stage == "retire":
         if not args.traefik_dir or not args.backup_dir:
             raise Fail("TRAEFIK_DIR_AND_BACKUP_DIR_REQUIRED")
@@ -975,8 +1005,16 @@ def cmd_rollback(args, out):
         _restore_integration(d, module, backup)
         out.kv("INTEGRATION_RESTORED_SHA256", hashlib.sha256(module.read_bytes()).hexdigest())
     elif stage == "enable-trusted-devices":
+        # A faithful undo needs the state `enable-trusted-devices` reported; it is never assumed.
+        if args.previous not in ("absent", "true", "false"):
+            raise Stop("PREVIOUS_STATE_REQUIRED")
         pg = _target(args)
-        out.kv("TRUSTED_DEVICES_PREFERENCE", _trusted_devices(pg, _single_tenant(pg), False))
+        tenant = _single_tenant(pg)
+        if args.previous == "absent":
+            pg.run(f"DELETE FROM app.auth_preferences WHERE tenant_id='{tenant}'")
+        else:
+            _trusted_devices(pg, tenant, args.previous == "true")
+        out.kv("TRUSTED_DEVICES_PREFERENCE", _trusted_devices_state(pg, tenant))
     elif stage == "enable":
         pg = _target(args)
         pg.run("UPDATE identity_private.configuration SET deployment_enabled=false WHERE singleton")
@@ -1025,6 +1063,7 @@ def parser():
     s.add_argument("--base-url")
     b = sub.add_parser("rollback")
     b.add_argument("stage", choices=["route", "retire", "package-origin", "render-integration", "enable-trusted-devices", "stop-legacy", "enable", "seed", "install"])
+    b.add_argument("--previous", choices=["absent", "true", "false"])
     return p
 
 
