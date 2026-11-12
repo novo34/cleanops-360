@@ -554,6 +554,10 @@ def main(scope='directory'):
             # must finish before the first transport import below.
             if not (AUD031_NATIVE_ENABLED if scope=='sql5-aud031' else R3_NATIVE_ENABLED):
                 raise RuntimeError('AUD031_NATIVE_ACTIVATION_REQUIRED' if scope=='sql5-aud031' else 'R3_NATIVE_ACTIVATION_REQUIRED')
+            # Until the immutable writer/receipt handoff exists, enabling the
+            # flag must never allow this PR-loaded process to reach SQL.
+            if scope=='sql5-aud031':
+                raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')
         else:
             selected=authorize_composition() if scope=='combined' else authorize_package(scope) if scope!='directory' else None
             if hashlib.sha256((ROOT / 'scripts/b2-directory-postgres.py').read_bytes()).hexdigest() != HISTORICAL_HARNESS_SHA:

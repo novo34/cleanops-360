@@ -1028,6 +1028,12 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertIs(runner.AUD031_NATIVE_ENABLED,False)
         self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
 
+    def test_enabling_native_flag_alone_never_loads_transport_without_trusted_reservation(self):
+        # A fresh exact synthetic approval cannot substitute for the missing
+        # trusted-writer integration, even if activation is toggled separately.
+        with patch.object(runner,'AUD031_NATIVE_ENABLED',True):
+            self.assertEqual(self.reject_before_transport(),'AUD031_TRUSTED_RESERVATION_REQUIRED')
+
     def test_unconfigured_production_context_rejects_before_transport(self):
         with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
             self.assertIn('AUD031_REVIEW_CONTEXT_NOT_CONFIGURED',self.reject_before_transport())
@@ -1243,15 +1249,27 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'RESERVATION_NOT_PRESERVED'):
                 exercise(api,runner.reserve_aud031,auth,runner.AUD031_RESERVATION_TARGET)
 
-    def test_pinned_authorizer_bytes_require_reviewed_publication_before_integration(self):
-        import re
+    def test_probe_pins_published_bytes_and_candidate_only_adds_missing_reservation_gate(self):
+        import ast,re
         job=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-reservation-probe:',1)[1]
         pinned=re.search(r'^          ref: ([0-9a-f]{40})$',job,re.M).group(1)
         expected=re.search(r"hashlib.sha256\(source.read_bytes\(\)\).hexdigest\(\)!='([0-9a-f]{64})'",job).group(1)
-        self.assertEqual(expected,hashlib.sha256((ROOT/'scripts/b2-directory-postgres.py').read_bytes()).hexdigest())
         published=subprocess.check_output(['git','show',pinned+':scripts/b2-directory-postgres.py'],cwd=ROOT)
-        if hashlib.sha256(published).hexdigest()!=expected:
-            self.skipTest('New authorizer bytes unpublished: trusted checkout pin NOT_VALIDATED; workflow fails before signing or App API')
+        self.assertEqual(hashlib.sha256(published).hexdigest(),expected)
+        candidate=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        guard=ast.dump(ast.parse("if scope=='sql5-aud031':\n raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')").body[0])
+        class RemoveMissingIntegrationGate(ast.NodeTransformer):
+            count=0
+            def visit_If(self,node):
+                if ast.dump(node)==guard:
+                    self.count+=1;return None
+                return self.generic_visit(node)
+        removed=RemoveMissingIntegrationGate();normalized=removed.visit(candidate)
+        self.assertEqual(removed.count,1)
+        # The installed probe's immutable module stays pinned. All its code,
+        # including reserve_aud031 and R3, must match the candidate except for
+        # the explicit new refusal to run an unintegrated native AUD031 route.
+        self.assertEqual(ast.dump(normalized),ast.dump(ast.parse(published)))
         self.assertIn(runner.AUD031_RESERVATION_TARGET,published.decode())
 
     def test_error_ambiguity_timeout_and_retry_fail_closed(self):
