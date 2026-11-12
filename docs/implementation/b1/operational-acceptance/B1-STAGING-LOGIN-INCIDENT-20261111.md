@@ -147,3 +147,20 @@ El cierre formal no depende solo del staging. Según `PLAN.md` (PR006/PR007, 44 
 terceros: recursos reales y custodia (etapas 1–3), integración y ciclo de vida real de claves con OpenBao (4–5), autoridad de
 destinatarios verificados y recuperación (6), revisión independiente y demostración manual del PO con `PO_ACCEPTANCE_RECORD.json` (7)
 y la decisión formal de fase (8). Este documento solo acredita el funcionamiento del staging.
+
+## 11. Comprobación tras el Deploy (2026-11-12, 18:2x UTC)
+
+Solo lectura, script verificado (commit `36392c6`, sha256 `839a418c…632a91`); clon temporal borrado.
+
+| Comprobación | Resultado |
+|---|---|
+| `enable-trusted-devices` (con el «sí» explícito del PO) | PASS, `TRUSTED_DEVICES_PREFERENCE=true` |
+| `diagnose-package` (21 pasos, `full-load`) | PASS |
+| `diagnose` (contenedor web reiniciado, sin errores nuevos de ForwardAuth) | PASS |
+| `/login` desde el navegador (HTTP/3) | 200 con CSS/JS |
+| `smoke` desde el VPS | PASS (403/403) |
+| «Recordar este dispositivo» | PASS: auditoría `auth.device.register SUCCESS` 18:25:18Z tras step-up |
+| «Añadir autenticador» | **Sin evidencia**: tras el Deploy no hay ningún step-up seguido de alta de TOTP en el registro |
+| Dos `DEPENDENCY_FAILURE` a las 18:24:22Z y 18:24:25Z (4 s tras el login) | **Sin identificar**: el registro no guarda la operación; no hubo step-up previo, así que no son el alta de TOTP tras verificar dígitos |
+
+No se ha podido confirmar por script qué commit construyó Dokploy (`inventory` devolvió FAIL en esta ejecución, motivo no recogido).
