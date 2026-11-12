@@ -5,6 +5,7 @@ import { createCustodiedBackend, type B1CustodyReferences } from './custody-comp
 import { createPasswordAdmission } from './password-admission.ts'
 import { openEnrollmentSecret, prepareSessionLabels, validateTotpMethodLimit } from './ceremony-preparation.ts'
 import { validateDummyPasswordHash } from './approved-factors.ts'
+import { createTotpEnrollmentCustody } from './enrollment-custody.ts'
 import { numeric } from './config.ts'
 import { createFirstActorCeremony, type FirstActorManifest } from './first-actor.ts'
 import type { IdentityPool } from './pg-identity-driver.ts'
@@ -92,6 +93,8 @@ export function selectAuthBackend(selection: { kind: 'closed' } | { kind: 'priva
           passwordAdmission, normalizeEmail, maxEligibleTotpMethods,
           transport: readTransport, sessionLabels,
           cursorKey: borrow(refs.cursor, key => key),
+          // Authenticated self-service TOTP enrollment seals with the reviewed installation key.
+          enrollment: createTotpEnrollmentCustody(versions, borrow, c.origin),
           factors: {
             dummyPasswordHash,
             auditKey: borrow(refs.audit, key => key),
