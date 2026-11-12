@@ -978,6 +978,7 @@ class Aud031ContractTests(unittest.TestCase):
             raw=subprocess.check_output(['git','--no-replace-objects','show','HEAD:'+name],cwd=ROOT)
             self.candidate[name]=raw
             path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+        self.committed_candidate=dict(self.candidate)
         self.historical={name:subprocess.check_output(['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT) for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
         self.previous_sources={name:subprocess.check_output(['git','--no-replace-objects','show','735b7fc59ea261183e1cf0a801b49b6e0ca81f65:'+name],cwd=ROOT) for name in ('scripts/b2-directory-postgres.py',runner.R3_WORKFLOW)}
         self.context={**runner.AUD031_CONTEXT,'pullRequest':23} # synthetic, never production context
@@ -1065,13 +1066,13 @@ class Aud031ContractTests(unittest.TestCase):
                 (self.root/name).write_bytes(original);self.candidate[name]=original;self.manifest['files'][name]=hashlib.sha256(original).hexdigest();self.refresh_review()
 
     def test_real_manifest_hashes_and_pending_owner_decisions(self):
-        manifest=json.loads(self.candidate[runner.AUD031_MANIFEST])
+        manifest=json.loads(self.committed_candidate[runner.AUD031_MANIFEST])
         self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
         self.assertEqual(manifest['context']['pullRequest'],23)
         self.assertEqual(manifest['context'],runner.AUD031_CONTEXT)
         self.assertEqual(set(manifest['files']),runner.AUD031_FILES)
         for name,digest in manifest['files'].items():
-            raw=self.candidate[name]
+            raw=self.committed_candidate[name]
             self.assertEqual(hashlib.sha256(raw).hexdigest(),digest,name)
 
     def test_expiry_cleanup_has_index_and_one_captured_cutoff_per_function(self):
