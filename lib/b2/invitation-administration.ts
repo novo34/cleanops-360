@@ -16,9 +16,11 @@ export async function changeInvitation(broker:V4Broker,input:Input,binding:Bindi
  if(!valid(contract.components.schemas.B2InvitationChangeInput,input))throw new AuthError(422,'INVALID_INPUT')
  if(!Buffer.isBuffer(key)||key.length!==32||!Buffer.isBuffer(request)||request.length!==32)throw unavailable()
  if(input.operation!=='REVOKE'&&!deps.mail)throw unavailable()
- const payload={...input,...(input.operation==='CREATE'?{email:deps.normalizeEmail(String(input.email))}:{})}
+ // SQL compares the JSON locator to candidate::text, which PostgreSQL emits
+ // in lowercase. Normalize both representations without mutating the request.
+ const payload:Input={...input,...(input.operation==='CREATE'?{email:deps.normalizeEmail(String(input.email))}:{invitation_id:String(input.invitation_id).toLowerCase()})}
  if(!valid(contract.components.schemas.B2InvitationChangeInput,payload))throw new AuthError(422,'INVALID_INPUT')
- const candidate=input.operation==='CREATE'?randomUUID():String(input.invitation_id).toLowerCase()
+ const candidate=input.operation==='CREATE'?randomUUID():String(payload.invitation_id)
  const material=await broker.call('invitationDraftOwned',[JSON.stringify(payload),candidate,key,request,correlation])
  if(!object(material))throw unavailable()
  if(Object.keys(material).length===1&&typeof material.error==='string'){
