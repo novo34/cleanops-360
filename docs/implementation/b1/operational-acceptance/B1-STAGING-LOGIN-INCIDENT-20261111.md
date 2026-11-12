@@ -124,3 +124,26 @@ aprobación); no se ha insertado nada a mano.
 | Añadir autenticador | **FAIL: `DEPENDENCY_FAILURE`** un segundo después del step-up correcto (21:11:41Z → 21:11:42Z). Mismo patrón a las 20:57Z. La UI vuelve al menú sin mostrar el QR | causa sin determinar: `enrollTotp` lanza `unavailable()` (candidatos: `deps.enrollment` ausente, límite de métodos sin definir, alias de cuenta, o clave de escritura de custodia/OpenBao) |
 | Reintentos posteriores | `RATE_LIMITED` ×3 (21:12Z) | límite de emisión de desafíos; se libera solo |
 | Usuarios y permisos | NO PROBADO: el formulario exige el UUID (36 caracteres) del usuario destino y la UI no lo muestra ni lista usuarios | hueco de usabilidad; `first-actor-info` no imprime el `userId` |
+
+## 9. Arreglos tras la prueba P5 (2026-11-12)
+
+| Hallazgo | Causa confirmada | Arreglo | Estado |
+|---|---|---|---|
+| «Añadir autenticador» → `DEPENDENCY_FAILURE` | El runtime privado no proporcionaba la capacidad `enrollment` del backend aprobado (solo existía en el backend sintético de pruebas), así que `enrollTotp` fallaba cerrado | `lib/b1/enrollment-custody.ts` + una línea en `private-runtime.ts` (commit anterior a `002c0d6` en la rama): toma prestada la única clave TOTP revisada dentro del préstamo de custodia existente; falla cerrado con otro tenant, con varias versiones de clave o con clave mal formada; etiqueta = host de la instalación | Código publicado. **Pendiente: Deploy (rebuild) en Dokploy y nueva prueba del PO** |
+| «Recordar este dispositivo» → `POLICY_DENIED` | No existe fila en `app.auth_preferences` | Subcomando `enable-trusted-devices` (y `rollback enable-trusted-devices`): escribe la preferencia solo para el único tenant con primer actor `COMMITTED` | Código publicado. **Pendiente: «sí» explícito del PO para ejecutarlo (U-6.1)** |
+| «Usuarios y permisos» pide un UUID que la UI no muestra | Hueco de usabilidad | `first-actor-info` informa `FIRST_ACTOR_USER_ID` | Hecho. Pendiente la prueba del PO |
+
+Verificación local de estos cambios: suite B1 completa `348/348` (Node 24, PostgreSQL 16 desechable, openssl), `tsc --noEmit` limpio,
+`eslint` 0 errores (1 aviso previo en `components/`), `tests/static/test_b1_staging.py` 37 pasan, 1 se salta y
+`test_inventory_reports_journal_matches_after_install` falla en ese contenedor (sin Node).
+
+Límite conocido del alta de TOTP: con más de una versión de clave TOTP en el catálogo la escritura falla cerrada; elegir la
+clave de escritura en una rotación es una decisión de custodia que no se toma aquí. El número máximo de autenticadores lo fija
+`maxEligibleTotpMethods` del manifiesto: si ya se alcanzó, la respuesta correcta es `METHOD_LIMIT`.
+
+## 10. Qué falta para cerrar B1 formalmente
+
+El cierre formal no depende solo del staging. Según `PLAN.md` (PR006/PR007, 44 filas) siguen abiertos y son del propietario o de
+terceros: recursos reales y custodia (etapas 1–3), integración y ciclo de vida real de claves con OpenBao (4–5), autoridad de
+destinatarios verificados y recuperación (6), revisión independiente y demostración manual del PO con `PO_ACCEPTANCE_RECORD.json` (7)
+y la decisión formal de fase (8). Este documento solo acredita el funcionamiento del staging.
