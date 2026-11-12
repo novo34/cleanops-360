@@ -4,9 +4,10 @@ import { createApprovedPrivateBackend } from '../../lib/b1/approved-backend.ts'
 import { createAuthHandler, digest, names } from '../../lib/b1/service.ts'
 import { profile } from '../../lib/b1/config.ts'
 import { openEnrollmentSecret } from '../../lib/b1/ceremony-preparation.ts'
+import { createTotpEnrollmentCustody } from '../../lib/b1/enrollment-custody.ts'
 const id = (n: number) => '00000000-0000-4000-8000-'+String(n).padStart(12,'0')
 const now = 1700000000000, expiry = now+60000, raw='a'.repeat(43),csrf='b'.repeat(43),origin='https://enroll.fixture.invalid'
-async function fixture(options: { commitFailure?: boolean; foreign?: boolean; denied?: boolean; custodyFailure?: boolean; replay?: boolean; atCap?: boolean; missingBound?: boolean }={}) {
+async function fixture(options: { commitFailure?: boolean; foreign?: boolean; denied?: boolean; custodyFailure?: boolean; replay?: boolean; atCap?: boolean; missingBound?: boolean; reviewed?: 'own'|'other' }={}) {
  let committed=false,keyReads=0
  const key=Buffer.alloc(32,7),calls:string[]=[]
  const pool={ async connect() { let business=false;return { async query(sql:string,values:unknown[]=[]) {
@@ -33,7 +34,8 @@ async function fixture(options: { commitFailure?: boolean; foreign?: boolean; de
  const dummy='$argon2id$v=19$m=65536,t=3,p=1$'+Buffer.alloc(16,1).toString('base64').replace(/=+$/,'')+'$'+Buffer.alloc(32,2).toString('base64').replace(/=+$/,'')
  const backend=createApprovedPrivateBackend(pool,{now:()=>now,factors:{dummyPasswordHash:dummy,auditKey:Buffer.alloc(32,1),otpKey:Buffer.alloc(32,2),recoveryKey:Buffer.alloc(32,3),async decryptTotp(){throw Error('not called')}},
   maxEligibleTotpMethods:options.missingBound?undefined:4,cursorKey:Buffer.alloc(32,4),transport:()=>({network:Buffer.alloc(32,5),device:Buffer.alloc(32,6)}),normalizeEmail:x=>x,
-  enrollment:{async withWriteKey(tenant,work){keyReads++;assert.equal(tenant,id(2));if(options.custodyFailure)throw Error('private key unavailable');return work(key,'fixture-v1')},async accountAlias(){return 'non-pii-alias'}}})
+  enrollment:options.reviewed?createTotpEnrollmentCustody([{keyVersion:'fixture-v1',reference:{tenantId:id(options.reviewed==='own'?2:9),purpose:'totp-aead',keyId:'fixture-key',version:1}}],(_reference,work)=>{keyReads++;return work(key)},origin):
+  {async withWriteKey(tenant,work){keyReads++;assert.equal(tenant,id(2));if(options.custodyFailure)throw Error('private key unavailable');return work(key,'fixture-v1')},async accountAlias(){return 'non-pii-alias'}}})
  const handler=createAuthHandler(backend,origin,()=>now)
  const request=()=>handler.handle(new Request(origin+'/mfa/totp/enroll',{method:'POST',headers:{cookie:names.preauth+'='+raw+'; '+names.csrf+'='+csrf,origin,'sec-fetch-site':'same-origin','x-csrf-token':csrf,'idempotency-key':'fixture-enroll-once-123'}}),'enrollTotp')
  return {request,calls,get committed(){return committed},get keyReads(){return keyReads}}
@@ -64,4 +66,15 @@ test('missing method bound or full ACTIVE set denies provisioning before key acc
   const f=await fixture(options),response=await f.request();assert.equal(response.status,status)
   assert.equal(f.keyReads,0);assert.equal(f.calls.includes('begin_totp_enrollment_assigned'),false)
  }
+})
+
+test('runtime enrollment custody: reviewed key seals the method, another tenant key and a replay never provision',async()=>{
+ const own=await fixture({reviewed:'own'}),response=await own.request();assert.equal(response.status,200);assert.equal(own.committed,true);assert.equal(own.keyReads,1)
+ const uri=new URL((await response.json()).data.provisioning_uri)
+ assert.ok(decodeURIComponent(uri.pathname).includes('enroll.fixture.invalid'),'label is the installation host, never an identity')
+ assert.equal(own.calls.filter(n=>n==='begin_totp_enrollment_assigned').length,1)
+ const other=await fixture({reviewed:'other'}),denied=await other.request();assert.equal(denied.status,503);assert.equal(other.committed,false)
+ assert.equal(other.keyReads,0);assert.equal(other.calls.includes('begin_totp_enrollment_assigned'),false);assert.equal((await denied.text()).includes('otpauth:'),false)
+ const replay=await fixture({reviewed:'own',replay:true}),again=await replay.request();assert.equal(again.status,409);assert.equal(replay.keyReads,0)
+ assert.equal(replay.calls.includes('begin_totp_enrollment_assigned'),false)
 })
