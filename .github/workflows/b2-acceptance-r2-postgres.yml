@@ -261,7 +261,7 @@ jobs:
               diagnostic.update(stage=stage,http=None)
           def report_failure(error):
               stages=('TRUSTED_SOURCE', 'JWT_SIGNING', 'INSTALLATION', 'READ_TOKEN', 'INSTALLATION_SCOPE', 'READ_TOKEN_REVOCATION', 'WRITE_TOKEN', 'RESERVATION_RACE', 'REUSE', 'UPDATE_PROTECTION', 'DELETE_PROTECTION', 'RESERVATION_PRESERVATION', 'LOST_RESPONSE', 'TOKEN_REVOCATION')
-              codes=('EXCLUSIVITY_FAILED', 'REUSE_ACCEPTED', 'PROTECTION_DENIAL_NOT_CONFIRMED', 'RESERVATION_NOT_PRESERVED', 'PROBE_SETUP_FAILED', 'UNCERTAIN_CREATION_RECOVERED', 'ENDPOINT_FORBIDDEN', 'TRUSTED_BYTES_REQUIRED', 'KEY_REQUIRED', 'SIGNING_FAILED', 'INSTALLATION_REQUIRED', 'TOKEN_REQUIRED', 'REPOSITORY_SCOPE_REQUIRED', 'READ_TOKEN_REVOCATION_REQUIRED', 'TOKEN_REVOCATION_FAILED')
+              codes=('EXCLUSIVITY_FAILED', 'REUSE_ACCEPTED', 'REJECTION_NOT_CONFIRMED', 'PROTECTION_DENIAL_NOT_CONFIRMED', 'RESERVATION_NOT_PRESERVED', 'PROBE_SETUP_FAILED', 'UNCERTAIN_CREATION_RECOVERED', 'ENDPOINT_FORBIDDEN', 'TRUSTED_BYTES_REQUIRED', 'KEY_REQUIRED', 'SIGNING_FAILED', 'INSTALLATION_REQUIRED', 'TOKEN_REQUIRED', 'REPOSITORY_SCOPE_REQUIRED', 'READ_TOKEN_REVOCATION_REQUIRED', 'TOKEN_REVOCATION_FAILED')
               stage=diagnostic['stage']
               if type(stage) is not str or stage not in stages:stage='UNKNOWN'
               code='UNEXPECTED_ERROR'
@@ -276,8 +276,8 @@ jobs:
               barrier=threading.Barrier(2, timeout=15)
               def create(ref, sha):
                   return api('POST','/repos/novo34/cleanops-360/git/refs',{'ref':ref,'sha':sha})
-              def attempt(run):
-                  barrier.wait()
+              def attempt(run, identity=auth, synchronize=True):
+                  if synchronize:barrier.wait()
                   # Per-attempt state: the shared last_http cannot explain a race.
                   outcome={'http':None,'denial':'NO_RESPONSE','confirmed':False}
                   def observed_create(ref,sha):
@@ -286,26 +286,30 @@ jobs:
                       if isinstance(response,dict):outcome['denial']=response.get('denialClass','NONE')
                       return status,response
                   try:
-                      receipt=reserve(dict(auth,runId=run),observed_create)
+                      receipt=reserve(dict(identity,runId=run),observed_create)
                       outcome['confirmed']=True
-                      return receipt
-                  except RuntimeError:return None
+                      return receipt,False
+                  except RuntimeError:
+                      # A lost response or a generic 422 is inconclusive, not a
+                      # competing denial. Only the API's exact duplicate class counts.
+                      return None,outcome['http']==422 and outcome['denial']=='REFERENCE_ALREADY_EXISTS'
                   finally:
                       status=outcome['http']
                       http=str(status) if type(status) is int and 100<=status<=599 else 'NONE'
                       denial=outcome['denial']
-                      if type(denial) is not str or denial not in ('NO_RESPONSE','NONE','RULESET_DENIED','INTEGRATION_DENIED','WORKFLOW_DENIED','OTHER_HTTP_ERROR'):
+                      if type(denial) is not str or denial not in ('NO_RESPONSE','NONE','REFERENCE_ALREADY_EXISTS','RULESET_DENIED','INTEGRATION_DENIED','WORKFLOW_DENIED','OTHER_HTTP_ERROR'):
                           denial='OTHER_HTTP_ERROR'
                       print(f'PROBE attempt={run}; confirmed={outcome["confirmed"]}; http={http}; denial={denial}')
               with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                   results=list(pool.map(attempt,('1','2')))
-              winners=[r for r in results if r]
-              if len(winners)!=1:raise RuntimeError('EXCLUSIVITY_FAILED')
+              winners=[receipt for receipt,rejected in results if receipt is not None]
+              if len(winners)!=1 or sum(rejected for receipt,rejected in results)!=1:
+                  raise RuntimeError('EXCLUSIVITY_FAILED')
               receipt=winners[0]
               mark('REUSE')
-              try:reserve(dict(auth,runId='3'),create)
-              except RuntimeError:pass
-              else:raise RuntimeError('REUSE_ACCEPTED')
+              reused,rejected=attempt('3',synchronize=False)
+              if reused is not None:raise RuntimeError('REUSE_ACCEPTED')
+              if not rejected:raise RuntimeError('REJECTION_NOT_CONFIRMED')
               endpoint='/repos/novo34/cleanops-360/git/'+receipt['ref']
               for method,payload in [('PATCH',{'sha':auth['base'],'force':True}),('DELETE',None)]:
                   mark('UPDATE_PROTECTION' if method=='PATCH' else 'DELETE_PROTECTION')
@@ -319,14 +323,23 @@ jobs:
               # Lost reply AFTER server creation must burn a separate probe identity.
               mark('LOST_RESPONSE')
               lost=dict(auth,reviewBodySha256=hashlib.sha256(b'probe-lost-response').hexdigest())
+              created=False
               def uncertain(ref,sha):
-                  status,_=create(ref,sha)
-                  if status!=201:raise RuntimeError('PROBE_SETUP_FAILED')
+                  nonlocal created
+                  status,value=create(ref,sha)
+                  if (status!=201 or not isinstance(value,dict) or value.get('ref')!=ref
+                          or value.get('object',{}).get('type')!='commit' or value['object'].get('sha')!=sha):
+                      raise RuntimeError('PROBE_SETUP_FAILED')
+                  created=True
                   raise TimeoutError('simulated lost reply')
-              for transport in (uncertain,create):
-                  try:reserve(lost,transport)
-                  except RuntimeError:pass
-                  else:raise RuntimeError('UNCERTAIN_CREATION_RECOVERED')
+              try:reserve(lost,uncertain)
+              except RuntimeError as error:
+                  if not created or error.args!=('AUD031_EXCLUSIVE_RESERVATION_NOT_CONFIRMED',):
+                      raise RuntimeError('PROBE_SETUP_FAILED') from None
+              else:raise RuntimeError('UNCERTAIN_CREATION_RECOVERED')
+              reused,rejected=attempt('4',identity=lost,synchronize=False)
+              if reused is not None:raise RuntimeError('UNCERTAIN_CREATION_RECOVERED')
+              if not rejected:raise RuntimeError('REJECTION_NOT_CONFIRMED')
               return receipt['ref']
 
           token=None
@@ -356,6 +369,12 @@ jobs:
                       if not denied and type(message) is str:
                           if message=='Resource not accessible by integration':classification='INTEGRATION_DENIED'
                           elif message.startswith('refusing to allow a GitHub App to create or update workflow '):classification='WORKFLOW_DENIED'
+                      errors=value.get('errors')
+                      duplicate=message=='Reference already exists' or (isinstance(errors,list) and any(
+                          isinstance(item,dict) and item.get('resource')=='Reference' and item.get('field')=='ref'
+                          and item.get('code')=='already_exists' for item in errors))
+                      if not denied and error.code==422 and method=='POST' and path=='/repos/novo34/cleanops-360/git/refs' and duplicate:
+                          classification='REFERENCE_ALREADY_EXISTS'
                   except Exception:denied=False;classification='OTHER_HTTP_ERROR'
                   return error.code,{'rulesetDenied':denied,'denialClass':classification}
           try:

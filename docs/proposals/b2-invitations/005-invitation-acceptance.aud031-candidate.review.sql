@@ -50,6 +50,7 @@ CREATE TABLE identity_private.invitation_acceptance_attempts (
 );
 CREATE INDEX invitation_acceptance_attempt_recipient ON identity_private.invitation_acceptance_attempts(principal_digest,event_code,occurred_at);
 CREATE INDEX invitation_acceptance_attempt_network ON identity_private.invitation_acceptance_attempts(network_digest,event_code,occurred_at);
+CREATE INDEX invitation_acceptance_attempt_expiry ON identity_private.invitation_acceptance_attempts(expires_at);
 GRANT SELECT,INSERT,DELETE ON identity_private.invitation_acceptance_attempts TO cleanops_auth_broker;
 REVOKE ALL ON identity_private.invitation_acceptance_attempts FROM PUBLIC,cleanops_runtime,cleanops_identity_service,cleanops_mail_worker;
 
@@ -72,10 +73,12 @@ BEGIN
 END $fn$;
 CREATE FUNCTION identity_private.invitation_attempt_denied(t uuid,invitation uuid,recipient bytea,network bytea,corr uuid,action_name text) RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
+DECLARE cleanup_cutoff timestamptz;
 BEGIN
  PERFORM auth_api.rate_attempt(recipient,'USER','LOGIN',5);
  PERFORM auth_api.rate_attempt(crypto.digest(convert_to('INVITATION_FAILURE_ORIGIN','UTF8')||network,'sha256'),'IP','LOGIN',30);
- DELETE FROM identity_private.invitation_acceptance_attempts WHERE expires_at<=clock_timestamp();
+ cleanup_cutoff:=clock_timestamp();
+ DELETE FROM identity_private.invitation_acceptance_attempts WHERE expires_at<=cleanup_cutoff;
  INSERT INTO identity_private.invitation_acceptance_attempts VALUES(gen_random_uuid(),recipient,network,CASE WHEN action_name LIKE '%factor%' THEN 'INVITATION_MFA_DENIED' ELSE 'INVITATION_CREDENTIAL_DENIED' END,clock_timestamp(),clock_timestamp()+interval '15m');
  INSERT INTO identity_private.security_log VALUES(gen_random_uuid(),recipient,network,NULL,CASE WHEN action_name LIKE '%factor%' THEN 'INVITATION_MFA_DENIED' ELSE 'INVITATION_CREDENTIAL_DENIED' END,corr,clock_timestamp(),clock_timestamp()+make_interval(secs=>identity_private.cfg('preauth_security_log_retention')));
  IF (SELECT count(*) FROM identity_private.invitation_acceptance_attempts WHERE principal_digest=recipient AND event_code IN('INVITATION_MFA_DENIED','INVITATION_CREDENTIAL_DENIED') AND occurred_at>clock_timestamp()-interval '15m')>=5 THEN
@@ -90,13 +93,14 @@ END $fn$;
 CREATE FUNCTION auth_api.invitation_link_material(invitation uuid,raw_secret text,network bytea,device bytea,corr uuid) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE v identity_private.user_invitations;s identity_private.invitation_policy;p identity_private.principals;cred identity_private.credentials;
- candidate bytea;decoded bytea;recipient bytea;pid uuid;cap uuid:=gen_random_uuid();uid uuid:=gen_random_uuid();pv bigint;until_at timestamptz;mfa boolean;
+ candidate bytea;decoded bytea;recipient bytea;pid uuid;cap uuid:=gen_random_uuid();uid uuid:=gen_random_uuid();pv bigint;until_at timestamptz;mfa boolean;cleanup_cutoff timestamptz;
 BEGIN
  PERFORM identity_private.require_enabled();
  IF invitation IS NULL OR corr IS NULL OR network IS NULL OR octet_length(network)<>32 OR device IS NULL OR octet_length(device)<>32
  OR raw_secret IS NULL OR raw_secret !~ '^[A-Za-z0-9_-]{43}$' THEN RETURN NULL;END IF;
  IF identity_private.cfg('preauth_security_log_retention')<900 THEN RAISE EXCEPTION 'INVITATION_POLICY_UNAVAILABLE';END IF;
- DELETE FROM identity_private.invitation_acceptance_attempts WHERE expires_at<=clock_timestamp();
+ cleanup_cutoff:=clock_timestamp();
+ DELETE FROM identity_private.invitation_acceptance_attempts WHERE expires_at<=cleanup_cutoff;
  INSERT INTO identity_private.invitation_acceptance_attempts VALUES(gen_random_uuid(),crypto.digest(convert_to('INVITATION_LINK_ID'||invitation::text,'UTF8'),'sha256'),network,'INVITATION_LINK_ATTEMPT',clock_timestamp(),clock_timestamp()+interval '15m');
  INSERT INTO identity_private.security_log VALUES(gen_random_uuid(),crypto.digest(convert_to('INVITATION_LINK_ID'||invitation::text,'UTF8'),'sha256'),network,device,'INVITATION_LINK_ATTEMPT',corr,clock_timestamp(),clock_timestamp()+make_interval(secs=>identity_private.cfg('preauth_security_log_retention')));
  IF (SELECT count(*) FROM identity_private.invitation_acceptance_attempts WHERE principal_digest=crypto.digest(convert_to('INVITATION_LINK_ID'||invitation::text,'UTF8'),'sha256') AND event_code='INVITATION_LINK_ATTEMPT' AND occurred_at>clock_timestamp()-interval '15m')>10 OR (SELECT count(*) FROM identity_private.invitation_acceptance_attempts WHERE network_digest=network AND event_code='INVITATION_LINK_ATTEMPT' AND occurred_at>clock_timestamp()-interval '15m')>30 THEN RETURN NULL;END IF;

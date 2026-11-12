@@ -44,6 +44,7 @@ def run(b):
     b.check('SQL5-explicit-synthetic-tenant-policy',f"INSERT INTO identity_private.invitation_policy(tenant_id,link_seconds,default_risk_class,operational_mfa_required) VALUES('{b.A}',86400,'SENSITIVE',true),('{b.B}',86400,'SENSITIVE',true);")
     b.check('SQL5-no-direct-identity-access','SELECT * FROM identity_private.invitation_acceptances;',role=service,failure='42501')
     b.check('SQL5-R2-attempt-ledger-private','SELECT * FROM identity_private.invitation_acceptance_attempts;',role=service,failure='42501')
+    b.check('AUD031-expiry-cleanup-index',"SELECT indisvalid AND indisready AND indnkeyatts=1 AND indpred IS NULL AND pg_get_indexdef(indexrelid,1,false)='expires_at' FROM pg_index WHERE indexrelid=to_regclass('identity_private.invitation_acceptance_attempt_expiry');",'t')
     b.check('SQL5-R2-B1-security-log-remains-append-only',"SELECT NOT has_table_privilege('cleanops_auth_broker','identity_private.security_log','SELECT') AND has_table_privilege('cleanops_auth_broker','identity_private.security_log','INSERT');",'t')
     b.check('SQL5-no-runtime-call',f"SELECT auth_api.consume_invitation_acceptance(repeat('a',43),repeat('b',43),{accept_key},'{uuid.uuid4()}');",role=b.ROLE['runtime'],failure='42501')
     b.check('AUD031-unique-new-signature',"SELECT to_regprocedure('auth_api.consume_invitation_acceptance(text,text,uuid)') IS NULL AND count(*)=1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='auth_api' AND p.proname='consume_invitation_acceptance';",'t')

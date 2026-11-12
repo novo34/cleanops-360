@@ -20,7 +20,7 @@
     "sql5R2Sha256": "eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9"
   },
   "files": {
-    ".github/workflows/b2-acceptance-r2-postgres.yml": "c8462dd49e2378975e2f27c575f295754699e47b9b06bf1239be2af7c54b0f9b",
+    ".github/workflows/b2-acceptance-r2-postgres.yml": "4806c3b63d8d48c63173bcc394e9ddbf75055e0c1bc81e8e546e7f41131577eb",
     "components/invitation-acceptance-panel.tsx": "a54def864798c44e2b113acf278e9d146dbbbfdc167368dbaea1827d9d1d577a",
     "docs/RBAC_PERMISSIONS.md": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3",
     "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json": "b459e9ec99c17da411fef8d482a50c8feb6f565f89ae44b456162b71aecc0b2d",
@@ -38,9 +38,9 @@
     "docs/proposals/b2-integration/combined-tests.review.py": "710038fe021b2863338230c09d868712ef06a0864b2dc17058da624d176b58f3",
     "docs/proposals/b2-integration/workflow.review.yml": "bc2f34f905d57e26b7d7d3a1e56e16e7655eb4b748c222e5275f055ca9257fce",
     "docs/proposals/b2-invitations/004-invitation-administration.review.sql": "e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96",
-    "docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql": "06156e11e460102cae3568b0cf58d53b8b7638293d8b712d11fd86a379e65471",
+    "docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql": "14778f0054a307c69037240d068d0d3015067b2febbf42c4cdad021dffa5bb64",
     "docs/proposals/b2-invitations/005-invitation-acceptance.r3-candidate.review.sql": "b017fed6d5c3f7590fb1e36f8655332ad26a8ad4b4c673edb7dea90e676d44b2",
-    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "256d26c1d3695cc2058870d6f8d51e856b22c803116bae4fb9bedc6a845c2f19",
+    "docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py": "11f1369d49ebe58e83dfb39beceb878eb5e771c8e05e100bc19f98271ed1943f",
     "docs/proposals/b2-invitations/acceptance-tests.r3-candidate.review.py": "aa05424abb1cacc3da418d65cd2137d8c305d639eb0032e9a7ebc47659fbccbb",
     "docs/proposals/b2-invitations/sql5-r3-candidate-manifest.review.json": "907d691791d73be42d03db266b5e7ad92c5c5ead098a29134f022709aa6e6b97",
     "docs/proposals/b2-users/001-directory.review.sql": "8a380379b392536bb986136c997833c57ca4e482de3c418b389b898245e8e31f",
@@ -63,7 +63,7 @@
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "69dbe4027cb08cdfdc0d9763b19f5c86dc09f0c4f0f82262fed028dca8f230af"
+    "tests/static/test_b2_execution_preflight.py": "df9dc2bdb7d34d5ccc76ea66a75be48a6ba6ad9ed851755b422c5fd0f86003c1"
   },
   "contractApproved": false,
   "executionAuthorized": false

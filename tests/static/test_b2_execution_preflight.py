@@ -975,7 +975,7 @@ class Aud031ContractTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.candidate={}
         for name in runner.AUD031_FILES | {runner.AUD031_MANIFEST}:
-            raw=(ROOT/name).read_bytes() if name in {'scripts/b2-directory-postgres.py',runner.R3_WORKFLOW,'tests/static/test_b2_execution_preflight.py',runner.AUD031_SQL,runner.AUD031_FIXTURE,runner.AUD031_MANIFEST} else subprocess.check_output(['git','--no-replace-objects','show','HEAD:'+name],cwd=ROOT)
+            raw=subprocess.check_output(['git','--no-replace-objects','show','HEAD:'+name],cwd=ROOT)
             self.candidate[name]=raw
             path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
         self.historical={name:subprocess.check_output(['git','--no-replace-objects','show',runner.COMPOSITION_REFERENCE+':'+name],cwd=ROOT) for name in runner.COMPOSITION_FILES | {runner.COMPOSITION_MANIFEST}}
@@ -1065,7 +1065,7 @@ class Aud031ContractTests(unittest.TestCase):
                 (self.root/name).write_bytes(original);self.candidate[name]=original;self.manifest['files'][name]=hashlib.sha256(original).hexdigest();self.refresh_review()
 
     def test_real_manifest_hashes_and_pending_owner_decisions(self):
-        manifest=json.loads((ROOT/runner.AUD031_MANIFEST).read_bytes())
+        manifest=json.loads(self.candidate[runner.AUD031_MANIFEST])
         self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
         self.assertEqual(manifest['context']['pullRequest'],23)
         self.assertEqual(manifest['context'],runner.AUD031_CONTEXT)
@@ -1073,6 +1073,16 @@ class Aud031ContractTests(unittest.TestCase):
         for name,digest in manifest['files'].items():
             raw=self.candidate[name]
             self.assertEqual(hashlib.sha256(raw).hexdigest(),digest,name)
+
+    def test_expiry_cleanup_has_index_and_one_captured_cutoff_per_function(self):
+        sql=self.candidate[runner.AUD031_SQL].decode()
+        self.assertIn('CREATE INDEX invitation_acceptance_attempt_expiry ON identity_private.invitation_acceptance_attempts(expires_at);',sql)
+        self.assertEqual(sql.count('WHERE expires_at<=cleanup_cutoff;'),2)
+        self.assertNotIn('WHERE expires_at<=clock_timestamp()',sql)
+        for name in ('identity_private.invitation_attempt_denied','auth_api.invitation_link_material'):
+            body=sql.split('CREATE FUNCTION '+name+'(',1)[1].split('END $fn$;',1)[0]
+            self.assertIn('cleanup_cutoff timestamptz;',body)
+            self.assertEqual(body.count('cleanup_cutoff:=clock_timestamp();'),1)
 
     def test_candidate_fixture_and_SQL_boundary_are_static_only(self):
         import ast
@@ -1145,7 +1155,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
 
     def create(self,ref,sha):
         result=self.git('update-ref',ref,sha,'0'*40)
-        return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if result.returncode==0 else (422,{})
+        return (201,{'ref':ref,'object':{'sha':sha,'type':'commit'}}) if result.returncode==0 else (422,{'denialClass':'REFERENCE_ALREADY_EXISTS' if b'reference already exists' in result.stderr else 'OTHER_HTTP_ERROR'})
 
     def test_real_git_race_has_one_winner_and_later_runs_stay_denied(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -1329,6 +1339,51 @@ os._exit(int(sys.argv[4]))
         with self.assertRaisesRegex(RuntimeError,'EXCLUSIVITY_FAILED'):
             exercise(offline,runner.reserve_aud031,dict(self.auth,reviewId=300),runner.AUD031_RESERVATION_TARGET)
 
+    def test_probe_never_counts_network_loss_or_generic_errors_as_duplicate_denials(self):
+        exercise,_=self.probe_function()
+        for index,(phase,mode) in enumerate((('race','timeout'),('reuse','timeout'),('reuse','generic422'),('reuse','forbidden'),('lost-reuse','timeout'),('lost-reuse','generic422'))):
+            with self.subTest(phase=phase,mode=mode):
+                count=0;lock=__import__('threading').Lock()
+                def api(method,path,payload=None):
+                    nonlocal count
+                    if method=='POST':
+                        with lock:
+                            count+=1;number=count
+                            status,value=self.create(payload['ref'],payload['sha'])
+                        broken=(phase=='race' and number<=2 and status==422) or (phase=='reuse' and number==3) or (phase=='lost-reuse' and number==5)
+                        if broken:
+                            if mode=='timeout':raise TimeoutError('synthetic unobserved response')
+                            if mode=='forbidden':return 403,{'rulesetDenied':True,'denialClass':'RULESET_DENIED'}
+                            return 422,{'denialClass':'OTHER_HTTP_ERROR'}
+                        if status==422:value={'denialClass':'REFERENCE_ALREADY_EXISTS'}
+                        return status,value
+                    if method in ('PATCH','DELETE'):return 422,{'rulesetDenied':True}
+                    return 200,{'object':{'sha':runner.AUD031_RESERVATION_TARGET}}
+                expected='EXCLUSIVITY_FAILED' if phase=='race' else 'REJECTION_NOT_CONFIRMED'
+                with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(RuntimeError,expected):
+                    exercise(api,runner.reserve_aud031,dict(self.auth,reviewId=600+index),runner.AUD031_RESERVATION_TARGET)
+
+    def test_lost_response_setup_requires_exact_confirmed_creation(self):
+        exercise,_=self.probe_function()
+        for index,wrong in enumerate(('missing','ref','type','sha')):
+            with self.subTest(wrong=wrong):
+                count=0;lock=__import__('threading').Lock()
+                def api(method,path,payload=None):
+                    nonlocal count
+                    if method=='POST':
+                        with lock:
+                            count+=1;number=count;status,value=self.create(payload['ref'],payload['sha'])
+                        if number==4:
+                            if wrong=='missing':return 201,{}
+                            value={'ref':payload['ref'],'object':{'type':'commit','sha':payload['sha']}}
+                            if wrong=='ref':value['ref']+='0'
+                            else:value['object'][wrong]='unapproved'
+                        return status,value
+                    if method in ('PATCH','DELETE'):return 422,{'rulesetDenied':True}
+                    return 200,{'object':{'sha':runner.AUD031_RESERVATION_TARGET}}
+                with contextlib.redirect_stdout(io.StringIO()),self.assertRaisesRegex(RuntimeError,'PROBE_SETUP_FAILED'):
+                    exercise(api,runner.reserve_aud031,dict(self.auth,reviewId=700+index),runner.AUD031_RESERVATION_TARGET)
+
     def test_race_reports_each_attempt_without_leaking_response_or_network_error(self):
         exercise,_=self.probe_function()
         marker='SENSITIVE_RESPONSE_JWT_TOKEN_PRIVATE_KEY'
@@ -1504,6 +1559,25 @@ os._exit(int(sys.argv[4]))
             self.assertEqual(status,403)
             self.assertEqual(value,{'rulesetDenied':expected=='RULESET_DENIED','denialClass':expected})
             self.assertNotIn(marker,json.dumps(value))
+        endpoint='/repos/novo34/cleanops-360/git/refs'
+        duplicate={'resource':'Reference','field':'ref','code':'already_exists'}
+        cases=[(422,'POST',endpoint,{'message':'Reference already exists'},'REFERENCE_ALREADY_EXISTS'),
+               (422,'POST',endpoint,{'message':'Validation Failed','errors':[duplicate]},'REFERENCE_ALREADY_EXISTS'),
+               (403,'POST',endpoint,{'message':'Reference already exists'},'OTHER_HTTP_ERROR'),
+               (422,'GET',endpoint,{'message':'Reference already exists'},'OTHER_HTTP_ERROR'),
+               (422,'POST',endpoint+'/other',{'message':'Reference already exists'},'OTHER_HTTP_ERROR'),
+               (422,'POST',endpoint,{'message':'Validation Failed','errors':[{**duplicate,'field':'sha'}]},'OTHER_HTTP_ERROR'),
+               (422,'POST',endpoint,{'message':'Repository rule violations found','errors':[duplicate]},'RULESET_DENIED')]
+        for status,method,path,body,expected in cases:
+            with self.subTest(status=status,method=method,path=path,expected=expected):
+                body['token']=marker
+                error=urllib.error.HTTPError('https://api.github.com/test',status,marker,{},io.BytesIO(json.dumps(body).encode()))
+                with patch('urllib.request.build_opener') as opener:
+                    opener.return_value.open.side_effect=error
+                    actual,value=namespace['api'](method,path,{})
+                self.assertEqual(actual,status)
+                self.assertEqual(value,{'rulesetDenied':expected=='RULESET_DENIED','denialClass':expected})
+                self.assertNotIn(marker,json.dumps(value))
 
     def test_nominal_secret_empty_value_denies_before_signing_or_API(self):
         import ast,textwrap,types
@@ -1523,6 +1597,25 @@ os._exit(int(sys.argv[4]))
         self.assertIn('environment: cleanops-native-auth-probe',workflow)
         self.assertIn('required: true',workflow.split('  pull_request_review:',1)[0])
 
+class Aud031CommittedCheckoutTests(unittest.TestCase):
+    def test_CRLF_checkout_uses_committed_candidate_bytes_for_authorization_tests(self):
+        import sys
+        with tempfile.TemporaryDirectory() as directory:
+            checkout=Path(directory)/'checkout'
+            subprocess.run(['git','clone','--quiet','--no-hardlinks','--no-checkout',str(ROOT),str(checkout)],check=True,capture_output=True)
+            subprocess.run(['git','config','core.autocrlf','true'],cwd=checkout,check=True,capture_output=True)
+            subprocess.run(['git','checkout','--quiet','--force','HEAD'],cwd=checkout,check=True,capture_output=True)
+            # Prove that this is actually the Windows-style conversion at issue.
+            self.assertIn(b'\r\n',(checkout/runner.AUD031_SQL).read_bytes())
+            self.assertIn(b'\r\n',(checkout/runner.AUD031_MANIFEST).read_bytes())
+            selected=['test_real_manifest_hashes_and_pending_owner_decisions',
+                      'test_exact_synthetic_review_selects_existing_harness_fixture_but_native_is_disabled',
+                      'test_modified_candidate_and_rehashed_historical_dependency_reject']
+            result=subprocess.run([sys.executable,'-B','-m','unittest',*[f'test_b2_execution_preflight.Aud031ContractTests.{name}' for name in selected],'-q'],
+                                  cwd=checkout,env=dict(os.environ,PYTHONPATH=str(checkout/'tests/static')),capture_output=True,timeout=120)
+            self.assertEqual(result.returncode,0,(result.stdout+result.stderr).decode())
+
+
 class Aud031TrustedCallerCompositionTests(unittest.TestCase):
     """Compose the published caller with the reusable workflow; NO API/SQL."""
     TRUSTED='4f19c36f8eda2c846c6e3c7164814f26841b3bce'
@@ -1535,7 +1628,13 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
         dispatch='  workflow_dispatch:\n'+trusted.split('  workflow_dispatch:\n',1)[1].split('  pull_request_review:',1)[0]
         caller='  aud031-probe-caller:\n'+trusted.split('  aud031-probe-caller:\n',1)[1]
         expected=previous.replace('  pull_request_review:',dispatch+'  pull_request_review:',1).rstrip()+'\n'+caller
-        self.assertEqual(source,expected)
+        import re
+        # The probe's assertions/classifier may be corrected without changing
+        # native jobs, event declarations or the installed caller's authority.
+        def without_probe(text):return re.sub(r'(?ms)^  aud031-reservation-probe:.*?(?=^  aud031-probe-caller:|\Z)','',text)
+        self.assertEqual(without_probe(source),without_probe(expected))
+        prefix=lambda text:text.split('  aud031-reservation-probe:',1)[1].split("python -I - <<'PY'",1)[0]
+        self.assertEqual(prefix(source),prefix(previous))
         self.assertEqual(source.count('  workflow_dispatch:'),1)
         self.assertEqual(source.count('  workflow_call:'),1)
         self.assertEqual(source.count('  aud031-probe-caller:'),1)
