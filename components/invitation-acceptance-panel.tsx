@@ -12,7 +12,8 @@ export function InvitationAcceptancePanel(){
   const invitation_id=fragment.get('id'),token=fragment.get('token')
   window.history.replaceState(null,'',window.location.pathname)
   if(invitation_id&&token)link.current={invitation_id,token}
-  return ()=>{link.current=null}
+  // The ref is collected on unmount. Effect replay must preserve the only copy
+  // after the fragment has been removed from the address and browser history.
  },[])
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(busy)return
