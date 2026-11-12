@@ -6,7 +6,8 @@ permissions:
 jobs:
   b1:
     if: startsWith(github.head_ref, 'feat/b1-')
-    runs-on: ubuntu-latest
+    # The pinned Playwright has no Chromium build for ubuntu 26.04 (ubuntu-latest).
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       DATABASE_URL: ''
