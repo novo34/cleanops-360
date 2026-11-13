@@ -1345,10 +1345,14 @@ class Aud031ContractTests(unittest.TestCase):
 
     def test_old_PR_branch_or_actor_and_expired_review_reject(self):
         good=json.dumps(self.event)
-        mutations=[lambda e:e['pull_request'].update(number=22),lambda e:e['pull_request']['head'].update(ref=runner.R3_CONTEXT['branch']),lambda e:e['review']['user'].update(id=123),lambda e:e['pull_request']['head']['repo'].update(fork=True),lambda e:e['review'].update(submitted_at='2020-01-01T00:00:00Z')]
-        for change in mutations:
+        mutations=[(lambda e:e['pull_request'].update(number=22),'HOSTED_CI_SCOPE_REQUIRED'),
+                   (lambda e:e['pull_request']['head'].update(ref=runner.R3_CONTEXT['branch']),'HOSTED_CI_SCOPE_REQUIRED'),
+                   (lambda e:e['review']['user'].update(id=123),'EXACT_OWNER_REVIEW_REQUIRED'),
+                   (lambda e:e['pull_request']['head']['repo'].update(fork=True),'HOSTED_CI_SCOPE_REQUIRED'),
+                   (lambda e:e['review'].update(submitted_at='2020-01-01T00:00:00Z'),'FRESH_R3_OWNER_REVIEW_REQUIRED')]
+        for index,(change,error) in enumerate(mutations):
             self.event=json.loads(good);change(self.event);self.write_event()
-            self.assertNotIn('NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+            with self.subTest(index=index):self.assertEqual(self.reject_before_transport(),error)
 
     def test_modified_candidate_and_rehashed_historical_dependency_reject(self):
         for name in (runner.AUD031_SQL,runner.R3_SQL):
