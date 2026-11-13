@@ -462,7 +462,8 @@ jobs:
               token=result.pop('token');del result
               if native_profile:
                   mark('NATIVE_RESERVATION')
-                  if auth_module.execution_context('sql5-aud031')!=native_context:
+                  if (auth_module.authorize_r3('sql5-aud031',trusted_source_sha=native_source)['authorization']!=selected['authorization']
+                          or auth_module.execution_context('sql5-aud031')!=native_context):
                       raise RuntimeError('NATIVE_CONTEXT_CHANGED')
                   confirmed=auth_module.reserve_aud031(selected['authorization'],
                       lambda ref,sha:api('POST','/repos/novo34/cleanops-360/git/refs',{'ref':ref,'sha':sha}))
@@ -491,7 +492,8 @@ jobs:
           if native_receipt is not None:
               try:
                   mark('NATIVE_RECEIPT')
-                  if auth_module.execution_context('sql5-aud031')!=native_context:
+                  if (auth_module.authorize_r3('sql5-aud031',trusted_source_sha=native_source)['authorization']!=selected['authorization']
+                          or auth_module.execution_context('sql5-aud031')!=native_context):
                       raise RuntimeError('NATIVE_CONTEXT_CHANGED')
                   with pathlib.Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
                       output.write('native_receipt='+json.dumps(native_receipt,sort_keys=True,separators=(',',':'))+'\n')

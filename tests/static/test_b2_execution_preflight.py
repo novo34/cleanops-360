@@ -1825,13 +1825,18 @@ class Aud031NativeWriterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);source=root/'trusted/scripts/b2-directory-postgres.py'
             source.parent.mkdir(parents=True);source.write_bytes(self.source if mode!='wrong-source' else b'raise AssertionError("UNTRUSTED")\n')
-            output=root/'output';calls=[];contexts=0;signatures=[];revocations=0
+            output=root/'output';calls=[];contexts=0;signatures=[];revocations=0;authorizations=0
             auth={'candidate':'1'*40,'manifestSha256':'3'*64,'workflow':'2'*40,'base':'4'*40,
                   'reviewId':123,'reviewBodySha256':'5'*64,'runId':'123','attempt':1}
             def authorize(scope,*,trusted_source_sha):
+                nonlocal authorizations
+                authorizations+=1
                 self.assertEqual((scope,trusted_source_sha),('sql5-aud031',self.SOURCE))
                 self.assertNotIn('NATIVE_AUTH_KEY',os.environ)
-                self.assertFalse(calls);self.assertFalse(signatures)
+                if authorizations==1:self.assertFalse(calls);self.assertFalse(signatures)
+                if ((mode=='refs-changed-before-create' and authorizations==2)
+                        or (mode=='refs-changed-before-output' and authorizations==3)):
+                    raise RuntimeError('CURRENT_R3_REFERENCES_REQUIRED')
                 if mode=='denied':raise RuntimeError('AUD031_EXACT_OWNER_APPROVAL_REQUIRED')
                 return {'authorization':auth}
             def context(scope):
@@ -1875,6 +1880,7 @@ class Aud031NativeWriterTests(unittest.TestCase):
             with contextlib.chdir(root),patch.dict(os.environ,{'NATIVE_PROFILE':'true','NATIVE_AUTH_KEY':key,'GITHUB_RUN_ID':'123','GITHUB_OUTPUT':str(output)},clear=True),patch('importlib.util.spec_from_file_location',return_value=spec),patch('importlib.util.module_from_spec',return_value=module),patch('subprocess.run',side_effect=signing),patch('signal.signal'),patch('urllib.request.build_opener',return_value=types.SimpleNamespace(open=request)),contextlib.redirect_stdout(stdout):
                 try:exec(self.code,{})
                 except SystemExit as error:exit_code=error.code
+            if mode=='success' and key:self.assertEqual(authorizations,3)
             text_output=stdout.getvalue()
             for private in (key,'synthetic-installation-token','synthetic private response'):
                 if private:self.assertNotIn(private,text_output)
@@ -1912,11 +1918,11 @@ class Aud031NativeWriterTests(unittest.TestCase):
                 self.assertFalse(any(method=='PATCH' or '/git/ref/' in path for method,path in calls))
 
     def test_native_writer_expiry_or_revocation_failure_has_no_receipt(self):
-        for mode in ('expired-before-create','expired-before-output','changed-context','revoke-failed'):
+        for mode in ('expired-before-create','expired-before-output','changed-context','revoke-failed','refs-changed-before-create','refs-changed-before-output'):
             with self.subTest(mode=mode):
                 code,receipt,calls,revocations,signatures=self.execute_writer(mode)
                 self.assertEqual(code,1);self.assertIsNone(receipt);self.assertEqual(revocations,2)
-                expected=0 if mode in ('expired-before-create','changed-context') else 1
+                expected=0 if mode in ('expired-before-create','changed-context','refs-changed-before-create') else 1
                 self.assertEqual(calls.count(('POST','/repos/novo34/cleanops-360/git/refs')),expected)
 
     def test_native_profile_is_disabled_and_secret_selection_never_falls_back(self):
