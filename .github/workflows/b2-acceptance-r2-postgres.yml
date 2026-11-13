@@ -536,9 +536,11 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@4fd8eb40a93cbabdc285c5186c009d975facaf77
+    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@8ff5113482db0d32bb1a7179750e32c75e63454b
     with:
       native_reservation: true
+    secrets:
+      CLEANOPS_AUD031_NATIVE_PRIVATE_KEY: ${{ secrets.CLEANOPS_AUD031_NATIVE_PRIVATE_KEY }}
   aud031-native-validation:
     needs: aud031-native-reservation
     if: inputs.native_reservation != true && inputs.reservation_probe != true && github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success' && needs.aud031-native-reservation.outputs.native_receipt != ''

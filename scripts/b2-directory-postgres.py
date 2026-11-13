@@ -105,12 +105,12 @@ AUD031_NATIVE_ENABLED = True
 # Candidate contract, not installation or execution approval. The whole W file
 # fixes the unique needs/output consumer and excludes job-name/step spoofing.
 AUD031_WRITER = {
-    'workflowSha': '4fd8eb40a93cbabdc285c5186c009d975facaf77',
+    'workflowSha': '8ff5113482db0d32bb1a7179750e32c75e63454b',
     'sourceSha': '830b9665fb65a4ec10c1368ff52ad2a743061fb8',
     'readerJob': 'aud031-native-validation',
     'writerJob': 'aud031-native-reservation / aud031-reservation-probe',
     'stepName': 'Synthetic App reservation probe only (NO SQL); or disabled native writer',
-    'readerWorkflowSha256': 'ee83174e1e3dee6efd7ad0b5a09fa44d85db5b91dfd840e9cc652b2c42cf8aa5',
+    'readerWorkflowSha256': '240f460c8227458feef1dedfcc11544fd1728b2b8b010e72628ecde79d6ac92f',
 }
 # Approved immutable ref destination; C/M/W/B remain in the authorization digest.
 AUD031_RESERVATION_TARGET = '4c625d2fb1f654fdfcabb751a4f63e5234fd9154'
@@ -534,9 +534,10 @@ def verify_aud031_receipt(authorization):
     # Pinned T still declares its disabled old caller. Metadata may list that
     # definition too; it never substitutes for the unique selected writer T.
     dormant='ecbcfe360858404ccf84f1100a27d40f46599fd3'
+    previous='4fd8eb40a93cbabdc285c5186c009d975facaf77'
     references=run.get('referenced_workflows')
     if (not isinstance(references,list) or not 1<=len(references)<=8
-            or any(not isinstance(r,dict) or (r.get('path'),r.get('sha')) not in ((path+trusted,trusted),(path+probe,probe),(path+dormant,dormant)) for r in references)
+            or any(not isinstance(r,dict) or (r.get('path'),r.get('sha')) not in ((path+trusted,trusted),(path+probe,probe),(path+dormant,dormant),(path+previous,previous)) for r in references)
             or sum(r.get('path')==path+trusted and r.get('sha')==trusted for r in references)!=1):
         raise RuntimeError('AUD031_IMMUTABLE_WRITER_REQUIRED')
     result=aud031_readonly_run_json(prefix+'/attempts/1/jobs?per_page=100')

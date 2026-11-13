@@ -1200,7 +1200,7 @@ class Aud031ContractTests(unittest.TestCase):
     def test_reader_accepts_only_exact_dormant_dependencies_of_pinned_writer(self):
         auth,receipt,run,jobs=self.reader_fixture()
         path='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'
-        for revision in ('ecbcfe360858404ccf84f1100a27d40f46599fd3','9a4c8b90a159f2853f040dc5597042c17408da00'):
+        for revision in ('4fd8eb40a93cbabdc285c5186c009d975facaf77','ecbcfe360858404ccf84f1100a27d40f46599fd3','9a4c8b90a159f2853f040dc5597042c17408da00'):
             run['referenced_workflows'].append({'path':path+revision,'sha':revision})
         self.assertEqual(self.reader_call(auth,receipt,run,jobs),receipt['reservation'])
         for field,value in (('path','foreign'),('sha','8'*40)):
@@ -2245,8 +2245,9 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         self.assertIn("native_source='"+runner.AUD031_WRITER['sourceSha']+"'",trusted)
         self.assertIn('- name: '+runner.AUD031_WRITER['stepName'],trusted)
         dormant=trusted.split('  aud031-native-reservation:',1)[1].split('  aud031-native-validation:',1)[0]
-        self.assertIn('if: false &&',dormant)
-        self.assertIn('@ecbcfe360858404ccf84f1100a27d40f46599fd3',dormant)
+        self.assertIn('if: inputs.native_reservation != true && inputs.reservation_probe != true &&',dormant)
+        self.assertIn('@4fd8eb40a93cbabdc285c5186c009d975facaf77',dormant)
+        self.assertIn('      CLEANOPS_AUD031_NATIVE_PRIVATE_KEY:\n        required: false',trusted.split('  workflow_dispatch:',1)[0])
         caller=source.split('  aud031-native-reservation:',1)[1].split('  aud031-native-validation:',1)[0]
         reader=source.split('  aud031-native-validation:',1)[1]
         self.assertIn('uses: novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha'],caller)
@@ -2260,7 +2261,11 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         self.assertIn(('actions','read'),requested)
         for permission,level in requested:
             self.assertLessEqual(levels[level],levels[allowed.get(permission,'none')],permission)
-        self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy|steps):',caller,re.M))
+        self.assertIsNone(re.search(r'^    (?:name|env|strategy|steps):',caller,re.M))
+        self.assertEqual(caller.count('    secrets:\n'),1)
+        self.assertEqual(caller.split('    secrets:\n',1)[1].strip(),'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY: ${{ secrets.CLEANOPS_AUD031_NATIVE_PRIVATE_KEY }}')
+        self.assertNotIn('CLEANOPS_NATIVE_AUTH_PRIVATE_KEY',caller)
+        self.assertNotIn('secrets: inherit',source)
         self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy):',reader,re.M))
         self.assertIn('needs: aud031-native-reservation',reader)
         self.assertIn('AUD031_NATIVE_RECEIPT: ${{ needs.aud031-native-reservation.outputs.native_receipt }}',reader)
@@ -2276,7 +2281,8 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
                           'event':{'action':'submitted','pull_request':{'number':23,'head':{'ref':'codex/r4-aud-031'}},
                                    'review':{'body':'Execute owner-authorized SQL5-AUD031 candidate '}}},
                  'needs':{'aud031-native-reservation':{'result':'success','outputs':{'native_receipt':'synthetic-only'}}}}
-        for block in (caller,reader,reader.split('- name: AUD031 canonical entrypoint',1)[1]):
+        frozen_reader=trusted.split('  aud031-native-validation:',1)[1]
+        for block in (caller,reader,reader.split('- name: AUD031 canonical entrypoint',1)[1],dormant,frozen_reader,frozen_reader.split('- name: AUD031 canonical entrypoint',1)[1]):
             condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
             self.assertTrue(ActionsCondition(condition,context).evaluate())
             # Role gating is not authorization. Absent/false are both allowed
