@@ -533,6 +533,7 @@ jobs:
     if: github.event_name == 'pull_request_review' && github.event.action == 'submitted' && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' && github.run_attempt == 1 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
     permissions:
       contents: read
+      actions: read
     uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@4fd8eb40a93cbabdc285c5186c009d975facaf77
     with:
       native_reservation: true

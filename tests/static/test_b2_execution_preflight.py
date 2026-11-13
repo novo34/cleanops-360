@@ -2251,6 +2251,14 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         self.assertIn('uses: novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha'],caller)
         self.assertIn('native_reservation: true',caller)
         import re
+        # Actions validates permissions of every called job before evaluating if.
+        # A disabled reader inside immutable T still requires caller actions:read.
+        levels={'none':0,'read':1,'write':2}
+        allowed=dict(re.findall(r'^      ([a-z-]+): (none|read|write)$',caller,re.M))
+        requested=re.findall(r'^      ([a-z-]+): (none|read|write)$',trusted,re.M)
+        self.assertIn(('actions','read'),requested)
+        for permission,level in requested:
+            self.assertLessEqual(levels[level],levels[allowed.get(permission,'none')],permission)
         self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy|steps):',caller,re.M))
         self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy):',reader,re.M))
         self.assertIn('needs: aud031-native-reservation',reader)
