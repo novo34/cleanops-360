@@ -102,6 +102,16 @@ AUD031_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.aud031-can
 AUD031_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py'
 AUD031_MANIFEST = 'docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json'
 AUD031_NATIVE_ENABLED = False
+# Candidate contract, not installation or execution approval. The whole W file
+# fixes the unique needs/output consumer and excludes job-name/step spoofing.
+AUD031_WRITER = {
+    'workflowSha': 'ecbcfe360858404ccf84f1100a27d40f46599fd3',
+    'sourceSha': '830b9665fb65a4ec10c1368ff52ad2a743061fb8',
+    'readerJob': 'aud031-native-validation',
+    'writerJob': 'aud031-native-reservation / aud031-reservation-probe',
+    'stepName': 'Synthetic App reservation probe only (NO SQL); or disabled native writer',
+    'readerWorkflowSha256': 'ab880059986745587ff54fce267b5094f2752d0bc221a9e9032358f881e4c3f2',
+}
 # Approved immutable ref destination; C/M/W/B remain in the authorization digest.
 AUD031_RESERVATION_TARGET = '4c625d2fb1f654fdfcabb751a4f63e5234fd9154'
 AUD031_CONTEXT = {**R3_CONTEXT, 'pullRequest': 23, 'branch': 'codex/r4-aud-031'}
@@ -397,14 +407,7 @@ def authorize_r3(scope='sql5-r3', *, trusted_source_sha=None):
     }}
 
 
-def reserve_aud031(authorization, create_reference):
-    """Trusted-writer primitive, NOT a PR job entrypoint or a token consumer.
-
-    A future trusted base-workflow may supply the exclusive GitHub POST only.
-    Never supply a write credential to this module loaded from a PR. Integration
-    remains blocked pending trusted workflow installation and namespace rules.
-    No GET-before-POST, retry, update, delete or recovery of uncertain creation.
-    """
+def aud031_reservation_ref(authorization):
     required = {'candidate','manifestSha256','workflow','base','reviewId',
                 'reviewBodySha256','runId','attempt'}
     if not isinstance(authorization, dict) or set(authorization) != required:
@@ -423,6 +426,18 @@ def reserve_aud031(authorization, create_reference):
                 **{k:authorization[k] for k in required - {'runId','attempt'}}}
     digest = hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     ref = 'refs/tags/cleanops-native-auth/aud031/'+digest
+    return ref
+
+
+def reserve_aud031(authorization, create_reference):
+    """Trusted-writer primitive, NOT a PR job entrypoint or a token consumer.
+
+    A future trusted base-workflow may supply the exclusive GitHub POST only.
+    Never supply a write credential to this module loaded from a PR. Integration
+    remains blocked pending trusted workflow installation and namespace rules.
+    No GET-before-POST, retry, update, delete or recovery of uncertain creation.
+    """
+    ref = aud031_reservation_ref(authorization)
     # Only a confirmed exclusive creation can win. An uncertain successful
     # server write burns the authorization; callers must never resume it.
     try:
@@ -436,6 +451,131 @@ def reserve_aud031(authorization, create_reference):
         raise RuntimeError('AUD031_EXCLUSIVE_RESERVATION_NOT_CONFIRMED') from None
     return {'ref':ref,'candidate':authorization['candidate'],
             'reservationTarget':AUD031_RESERVATION_TARGET,'runId':authorization['runId'],'reviewId':authorization['reviewId']}
+
+
+def aud031_readonly_run_json(path):
+    """Read only this run and its first-attempt jobs; never use the App client."""
+    import urllib.request
+    run_id=os.environ.get('GITHUB_RUN_ID','')
+    prefix='/repos/novo34/cleanops-360/actions/runs/'+run_id
+    if (not re.fullmatch('[1-9][0-9]*',run_id)
+            or path not in (prefix,prefix+'/attempts/1/jobs?per_page=100')):
+        raise RuntimeError('AUD031_READONLY_ENDPOINT_REQUIRED')
+    token=os.environ.get('GITHUB_TOKEN','')
+    if not token:
+        raise RuntimeError('AUD031_READONLY_TOKEN_REQUIRED')
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self,*args,**kwargs):return None
+    try:
+        request=urllib.request.Request('https://api.github.com'+path,method='GET',headers={
+            'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json',
+            'X-GitHub-Api-Version':'2022-11-28'})
+        with urllib.request.build_opener(NoRedirect()).open(request,timeout=15) as response:
+            raw=response.read(2097153)
+            if response.status!=200 or len(raw)>2097152:
+                raise ValueError('UNCONFIRMED_RUN_DATA')
+        return strict_json(raw)
+    except Exception:
+        raise RuntimeError('AUD031_TRUSTED_RUN_LOOKUP_FAILED') from None
+
+
+def verify_aud031_receipt(authorization):
+    """Verify data AND closed W/needs/T execution, never recover an existing tag."""
+    if os.environ.get('NATIVE_AUTH_KEY'):
+        raise RuntimeError('AUD031_READER_WITHOUT_APP_KEY_REQUIRED')
+    raw=os.environ.get('AUD031_NATIVE_RECEIPT','')
+    if not raw:
+        raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')
+    try:
+        if len(raw.encode('utf-8'))>16384:
+            raise ValueError('OVERSIZED_RECEIPT')
+        receipt=strict_json(raw)
+    except (ValueError,UnicodeError,RuntimeError):
+        raise RuntimeError('AUD031_EXACT_RECEIPT_REQUIRED') from None
+    expected={'ref':aud031_reservation_ref(authorization),'candidate':authorization['candidate'],
+              'reservationTarget':AUD031_RESERVATION_TARGET,'runId':authorization['runId'],
+              'reviewId':authorization['reviewId']}
+    if (not isinstance(receipt,dict)
+            or set(receipt)!={'schemaVersion','authorization','reservation','writerSourceSha'}
+            or type(receipt['schemaVersion']) is not int or receipt['schemaVersion']!=1
+            or receipt['writerSourceSha']!=AUD031_WRITER['sourceSha']
+            or not isinstance(receipt['reservation'],dict) or set(receipt['reservation'])!=set(expected)
+            or any(type(receipt['reservation'][k]) is not type(v) or receipt['reservation'][k]!=v for k,v in expected.items())):
+        raise RuntimeError('AUD031_EXACT_RECEIPT_REQUIRED')
+    # Check types/closed identity separately: JSON true must never compare as 1.
+    aud031_reservation_ref(receipt['authorization'])
+    if receipt['authorization']!=authorization:
+        raise RuntimeError('AUD031_EXACT_RECEIPT_REQUIRED')
+    if os.environ.get('GITHUB_JOB')!=AUD031_WRITER['readerJob']:
+        raise RuntimeError('AUD031_READER_JOB_REQUIRED')
+    event=execution_context('sql5-aud031')
+    if (authorization['runId']!=os.environ.get('GITHUB_RUN_ID')
+            or authorization['reviewId']!=event['review']['id']):
+        raise RuntimeError('AUD031_EXACT_RECEIPT_REQUIRED')
+    # An audited whole-file digest fixes the caller, input, unique job names,
+    # needs/output binding, read-only token and sole native CLI invocation.
+    # It avoids interpreting arbitrary candidate YAML or trusting a JSON alone.
+    workflow=git_bytes(authorization['workflow'],R3_WORKFLOW)
+    if hashlib.sha256(workflow).hexdigest()!=AUD031_WRITER['readerWorkflowSha256']:
+        raise RuntimeError('AUD031_TRUSTED_READER_WIRING_REQUIRED')
+    prefix='/repos/novo34/cleanops-360/actions/runs/'+authorization['runId']
+    run=aud031_readonly_run_json(prefix)
+    owner=event['review']['user'];repository=event['repository']
+    same=lambda value,source,keys:isinstance(value,dict) and all(type(value.get(k)) is type(source[k]) and value[k]==source[k] for k in keys)
+    shas={authorization['candidate'],authorization['workflow']}
+    if (not isinstance(run,dict) or type(run.get('id')) is not int or str(run['id'])!=authorization['runId']
+            or type(run.get('run_attempt')) is not int or run['run_attempt']!=1
+            or run.get('event')!='pull_request_review' or run.get('status')!='in_progress' or run.get('conclusion') is not None
+            or not isinstance(run.get('head_sha'),str) or run['head_sha'] not in shas
+            or not same(run.get('repository'),repository,('id','full_name'))
+            or not same(run.get('actor'),owner,('id','login')) or not same(run.get('triggering_actor'),owner,('id','login'))):
+        raise RuntimeError('AUD031_TRUSTED_RUN_REQUIRED')
+    path='novo34/cleanops-360/'+R3_WORKFLOW+'@'
+    trusted=AUD031_WRITER['workflowSha'];probe='9a4c8b90a159f2853f040dc5597042c17408da00'
+    references=run.get('referenced_workflows')
+    if (not isinstance(references,list) or not 1<=len(references)<=8
+            or any(not isinstance(r,dict) or (r.get('path'),r.get('sha')) not in ((path+trusted,trusted),(path+probe,probe)) for r in references)
+            or sum(r.get('path')==path+trusted and r.get('sha')==trusted for r in references)!=1):
+        raise RuntimeError('AUD031_IMMUTABLE_WRITER_REQUIRED')
+    result=aud031_readonly_run_json(prefix+'/attempts/1/jobs?per_page=100')
+    if (not isinstance(result,dict) or type(result.get('total_count')) is not int or not 1<=result['total_count']<=100
+            or not isinstance(result.get('jobs'),list) or len(result['jobs'])!=result['total_count']
+            or any(not isinstance(j,dict) for j in result['jobs'])):
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    jobs=result['jobs']
+    writers=[j for j in jobs if j.get('name')==AUD031_WRITER['writerJob']]
+    readers=[j for j in jobs if j.get('name')==AUD031_WRITER['readerJob']]
+    if len(writers)!=1 or len(readers)!=1:
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    writer,reader=writers[0],readers[0]
+    if writer.get('id')==reader.get('id'):
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    for job,status,conclusion in ((writer,'completed','success'),(reader,'in_progress',None)):
+        if (type(job.get('id')) is not int or job['id']<=0
+                or type(job.get('run_id')) is not int or str(job['run_id'])!=authorization['runId']
+                or type(job.get('run_attempt')) is not int or job['run_attempt']!=1
+                or not isinstance(job.get('head_sha'),str) or job['head_sha'] not in shas
+                or job.get('status')!=status or job.get('conclusion')!=conclusion):
+            raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    steps=writer.get('steps')
+    if not isinstance(steps,list) or len(steps)>100 or any(not isinstance(s,dict) for s in steps):
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    confirmed=[s for s in steps if s.get('name')==AUD031_WRITER['stepName']]
+    if len(confirmed)!=1 or confirmed[0].get('status')!='completed' or confirmed[0].get('conclusion')!='success':
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED')
+    try:
+        values=[event['review']['submitted_at'],writer['started_at'],writer['completed_at'],reader['started_at']]
+        if any(not isinstance(v,str) or not re.fullmatch('[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z',v) for v in values):
+            raise ValueError('UTC_REQUIRED')
+        review_at,started,completed,reader_at=[datetime.strptime(v,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp() for v in values]
+        if not review_at<=started<=completed<=reader_at<=time.time():
+            raise ValueError('WRITER_AFTER_REVIEW_REQUIRED')
+    except (KeyError,ValueError,OverflowError,OSError):
+        raise RuntimeError('AUD031_CONFIRMED_WRITER_REQUIRED') from None
+    # Network lookup cannot extend the review's life or ignore moved refs.
+    if authorize_r3('sql5-aud031')['authorization']!=authorization or execution_context('sql5-aud031')!=event:
+        raise RuntimeError('AUD031_UNCHANGED_AUTHORIZATION_REQUIRED')
+    return expected
 
 
 def fixture_reference_bytes(package):
@@ -574,10 +714,10 @@ def main(scope='directory'):
             # must finish before the first transport import below.
             if not (AUD031_NATIVE_ENABLED if scope=='sql5-aud031' else R3_NATIVE_ENABLED):
                 raise RuntimeError('AUD031_NATIVE_ACTIVATION_REQUIRED' if scope=='sql5-aud031' else 'R3_NATIVE_ACTIVATION_REQUIRED')
-            # Until the immutable writer/receipt handoff exists, enabling the
-            # flag must never allow this PR-loaded process to reach SQL.
+            # Receipt data alone cannot grant authority. Verify immutable
+            # wiring and confirmed producer execution before transport.
             if scope=='sql5-aud031':
-                raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')
+                report['reservation'] = verify_aud031_receipt(selected['authorization'])
         else:
             selected=authorize_composition() if scope=='combined' else authorize_package(scope) if scope!='directory' else None
             if hashlib.sha256((ROOT / 'scripts/b2-directory-postgres.py').read_bytes()).hexdigest() != HISTORICAL_HARNESS_SHA:

@@ -694,7 +694,7 @@ class ActionsCondition:
         import re
         text=text.strip()
         if text.startswith('${{'):text=text[3:-2].strip()
-        pattern=r"'(?:[^']|'')*'|&&|\|\||==|!=|[(),]|[A-Za-z_][A-Za-z_0-9.]*|[0-9]+"
+        pattern=r"'(?:[^']|'')*'|&&|\|\||==|!=|[(),]|[A-Za-z_][A-Za-z_0-9.-]*|[0-9]+"
         matches=list(re.finditer(pattern,text));self.tokens=[];at=0
         for match in matches:
             if text[at:match.start()].strip():raise ValueError('Unsupported condition')
@@ -1154,6 +1154,134 @@ class Aud031ContractTests(unittest.TestCase):
         with patch.object(runner.subprocess,'run',side_effect=process), patch.object(runner,'git_bytes',side_effect=wrong_source), self.assertRaisesRegex(RuntimeError,'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED'):
             runner.authorize_r3('sql5-aud031',trusted_source_sha=source)
 
+    def reader_fixture(self):
+        authorization=runner.authorize_r3('sql5-aud031')['authorization']
+        reservation={'ref':runner.aud031_reservation_ref(authorization),'candidate':authorization['candidate'],
+                     'reservationTarget':runner.AUD031_RESERVATION_TARGET,'runId':authorization['runId'],'reviewId':authorization['reviewId']}
+        receipt={'schemaVersion':1,'authorization':authorization,'reservation':reservation,'writerSourceSha':runner.AUD031_WRITER['sourceSha']}
+        owner={'login':'novo34','id':17856013}
+        path='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha']
+        run={'id':123,'run_attempt':1,'event':'pull_request_review','status':'in_progress','conclusion':None,
+             'head_sha':'1'*40,'repository':{'id':1412999204,'full_name':'novo34/cleanops-360'},
+             'actor':owner,'triggering_actor':dict(owner),
+             'referenced_workflows':[{'path':path,'sha':runner.AUD031_WRITER['workflowSha']}]}
+        timestamp=self.event['review']['submitted_at']
+        base={'run_id':123,'run_attempt':1,'head_sha':'1'*40,'started_at':timestamp}
+        writer=dict(base,id=11,name=runner.AUD031_WRITER['writerJob'],status='completed',conclusion='success',completed_at=timestamp,
+                    steps=[{'name':runner.AUD031_WRITER['stepName'],'status':'completed','conclusion':'success'}])
+        reader=dict(base,id=12,name=runner.AUD031_WRITER['readerJob'],status='in_progress',conclusion=None)
+        return authorization,receipt,run,{'total_count':2,'jobs':[writer,reader]}
+
+    def reader_call(self,authorization,receipt,run,jobs,*,main=False):
+        raw=receipt if isinstance(receipt,str) else json.dumps(receipt)
+        prefix='/repos/novo34/cleanops-360/actions/runs/123'
+        def get(path):
+            if path==prefix:return run
+            self.assertEqual(path,prefix+'/attempts/1/jobs?per_page=100')
+            return jobs
+        with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':raw,'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}),patch.object(runner,'aud031_readonly_run_json',side_effect=get),patch.object(runner,'reserve_aud031',side_effect=AssertionError('READER_CANNOT_WRITE')):
+            if main:
+                with patch.object(runner,'AUD031_NATIVE_ENABLED',True),patch.object(runner,'load',side_effect=RuntimeError('TEST_STOP_BEFORE_TRANSPORT')) as load,contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(runner.main('sql5-aud031'),1)
+                    self.assertEqual(load.call_count,1)
+                report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
+                self.assertEqual(report['checks'][0]['detail'],'TEST_STOP_BEFORE_TRANSPORT')
+                return report['reservation']
+            with patch.object(runner,'load',side_effect=AssertionError('NO_TRANSPORT')):
+                return runner.verify_aud031_receipt(authorization)
+
+    def test_reader_verifies_closed_wiring_run_attempt_and_successful_writer(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        self.assertEqual(self.reader_call(auth,receipt,run,jobs),receipt['reservation'])
+        # API head_sha may denote C or its exact W merge; neither is a new authorization.
+        run['head_sha']='2'*40
+        for job in jobs['jobs']:job['head_sha']='2'*40
+        self.assertEqual(self.reader_call(auth,receipt,run,jobs),receipt['reservation'])
+
+    def test_reader_main_reaches_only_mocked_transport_after_proof(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        self.assertEqual(self.reader_call(auth,receipt,run,jobs,main=True),receipt['reservation'])
+
+    def test_reader_failed_producer_proof_never_loads_native_transport(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        jobs['jobs'][0]['conclusion']='cancelled'
+        with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':json.dumps(receipt),'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}),patch.object(runner,'AUD031_NATIVE_ENABLED',True),patch.object(runner,'aud031_readonly_run_json',side_effect=[run,jobs]),patch.object(runner,'load',side_effect=AssertionError('NO_TRANSPORT')) as load,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.main('sql5-aud031'),1);load.assert_not_called()
+        report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
+        self.assertEqual(report['checks'][0]['detail'],'AUD031_CONFIRMED_WRITER_REQUIRED')
+
+    def test_reader_rejects_malformed_oversized_duplicate_and_mismatched_data(self):
+        auth,original,run,jobs=self.reader_fixture()
+        cases=['','{' ,'x'*16385,'{"schemaVersion":1,"schemaVersion":1}']
+        mutations=[lambda r:r.update(schemaVersion=True),lambda r:r.update(extra=True),
+                   lambda r:r.update(writerSourceSha='8'*40),lambda r:r['authorization'].update(attempt=True),
+                   lambda r:r['authorization'].update(runId='456'),lambda r:r['authorization'].update(manifestSha256='0'*64),
+                   lambda r:r['reservation'].update(ref='refs/tags/other'),lambda r:r['reservation'].update(reviewId=True),
+                   lambda r:r['reservation'].update(reservationTarget='1'*40),lambda r:r['reservation'].update(extra=True)]
+        for mutation in mutations:
+            receipt=json.loads(json.dumps(original));mutation(receipt);cases.append(receipt)
+        for index,receipt in enumerate(cases):
+            with self.subTest(index=index),patch.object(runner,'aud031_readonly_run_json',side_effect=AssertionError('NO_API')):
+                raw=receipt if isinstance(receipt,str) else json.dumps(receipt)
+                with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':raw}),self.assertRaises(RuntimeError):
+                    runner.verify_aud031_receipt(auth)
+
+    def test_reader_rejects_wrong_job_private_key_or_changed_wiring_before_lookup(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        env={'AUD031_NATIVE_RECEIPT':json.dumps(receipt),'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}
+        for change in ({'GITHUB_JOB':'acceptance-r2'},{'NATIVE_AUTH_KEY':'synthetic-private-key'}):
+            with patch.dict(os.environ,dict(env,**change)),patch.object(runner,'aud031_readonly_run_json',side_effect=AssertionError('NO_API')),self.assertRaises(RuntimeError):
+                runner.verify_aud031_receipt(auth)
+        original=self.candidate[runner.R3_WORKFLOW];self.candidate[runner.R3_WORKFLOW]=original+b'\n'
+        with patch.dict(os.environ,env),patch.object(runner,'aud031_readonly_run_json',side_effect=AssertionError('NO_API')),self.assertRaisesRegex(RuntimeError,'AUD031_TRUSTED_READER_WIRING_REQUIRED'):
+            runner.verify_aud031_receipt(auth)
+
+    def test_reader_rejects_run_or_immutable_workflow_mismatch(self):
+        auth,receipt,original,jobs=self.reader_fixture()
+        changes=[lambda r:r.update(id=456),lambda r:r.update(run_attempt=2),lambda r:r.update(run_attempt=True),
+                 lambda r:r.update(event='workflow_dispatch'),lambda r:r.update(head_sha='8'*40),
+                 lambda r:r.update(status='completed',conclusion='cancelled'),lambda r:r['repository'].update(id=1),
+                 lambda r:r['actor'].update(id=1),lambda r:r['triggering_actor'].update(login='other'),
+                 lambda r:r.update(referenced_workflows=[]),lambda r:r['referenced_workflows'][0].update(sha='8'*40),
+                 lambda r:r['referenced_workflows'].append(dict(r['referenced_workflows'][0])),
+                 lambda r:r['referenced_workflows'].append({'path':'other','sha':'8'*40})]
+        for index,change in enumerate(changes):
+            run=json.loads(json.dumps(original));change(run)
+            with self.subTest(index=index),self.assertRaises(RuntimeError):self.reader_call(auth,receipt,run,jobs)
+
+    def test_reader_rejects_incomplete_ambiguous_or_failed_jobs_and_steps(self):
+        auth,receipt,run,original=self.reader_fixture()
+        changes=[lambda j:j.update(total_count=101),lambda j:j.update(total_count=1),
+                 lambda j:j['jobs'].append(dict(j['jobs'][0])),lambda j:j['jobs'][0].update(status='in_progress'),
+                 lambda j:j['jobs'][0].update(conclusion='cancelled'),lambda j:j['jobs'][0].update(run_id=456),
+                 lambda j:j['jobs'][0].update(run_attempt=2),lambda j:j['jobs'][0].update(head_sha='8'*40),
+                 lambda j:j['jobs'][0].update(steps=[]),lambda j:j['jobs'][0]['steps'][0].update(conclusion='skipped'),
+                 lambda j:j['jobs'][1].update(status='completed'),lambda j:j['jobs'][1].update(id=11),
+                 lambda j:j['jobs'][0].update(started_at='2000-01-01T00:00:00Z'),
+                 lambda j:j['jobs'][0].update(completed_at='2999-01-01T00:00:00Z'),
+                 lambda j:j['jobs'][0].update(completed_at='invalid')]
+        for index,change in enumerate(changes):
+            jobs=json.loads(json.dumps(original));change(jobs)
+            with self.subTest(index=index),self.assertRaises(RuntimeError):self.reader_call(auth,receipt,run,jobs)
+
+    def test_reader_lookup_must_not_extend_TTL_or_ignore_reference_changes(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        env={'AUD031_NATIVE_RECEIPT':json.dumps(receipt),'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}
+        prefix='/repos/novo34/cleanops-360/actions/runs/123'
+        def get(path):
+            if path==prefix:return run
+            runner.time.time.return_value=self.now+901
+            return jobs
+        with patch.dict(os.environ,env),patch.object(runner,'aud031_readonly_run_json',side_effect=get),self.assertRaisesRegex(RuntimeError,'FRESH_R3_OWNER_REVIEW_REQUIRED'):
+            runner.verify_aud031_receipt(auth)
+        runner.time.time.return_value=self.now
+        def moved(path):
+            if path==prefix:return run
+            self.event['pull_request']['base']['sha']='8'*40;self.write_event()
+            return jobs
+        with patch.dict(os.environ,env),patch.object(runner,'aud031_readonly_run_json',side_effect=moved),self.assertRaises(RuntimeError):
+            runner.verify_aud031_receipt(auth)
+
     def test_unconfigured_production_context_rejects_before_transport(self):
         with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
             self.assertIn('AUD031_REVIEW_CONTEXT_NOT_CONFIGURED',self.reject_before_transport())
@@ -1248,7 +1376,7 @@ class Aud031ContractTests(unittest.TestCase):
         historical=self.previous_sources[runner.R3_WORKFLOW].decode()
         current=(ROOT/runner.R3_WORKFLOW).read_text()
         self.assertEqual(current.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0],historical.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0])
-        self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
+        self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: Preserve sanitized evidence',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
 
     def test_workflow_R4_entrypoint_remains_literal_disabled(self):
         source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
@@ -1382,19 +1510,35 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
 
     def test_probe_pins_published_bytes_and_default_candidate_behavior_is_preserved(self):
         import ast,re
-        job=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-reservation-probe:',1)[1]
+        job=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
         pinned=re.search(r'^          ref: ([0-9a-f]{40})$',job,re.M).group(1)
         expected=re.search(r"hashlib.sha256\(source.read_bytes\(\)\).hexdigest\(\)!='([0-9a-f]{64})'",job).group(1)
         published=subprocess.check_output(['git','show',pinned+':scripts/b2-directory-postgres.py'],cwd=ROOT)
         self.assertEqual(hashlib.sha256(published).hexdigest(),expected)
         candidate=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
         published_tree=ast.parse(published)
-        guard=ast.dump(ast.parse("if scope=='sql5-aud031':\n raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')").body[0])
+        guard=ast.dump(ast.parse("if scope=='sql5-aud031':\n report['reservation'] = verify_aud031_receipt(selected['authorization'])").body[0])
+        identity=next(n for n in candidate.body if isinstance(n,ast.FunctionDef) and n.name=='aud031_reservation_ref')
         class DefaultReaderProjection(ast.NodeTransformer):
             count=0
             writer_branches=0
             reader_selectors=0
+            receipt_functions=0
+            writer_configs=0
+            identity_inlined=0
+            def visit_Assign(self,node):
+                if any(isinstance(t,ast.Name) and t.id=='AUD031_WRITER' for t in node.targets):
+                    assert isinstance(node.value,ast.Dict)
+                    self.writer_configs+=1;return None
+                return self.generic_visit(node)
             def visit_FunctionDef(self,node):
+                if node.name in ('aud031_reservation_ref','aud031_readonly_run_json','verify_aud031_receipt'):
+                    self.receipt_functions+=1;return None
+                if node.name=='reserve_aud031':
+                    assert ast.dump(node.body[1])==ast.dump(ast.parse('ref = aud031_reservation_ref(authorization)').body[0])
+                    assert ast.dump(identity.body[-1])==ast.dump(ast.parse('return ref').body[0])
+                    node.body[1:2]=identity.body[:-1]
+                    self.identity_inlined+=1
                 if node.name!='authorize_r3':return self.generic_visit(node)
                 self.assert_signature(node)
                 # Evaluate only the new optional writer mode as None. All
@@ -1449,6 +1593,9 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         self.assertEqual(removed.count,1)
         self.assertEqual(removed.writer_branches,3)
         self.assertEqual(removed.reader_selectors,1)
+        self.assertEqual(removed.receipt_functions,3)
+        self.assertEqual(removed.writer_configs,1)
+        self.assertEqual(removed.identity_inlined,1)
         # Installed probe remains immutable. Full AST equality covers its
         # reservation primitive, main, R3 checks and every other default path.
         self.assertEqual(ast.dump(normalized),ast.dump(published_tree))
@@ -1501,7 +1648,7 @@ os._exit(int(sys.argv[4]))
     def probe_function(self):
         import ast, concurrent.futures, threading, textwrap
         workflow=(ROOT/runner.R3_WORKFLOW).read_text()
-        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        job=workflow.split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
         probe=job.split('- name: Synthetic App reservation probe only',1)[1]
         script=textwrap.dedent(probe.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
         tree=ast.parse(script)
@@ -1614,7 +1761,7 @@ os._exit(int(sys.argv[4]))
     def test_environment_caller_guard_rejects_untrusted_identity_route_event_and_SHA(self):
         import ast,textwrap,re
         workflow=(ROOT/runner.R3_WORKFLOW).read_text()
-        job=workflow.split('  aud031-reservation-probe:',1)[1]
+        job=workflow.split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
         preflight=job.split('- name: Validate approved caller',1)[1].split('      - uses:',1)[0]
         self.assertNotIn('secrets.',preflight)
         declaration=workflow.split('  pull_request_review:',1)[0]
@@ -1930,8 +2077,9 @@ class Aud031NativeWriterTests(unittest.TestCase):
         block=self.workflow.split('- name: Acquire exact historical objects before any private key',1)[1].split('      - name:',1)[0]
         self.assertIn('if: inputs.native_reservation == true',block)
         self.assertNotIn('secrets.',block)
-        command=shlex.split(' '.join(block.split('run: >-\n',1)[1].split()))
-        expected=['git','-C','trusted','--no-replace-objects','fetch','--no-tags','--no-recurse-submodules',
+        self.assertIn('working-directory: trusted',block)
+        command=shlex.split(' '.join(block.split('run:',1)[1].split('\n',1)[1].split()))
+        expected=['git','--no-replace-objects','fetch','--no-tags','--no-recurse-submodules',
                   '--no-write-fetch-head','--no-auto-maintenance','https://github.com/novo34/cleanops-360.git']
         self.assertEqual(command[:-3],expected)
         prior=json.loads(subprocess.check_output(['git','show',self.SOURCE+':docs/implementation/b2/invitation-administration-authorization.json'],cwd=ROOT))
@@ -1957,7 +2105,7 @@ class Aud031NativeWriterTests(unittest.TestCase):
             # Replace only the offline transport fixtures after checking the
             # production command's exact URL, flags and closed historical pins.
             command[-4]=origin.as_uri();command[-3:]=snapshots
-            subprocess.run(command,cwd=root,capture_output=True,check=True,timeout=60)
+            subprocess.run(command,cwd=trusted,capture_output=True,check=True,timeout=60)
             self.assertEqual(git(trusted,'rev-parse','HEAD').stdout.strip().decode(),source)
             self.assertEqual(git(trusted,'for-each-ref').stdout,refs)
             self.assertEqual((trusted/'value.txt').read_bytes(),b'trusted P')
@@ -1983,6 +2131,83 @@ class Aud031NativeWriterTests(unittest.TestCase):
         # The native source and its checksum refer to published immutable bytes.
         self.assertIn('ref: '+self.SOURCE,job)
         self.assertIn(hashlib.sha256(self.source).hexdigest(),job)
+
+
+class Aud031ReceiptTransportTests(unittest.TestCase):
+    def test_only_this_run_first_attempt_GET_is_allowed_without_redirects(self):
+        marker='synthetic-token-do-not-print'
+        with patch.dict(os.environ,{'GITHUB_RUN_ID':'123','GITHUB_TOKEN':marker},clear=True),patch('urllib.request.build_opener') as build:
+            response=build.return_value.open.return_value.__enter__.return_value
+            response.status=200;response.read.return_value=b'{"id":123}'
+            value=runner.aud031_readonly_run_json('/repos/novo34/cleanops-360/actions/runs/123')
+            self.assertEqual(value,{'id':123})
+            request=build.return_value.open.call_args.args[0]
+            self.assertEqual(request.get_method(),'GET');self.assertIsNone(request.data)
+            self.assertEqual(request.full_url,'https://api.github.com/repos/novo34/cleanops-360/actions/runs/123')
+            self.assertEqual(request.get_header('Authorization'),'Bearer '+marker)
+            self.assertEqual(build.return_value.open.call_args.kwargs,{'timeout':15})
+            response.read.assert_called_once_with(2097153)
+            self.assertIsNone(build.call_args.args[0].redirect_request(None,None,302,'redirect',{},'https://example.invalid'))
+            for path in ('https://example.invalid','/repos/novo34/cleanops-360/git/refs',
+                         '/repos/novo34/cleanops-360/actions/runs/456',
+                         '/repos/novo34/cleanops-360/actions/runs/123/attempts/2/jobs?per_page=100'):
+                build.reset_mock()
+                with self.assertRaisesRegex(RuntimeError,'AUD031_READONLY_ENDPOINT_REQUIRED'):
+                    runner.aud031_readonly_run_json(path)
+                build.assert_not_called()
+
+    def test_transport_failure_oversize_or_invalid_JSON_never_discloses_token(self):
+        marker='synthetic-private-body-and-token'
+        failures=[TimeoutError(marker),ValueError(marker)]
+        with patch.dict(os.environ,{'GITHUB_RUN_ID':'123','GITHUB_TOKEN':marker},clear=True):
+            for failure in failures:
+                with patch('urllib.request.build_opener') as build:
+                    build.return_value.open.side_effect=failure
+                    with self.assertRaisesRegex(RuntimeError,'^AUD031_TRUSTED_RUN_LOOKUP_FAILED$') as caught:
+                        runner.aud031_readonly_run_json('/repos/novo34/cleanops-360/actions/runs/123')
+                    self.assertNotIn(marker,str(caught.exception))
+            for status,raw in [(500,marker.encode()),(200,b'x'*2097153),(200,b'\xff'),(200,b'{"id":1,"id":2}')]:
+                with self.subTest(status=status,size=len(raw)),patch('urllib.request.build_opener') as build:
+                    response=build.return_value.open.return_value.__enter__.return_value
+                    response.status=status;response.read.return_value=raw
+                    with self.assertRaisesRegex(RuntimeError,'^AUD031_TRUSTED_RUN_LOOKUP_FAILED$'):
+                        runner.aud031_readonly_run_json('/repos/novo34/cleanops-360/actions/runs/123')
+        with patch.dict(os.environ,{'GITHUB_RUN_ID':'123'},clear=True),patch('urllib.request.build_opener') as build:
+            with self.assertRaisesRegex(RuntimeError,'AUD031_READONLY_TOKEN_REQUIRED'):
+                runner.aud031_readonly_run_json('/repos/novo34/cleanops-360/actions/runs/123')
+            build.assert_not_called()
+
+    def test_whole_workflow_contract_fixes_needs_output_permissions_and_unique_reader(self):
+        source=(ROOT/runner.R3_WORKFLOW).read_text()
+        self.assertEqual(hashlib.sha256(source.encode()).hexdigest(),runner.AUD031_WRITER['readerWorkflowSha256'])
+        self.assertEqual(set(runner.AUD031_WRITER),{'workflowSha','sourceSha','readerJob','writerJob','stepName','readerWorkflowSha256'})
+        trusted=subprocess.check_output(['git','show',runner.AUD031_WRITER['workflowSha']+':'+runner.R3_WORKFLOW],cwd=ROOT).decode()
+        self.assertIn("native_source='"+runner.AUD031_WRITER['sourceSha']+"'",trusted)
+        self.assertIn('- name: '+runner.AUD031_WRITER['stepName'],trusted)
+        caller=source.split('  aud031-native-reservation:',1)[1].split('  aud031-native-validation:',1)[0]
+        reader=source.split('  aud031-native-validation:',1)[1]
+        self.assertIn('uses: novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha'],caller)
+        self.assertIn('native_reservation: true',caller)
+        import re
+        self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy|steps):',caller,re.M))
+        self.assertIsNone(re.search(r'^    (?:name|env|secrets|strategy):',reader,re.M))
+        self.assertIn('needs: aud031-native-reservation',reader)
+        self.assertIn('AUD031_NATIVE_RECEIPT: ${{ needs.aud031-native-reservation.outputs.native_receipt }}',reader)
+        self.assertIn('GITHUB_TOKEN: ${{ github.token }}',reader)
+        self.assertIn('contents: read\n      actions: read',reader)
+        self.assertNotIn('secrets.',reader);self.assertNotIn('contents: write',reader)
+        self.assertEqual(source.count('run: python scripts/b2-directory-postgres.py --package sql5-aud031'),1)
+        self.assertEqual(source.count('run: &aud031_historical_objects >-'),1)
+        self.assertEqual(source.count('run: *aud031_historical_objects'),1)
+        self.assertEqual(source.count('  aud031-native-reservation:'),1)
+        self.assertEqual(source.count('  aud031-native-validation:'),1)
+        context={'github':{'event_name':'pull_request_review','actor_id':'17856013','run_attempt':1,
+                          'event':{'action':'submitted','pull_request':{'number':23,'head':{'ref':'codex/r4-aud-031'}},
+                                   'review':{'body':'Execute owner-authorized SQL5-AUD031 candidate '}}},
+                 'needs':{'aud031-native-reservation':{'result':'success'}}}
+        for block in (caller,reader):
+            condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
+            self.assertFalse(ActionsCondition(condition,context).evaluate())
 
 
 class Aud031CommittedCheckoutTests(unittest.TestCase):
@@ -2030,6 +2255,12 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
 '''
         self.assertEqual(source.count(native_declaration),1)
         projected=source.replace(native_declaration,'',1).replace('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: false','    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',1)
+        projected=projected.split('  aud031-native-reservation:',1)[0]
+        # Sole AUD031 CLI moved into its prepared reader job. Preserve the
+        # complete legacy workflow after removing only that old disabled step.
+        start=expected.index('      - name: AUD031 canonical entrypoint')
+        end=expected.index('      - name: Preserve sanitized evidence',start)
+        expected=expected[:start]+expected[end:]
         self.assertEqual(without_probe(projected),without_probe(expected))
         prefix=lambda text:text.split('  aud031-reservation-probe:',1)[1].split("python -I - <<'PY'",1)[0]
         old_prefix=prefix(previous);new_prefix=prefix(source)

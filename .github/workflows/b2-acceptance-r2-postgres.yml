@@ -190,9 +190,6 @@ jobs:
       - name: R3 canonical entrypoint (new native authorization required)
         if: github.event.pull_request.number == 22 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-R3 candidate ') && endsWith(github.event.review.body, '; native isolated validation only.')
         run: python scripts/b2-directory-postgres.py --package sql5-r3
-      - name: AUD031 canonical entrypoint (DISABLED; separate owner authorization required)
-        if: false && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
-        run: python scripts/b2-directory-postgres.py --package sql5-aud031
       - name: Preserve sanitized evidence for the selected route
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -277,8 +274,9 @@ jobs:
           persist-credentials: false
       - name: Acquire exact historical objects before any private key
         if: inputs.native_reservation == true
-        run: >-
-          git -C trusted --no-replace-objects fetch --no-tags --no-recurse-submodules
+        working-directory: trusted
+        run: &aud031_historical_objects >-
+          git --no-replace-objects fetch --no-tags --no-recurse-submodules
           --no-write-fetch-head --no-auto-maintenance
           https://github.com/novo34/cleanops-360.git
           3ea4ec890fd05a59ae803f005e29cad713d1e5e8
@@ -530,3 +528,41 @@ jobs:
       reservation_probe: true
     secrets:
       CLEANOPS_NATIVE_AUTH_PRIVATE_KEY: ${{ secrets.CLEANOPS_NATIVE_AUTH_PRIVATE_KEY }}
+  aud031-native-reservation:
+    # Prepared caller only; activating/adopting a new T needs separate approval.
+    if: false && github.event_name == 'pull_request_review' && github.event.action == 'submitted' && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' && github.run_attempt == 1 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+    permissions:
+      contents: read
+    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@ecbcfe360858404ccf84f1100a27d40f46599fd3
+    with:
+      native_reservation: true
+  aud031-native-validation:
+    needs: aud031-native-reservation
+    if: false && github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Acquire exact historical objects for the reader
+        run: *aud031_historical_objects
+      - name: AUD031 canonical entrypoint (DISABLED; separate owner authorization required)
+        if: false && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+        env:
+          AUD031_NATIVE_RECEIPT: ${{ needs.aud031-native-reservation.outputs.native_receipt }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/b2-directory-postgres.py --package sql5-aud031
+      - name: Preserve sanitized native evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: b2-acceptance-aud031-pg16-sanitized
+          path: artifacts/b2-acceptance-aud031/report.json
+          if-no-files-found: error
+          retention-days: 7
