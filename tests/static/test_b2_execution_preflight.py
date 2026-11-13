@@ -1276,7 +1276,7 @@ class Aud031ContractTests(unittest.TestCase):
     def test_reader_rejects_incomplete_ambiguous_or_failed_jobs_and_steps(self):
         auth,receipt,run,original=self.reader_fixture()
         changes=[lambda j:j.update(total_count=101),lambda j:j.update(total_count=1),
-                 lambda j:j['jobs'].append(dict(j['jobs'][0])),lambda j:j['jobs'][0].update(status='in_progress'),
+                 lambda j:j['jobs'][0].update(status='in_progress'),
                  lambda j:j['jobs'][0].update(conclusion='cancelled'),lambda j:j['jobs'][0].update(run_id=456),
                  lambda j:j['jobs'][0].update(run_attempt=2),lambda j:j['jobs'][0].update(head_sha='8'*40),
                  lambda j:j['jobs'][0].update(steps=[]),lambda j:j['jobs'][0]['steps'][0].update(conclusion='skipped'),
@@ -1287,6 +1287,11 @@ class Aud031ContractTests(unittest.TestCase):
         for index,change in enumerate(changes):
             jobs=json.loads(json.dumps(original));change(jobs)
             with self.subTest(index=index),self.assertRaises(RuntimeError):self.reader_call(auth,receipt,run,jobs)
+        jobs=json.loads(json.dumps(original))
+        jobs['jobs'].append(dict(jobs['jobs'][0],id=13))
+        jobs['total_count']=3
+        with self.assertRaisesRegex(RuntimeError,'^AUD031_CONFIRMED_WRITER_REQUIRED$'):
+            self.reader_call(auth,receipt,run,jobs)
 
     def test_reader_lookup_must_not_extend_TTL_or_ignore_reference_changes(self):
         auth,receipt,run,jobs=self.reader_fixture()
