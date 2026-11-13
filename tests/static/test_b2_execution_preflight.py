@@ -1197,6 +1197,21 @@ class Aud031ContractTests(unittest.TestCase):
         for job in jobs['jobs']:job['head_sha']='2'*40
         self.assertEqual(self.reader_call(auth,receipt,run,jobs),receipt['reservation'])
 
+    def test_reader_accepts_only_exact_dormant_dependencies_of_pinned_writer(self):
+        auth,receipt,run,jobs=self.reader_fixture()
+        path='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'
+        for revision in ('ecbcfe360858404ccf84f1100a27d40f46599fd3','9a4c8b90a159f2853f040dc5597042c17408da00'):
+            run['referenced_workflows'].append({'path':path+revision,'sha':revision})
+        self.assertEqual(self.reader_call(auth,receipt,run,jobs),receipt['reservation'])
+        for field,value in (('path','foreign'),('sha','8'*40)):
+            changed=json.loads(json.dumps(run));changed['referenced_workflows'][1][field]=value
+            with self.subTest(field=field),self.assertRaisesRegex(RuntimeError,'AUD031_IMMUTABLE_WRITER_REQUIRED'):
+                self.reader_call(auth,receipt,changed,jobs)
+        # A dormant definition alone cannot substitute for the selected T.
+        run['referenced_workflows']=run['referenced_workflows'][1:]
+        with self.assertRaisesRegex(RuntimeError,'AUD031_IMMUTABLE_WRITER_REQUIRED'):
+            self.reader_call(auth,receipt,run,jobs)
+
     def test_reader_main_reaches_only_mocked_transport_after_proof(self):
         auth,receipt,run,jobs=self.reader_fixture()
         self.assertEqual(self.reader_call(auth,receipt,run,jobs,main=True),receipt['reservation'])
@@ -2224,6 +2239,9 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         trusted=subprocess.check_output(['git','show',runner.AUD031_WRITER['workflowSha']+':'+runner.R3_WORKFLOW],cwd=ROOT).decode()
         self.assertIn("native_source='"+runner.AUD031_WRITER['sourceSha']+"'",trusted)
         self.assertIn('- name: '+runner.AUD031_WRITER['stepName'],trusted)
+        dormant=trusted.split('  aud031-native-reservation:',1)[1].split('  aud031-native-validation:',1)[0]
+        self.assertIn('if: false &&',dormant)
+        self.assertIn('@ecbcfe360858404ccf84f1100a27d40f46599fd3',dormant)
         caller=source.split('  aud031-native-reservation:',1)[1].split('  aud031-native-validation:',1)[0]
         reader=source.split('  aud031-native-validation:',1)[1]
         self.assertIn('uses: novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha'],caller)
@@ -2269,8 +2287,8 @@ class Aud031CommittedCheckoutTests(unittest.TestCase):
             # Prove that this is actually the Windows-style conversion at issue.
             self.assertIn(b'\r\n',(checkout/runner.AUD031_SQL).read_bytes())
             self.assertIn(b'\r\n',(checkout/runner.AUD031_MANIFEST).read_bytes())
-            selected=['test_real_manifest_hashes_and_pending_owner_decisions',
-                      'test_exact_synthetic_review_selects_existing_harness_fixture_but_native_is_disabled',
+            selected=['test_real_manifest_capability_hashes_do_not_replace_exact_owner_review',
+                      'test_exact_synthetic_review_still_requires_trusted_reservation_before_transport',
                       'test_modified_candidate_and_rehashed_historical_dependency_reject']
             result=subprocess.run([sys.executable,'-B','-m','unittest',*[f'test_b2_execution_preflight.Aud031ContractTests.{name}' for name in selected],'-q'],
                                   cwd=checkout,env=dict(os.environ,PYTHONPATH=str(checkout/'tests/static')),capture_output=True,timeout=120)

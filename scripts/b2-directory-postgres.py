@@ -531,9 +531,12 @@ def verify_aud031_receipt(authorization):
         raise RuntimeError('AUD031_TRUSTED_RUN_REQUIRED')
     path='novo34/cleanops-360/'+R3_WORKFLOW+'@'
     trusted=AUD031_WRITER['workflowSha'];probe='9a4c8b90a159f2853f040dc5597042c17408da00'
+    # Pinned T still declares its disabled old caller. Metadata may list that
+    # definition too; it never substitutes for the unique selected writer T.
+    dormant='ecbcfe360858404ccf84f1100a27d40f46599fd3'
     references=run.get('referenced_workflows')
     if (not isinstance(references,list) or not 1<=len(references)<=8
-            or any(not isinstance(r,dict) or (r.get('path'),r.get('sha')) not in ((path+trusted,trusted),(path+probe,probe)) for r in references)
+            or any(not isinstance(r,dict) or (r.get('path'),r.get('sha')) not in ((path+trusted,trusted),(path+probe,probe),(path+dormant,dormant)) for r in references)
             or sum(r.get('path')==path+trusted and r.get('sha')==trusted for r in references)!=1):
         raise RuntimeError('AUD031_IMMUTABLE_WRITER_REQUIRED')
     result=aud031_readonly_run_json(prefix+'/attempts/1/jobs?per_page=100')
