@@ -1220,18 +1220,24 @@ class Aud031ContractTests(unittest.TestCase):
 
     def test_reader_rejects_malformed_oversized_duplicate_and_mismatched_data(self):
         auth,original,run,jobs=self.reader_fixture()
-        cases=['','{' ,'x'*16385,'{"schemaVersion":1,"schemaVersion":1}']
-        mutations=[lambda r:r.update(schemaVersion=True),lambda r:r.update(extra=True),
-                   lambda r:r.update(writerSourceSha='8'*40),lambda r:r['authorization'].update(attempt=True),
-                   lambda r:r['authorization'].update(runId='456'),lambda r:r['authorization'].update(manifestSha256='0'*64),
-                   lambda r:r['reservation'].update(ref='refs/tags/other'),lambda r:r['reservation'].update(reviewId=True),
-                   lambda r:r['reservation'].update(reservationTarget='1'*40),lambda r:r['reservation'].update(extra=True)]
-        for mutation in mutations:
-            receipt=json.loads(json.dumps(original));mutation(receipt);cases.append(receipt)
-        for index,receipt in enumerate(cases):
+        exact='AUD031_EXACT_RECEIPT_REQUIRED'
+        cases=[('', 'AUD031_TRUSTED_RESERVATION_REQUIRED'),('{',exact),('x'*16385,exact),
+               ('{"schemaVersion":1,"schemaVersion":1}',exact)]
+        mutations=[(lambda r:r.update(schemaVersion=True),exact),(lambda r:r.update(extra=True),exact),
+                   (lambda r:r.update(writerSourceSha='8'*40),exact),
+                   (lambda r:r['authorization'].update(attempt=True),'AUD031_RESERVATION_IDENTITY_REQUIRED'),
+                   (lambda r:r['authorization'].update(runId='456'),exact),
+                   (lambda r:r['authorization'].update(manifestSha256='0'*64),exact),
+                   (lambda r:r['reservation'].update(ref='refs/tags/other'),exact),
+                   (lambda r:r['reservation'].update(reviewId=True),exact),
+                   (lambda r:r['reservation'].update(reservationTarget='1'*40),exact),
+                   (lambda r:r['reservation'].update(extra=True),exact)]
+        for mutation,error in mutations:
+            receipt=json.loads(json.dumps(original));mutation(receipt);cases.append((receipt,error))
+        for index,(receipt,error) in enumerate(cases):
             with self.subTest(index=index),patch.object(runner,'aud031_readonly_run_json',side_effect=AssertionError('NO_API')):
                 raw=receipt if isinstance(receipt,str) else json.dumps(receipt)
-                with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':raw}),self.assertRaises(RuntimeError):
+                with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':raw,'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}),self.assertRaisesRegex(RuntimeError,'^'+error+'$'):
                     runner.verify_aud031_receipt(auth)
 
     def test_reader_rejects_wrong_job_private_key_or_changed_wiring_before_lookup(self):

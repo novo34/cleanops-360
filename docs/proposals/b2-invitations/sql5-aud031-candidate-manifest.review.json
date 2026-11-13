@@ -63,7 +63,7 @@
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "f4230e252889969fbe8545a11b06410316b94218924e59e6593c927624ca6b15"
+    "tests/static/test_b2_execution_preflight.py": "23f09f2a22a799169bb37ea45584c37ae05d611a06b7b52746eb6b87f546d6b3"
   },
   "contractApproved": false,
   "executionAuthorized": false
