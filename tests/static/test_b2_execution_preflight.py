@@ -1110,6 +1110,11 @@ class Aud031ContractTests(unittest.TestCase):
         def git(*args):
             return self.real_run(['git','--no-replace-objects',*args],cwd=self.root,capture_output=True,check=True)
         git('init')
+        def commit(tree,message):
+            return git('-c','user.name=Static test','-c','user.email=static@example.invalid','commit-tree',tree,'-m',message).stdout.strip().decode()
+        git('add','.')
+        source_tree=git('write-tree').stdout.strip().decode()
+        source=commit(source_tree,'P fixture')
         marker=self.root/'candidate-executed'
         malicious=('from pathlib import Path\nPath('+repr(str(marker))+').write_text("executed")\n').encode()
         for name in ('scripts/b2-directory-postgres.py',runner.AUD031_FIXTURE):
@@ -1118,10 +1123,11 @@ class Aud031ContractTests(unittest.TestCase):
         self.refresh_review()
         git('add','.')
         tree=git('write-tree').stdout.strip().decode()
-        def commit(message):
-            return git('-c','user.name=Static test','-c','user.email=static@example.invalid','commit-tree',tree,'-m',message).stdout.strip().decode()
-        source=commit('P fixture');candidate=commit('C fixture')
+        candidate=commit(tree,'C fixture')
         self.assertNotEqual(source,candidate)
+        self.assertNotEqual(source_tree,tree)
+        for name in ('scripts/b2-directory-postgres.py',runner.AUD031_FIXTURE,runner.AUD031_MANIFEST):
+            self.assertNotEqual(git('show',source+':'+name).stdout,git('show',candidate+':'+name).stdout)
         git('update-ref','--no-deref','HEAD',source)
         for name in ('scripts/b2-directory-postgres.py',runner.AUD031_FIXTURE):(self.root/name).unlink()
         self.event['review']['commit_id']=candidate;self.event['pull_request']['head']['sha']=candidate
@@ -1140,6 +1146,13 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertEqual(result['authorization']['candidate'],candidate)
         self.assertEqual(git('rev-parse','HEAD').stdout.strip().decode(),source)
         self.assertFalse(marker.exists())
+        # Accidentally reading P instead of C must reject the real candidate
+        # authorization, even though HEAD correctly remains on P.
+        def wrong_source(reference,name,**kwargs):
+            if reference==candidate:return self.real_git_bytes(source,name,**kwargs)
+            return self.git_bytes(reference,name,**kwargs)
+        with patch.object(runner.subprocess,'run',side_effect=process), patch.object(runner,'git_bytes',side_effect=wrong_source), self.assertRaisesRegex(RuntimeError,'NEW_R3_C_M_W_AUTHORIZATION_REQUIRED'):
+            runner.authorize_r3('sql5-aud031',trusted_source_sha=source)
 
     def test_unconfigured_production_context_rejects_before_transport(self):
         with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
@@ -1364,7 +1377,8 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
                                   cwd=ROOT,env=env,capture_output=True,timeout=15)
             self.assertNotEqual(result.returncode,0)
             self.assertNotIn(b'AUD031_WRITER_PREFLIGHT_ONLY',result.stdout)
-            if package=='sql5-aud031':self.assertEqual(result.stdout,b'FAIL AUD031_WRITER_PREFLIGHT; no reservation or SQL\n')
+            if package=='sql5-aud031':
+                self.assertEqual(result.stdout.splitlines(),[b'FAIL AUD031_WRITER_PREFLIGHT; no reservation or SQL'])
 
     def test_probe_pins_published_bytes_and_default_candidate_behavior_is_preserved(self):
         import ast,re
