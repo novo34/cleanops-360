@@ -9,6 +9,32 @@ import { runMigrations, migrationLock, sql14InstallBatch } from "../scripts/migr
 import { readFile } from "node:fs/promises"
 
 const temporaryDirectories: string[] = []
+
+it('FIRST-ACTOR incremental is hash-verified as a proposal and cannot enter the B1 apply queue', async () => {
+  expect(await loadTrustedMigrations(undefined,'b1')).toEqual([])
+  const proposed=await loadTrustedMigrations(undefined,'b1',true)
+  expect(proposed.map(p=>p.id)).toEqual(['0002_first_actor','0003_ingress_persistence'])
+  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_commit')
+  expect(proposed[0].sql).toContain('CREATE FUNCTION identity_provision.first_actor_abort')
+  expect(proposed[0].sql).toContain('CREATE TABLE identity_provision.first_actor_history')
+   expect(proposed[0].sql).toContain("IF p->>'methodId' IS NULL THEN RAISE EXCEPTION 'FIRST_ACTOR_MATERIAL'; END IF;")
+  expect(proposed[0].sql).toContain("r.state<>'ABORTED'")
+  expect(proposed[0].sql).toContain('PERFORM identity_provision.first_actor_assert_current(i,o,d)')
+  expect(proposed[0].sql).not.toMatch(/DELETE FROM identity_provision/)
+  expect(proposed[0].sql).not.toContain('CREATE OR REPLACE FUNCTION auth_api.')
+  const plan=await runMigrations({mode:'offline-plan',profile:'b1'})
+  expect(plan.migrations).toEqual([])
+  expect(plan.proposed[0]).toMatchObject({id:'0002_first_actor',executable:false})
+  expect(plan.proposed[1]).toMatchObject({id:'0003_ingress_persistence',executable:false})
+  // S-3: the canonical runner owns the transaction; the incremental must not nest one.
+  const ingress=proposed[1].sql
+  expect(ingress.replace(/--.*$/gm,'')).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\s*;/)
+  expect(ingress).toContain('RESET ROLE;')
+  expect(ingress.indexOf('RESET ROLE;')).toBeLessThan(ingress.indexOf('ALTER FUNCTION auth_api.ingress_claim'))
+  expect(ingress.match(/^ALTER FUNCTION auth_api\.ingress_\w+\([^)]*\) OWNER TO cleanops_auth_broker;$/gm)).toHaveLength(6)
+  expect(ingress).toContain('GRANT EXECUTE ON FUNCTION auth_api.ingress_gc(integer) TO cleanops_auth_maintenance;')
+  expect(ingress).not.toMatch(/ingress_(enroll|revoke|recover)[^;]*TO cleanops_identity_service/)
+})
 const committedSql = new URL("../db/migrations/0001_system_status.sql", import.meta.url)
 
 async function fixture() {
