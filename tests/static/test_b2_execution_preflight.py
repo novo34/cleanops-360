@@ -1618,9 +1618,9 @@ os._exit(int(sys.argv[4]))
         preflight=job.split('- name: Validate approved caller',1)[1].split('      - uses:',1)[0]
         self.assertNotIn('secrets.',preflight)
         declaration=workflow.split('  pull_request_review:',1)[0]
-        self.assertIn('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',declaration)
+        self.assertIn('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: false',declaration)
         self.assertNotIn('secrets: inherit',workflow)
-        self.assertIn('environment: cleanops-native-auth-probe',job)
+        self.assertIn("environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}",job)
         script=textwrap.dedent(preflight.split("python -I - <<'PY'\n",1)[1].split('\n          PY',1)[0])
         function=next(n for n in ast.parse(script).body if isinstance(n,ast.FunctionDef))
         namespace={'re':re};exec(compile(ast.Module(body=[function],type_ignores=[]),'<caller-guard>','exec'),namespace)
@@ -1646,6 +1646,15 @@ os._exit(int(sys.argv[4]))
         self.assertFalse(guard(dict(good,CALLER_WORKFLOW_SHA='b'*40)))
         self.assertFalse(guard(dict(good,CALLER_SHA='b'*40)))
         self.assertFalse(guard(dict(good,CALLER_ATTEMPT='2')))
+        native=dict(good,NATIVE_PROFILE='true',CALLER_EVENT='pull_request_review',
+                    CALLER_REF='refs/pull/23/merge',
+                    CALLER_WORKFLOW_REF='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@refs/pull/23/merge')
+        native.pop('APPROVED_CALLER_SHA')  # Native profile never borrows the probe's approval variable.
+        self.assertTrue(guard(native))
+        for key in native:
+            with self.subTest(native_key=key):
+                self.assertFalse(guard({k:v for k,v in native.items() if k!=key}))
+                self.assertFalse(guard(dict(native,**{key:'unapproved'})))
         context={'inputs':{'reservation_probe':True},'github':{'repository':'novo34/cleanops-360','repository_id':'1412999204',
                  'actor_id':'17856013','run_attempt':1,'event_name':'pull_request_review','ref':'refs/pull/23/merge',
                  'workflow_ref':'novo34/cleanops-360/.github/workflows/unapproved.yml@refs/pull/23/merge'}}
@@ -1686,7 +1695,7 @@ os._exit(int(sys.argv[4]))
                     value=output.getvalue()
                     self.assertNotIn(marker,value)
                     self.assertIn('code=UNEXPECTED_ERROR;',value)
-                    self.assertRegex(value,r'^FAIL synthetic reservation probe; NO SQL; stage=[A-Z_]+; code=UNEXPECTED_ERROR; last_http=(NONE|403)\n$')
+                    self.assertRegex(value,r'^FAIL trusted App reservation; NO SQL; stage=[A-Z_]+; code=UNEXPECTED_ERROR; last_http=(NONE|403)\n$')
         mark('READ_TOKEN'); namespace['diagnostic']['http']=401
         output=io.StringIO()
         with contextlib.redirect_stdout(output):report(RuntimeError('TOKEN_REQUIRED'))
@@ -1795,8 +1804,141 @@ os._exit(int(sys.argv[4]))
                 exec(code,{'os':types.SimpleNamespace(environ=dict(values))})
         # Environment protection is enforced by GitHub before the job runner;
         # its reviewer/ref policy cannot be proved by this local syntax check.
-        self.assertIn('environment: cleanops-native-auth-probe',workflow)
+        self.assertIn("environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}",workflow)
         self.assertIn('required: true',workflow.split('  pull_request_review:',1)[0])
+
+class Aud031NativeWriterTests(unittest.TestCase):
+    """Execute the shared App program with inert signing and HTTP boundaries."""
+    SOURCE='830b9665fb65a4ec10c1368ff52ad2a743061fb8'
+
+    @classmethod
+    def setUpClass(cls):
+        import ast,textwrap
+        cls.workflow=(ROOT/runner.R3_WORKFLOW).read_text()
+        block=cls.workflow.split('- name: Synthetic App reservation probe only',1)[1]
+        cls.script=textwrap.dedent(block.split("python -I - <<'PY'\n",1)[1].rsplit('\n          PY',1)[0])
+        cls.code=compile(ast.parse(cls.script),'<shared-App-program>','exec')
+        cls.source=subprocess.check_output(['git','--no-replace-objects','show',cls.SOURCE+':scripts/b2-directory-postgres.py'],cwd=ROOT)
+
+    def execute_writer(self,mode='success',key='synthetic-private-key'):
+        import types,urllib.request
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'trusted/scripts/b2-directory-postgres.py'
+            source.parent.mkdir(parents=True);source.write_bytes(self.source if mode!='wrong-source' else b'raise AssertionError("UNTRUSTED")\n')
+            output=root/'output';calls=[];contexts=0;signatures=[];revocations=0
+            auth={'candidate':'1'*40,'manifestSha256':'3'*64,'workflow':'2'*40,'base':'4'*40,
+                  'reviewId':123,'reviewBodySha256':'5'*64,'runId':'123','attempt':1}
+            def authorize(scope,*,trusted_source_sha):
+                self.assertEqual((scope,trusted_source_sha),('sql5-aud031',self.SOURCE))
+                self.assertNotIn('NATIVE_AUTH_KEY',os.environ)
+                self.assertFalse(calls);self.assertFalse(signatures)
+                if mode=='denied':raise RuntimeError('AUD031_EXACT_OWNER_APPROVAL_REQUIRED')
+                return {'authorization':auth}
+            def context(scope):
+                nonlocal contexts
+                self.assertEqual(scope,'sql5-aud031');contexts+=1
+                if (mode=='expired-before-create' and contexts==2) or (mode=='expired-before-output' and contexts==3):
+                    raise RuntimeError('FRESH_R3_OWNER_REVIEW_REQUIRED')
+                return {'review':123 if not (mode=='changed-context' and contexts==2) else 456}
+            module=types.SimpleNamespace(authorize_r3=authorize,execution_context=context,reserve_aud031=runner.reserve_aud031)
+            spec=types.SimpleNamespace(loader=types.SimpleNamespace(exec_module=lambda loaded:self.assertIs(loaded,module)))
+            def signing(args,**kwargs):
+                self.assertEqual(args[:5],['openssl','dgst','-sha256','-sign','/dev/stdin'])
+                self.assertNotIn('NATIVE_AUTH_KEY',os.environ)
+                self.assertEqual(kwargs['input'],key.encode());signatures.append(True)
+                return subprocess.CompletedProcess(args,0,stdout=b'synthetic-signature')
+            class Response:
+                def __init__(self,status,value):self.status=status;self.value=value
+                def __enter__(self):return self
+                def __exit__(self,*args):return False
+                def read(self):return json.dumps(self.value).encode() if self.value is not None else b''
+            def request(req,timeout):
+                nonlocal revocations
+                self.assertEqual(timeout,20)
+                self.assertTrue(req.full_url.startswith('https://api.github.com/'))
+                self.assertFalse(output.exists(),'receipt emitted before token revocation')
+                method=req.get_method();path=req.full_url.removeprefix('https://api.github.com')
+                calls.append((method,path))
+                if path=='/app/installations/175934135':return Response(200,{'app_id':5500214,'repository_selection':'selected'})
+                if path.endswith('/access_tokens'):return Response(201,{'token':'synthetic-installation-token'})
+                if path=='/installation/repositories':return Response(200,{'total_count':1,'repositories':[{'full_name':'novo34/cleanops-360'}]})
+                if path=='/installation/token':
+                    self.assertEqual(method,'DELETE');revocations+=1
+                    return Response(500 if mode=='revoke-failed' and revocations==2 else 204,None)
+                self.assertEqual((method,path),('POST','/repos/novo34/cleanops-360/git/refs'))
+                payload=json.loads(req.data)
+                if mode=='lost-response':raise TimeoutError('synthetic private response')
+                if mode=='cancelled':raise SystemExit(130)
+                if mode=='duplicate':return Response(422,{'message':'Reference already exists'})
+                return Response(201,{'ref':payload['ref'],'object':{'type':'commit','sha':payload['sha'] if mode!='ambiguous' else '6'*40}})
+            stdout=io.StringIO();exit_code=0
+            with contextlib.chdir(root),patch.dict(os.environ,{'NATIVE_PROFILE':'true','NATIVE_AUTH_KEY':key,'GITHUB_RUN_ID':'123','GITHUB_OUTPUT':str(output)},clear=True),patch('importlib.util.spec_from_file_location',return_value=spec),patch('importlib.util.module_from_spec',return_value=module),patch('subprocess.run',side_effect=signing),patch('signal.signal'),patch('urllib.request.build_opener',return_value=types.SimpleNamespace(open=request)),contextlib.redirect_stdout(stdout):
+                try:exec(self.code,{})
+                except SystemExit as error:exit_code=error.code
+            text_output=stdout.getvalue()
+            for private in (key,'synthetic-installation-token','synthetic private response'):
+                if private:self.assertNotIn(private,text_output)
+            receipt=None
+            if output.exists():
+                lines=output.read_text().splitlines();self.assertEqual(len(lines),1)
+                self.assertTrue(lines[0].startswith('native_receipt='))
+                receipt=json.loads(lines[0].split('=',1)[1])
+                self.assertNotIn('synthetic-installation-token',json.dumps(receipt))
+            return exit_code,receipt,calls,revocations,len(signatures)
+
+    def test_native_writer_emits_exact_receipt_after_revocation(self):
+        code,receipt,calls,revocations,signatures=self.execute_writer()
+        self.assertEqual(code,0);self.assertEqual(revocations,2);self.assertEqual(signatures,1)
+        self.assertEqual(set(receipt),{'schemaVersion','authorization','reservation','writerSourceSha'})
+        self.assertEqual(receipt['schemaVersion'],1);self.assertEqual(receipt['writerSourceSha'],self.SOURCE)
+        self.assertEqual(receipt['reservation']['candidate'],receipt['authorization']['candidate'])
+        self.assertEqual(receipt['reservation']['reservationTarget'],runner.AUD031_RESERVATION_TARGET)
+        self.assertEqual(calls.count(('POST','/repos/novo34/cleanops-360/git/refs')),1)
+        self.assertFalse(any(method=='PATCH' or '/git/ref/' in path for method,path in calls))
+
+    def test_native_writer_denies_before_signing_or_HTTP(self):
+        for mode,key in [('denied','synthetic-private-key'),('wrong-source','synthetic-private-key'),('success','')]:
+            with self.subTest(mode=mode,key_present=bool(key)):
+                code,receipt,calls,revocations,signatures=self.execute_writer(mode,key)
+                self.assertEqual(code,1);self.assertIsNone(receipt);self.assertEqual(calls,[])
+                self.assertEqual((revocations,signatures),(0,0))
+
+    def test_native_writer_never_retries_or_emits_on_uncertain_creation(self):
+        for mode in ('lost-response','duplicate','ambiguous','cancelled'):
+            with self.subTest(mode=mode):
+                code,receipt,calls,revocations,signatures=self.execute_writer(mode)
+                self.assertNotEqual(code,0);self.assertIsNone(receipt);self.assertEqual(revocations,2)
+                self.assertEqual(calls.count(('POST','/repos/novo34/cleanops-360/git/refs')),1)
+                self.assertFalse(any(method=='PATCH' or '/git/ref/' in path for method,path in calls))
+
+    def test_native_writer_expiry_or_revocation_failure_has_no_receipt(self):
+        for mode in ('expired-before-create','expired-before-output','changed-context','revoke-failed'):
+            with self.subTest(mode=mode):
+                code,receipt,calls,revocations,signatures=self.execute_writer(mode)
+                self.assertEqual(code,1);self.assertIsNone(receipt);self.assertEqual(revocations,2)
+                expected=0 if mode in ('expired-before-create','changed-context') else 1
+                self.assertEqual(calls.count(('POST','/repos/novo34/cleanops-360/git/refs')),expected)
+
+    def test_native_profile_is_disabled_and_secret_selection_never_falls_back(self):
+        job=self.workflow.split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
+        condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
+        base={'repository':'novo34/cleanops-360','repository_id':'1412999204','actor_id':'17856013','run_attempt':1,'event_name':'pull_request_review','ref':'refs/pull/23/merge'}
+        for event in ('pull_request_review','workflow_dispatch','push','pull_request'):
+            for probe in (False,True):
+                context={'inputs':{'native_reservation':True,'reservation_probe':probe},'github':dict(base,event_name=event)}
+                self.assertFalse(ActionsCondition(condition,context).evaluate())
+        self.assertIn("secrets[inputs.native_reservation && 'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY' || 'CLEANOPS_NATIVE_AUTH_PRIVATE_KEY']",job)
+        selector="inputs.native_reservation && 'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY' || 'CLEANOPS_NATIVE_AUTH_PRIVATE_KEY'"
+        name=ActionsCondition(selector,{'inputs':{'native_reservation':True}}).evaluate_value()
+        secrets={'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY':'','CLEANOPS_NATIVE_AUTH_PRIVATE_KEY':'probe-value'}
+        self.assertEqual(secrets[name],'')
+        self.assertIn('native_receipt: ${{ steps.app.outputs.native_receipt }}',job)
+        self.assertIn('value: ${{ jobs.aud031-reservation-probe.outputs.native_receipt }}',self.workflow)
+        self.assertNotIn('contents: write',job);self.assertNotIn('secrets: inherit',job)
+        # The native source and its checksum refer to published immutable bytes.
+        self.assertIn('ref: '+self.SOURCE,job)
+        self.assertIn(hashlib.sha256(self.source).hexdigest(),job)
+
 
 class Aud031CommittedCheckoutTests(unittest.TestCase):
     def test_CRLF_checkout_uses_committed_candidate_bytes_for_authorization_tests(self):
@@ -1833,9 +1975,27 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
         # The probe's assertions/classifier may be corrected without changing
         # native jobs, event declarations or the installed caller's authority.
         def without_probe(text):return re.sub(r'(?ms)^  aud031-reservation-probe:.*?(?=^  aud031-probe-caller:|\Z)','',text)
-        self.assertEqual(without_probe(source),without_probe(expected))
+        native_declaration='''      native_reservation:
+        type: boolean
+        default: false
+    outputs:
+      native_receipt:
+        description: Unauthenticated receipt data; consumer must verify immutable writer provenance
+        value: ${{ jobs.aud031-reservation-probe.outputs.native_receipt }}
+'''
+        self.assertEqual(source.count(native_declaration),1)
+        projected=source.replace(native_declaration,'',1).replace('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: false','    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',1)
+        self.assertEqual(without_probe(projected),without_probe(expected))
         prefix=lambda text:text.split('  aud031-reservation-probe:',1)[1].split("python -I - <<'PY'",1)[0]
-        self.assertEqual(prefix(source),prefix(previous))
+        old_prefix=prefix(previous);new_prefix=prefix(source)
+        old_condition=next(line for line in old_prefix.splitlines() if line.startswith('    if:'))
+        new_condition=next(line for line in new_prefix.splitlines() if line.startswith('    if:'))
+        self.assertIn('|| (false && inputs.native_reservation == true',new_condition)
+        self.assertIn(old_condition[8:],new_condition)
+        new_prefix=new_prefix.replace('    # Native writer profile remains disabled until its independent installation approval.\n','',1).replace(new_condition,old_condition,1)
+        new_prefix=new_prefix.replace("    environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}\n    outputs:\n      native_receipt: ${{ steps.app.outputs.native_receipt }}",'    environment: cleanops-native-auth-probe',1)
+        new_prefix=new_prefix.replace('          NATIVE_PROFILE: ${{ inputs.native_reservation }}\n','',1)
+        self.assertEqual(new_prefix,old_prefix)
         self.assertEqual(source.count('  workflow_dispatch:'),1)
         self.assertEqual(source.count('  workflow_call:'),1)
         self.assertEqual(source.count('  aud031-probe-caller:'),1)

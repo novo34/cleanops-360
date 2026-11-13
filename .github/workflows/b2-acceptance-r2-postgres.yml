@@ -5,9 +5,16 @@ on:
       reservation_probe:
         type: boolean
         default: false
+      native_reservation:
+        type: boolean
+        default: false
+    outputs:
+      native_receipt:
+        description: Unauthenticated receipt data; consumer must verify immutable writer provenance
+        value: ${{ jobs.aud031-reservation-probe.outputs.native_receipt }}
     secrets:
       CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:
-        required: true
+        required: false
   workflow_dispatch:
     inputs:
       confirm_reservation_probe:
@@ -197,7 +204,8 @@ jobs:
   aud031-reservation-probe:
     # Call this FILE via uses: owner/repo/path@APPROVED_SHA, never a relative
     # path/branch/merge ref. Caller addition needs separate reviewed publication.
-    if: inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1'
+    # Native writer profile remains disabled until its independent installation approval.
+    if: (inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1') && inputs.native_reservation != true || (false && inputs.native_reservation == true && inputs.reservation_probe != true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'pull_request_review' && github.ref == 'refs/pull/23/merge')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Environment must exist with owner approval, no administrator bypass,
@@ -206,12 +214,15 @@ jobs:
     # The future pinned caller passes this ONE declared name explicitly (never
     # inherit). Environment value takes precedence; a general repository copy
     # is NOT an acceptable final configuration and must be removed before runs.
-    environment: cleanops-native-auth-probe
+    environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}
+    outputs:
+      native_receipt: ${{ steps.app.outputs.native_receipt }}
     permissions:
       contents: read
     steps:
       - name: Validate approved caller before loading code or using the key
         env:
+          NATIVE_PROFILE: ${{ inputs.native_reservation }}
           APPROVED_CALLER_SHA: ${{ vars.CLEANOPS_NATIVE_AUTH_APPROVED_CALLER_SHA }}
           CALLER_REPOSITORY: ${{ github.repository }}
           CALLER_REPOSITORY_ID: ${{ github.repository_id }}
@@ -227,6 +238,15 @@ jobs:
           python -I - <<'PY'
           import os,re
           def approved_caller(values):
+              if values.get('NATIVE_PROFILE')=='true':
+                  fixed={'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
+                         'CALLER_ACTOR_ID':'17856013','CALLER_TRIGGERING_ACTOR':'novo34',
+                         'CALLER_EVENT':'pull_request_review','CALLER_REF':'refs/pull/23/merge',
+                         'CALLER_WORKFLOW_REF':'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/pull/23/merge',
+                         'CALLER_ATTEMPT':'1'}
+                  sha=values.get('CALLER_SHA','')
+                  return (all(values.get(k)==v for k,v in fixed.items()) and re.fullmatch('[0-9a-f]{40}',sha) is not None
+                          and sha==values.get('CALLER_WORKFLOW_SHA'))
               expected=values.get('APPROVED_CALLER_SHA','')
               if not re.fullmatch('[0-9a-f]{40}',expected):return False
               fixed={'CALLER_REPOSITORY':'novo34/cleanops-360','CALLER_REPOSITORY_ID':'1412999204',
@@ -240,6 +260,7 @@ jobs:
               raise SystemExit(1)
           PY
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: inputs.native_reservation != true
         with:
           repository: novo34/cleanops-360
           ref: 993cf7305a50cd0cdfb808125e1775b2b2b96627
@@ -247,9 +268,19 @@ jobs:
           sparse-checkout: scripts/b2-directory-postgres.py
           sparse-checkout-cone-mode: false
           persist-credentials: false
-      - name: Synthetic App reservation probe only (NO SQL)
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: inputs.native_reservation == true
+        with:
+          repository: novo34/cleanops-360
+          ref: 830b9665fb65a4ec10c1368ff52ad2a743061fb8
+          path: trusted
+          persist-credentials: false
+      - name: Synthetic App reservation probe only (NO SQL); or disabled native writer
+        id: app
         env:
-          NATIVE_AUTH_KEY: ${{ secrets.CLEANOPS_NATIVE_AUTH_PRIVATE_KEY }}
+          NATIVE_PROFILE: ${{ inputs.native_reservation }}
+          # Select the NAME before lookup: an empty native key never falls back to the probe key.
+          NATIVE_AUTH_KEY: ${{ secrets[inputs.native_reservation && 'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY' || 'CLEANOPS_NATIVE_AUTH_PRIVATE_KEY'] }}
         run: |
           python -I - <<'PY'
           import base64, concurrent.futures, hashlib, importlib.util, json, os
@@ -260,8 +291,8 @@ jobs:
           def mark(stage):
               diagnostic.update(stage=stage,http=None)
           def report_failure(error):
-              stages=('TRUSTED_SOURCE', 'JWT_SIGNING', 'INSTALLATION', 'READ_TOKEN', 'INSTALLATION_SCOPE', 'READ_TOKEN_REVOCATION', 'WRITE_TOKEN', 'RESERVATION_RACE', 'REUSE', 'UPDATE_PROTECTION', 'DELETE_PROTECTION', 'RESERVATION_PRESERVATION', 'LOST_RESPONSE', 'TOKEN_REVOCATION')
-              codes=('EXCLUSIVITY_FAILED', 'REUSE_ACCEPTED', 'REJECTION_NOT_CONFIRMED', 'PROTECTION_DENIAL_NOT_CONFIRMED', 'RESERVATION_NOT_PRESERVED', 'PROBE_SETUP_FAILED', 'UNCERTAIN_CREATION_RECOVERED', 'ENDPOINT_FORBIDDEN', 'TRUSTED_BYTES_REQUIRED', 'KEY_REQUIRED', 'SIGNING_FAILED', 'INSTALLATION_REQUIRED', 'TOKEN_REQUIRED', 'REPOSITORY_SCOPE_REQUIRED', 'READ_TOKEN_REVOCATION_REQUIRED', 'TOKEN_REVOCATION_FAILED')
+              stages=('TRUSTED_SOURCE', 'JWT_SIGNING', 'INSTALLATION', 'READ_TOKEN', 'INSTALLATION_SCOPE', 'READ_TOKEN_REVOCATION', 'WRITE_TOKEN', 'RESERVATION_RACE', 'REUSE', 'UPDATE_PROTECTION', 'DELETE_PROTECTION', 'RESERVATION_PRESERVATION', 'LOST_RESPONSE', 'TOKEN_REVOCATION', 'NATIVE_AUTHORIZATION', 'NATIVE_RESERVATION', 'NATIVE_RECEIPT')
+              codes=('EXCLUSIVITY_FAILED', 'REUSE_ACCEPTED', 'REJECTION_NOT_CONFIRMED', 'PROTECTION_DENIAL_NOT_CONFIRMED', 'RESERVATION_NOT_PRESERVED', 'PROBE_SETUP_FAILED', 'UNCERTAIN_CREATION_RECOVERED', 'ENDPOINT_FORBIDDEN', 'TRUSTED_BYTES_REQUIRED', 'KEY_REQUIRED', 'SIGNING_FAILED', 'INSTALLATION_REQUIRED', 'TOKEN_REQUIRED', 'REPOSITORY_SCOPE_REQUIRED', 'READ_TOKEN_REVOCATION_REQUIRED', 'TOKEN_REVOCATION_FAILED', 'NATIVE_CONTEXT_CHANGED')
               stage=diagnostic['stage']
               if type(stage) is not str or stage not in stages:stage='UNKNOWN'
               code='UNEXPECTED_ERROR'
@@ -269,7 +300,7 @@ jobs:
                   code=error.args[0]
               status=diagnostic['http']
               http=str(status) if type(status) is int and 100<=status<=599 else 'NONE'
-              print(f'FAIL synthetic reservation probe; NO SQL; stage={stage}; code={code}; last_http={http}')
+              print(f'FAIL trusted App reservation; NO SQL; stage={stage}; code={code}; last_http={http}')
 
           def exercise(api, reserve, auth, reservation_target):
               mark('RESERVATION_RACE')
@@ -343,6 +374,8 @@ jobs:
               return receipt['ref']
 
           token=None
+          native_profile=os.environ.get('NATIVE_PROFILE')=='true'
+          native_receipt=None
           def cancelled(signum,frame):raise SystemExit(1)
           signal.signal(signal.SIGTERM,cancelled)
           def api(method,path,payload=None,bearer=None):
@@ -378,17 +411,26 @@ jobs:
                   except Exception:denied=False;classification='OTHER_HTTP_ERROR'
                   return error.code,{'rulesetDenied':denied,'denialClass':classification}
           try:
+              # Remove the key before import/preflight/Git; only openssl receives it on stdin.
+              key=os.environ.pop('NATIVE_AUTH_KEY','').encode()
+              if not key:raise RuntimeError('KEY_REQUIRED')
               source=pathlib.Path('trusted/scripts/b2-directory-postgres.py')
-              if hashlib.sha256(source.read_bytes()).hexdigest()!='14b7c16bb760e22145d8f8fb179739714e5e1a08ceede42428ade15d2960e852':
+              if not native_profile:
+                  if hashlib.sha256(source.read_bytes()).hexdigest()!='14b7c16bb760e22145d8f8fb179739714e5e1a08ceede42428ade15d2960e852':
+                      raise RuntimeError('TRUSTED_BYTES_REQUIRED')
+              elif hashlib.sha256(source.read_bytes()).hexdigest()!='1784f717f48cc884b3a94323e51e859a0d1be17f7a607095cfe87366e588c29d':
                   raise RuntimeError('TRUSTED_BYTES_REQUIRED')
               spec=importlib.util.spec_from_file_location('trusted_authorizer',source)
               auth_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(auth_module)
+              if native_profile:
+                  mark('NATIVE_AUTHORIZATION')
+                  native_source='830b9665fb65a4ec10c1368ff52ad2a743061fb8'
+                  selected=auth_module.authorize_r3('sql5-aud031',trusted_source_sha=native_source)
+                  native_context=auth_module.execution_context('sql5-aud031')
               mark('JWT_SIGNING')
               encode=lambda value:base64.urlsafe_b64encode(value).rstrip(b'=')
               now=int(time.time())
               message=encode(b'{"alg":"RS256","typ":"JWT"}')+b'.'+encode(json.dumps({'iat':now-60,'exp':now+300,'iss':'5500214'}).encode())
-              key=os.environ.pop('NATIVE_AUTH_KEY','').encode()
-              if not key:raise RuntimeError('KEY_REQUIRED')
               with tempfile.NamedTemporaryFile() as data:
                   data.write(message);data.flush()
                   signed=subprocess.run(['openssl','dgst','-sha256','-sign','/dev/stdin',data.name],input=key,capture_output=True,timeout=15)
@@ -418,12 +460,21 @@ jobs:
               del jwt
               if status!=201 or not isinstance(result.get('token'),str):raise RuntimeError('TOKEN_REQUIRED')
               token=result.pop('token');del result
-              candidate='c5fdb70264429dfb11ed353649221910eb83d21c'
-              auth={'candidate':candidate,'manifestSha256':'384d2ab78c28eb214172c13c622a7fc696ff64f444270b73d6ad5114be790fd2',
-                    'workflow':candidate,'base':'8559870130a47833ab13f7cd677ccf38dd8450c4','reviewId':int(os.environ['GITHUB_RUN_ID']),
-                    'reviewBodySha256':hashlib.sha256(b'AUD031_SYNTHETIC_PROBE_NO_NATIVE_AUTHORIZATION').hexdigest(),'runId':'1','attempt':1}
-              exercise(api,auth_module.reserve_aud031,auth,auth_module.AUD031_RESERVATION_TARGET)
-              print('PASS synthetic reservation probe; NO SQL; reservations retained')
+              if native_profile:
+                  mark('NATIVE_RESERVATION')
+                  if auth_module.execution_context('sql5-aud031')!=native_context:
+                      raise RuntimeError('NATIVE_CONTEXT_CHANGED')
+                  confirmed=auth_module.reserve_aud031(selected['authorization'],
+                      lambda ref,sha:api('POST','/repos/novo34/cleanops-360/git/refs',{'ref':ref,'sha':sha}))
+                  native_receipt={'schemaVersion':1,'authorization':selected['authorization'],
+                                  'reservation':confirmed,'writerSourceSha':native_source}
+              else:
+                  candidate='c5fdb70264429dfb11ed353649221910eb83d21c'
+                  auth={'candidate':candidate,'manifestSha256':'384d2ab78c28eb214172c13c622a7fc696ff64f444270b73d6ad5114be790fd2',
+                        'workflow':candidate,'base':'8559870130a47833ab13f7cd677ccf38dd8450c4','reviewId':int(os.environ['GITHUB_RUN_ID']),
+                        'reviewBodySha256':hashlib.sha256(b'AUD031_SYNTHETIC_PROBE_NO_NATIVE_AUTHORIZATION').hexdigest(),'runId':'1','attempt':1}
+                  exercise(api,auth_module.reserve_aud031,auth,auth_module.AUD031_RESERVATION_TARGET)
+                  print('PASS synthetic reservation probe; NO SQL; reservations retained')
           except Exception as error:
               report_failure(error)
               raise SystemExit(1)
@@ -436,6 +487,18 @@ jobs:
                   except Exception as error:
                       report_failure(error)
                       raise SystemExit(1)
+          # Emit only after successful token revocation and a final fresh review.
+          if native_receipt is not None:
+              try:
+                  mark('NATIVE_RECEIPT')
+                  if auth_module.execution_context('sql5-aud031')!=native_context:
+                      raise RuntimeError('NATIVE_CONTEXT_CHANGED')
+                  with pathlib.Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8') as output:
+                      output.write('native_receipt='+json.dumps(native_receipt,sort_keys=True,separators=(',',':'))+'\n')
+                  print('PASS native reservation writer; NO SQL; receipt requires consumer provenance validation')
+              except Exception as error:
+                  report_failure(error)
+                  raise SystemExit(1)
           PY
   aud031-probe-caller:
     # Both repository and protected-environment SHA approvals must name this
