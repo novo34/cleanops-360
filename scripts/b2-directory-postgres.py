@@ -522,7 +522,9 @@ def verify_aud031_receipt(authorization):
     shas={authorization['candidate'],authorization['workflow']}
     if (not isinstance(run,dict) or type(run.get('id')) is not int or str(run['id'])!=authorization['runId']
             or type(run.get('run_attempt')) is not int or run['run_attempt']!=1
-            or run.get('event')!='pull_request_review' or run.get('status')!='in_progress' or run.get('conclusion') is not None
+            or run.get('event')!='pull_request_review' or run.get('path')!=R3_WORKFLOW
+            or run.get('head_branch')!=AUD031_CONTEXT['branch']
+            or run.get('status')!='in_progress' or run.get('conclusion') is not None
             or not isinstance(run.get('head_sha'),str) or run['head_sha'] not in shas
             or not same(run.get('repository'),repository,('id','full_name'))
             or not same(run.get('actor'),owner,('id','login')) or not same(run.get('triggering_actor'),owner,('id','login'))):

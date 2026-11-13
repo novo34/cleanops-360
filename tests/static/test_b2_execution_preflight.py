@@ -1161,7 +1161,8 @@ class Aud031ContractTests(unittest.TestCase):
         receipt={'schemaVersion':1,'authorization':authorization,'reservation':reservation,'writerSourceSha':runner.AUD031_WRITER['sourceSha']}
         owner={'login':'novo34','id':17856013}
         path='novo34/cleanops-360/'+runner.R3_WORKFLOW+'@'+runner.AUD031_WRITER['workflowSha']
-        run={'id':123,'run_attempt':1,'event':'pull_request_review','status':'in_progress','conclusion':None,
+        run={'id':123,'run_attempt':1,'event':'pull_request_review','path':runner.R3_WORKFLOW,
+             'head_branch':self.context['branch'],'status':'in_progress','conclusion':None,
              'head_sha':'1'*40,'repository':{'id':1412999204,'full_name':'novo34/cleanops-360'},
              'actor':owner,'triggering_actor':dict(owner),
              'referenced_workflows':[{'path':path,'sha':runner.AUD031_WRITER['workflowSha']}]}
@@ -1255,6 +1256,16 @@ class Aud031ContractTests(unittest.TestCase):
         for index,change in enumerate(changes):
             run=json.loads(json.dumps(original));change(run)
             with self.subTest(index=index),self.assertRaises(RuntimeError):self.reader_call(auth,receipt,run,jobs)
+
+    def test_reader_rejects_foreign_workflow_path_despite_matching_run_and_jobs(self):
+        auth,receipt,original,jobs=self.reader_fixture()
+        for path in (None,'.github/workflows/b1-staging-synthetic.yml',runner.R3_WORKFLOW+'@other','./'+runner.R3_WORKFLOW):
+            run=dict(original,path=path)
+            with self.subTest(path=path),self.assertRaisesRegex(RuntimeError,'AUD031_TRUSTED_RUN_REQUIRED'):
+                self.reader_call(auth,receipt,run,jobs)
+        run=dict(original,head_branch='other-branch')
+        with self.assertRaisesRegex(RuntimeError,'AUD031_TRUSTED_RUN_REQUIRED'):
+            self.reader_call(auth,receipt,run,jobs)
 
     def test_reader_rejects_incomplete_ambiguous_or_failed_jobs_and_steps(self):
         auth,receipt,run,original=self.reader_fixture()
