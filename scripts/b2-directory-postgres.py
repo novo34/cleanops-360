@@ -289,8 +289,6 @@ def authorize_r3(scope='sql5-r3', *, trusted_source_sha=None):
         if (not aud031 or not isinstance(trusted_source_sha, str)
                 or not re.fullmatch(r'[0-9a-f]{40}', trusted_source_sha)):
             raise RuntimeError('AUD031_EXACT_TRUSTED_SOURCE_REQUIRED')
-        if os.environ.get('NATIVE_AUTH_KEY'):
-            raise RuntimeError('AUD031_WRITER_PREFLIGHT_WITHOUT_KEY_REQUIRED')
         preflight(scope=scope)  # Reject external bindings before any Git child.
     event = execution_context(scope)
     candidate = event['review']['commit_id']
@@ -481,8 +479,7 @@ def aud031_readonly_run_json(path):
 
 def verify_aud031_receipt(authorization):
     """Verify data AND closed W/needs/T execution, never recover an existing tag."""
-    if os.environ.get('NATIVE_AUTH_KEY'):
-        raise RuntimeError('AUD031_READER_WITHOUT_APP_KEY_REQUIRED')
+    preflight(scope='sql5-aud031')
     raw=os.environ.get('AUD031_NATIVE_RECEIPT','')
     if not raw:
         raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')
@@ -644,6 +641,8 @@ def authorize_composition():
 
 def preflight(*, scope='directory'):
     execution_context(scope)
+    if scope=='sql5-aud031' and os.environ.get('NATIVE_AUTH_KEY'):
+        raise RuntimeError('AUD031_WITHOUT_APP_KEY_REQUIRED')
     # Inspect only names and presence. Never print environment or credential values.
     forbidden = re.compile(r'^(DATABASE_URL|CLEANOPS_TEST_DATABASE_URL|PG[A-Z_]*|DATABASE_.*|DB_.*|SUPABASE_.*|NEON_.*|RDS_.*|OPENBAO_.*|VAULT_.*|CLEANOPS_.*(?:DATABASE|DB_|BAO|SECRET|TOKEN|KEY).*)$')
     if any(value and forbidden.fullmatch(key) for key, value in os.environ.items()):

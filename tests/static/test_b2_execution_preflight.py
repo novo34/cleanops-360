@@ -1202,6 +1202,13 @@ class Aud031ContractTests(unittest.TestCase):
         auth,receipt,run,jobs=self.reader_fixture()
         self.assertEqual(self.reader_call(auth,receipt,run,jobs,main=True),receipt['reservation'])
 
+    def test_reader_main_rejects_App_key_before_any_git_or_transport(self):
+        with patch.dict(os.environ,{'NATIVE_AUTH_KEY':'synthetic-private-key'}),patch.object(runner.subprocess,'run',side_effect=AssertionError('NO_GIT')) as git,patch.object(runner,'load',side_effect=AssertionError('NO_TRANSPORT')) as load,contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.main('sql5-aud031'),1);git.assert_not_called();load.assert_not_called()
+        report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
+        self.assertEqual(report['checks'][0]['detail'],'AUD031_WITHOUT_APP_KEY_REQUIRED')
+        self.assertNotIn('synthetic-private-key',json.dumps(report))
+
     def test_reader_failed_producer_proof_never_loads_native_transport(self):
         auth,receipt,run,jobs=self.reader_fixture()
         jobs['jobs'][0]['conclusion']='cancelled'
@@ -1519,6 +1526,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         published_tree=ast.parse(published)
         guard=ast.dump(ast.parse("if scope=='sql5-aud031':\n report['reservation'] = verify_aud031_receipt(selected['authorization'])").body[0])
         identity=next(n for n in candidate.body if isinstance(n,ast.FunctionDef) and n.name=='aud031_reservation_ref')
+        secret_guard=ast.dump(ast.parse("if scope=='sql5-aud031' and os.environ.get('NATIVE_AUTH_KEY'):\n raise RuntimeError('AUD031_WITHOUT_APP_KEY_REQUIRED')").body[0])
         class DefaultReaderProjection(ast.NodeTransformer):
             count=0
             writer_branches=0
@@ -1526,6 +1534,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
             receipt_functions=0
             writer_configs=0
             identity_inlined=0
+            native_key_guards=0
             def visit_Assign(self,node):
                 if any(isinstance(t,ast.Name) and t.id=='AUD031_WRITER' for t in node.targets):
                     assert isinstance(node.value,ast.Dict)
@@ -1577,6 +1586,8 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
                     return node.body
                 return self.generic_visit(node)
             def visit_If(self,node):
+                if ast.dump(node)==secret_guard:
+                    self.native_key_guards+=1;return None
                 if ast.dump(node)==guard:
                     self.count+=1;return None
                 if ast.dump(node.test)==ast.dump(ast.parse("__name__ == '__main__'",mode='eval').body):
@@ -1596,6 +1607,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         self.assertEqual(removed.receipt_functions,3)
         self.assertEqual(removed.writer_configs,1)
         self.assertEqual(removed.identity_inlined,1)
+        self.assertEqual(removed.native_key_guards,1)
         # Installed probe remains immutable. Full AST equality covers its
         # reservation primitive, main, R3 checks and every other default path.
         self.assertEqual(ast.dump(normalized),ast.dump(published_tree))
