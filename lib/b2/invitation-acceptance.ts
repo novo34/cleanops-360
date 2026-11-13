@@ -109,9 +109,12 @@ export function createInvitationAcceptance(pool:IdentityPool,deps:AcceptanceDepe
     return {state:'READY' as const}
    })
   },
-  async accept(capability:string,csrf:string,correlation=randomUUID()):Promise<{state:'ACCEPTED'}|AuthError>{
+  async accept(capability:string,csrf:string,key:string,correlation=randomUUID()):Promise<{state:'ACCEPTED'}|AuthError>{
    if(!token(capability)||!token(csrf)||!uuid(correlation))return invalid()
-   return repository.transaction(async broker=>await broker.call('consumeInvitationAcceptance',[capability,csrf,correlation])?{state:'ACCEPTED' as const}:invalid())
+   if(typeof key!=='string'||!/^[A-Za-z0-9._:-]{8,128}$/.test(key))return new AuthError(400,'INVALID_REQUEST')
+   const keyDigest=createHash('sha256').update(canonical(['CLEANOPS_INVITATION_ACCEPT_V1',key])).digest()
+   try{return await repository.transaction(async broker=>await broker.call('consumeInvitationAcceptance',[capability,csrf,keyDigest,correlation])?{state:'ACCEPTED' as const}:invalid())}
+   finally{keyDigest.fill(0)}
   },
  })
 }

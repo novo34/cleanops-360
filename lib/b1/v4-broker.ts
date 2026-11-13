@@ -11,7 +11,7 @@ const statements = {
   invitationFactorMaterial:{sql:'SELECT auth_api.invitation_factor_material($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'json'},
   invitationFactorCas:{sql:'SELECT auth_api.invitation_factor_cas($1::text,$2::text,$3::bigint,$4::bigint,$5::bigint,$6::bigint,$7::uuid) AS value',arity:7,kind:'boolean'},
   invitationFactorDenied:{sql:'SELECT auth_api.invitation_factor_denied($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'void'},
-  consumeInvitationAcceptance:{sql:'SELECT auth_api.consume_invitation_acceptance($1::text,$2::text,$3::uuid) AS value',arity:3,kind:'boolean'},
+  consumeInvitationAcceptance:{sql:'SELECT auth_api.consume_invitation_acceptance($1::text,$2::text,$3::bytea,$4::uuid) AS value',arity:4,kind:'boolean'},
 
   invitationDraftOwned:{sql:'SELECT auth_api.invitation_draft_owned($1::jsonb,$2::uuid,$3::bytea,$4::bytea,$5::uuid) AS value',arity:5,kind:'json'},
   invitationPublishOwned:{sql:'SELECT auth_api.publish_invitation_owned($1::uuid,$2::bigint,$3::uuid,$4::bytea,$5::bytea,$6::text,$7::bytea,$8::bytea,$9::uuid) AS value',arity:9,kind:'boolean'},
@@ -229,7 +229,7 @@ export type BrokerArgs = {
   invitationFactorMaterial:[capability:string,csrf:string,correlation:string]
   invitationFactorCas:[capability:string,csrf:string,generation:string,policy:string,previous:number|null,next:number,correlation:string]
   invitationFactorDenied:[capability:string,csrf:string,correlation:string]
-  consumeInvitationAcceptance:[capability:string,csrf:string,correlation:string]
+  consumeInvitationAcceptance:[capability:string,csrf:string,keyDigest:Buffer,correlation:string]
 
   invitationDraftOwned:[payload:string,candidate:string,key:Buffer,request:Buffer,correlation:string]
   invitationPublishOwned:[invitation:string,generation:string,outbox:string,verifier:Buffer,ciphertext:Buffer,keyVersion:string,key:Buffer,request:Buffer,correlation:string]

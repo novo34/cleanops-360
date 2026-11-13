@@ -31,3 +31,72 @@ test('failed preparation or commit emits no cookies and redacts private diagnost
   assert.equal(response.status,result instanceof AuthError?401:503);assert.equal(response.headers.get('set-cookie'),null);assert.ok(!(await response.text()).includes('private database'))
  }
 })
+
+test('ACCEPT rejects missing or malformed keys before invoking the ceremony',async()=>{
+ let calls=0
+ const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(){calls++;return {state:'ACCEPTED' as const}}},origin)
+ for(const key of ['', 'short', 'contains space', 'x'.repeat(129)]){
+  const response=await handle(request({operation:'ACCEPT'},{'idempotency-key':key,cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}))
+  assert.equal(response.status,400);assert.equal(response.headers.get('set-cookie'),null)
+ }
+ assert.equal(calls,0)
+})
+
+test('ACCEPT rejects tenant selectors, duplicate cookies and mismatched CSRF before private calls',async()=>{
+ let calls=0
+ const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(){calls++;return {state:'ACCEPTED' as const}}},origin)
+ const headers={cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}
+ assert.equal((await handle(request({operation:'ACCEPT',tenant_id:id},headers))).status,422)
+ assert.equal((await handle(request({operation:'ACCEPT'},{...headers,cookie:headers.cookie+`; __Host-cleanops_invitation=${token}`}))).status,403)
+ assert.equal((await handle(request({operation:'ACCEPT'},{...headers,'x-csrf-token':'b'.repeat(43)}))).status,403)
+ assert.equal(calls,0)
+})
+
+test('ACCEPT denial and uncertain commit emit no cookies or private diagnostics',async()=>{
+ for(const failure of [new AuthError(401,'INVITATION_INVALID'),new Error('private commit diagnostic')]){
+  const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(){if(failure instanceof AuthError)return failure;throw failure}},origin)
+  const response=await handle(request({operation:'ACCEPT'},{cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}))
+  assert.equal(response.status,failure instanceof AuthError?401:503)
+  assert.equal(response.headers.get('set-cookie'),null)
+  assert.ok(!(await response.text()).includes('private commit diagnostic'))
+ }
+})
+
+test('ACCEPT preserves current 8..128 key boundaries and punctuation without changing its policy',async()=>{
+ let calls=0
+ const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(){calls++;return {state:'ACCEPTED' as const}}},origin)
+ const headers={cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}
+ for(const key of ['a'.repeat(8),'a'.repeat(128),'a._:-b12'])assert.equal((await handle(request({operation:'ACCEPT'},{...headers,'idempotency-key':key}))).status,200)
+ for(const key of ['a'.repeat(7),'a'.repeat(129),'abc defg','abcdefg\u00e9'])assert.equal((await handle(request({operation:'ACCEPT'},{...headers,'idempotency-key':key}))).status,400)
+ assert.equal(calls,3)
+ // This characterizes today's validator; it does not approve its normative scope.
+})
+
+test('ACCEPT maps a ceremony conflict to a generic 409 without clearing cookies or leaking diagnostics',async()=>{
+ const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(){throw new AuthError(409,'IDEMPOTENCY_MISMATCH')}},origin)
+ const response=await handle(request({operation:'ACCEPT'},{cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}))
+ assert.equal(response.status,409);assert.equal(response.headers.get('set-cookie'),null)
+ const result=await response.json()
+ assert.equal(result.error.code,'INVALID_REQUEST');assert.deepEqual(result.error.details,[])
+ assert.ok(!JSON.stringify(result).includes('IDEMPOTENCY_MISMATCH'))
+})
+
+test('production ACCEPT route stays closed with 503 and never emits invitation or B1 cookies',async()=>{
+ const {POST}=await import('../../app/auth/invitations/accept/route.ts')
+ const response=await POST()
+ assert.equal(response.status,503);assert.equal(response.headers.get('set-cookie'),null)
+ assert.equal(response.headers.get('cache-control'),'no-store')
+ assert.equal((await response.json()).error.code,'AUTH_DEPENDENCY_UNAVAILABLE')
+})
+
+
+test('ACCEPT forwards the exact permitted key and server correlation to the existing ceremony',async()=>{
+ const received:string[][]=[]
+ const handle=createInvitationAcceptanceHandler({async prepare(){throw Error('unexpected')},async factor(){throw Error('unexpected')},async accept(capability:string,csrf:string,key:string,correlation=id){received.push([capability,csrf,key,correlation]);return {state:'ACCEPTED' as const}}},origin)
+ for(const key of ['a'.repeat(8),'a._:-b12']){
+  const response=await handle(request({operation:'ACCEPT'},{'idempotency-key':key,cookie:`__Host-cleanops_invitation=${token}; __Host-cleanops_invitation_csrf=${token}`,'x-csrf-token':token}))
+  assert.equal(response.status,200);assert.deepEqual(received.at(-1)?.slice(0,3),[token,token,key])
+  assert.equal(received.at(-1)?.[3],(await response.json()).correlation_id)
+ }
+ assert.equal(received.length,2)
+})

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {randomBytes} from 'node:crypto'
-import {createAuthHandler,names,digest,type Backend,type Binding,type Transaction} from '../../lib/b1/service.ts'
+import {AuthError,createAuthHandler,names,digest,type Backend,type Binding,type Transaction} from '../../lib/b1/service.ts'
 import {createV4IdentityRepository} from '../../lib/b1/v4-broker.ts'
 import {changeInvitation} from '../../lib/b2/invitation-administration.ts'
 import {openInvitationMail,matchesInvitationVerifier} from '../../lib/b2/invitation-secrets.ts'
@@ -71,4 +71,61 @@ test('unavailable custody or foreign/malformed invitation material cannot publis
  await assert.rejects(repository.transaction(broker=>changeInvitation(broker,...args,{normalizeEmail:value=>value})),{status:503})
  await assert.rejects(repository.transaction(broker=>changeInvitation(broker,...args,{normalizeEmail:value=>value,mail:{async withWriteKey(){throw Error('must not seal')}}})),{status:503})
  assert.equal(published,false)
+})
+
+for(const operation of ['RESEND','REVOKE'] as const){
+ test(`private ${operation} sends the same canonical invitation UUID in the payload and SQL locator`,async()=>{
+  const target='abcdef01-2345-4678-8abc-def012345678'
+  for(const invitation of [target,target.toUpperCase(),'AbCdEf01-2345-4678-8AbC-dEf012345678']){
+   const change=Object.freeze({operation,invitation_id:invitation,expected_version:'7',reason:'Synthetic UUID compatibility'})
+   let published=0,custody=0;const calls:string[]=[]
+   const repository=createV4IdentityRepository({async connect(){return {async query(sql,values=[]){
+    calls.push(sql)
+    if(sql.includes('invitation_draft_owned')){
+     const payload=JSON.parse(String(values[0]))
+     assert.equal(values[1],target)
+     // SQL4 compares this JSON string with candidate::text before mutation.
+     if(payload.invitation_id!==values[1])return {rows:[{value:{error:'INVALID_INPUT'}}]}
+     assert.deepEqual(payload,{...change,invitation_id:target})
+     if(operation==='REVOKE')return {rows:[{value:{accepted:true}}]}
+     const issuedAt=Date.now()
+     return {rows:[{value:{tenant_id:id,invitation_id:target,generation:'8',recipient:input.email,outbox_id:foreign,issued_at:new Date(issuedAt).toISOString(),expires_at:new Date(issuedAt+86400000).toISOString()}}]}
+    }
+    if(sql.includes('publish_invitation_owned')){published++;assert.equal(values[0],target);assert.equal(values[1],'8');return {rows:[{value:true}]}}
+    return {rows:[]}
+   },release(){}}}})
+   const result=await repository.transaction(broker=>changeInvitation(broker,change,binding,id,Buffer.alloc(32,1),Buffer.alloc(32,2),{
+    normalizeEmail(){throw Error('resend/revoke must not reinterpret recipient')},
+    mail:{async withWriteKey(tenant,work){custody++;assert.equal(tenant,binding.tenantId);return work(Buffer.alloc(32,3),'synthetic-write-key')}},
+   }))
+   assert.deepEqual(result,{data:{accepted:true}})
+   assert.equal(change.invitation_id,invitation)
+   assert.equal(published,operation==='RESEND'?1:0);assert.equal(custody,published)
+   assert.equal(calls.at(-1),'COMMIT')
+  }
+ })
+}
+
+test('canonical invitation locators preserve private denials without custody or publication',async()=>{
+ for(const operation of ['RESEND','REVOKE'] as const){
+  for(const [code,status] of [['NOT_FOUND',404],['POLICY_DENIED',403],['STEP_UP_REQUIRED',403],['INVITATION_CONFLICT',409]] as const){
+   const target='abcdef01-2345-4678-8abc-def012345678',calls:string[]=[]
+   const repository=createV4IdentityRepository({async connect(){return {async query(sql,values=[]){
+    calls.push(sql)
+    if(sql.includes('invitation_draft_owned')){
+     assert.equal(JSON.parse(String(values[0])).invitation_id,target);assert.equal(values[1],target)
+     return {rows:[{value:{error:code}}]}
+    }
+    if(sql.startsWith('SELECT auth_api.'))assert.fail('denied invitation must not publish')
+    return {rows:[]}
+   },release(){}}}})
+   const result=await repository.transaction(broker=>changeInvitation(broker,{operation,invitation_id:target.toUpperCase(),expected_version:'7',reason:'Synthetic denied request'},binding,id,Buffer.alloc(32,1),Buffer.alloc(32,2),{
+    normalizeEmail(){throw Error('must not normalize recipient')},mail:{async withWriteKey(){throw Error('denial must not acquire custody')}},
+   }))
+   assert.ok(result instanceof AuthError);assert.equal(result.code,code);assert.equal(result.status,status)
+   assert.equal(calls.filter(sql=>sql.startsWith('SELECT auth_api.')).length,1)
+   // Returned denials commit normally so SQL's durable denial audit survives.
+   assert.equal(calls.at(-1),'COMMIT')
+  }
+ }
 })
