@@ -262,7 +262,7 @@ def execution_context(scope):
         raise RuntimeError('HOSTED_CI_SCOPE_REQUIRED') from None
 
 
-def authorize_r3(scope='sql5-r3'):
+def authorize_r3(scope='sql5-r3', *, trusted_source_sha=None):
     # One canonical SQL5 gate; retain the existing R3 API/default for consumers.
     if scope not in ('sql5-r3','sql5-aud031'):raise RuntimeError('EXACT_SCOPE_REQUIRED')
     aud031 = scope=='sql5-aud031'
@@ -273,8 +273,25 @@ def authorize_r3(scope='sql5-r3'):
     fixed = AUD031_FIXED_DEPENDENCIES if aud031 else R3_FIXED_DEPENDENCIES
     fixture = AUD031_FIXTURE if aud031 else R3_FIXTURE
     tag = 'AUD031' if aud031 else 'R3'
+    # Only the future immutable writer supplies P. This parameter identifies
+    # its checkout; it is not an installation approval or a reservation receipt.
+    if trusted_source_sha is not None:
+        if (not aud031 or not isinstance(trusted_source_sha, str)
+                or not re.fullmatch(r'[0-9a-f]{40}', trusted_source_sha)):
+            raise RuntimeError('AUD031_EXACT_TRUSTED_SOURCE_REQUIRED')
+        if os.environ.get('NATIVE_AUTH_KEY'):
+            raise RuntimeError('AUD031_WRITER_PREFLIGHT_WITHOUT_KEY_REQUIRED')
+        preflight(scope=scope)  # Reject external bindings before any Git child.
     event = execution_context(scope)
-    raw = artifact_bytes(manifest_path)
+    candidate = event['review']['commit_id']
+    if trusted_source_sha is not None:
+        # A sparse checkout of P may not contain C. Acquire the real W (and
+        # its parents) from the fixed repository without checking any code out.
+        git_bytes(os.environ.get('GITHUB_WORKFLOW_SHA', ''), R3_WORKFLOW, fetch_workflow=True)
+    # Read C as inert Git objects while Python continues to execute from P.
+    # The default native reader keeps its original working-tree checks.
+    read_bundle = artifact_bytes if trusted_source_sha is None else lambda name: git_bytes(candidate, name)
+    raw = read_bundle(manifest_path)
     manifest = strict_json(raw)
     if (not isinstance(manifest, dict) or set(manifest) != ({'schemaVersion','scope','context','historicalReferences','files','contractApproved','executionAuthorized'} if aud031 else {'schemaVersion','scope','context','historicalReferences','files'})
             or type(manifest['schemaVersion']) is not int or manifest['schemaVersion'] != 1
@@ -284,7 +301,6 @@ def authorize_r3(scope='sql5-r3'):
         raise RuntimeError('EXACT_R3_MANIFEST_REQUIRED')
     if aud031 and (manifest['contractApproved'] is not True or manifest['executionAuthorized'] is not True):
         raise RuntimeError('AUD031_EXACT_OWNER_APPROVAL_REQUIRED')
-    candidate = event['review']['commit_id']
     workflow = os.environ.get('GITHUB_WORKFLOW_SHA', '')
     base = event['pull_request']['base'].get('sha', '')
     if not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{40}', value) for value in (candidate, workflow, base)):
@@ -294,7 +310,7 @@ def authorize_r3(scope='sql5-r3'):
     if event['review']['body'] != expected_body:
         raise RuntimeError('NEW_R3_C_M_W_AUTHORIZATION_REQUIRED')
     head = subprocess.run(['git','--no-replace-objects','rev-parse','HEAD'], cwd=ROOT, capture_output=True)
-    if head.returncode or head.stdout.strip().decode() != candidate:
+    if head.returncode or head.stdout.strip().decode() != (candidate if trusted_source_sha is None else trusted_source_sha):
         raise RuntimeError('EXACT_R3_CHECKOUT_REQUIRED')
     review_ref = f"refs/pull/{context['pullRequest']}/merge"
     if (os.environ.get('GITHUB_REF') != review_ref
@@ -304,13 +320,13 @@ def authorize_r3(scope='sql5-r3'):
     if git_bytes(candidate, manifest_path) != raw:
         raise RuntimeError('EXACT_R3_MANIFEST_BYTES_REQUIRED')
     for name, expected in manifest['files'].items():
-        content = artifact_bytes(name)
+        content = read_bundle(name)
         if (not isinstance(expected, str) or not re.fullmatch(r'[0-9a-f]{64}', expected)
                 or hashlib.sha256(content).hexdigest() != expected or git_bytes(candidate, name) != content):
             raise RuntimeError('EXACT_R3_BUNDLE_BYTES_REQUIRED')
         if name in fixed and expected != fixed[name]:
             raise RuntimeError('UNEXPECTED_FIXED_DEPENDENCY_CHANGE')
-    if git_bytes(workflow, R3_WORKFLOW, fetch_workflow=True) != artifact_bytes(R3_WORKFLOW):
+    if git_bytes(workflow, R3_WORKFLOW, fetch_workflow=True) != read_bundle(R3_WORKFLOW):
         raise RuntimeError('EXACT_R3_WORKFLOW_BYTES_REQUIRED')
     # W is an exact merge snapshot, never a mutable-ref replacement for C or B.
     try:
@@ -332,7 +348,7 @@ def authorize_r3(scope='sql5-r3'):
         raise RuntimeError('CURRENT_R3_REFERENCES_REQUIRED') from None
     historical_raw = git_bytes(COMPOSITION_REFERENCE, COMPOSITION_MANIFEST)
     if (hashlib.sha256(historical_raw).hexdigest() != COMPOSITION_MANIFEST_SHA
-            or artifact_bytes(COMPOSITION_MANIFEST) != historical_raw):
+            or read_bundle(COMPOSITION_MANIFEST) != historical_raw):
         raise RuntimeError('IMMUTABLE_HISTORICAL_MANIFEST_REQUIRED')
     historical = strict_json(historical_raw)
     if (set(historical['artifacts']) != set(historical['sha256'])
@@ -343,30 +359,34 @@ def authorize_r3(scope='sql5-r3'):
         original = git_bytes(COMPOSITION_REFERENCE, name)
         if hashlib.sha256(original).hexdigest() != historical['sha256'][key]:
             raise RuntimeError('EXACT_HISTORICAL_BYTES_REQUIRED')
-        if name != 'scripts/b2-directory-postgres.py' and artifact_bytes(name) != original:
+        if name != 'scripts/b2-directory-postgres.py' and read_bundle(name) != original:
             raise RuntimeError('UNEXPECTED_DEPENDENCY_CHANGE')
     # Revalidate immutable dependencies, not their permission to run new bytes.
     authorize_package('access'); authorize_package('users')
-    combined = strict_json(artifact_bytes('docs/implementation/b2/combined-authorization.json'))
+    combined = strict_json(read_bundle('docs/implementation/b2/combined-authorization.json'))
     if not (combined.get('ownerApproved') is True and combined.get('referenceCommit') == COMPOSITION_REFERENCE
             and combined.get('sourceManifest') == COMPOSITION_MANIFEST and combined.get('sourceManifestSha256') == COMPOSITION_MANIFEST_SHA
             and combined.get('scope') == 'SQL14+SQL1+SQL2+SQL3_HOSTED_EPHEMERAL_PG16'):
         raise RuntimeError('PRIOR_COMPOSITION_PROVENANCE_REQUIRED')
-    prior = strict_json(artifact_bytes('docs/implementation/b2/invitation-administration-authorization.json'))
+    prior = strict_json(read_bundle('docs/implementation/b2/invitation-administration-authorization.json'))
     sql4 = 'docs/proposals/b2-invitations/004-invitation-administration.review.sql'
     if not (prior.get('ownerApproved') is True and prior.get('scope') == 'SQL4_INVITATION_ADMIN_HOSTED_EPHEMERAL_PG16'
             and prior.get('referenceCommit') == 'cd138d71fb8fd8e9298e17c0f69b83e259ef3eba'
             and prior.get('sqlSha256') == 'e32365999f4f41a1ded6ee7da375878b18c0c907bfd982fd86f68cf84336fc96'
-            and hashlib.sha256(artifact_bytes(sql4)).hexdigest() == prior['sqlSha256']
-            and git_bytes(prior['referenceCommit'], sql4) == artifact_bytes(sql4)):
+            and hashlib.sha256(read_bundle(sql4)).hexdigest() == prior['sqlSha256']
+            and git_bytes(prior['referenceCommit'], sql4) == read_bundle(sql4)):
         raise RuntimeError('EXACT_PRIOR_SQL4_PROVENANCE_REQUIRED')
-    contract = strict_json(artifact_bytes('docs/implementation/b2/invitation-contract-approval.json'))
+    contract = strict_json(read_bundle('docs/implementation/b2/invitation-contract-approval.json'))
     if not (contract.get('ownerApproved') is True and contract.get('parametersApproved') is True
             and contract.get('implementationAuthorized') is True and contract.get('sqlExecutionAuthorized') is False
             and contract.get('referenceCommit') == COMPOSITION_REFERENCE
             and contract.get('sha256') == '63d01265908831372bd1e3e423867dc8b0be5c0a3fc000b060ad279e8ba48d5a'):
         raise RuntimeError('PRIOR_INVITATION_CONTRACT_REQUIRED')
-    ast.parse(artifact_bytes(fixture), filename=fixture)
+    ast.parse(read_bundle(fixture), filename=fixture)
+    if trusted_source_sha is not None:
+        final_head = subprocess.run(['git','--no-replace-objects','rev-parse','HEAD'], cwd=ROOT, capture_output=True)
+        if final_head.returncode or final_head.stdout.strip().decode() != trusted_source_sha:
+            raise RuntimeError('AUD031_UNCHANGED_TRUSTED_SOURCE_REQUIRED')
     # Git acquisition and provenance checks must not extend the review lifetime.
     if execution_context(scope) != event:
         raise RuntimeError('UNCHANGED_R3_REVIEW_CONTEXT_REQUIRED')
@@ -648,4 +668,17 @@ def main(scope='directory'):
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--package',choices=['directory','access','users','combined','sql5-r3','sql5-aud031'],default='directory')
-    sys.exit(main(parser.parse_args().package))
+    parser.add_argument('--aud031-writer-source', metavar='P',
+                        help='Read-only AUD031 preflight from trusted checkout P; no reservation or SQL')
+    args=parser.parse_args()
+    if args.aud031_writer_source is not None:
+        if args.package != 'sql5-aud031':
+            parser.error('--aud031-writer-source requires --package sql5-aud031')
+        try:
+            selected=authorize_r3(args.package, trusted_source_sha=args.aud031_writer_source)
+        except Exception:
+            print('FAIL AUD031_WRITER_PREFLIGHT; no reservation or SQL')
+            sys.exit(1)
+        print(json.dumps({'kind':'AUD031_WRITER_PREFLIGHT_ONLY','authorization':selected['authorization']},sort_keys=True))
+        sys.exit(0)
+    sys.exit(main(args.package))

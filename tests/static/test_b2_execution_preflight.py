@@ -972,6 +972,7 @@ class Aud031ContractTests(unittest.TestCase):
     write_event=R3ContractTests.write_event
 
     def setUp(self):
+        self.real_run=subprocess.run;self.real_git_bytes=runner.git_bytes
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.candidate={}
         for name in runner.AUD031_FILES | {runner.AUD031_MANIFEST}:
@@ -1033,6 +1034,112 @@ class Aud031ContractTests(unittest.TestCase):
         # trusted-writer integration, even if activation is toggled separately.
         with patch.object(runner,'AUD031_NATIVE_ENABLED',True):
             self.assertEqual(self.reject_before_transport(),'AUD031_TRUSTED_RESERVATION_REQUIRED')
+
+    def test_writer_reads_candidate_objects_without_loading_candidate_files(self):
+        source='9'*40
+        def head(args,**kwargs):
+            result=self.git_head(args,**kwargs)
+            if args[-2:]==['rev-parse','HEAD']:result.stdout=source.encode()+b'\n'
+            return result
+        # Candidate code on disk is never needed by the data-only reader.
+        (self.root/runner.AUD031_FIXTURE).write_text('raise AssertionError("CANDIDATE_EXECUTED")\n')
+        with patch.object(runner.subprocess,'run',side_effect=head), patch.object(runner,'artifact_bytes',side_effect=AssertionError('NO_CANDIDATE_WORKTREE')), patch.object(runner,'load',side_effect=AssertionError('NO_IMPORT')):
+            selected=runner.authorize_r3('sql5-aud031',trusted_source_sha=source)
+        self.assertEqual(selected['authorization']['candidate'],'1'*40)
+        self.assertEqual(selected['authorization']['runId'],'123')
+
+    def test_writer_source_is_AUD031_only_and_requires_exact_SHA_before_git(self):
+        with patch.object(runner.subprocess,'run',side_effect=AssertionError('NO_GIT')):
+            for source in ('main','',True,1,'A'*40,'1'*39):
+                with self.subTest(source=source), self.assertRaisesRegex(RuntimeError,'AUD031_EXACT_TRUSTED_SOURCE_REQUIRED'):
+                    runner.authorize_r3('sql5-aud031',trusted_source_sha=source)
+            with self.assertRaisesRegex(RuntimeError,'AUD031_EXACT_TRUSTED_SOURCE_REQUIRED'):
+                runner.authorize_r3('sql5-r3',trusted_source_sha='9'*40)
+
+    def test_writer_acquires_real_W_before_reading_candidate_objects(self):
+        calls=[]
+        def read(reference,name,**kwargs):
+            calls.append((reference,name,kwargs))
+            return self.git_bytes(reference,name,**kwargs)
+        with patch.object(runner,'git_bytes',side_effect=read):
+            runner.authorize_r3('sql5-aud031',trusted_source_sha='1'*40)
+        self.assertEqual(calls[0],('2'*40,runner.R3_WORKFLOW,{'fetch_workflow':True}))
+        self.assertEqual(calls[1],('1'*40,runner.AUD031_MANIFEST,{}))
+
+    def test_writer_rejects_keys_and_external_bindings_before_git(self):
+        with patch.object(runner.subprocess,'run',side_effect=AssertionError('NO_GIT')):
+            for key in ('NATIVE_AUTH_KEY','CLEANOPS_AUD031_NATIVE_PRIVATE_KEY','PGPASSWORD','DATABASE_URL'):
+                with self.subTest(key=key), patch.dict(os.environ,{key:'synthetic-private-value'}):
+                    with self.assertRaises(RuntimeError) as caught:
+                        runner.authorize_r3('sql5-aud031',trusted_source_sha='9'*40)
+                    self.assertNotIn('synthetic-private-value',str(caught.exception))
+
+    def test_writer_rejects_wrong_source_and_source_drift(self):
+        for drift in (False,True):
+            count=0
+            def head(args,**kwargs):
+                nonlocal count
+                result=self.git_head(args,**kwargs)
+                if args[-2:]==['rev-parse','HEAD']:
+                    count+=1
+                    result.stdout=(('9'*40 if drift and count==1 else '8'*40)+'\n').encode()
+                return result
+            with self.subTest(drift=drift), patch.object(runner.subprocess,'run',side_effect=head):
+                with self.assertRaisesRegex(RuntimeError,'AUD031_UNCHANGED_TRUSTED_SOURCE_REQUIRED' if drift else 'EXACT_R3_CHECKOUT_REQUIRED'):
+                    runner.authorize_r3('sql5-aud031',trusted_source_sha='9'*40)
+
+    def test_writer_retains_candidate_hash_checks_and_pending_flags(self):
+        original=self.candidate[runner.AUD031_FIXTURE]
+        self.candidate[runner.AUD031_FIXTURE]=original+b'\n'
+        with self.assertRaisesRegex(RuntimeError,'EXACT_R3_BUNDLE_BYTES_REQUIRED'):
+            runner.authorize_r3('sql5-aud031',trusted_source_sha='1'*40)
+        self.candidate[runner.AUD031_FIXTURE]=original
+        self.manifest['executionAuthorized']=False;self.refresh_review()
+        with self.assertRaisesRegex(RuntimeError,'AUD031_EXACT_OWNER_APPROVAL_REQUIRED'):
+            runner.authorize_r3('sql5-aud031',trusted_source_sha='1'*40)
+
+    def test_writer_checks_TTL_after_reading_data(self):
+        def read(reference,name,**kwargs):
+            result=self.git_bytes(reference,name,**kwargs)
+            if name==runner.AUD031_FIXTURE:runner.time.time.return_value=self.now+901
+            return result
+        with patch.object(runner,'git_bytes',side_effect=read), self.assertRaisesRegex(RuntimeError,'FRESH_R3_OWNER_REVIEW_REQUIRED'):
+            runner.authorize_r3('sql5-aud031',trusted_source_sha='1'*40)
+
+    def test_writer_real_git_objects_leave_HEAD_on_P_and_never_execute_C(self):
+        def git(*args):
+            return self.real_run(['git','--no-replace-objects',*args],cwd=self.root,capture_output=True,check=True)
+        git('init')
+        marker=self.root/'candidate-executed'
+        malicious=('from pathlib import Path\nPath('+repr(str(marker))+').write_text("executed")\n').encode()
+        for name in ('scripts/b2-directory-postgres.py',runner.AUD031_FIXTURE):
+            self.candidate[name]=malicious;(self.root/name).write_bytes(malicious)
+            self.manifest['files'][name]=hashlib.sha256(malicious).hexdigest()
+        self.refresh_review()
+        git('add','.')
+        tree=git('write-tree').stdout.strip().decode()
+        def commit(message):
+            return git('-c','user.name=Static test','-c','user.email=static@example.invalid','commit-tree',tree,'-m',message).stdout.strip().decode()
+        source=commit('P fixture');candidate=commit('C fixture')
+        self.assertNotEqual(source,candidate)
+        git('update-ref','--no-deref','HEAD',source)
+        for name in ('scripts/b2-directory-postgres.py',runner.AUD031_FIXTURE):(self.root/name).unlink()
+        self.event['review']['commit_id']=candidate;self.event['pull_request']['head']['sha']=candidate
+        self.event['review']['body']=self.event['review']['body'].replace('1'*40,candidate);self.write_event()
+        def process(args,**kwargs):
+            if args[-2:]==['rev-parse','HEAD'] or 'show' in args:
+                return self.real_run(args,**kwargs)
+            result=self.git_head(args,**kwargs)
+            result.stdout=result.stdout.replace(b'1'*40,candidate.encode())
+            return result
+        def read(reference,name,**kwargs):
+            if reference==candidate:return self.real_git_bytes(reference,name,**kwargs)
+            return self.git_bytes(reference,name,**kwargs)
+        with patch.object(runner.subprocess,'run',side_effect=process), patch.object(runner,'git_bytes',side_effect=read), patch.object(runner,'load',side_effect=AssertionError('NO_NATIVE_IMPORT')):
+            result=runner.authorize_r3('sql5-aud031',trusted_source_sha=source)
+        self.assertEqual(result['authorization']['candidate'],candidate)
+        self.assertEqual(git('rev-parse','HEAD').stdout.strip().decode(),source)
+        self.assertFalse(marker.exists())
 
     def test_unconfigured_production_context_rejects_before_transport(self):
         with patch.object(runner,'AUD031_CONTEXT',{**self.context,'pullRequest':None}):
@@ -1249,7 +1356,17 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'RESERVATION_NOT_PRESERVED'):
                 exercise(api,runner.reserve_aud031,auth,runner.AUD031_RESERVATION_TARGET)
 
-    def test_probe_pins_published_bytes_and_candidate_only_adds_missing_reservation_gate(self):
+    def test_writer_cli_has_no_local_or_wrong_package_execution_path(self):
+        env={k:v for k,v in os.environ.items() if not k.startswith(('GITHUB_','CLEANOPS_','PG','DATABASE_','NATIVE_AUTH_'))}
+        for package in ('sql5-aud031','sql5-r3'):
+            result=subprocess.run([shutil.which('python') or 'python','-I','-B',str(ROOT/'scripts/b2-directory-postgres.py'),
+                                   '--package',package,'--aud031-writer-source','9'*40],
+                                  cwd=ROOT,env=env,capture_output=True,timeout=15)
+            self.assertNotEqual(result.returncode,0)
+            self.assertNotIn(b'AUD031_WRITER_PREFLIGHT_ONLY',result.stdout)
+            if package=='sql5-aud031':self.assertEqual(result.stdout,b'FAIL AUD031_WRITER_PREFLIGHT; no reservation or SQL\n')
+
+    def test_probe_pins_published_bytes_and_default_candidate_behavior_is_preserved(self):
         import ast,re
         job=(ROOT/runner.R3_WORKFLOW).read_text().split('  aud031-reservation-probe:',1)[1]
         pinned=re.search(r'^          ref: ([0-9a-f]{40})$',job,re.M).group(1)
@@ -1257,19 +1374,64 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         published=subprocess.check_output(['git','show',pinned+':scripts/b2-directory-postgres.py'],cwd=ROOT)
         self.assertEqual(hashlib.sha256(published).hexdigest(),expected)
         candidate=ast.parse((ROOT/'scripts/b2-directory-postgres.py').read_bytes())
+        published_tree=ast.parse(published)
         guard=ast.dump(ast.parse("if scope=='sql5-aud031':\n raise RuntimeError('AUD031_TRUSTED_RESERVATION_REQUIRED')").body[0])
-        class RemoveMissingIntegrationGate(ast.NodeTransformer):
+        class DefaultReaderProjection(ast.NodeTransformer):
             count=0
+            writer_branches=0
+            def visit_FunctionDef(self,node):
+                if node.name!='authorize_r3':return self.generic_visit(node)
+                self.assert_signature(node)
+                # Evaluate only the new optional writer mode as None. All
+                # statements on the default/R3 path must remain bytecode AST
+                # equivalent to the published implementation after projection.
+                node.args.kwonlyargs=[];node.args.kw_defaults=[]
+                kept=[];candidate_assignment=None
+                for statement in node.body:
+                    if isinstance(statement,ast.If) and ast.dump(statement.test)==ast.dump(ast.parse('trusted_source_sha is not None',mode='eval').body):
+                        self.writer_branches+=1;continue
+                    if isinstance(statement,ast.Assign) and len(statement.targets)==1 and isinstance(statement.targets[0],ast.Name):
+                        name=statement.targets[0].id
+                        if name=='read_bundle':continue
+                        if name=='candidate':candidate_assignment=statement;continue
+                        if name=='workflow':
+                            assert candidate_assignment is not None
+                            kept.append(candidate_assignment)
+                    kept.append(statement)
+                node.body=kept
+                return self.generic_visit(node)
+            @staticmethod
+            def assert_signature(node):
+                assert [x.arg for x in node.args.kwonlyargs]==['trusted_source_sha']
+                assert len(node.args.kw_defaults)==1 and ast.literal_eval(node.args.kw_defaults[0]) is None
+            def visit_Call(self,node):
+                if isinstance(node.func,ast.Name) and node.func.id=='read_bundle':node.func.id='artifact_bytes'
+                return self.generic_visit(node)
+            def visit_IfExp(self,node):
+                if ast.dump(node.test)==ast.dump(ast.parse('trusted_source_sha is None',mode='eval').body):
+                    assert isinstance(node.body,ast.Name) and node.body.id=='candidate'
+                    assert isinstance(node.orelse,ast.Name) and node.orelse.id=='trusted_source_sha'
+                    return node.body
+                return self.generic_visit(node)
             def visit_If(self,node):
                 if ast.dump(node)==guard:
                     self.count+=1;return None
+                if ast.dump(node.test)==ast.dump(ast.parse("__name__ == '__main__'",mode='eval').body):
+                    original=published_tree.body[-1]
+                    assert len(node.body)==6
+                    assert all(ast.dump(x)==ast.dump(y) for x,y in zip(node.body[:2],original.body[:2]))
+                    assert ast.dump(node.body[-1])==ast.dump(ast.parse('sys.exit(main(args.package))').body[0])
+                    # The CLI branch is separately exercised in a subprocess;
+                    # its default still invokes the exact existing main path.
+                    node.body=original.body
+                    return node
                 return self.generic_visit(node)
-        removed=RemoveMissingIntegrationGate();normalized=removed.visit(candidate)
+        removed=DefaultReaderProjection();normalized=removed.visit(candidate)
         self.assertEqual(removed.count,1)
-        # The installed probe's immutable module stays pinned. All its code,
-        # including reserve_aud031 and R3, must match the candidate except for
-        # the explicit new refusal to run an unintegrated native AUD031 route.
-        self.assertEqual(ast.dump(normalized),ast.dump(ast.parse(published)))
+        self.assertEqual(removed.writer_branches,3)
+        # Installed probe remains immutable. Full AST equality covers its
+        # reservation primitive, main, R3 checks and every other default path.
+        self.assertEqual(ast.dump(normalized),ast.dump(published_tree))
         self.assertIn(runner.AUD031_RESERVATION_TARGET,published.decode())
 
     def test_error_ambiguity_timeout_and_retry_fail_closed(self):
