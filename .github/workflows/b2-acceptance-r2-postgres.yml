@@ -275,6 +275,15 @@ jobs:
           ref: 830b9665fb65a4ec10c1368ff52ad2a743061fb8
           path: trusted
           persist-credentials: false
+      - name: Acquire exact historical objects before any private key
+        if: inputs.native_reservation == true
+        run: >-
+          git -C trusted --no-replace-objects fetch --no-tags --no-recurse-submodules
+          --no-write-fetch-head --no-auto-maintenance
+          https://github.com/novo34/cleanops-360.git
+          3ea4ec890fd05a59ae803f005e29cad713d1e5e8
+          147dac36c921e1ff1ee6af7ca1b30bf9425c0062
+          cd138d71fb8fd8e9298e17c0f69b83e259ef3eba
       - name: Synthetic App reservation probe only (NO SQL); or disabled native writer
         id: app
         env:

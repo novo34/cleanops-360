@@ -1925,6 +1925,45 @@ class Aud031NativeWriterTests(unittest.TestCase):
                 expected=0 if mode in ('expired-before-create','changed-context','refs-changed-before-create') else 1
                 self.assertEqual(calls.count(('POST','/repos/novo34/cleanops-360/git/refs')),expected)
 
+    def test_historical_preparation_fetches_orphan_snapshots_without_moving_P(self):
+        import shlex
+        block=self.workflow.split('- name: Acquire exact historical objects before any private key',1)[1].split('      - name:',1)[0]
+        self.assertIn('if: inputs.native_reservation == true',block)
+        self.assertNotIn('secrets.',block)
+        command=shlex.split(' '.join(block.split('run: >-\n',1)[1].split()))
+        expected=['git','-C','trusted','--no-replace-objects','fetch','--no-tags','--no-recurse-submodules',
+                  '--no-write-fetch-head','--no-auto-maintenance','https://github.com/novo34/cleanops-360.git']
+        self.assertEqual(command[:-3],expected)
+        prior=json.loads(subprocess.check_output(['git','show',self.SOURCE+':docs/implementation/b2/invitation-administration-authorization.json'],cwd=ROOT))
+        self.assertEqual(set(command[-3:]),{runner.COMPOSITION_REFERENCE,*(p['fixtureReference'] for p in runner.PACKAGES.values()),prior['referenceCommit']})
+        self.assertLess(self.workflow.index('- name: Acquire exact historical objects'),self.workflow.index('- name: Synthetic App reservation probe only'))
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);origin=root/'origin';trusted=root/'trusted'
+            def git(where,*args,data=None):
+                return subprocess.run(['git','--no-replace-objects',*args],cwd=where,input=data,capture_output=True,check=True)
+            git(root,'init','--bare',str(origin))
+            def commit(value):
+                blob=git(origin,'hash-object','-w','--stdin',data=value).stdout.strip()
+                tree=git(origin,'mktree',data=b'100644 blob '+blob+b'\tvalue.txt\n').stdout.strip().decode()
+                return git(origin,'-c','user.name=Static test','-c','user.email=static@example.invalid','commit-tree',tree,'-m','snapshot').stdout.strip().decode()
+            source=commit(b'trusted P');git(origin,'update-ref','refs/heads/source',source)
+            snapshots=[commit(('history '+str(i)).encode()) for i in range(3)]
+            for i,reference in enumerate(snapshots):git(origin,'update-ref','refs/heads/orphan-'+str(i),reference)
+            git(root,'clone','--quiet','--depth=1','--single-branch','--branch','source',origin.as_uri(),str(trusted))
+            self.assertEqual(git(trusted,'rev-parse','--is-shallow-repository').stdout.strip(),b'true')
+            for reference in snapshots:
+                self.assertNotEqual(subprocess.run(['git','cat-file','-e',reference],cwd=trusted,capture_output=True).returncode,0)
+            refs=git(trusted,'for-each-ref').stdout
+            # Replace only the offline transport fixtures after checking the
+            # production command's exact URL, flags and closed historical pins.
+            command[-4]=origin.as_uri();command[-3:]=snapshots
+            subprocess.run(command,cwd=root,capture_output=True,check=True,timeout=60)
+            self.assertEqual(git(trusted,'rev-parse','HEAD').stdout.strip().decode(),source)
+            self.assertEqual(git(trusted,'for-each-ref').stdout,refs)
+            self.assertEqual((trusted/'value.txt').read_bytes(),b'trusted P')
+            for i,reference in enumerate(snapshots):
+                self.assertEqual(git(trusted,'show',reference+':value.txt').stdout,('history '+str(i)).encode())
+
     def test_native_profile_is_disabled_and_secret_selection_never_falls_back(self):
         job=self.workflow.split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
         condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
