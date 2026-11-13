@@ -1379,6 +1379,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         class DefaultReaderProjection(ast.NodeTransformer):
             count=0
             writer_branches=0
+            reader_selectors=0
             def visit_FunctionDef(self,node):
                 if node.name!='authorize_r3':return self.generic_visit(node)
                 self.assert_signature(node)
@@ -1392,7 +1393,11 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
                         self.writer_branches+=1;continue
                     if isinstance(statement,ast.Assign) and len(statement.targets)==1 and isinstance(statement.targets[0],ast.Name):
                         name=statement.targets[0].id
-                        if name=='read_bundle':continue
+                        if name=='read_bundle':
+                            expected=ast.parse('read_bundle = artifact_bytes if trusted_source_sha is None else lambda name: git_bytes(candidate, name)').body[0]
+                            assert ast.dump(statement)==ast.dump(expected)
+                            self.reader_selectors+=1
+                            continue
                         if name=='candidate':candidate_assignment=statement;continue
                         if name=='workflow':
                             assert candidate_assignment is not None
@@ -1429,6 +1434,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         removed=DefaultReaderProjection();normalized=removed.visit(candidate)
         self.assertEqual(removed.count,1)
         self.assertEqual(removed.writer_branches,3)
+        self.assertEqual(removed.reader_selectors,1)
         # Installed probe remains immutable. Full AST equality covers its
         # reservation primitive, main, R3 checks and every other default path.
         self.assertEqual(ast.dump(normalized),ast.dump(published_tree))
