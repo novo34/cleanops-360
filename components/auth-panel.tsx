@@ -95,6 +95,17 @@ export function AuthPanel() {
           ...(op.parameters.some(p => p.name === 'Idempotency-Key') ? { 'Idempotency-Key': idempotencyKey ?? (operation === 'startStepUp' ? requestKey('step-up:' + JSON.stringify(body)) : retry!.key) } : {}) },
         body: body ? JSON.stringify(body) : undefined })
       if (requestGeneration !== generation.current) return null
+      // A rejected first code also answers 401. Only the server decides whether the ACTIVE session is
+      // still valid: ask it before discarding the session and the pending enrolment. Any doubt fails closed.
+      if (response.status === 401 && operation === 'confirmTotp' && view.auth?.state === 'ACTIVE') {
+        const identity = await fetch(operations.find(o => o.operationId === 'getCurrentIdentity')!.path,
+          { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: controller.signal }).catch(() => null)
+        if (requestGeneration !== generation.current) return null
+        if (identity?.status === 200) {
+          setMessage('El código no es válido. Comprueba que tu aplicación usa esta configuración e introduce un código nuevo.')
+          return null
+        }
+      }
       // Authentication loss is authoritative even if the error body is malformed.
       if (response.status === 401) { endCeremony('La sesión ha caducado. Vuelve a iniciar el acceso.', true); return null }
       // Ceremony/authorization failure is not evidence that the ACTIVE session was revoked.

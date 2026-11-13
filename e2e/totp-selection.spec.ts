@@ -423,3 +423,62 @@ test('session cursor appends without duplicates, retains page on network error a
   await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Revocar', exact: true })).toHaveCount(0)
 })
+
+// Additional authenticator on an ACTIVE session: step-up B1-SELF-05 -> QR -> step-up B1-SELF-06 -> first code.
+const enrollment = () => ({ enrollment_id: other, provisioning_uri: 'otpauth://totp/CleanOps%20360:fixture.invalid?issuer=CleanOps%20360&secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&algorithm=SHA256&digits=6&period=30', expires_at: expiry() })
+const recoveryCodes = () => Array.from({ length: 10 }, (_, index) => 'ABCDEFGHIJKLMNOPQRSTUVWXY' + 'ABCDEFGHIJ'[index])
+async function reachFirstCode(page: Page) {
+  const auth = await setupActive(page)
+  const material = enrollment()
+  let enrolled = 0
+  await page.route('**/auth/step-up', route => succeed(route, 'startStepUp', { challenge_id: id, allowed_methods: ['TOTP'], expires_at: expiry() }))
+  await page.route('**/auth/mfa/verify', route => succeed(route, 'verifyMfa', auth))
+  await page.route('**/mfa/totp/enroll', route => { enrolled++; return succeed(route, 'enrollTotp', material) })
+  await page.getByRole('button', { name: 'Añadir autenticador', exact: true }).click()
+  await page.getByLabel('Código', { exact: true }).fill('123456')
+  await page.getByRole('button', { name: 'Verificar', exact: true }).click()
+  await expect(page.getByRole('img', { name: 'Código QR temporal para configurar tu autenticador' })).toBeVisible()
+  await expect(page.getByLabel('Primer código', { exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Autorizar confirmación', exact: true }).click()
+  await page.getByLabel('Código', { exact: true }).fill('123456')
+  await page.getByRole('button', { name: 'Verificar', exact: true }).click()
+  // Completing the step-up keeps the SAME enrolment: no second enrol request, same URI, and now the first-code form.
+  await expect(page.getByLabel('Primer código', { exact: true })).toBeVisible()
+  await expect(page.locator('output')).toHaveText(material.provisioning_uri)
+  expect(enrolled).toBe(1)
+  return { auth, material }
+}
+test('rejected first code keeps the ACTIVE session and the same enrolment; a valid code then shows the recovery codes once', async ({ page }) => {
+  const { auth, material } = await reachFirstCode(page)
+  let confirmations = 0, identityChecks = 0
+  await page.route('**/auth/me', route => { identityChecks++; return route.fulfill({ status: 200, headers: { 'Cache-Control': 'no-store' }, json: envelope({}) }) })
+  await page.route('**/mfa/totp/confirm', route => ++confirmations === 1
+    ? route.fulfill({ status: 401, headers: { 'Cache-Control': 'no-store' }, json: { error: { code: 'AUTH_INVALID', message: 'No se pudo completar la solicitud.', details: [] }, correlation_id: id } })
+    : succeed(route, 'confirmTotp', { codes: recoveryCodes(), display_once: true, auth }))
+  await page.getByLabel('Primer código', { exact: true }).fill('000000')
+  await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
+  await expect(page.locator('p[role="status"]')).toContainText('El código no es válido') // <output> is a status too
+  expect(identityChecks).toBe(1)
+  await expect(page.getByLabel('Contraseña')).toHaveCount(0)
+  await expect(page.locator('output')).toHaveText(material.provisioning_uri)
+  await expect(page.getByLabel('Primer código', { exact: true })).toBeVisible()
+  await page.getByLabel('Primer código', { exact: true }).fill('123456')
+  await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Códigos de recuperación' })).toBeVisible()
+  await expect(page.locator('code')).toHaveCount(10)
+  await expect(page.locator('output')).toHaveCount(0)
+  await expect(page.getByText('Seguridad de la cuenta')).toBeVisible()
+  expect(confirmations).toBe(2)
+})
+for (const identity of [401, 503, 'network'] as const) {
+  test('rejected first code with identity check ' + identity + ' fails closed to login', async ({ page }) => {
+    await reachFirstCode(page)
+    await page.route('**/auth/me', route => identity === 'network' ? route.abort() : route.fulfill({ status: identity, contentType: 'application/json', body: '{' }))
+    await page.route('**/mfa/totp/confirm', route => route.fulfill({ status: 401, contentType: 'application/json', body: '{' }))
+    await page.getByLabel('Primer código', { exact: true }).fill('000000')
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click()
+    await expect(page.getByLabel('Contraseña')).toBeVisible()
+    await expect(page.locator('output')).toHaveCount(0)
+    await expect(page.getByText('Seguridad de la cuenta')).toHaveCount(0)
+  })
+}
