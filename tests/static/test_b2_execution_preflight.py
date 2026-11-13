@@ -1408,7 +1408,7 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertIn('github.event.pull_request.number == 23',route)
         self.assertIn('SQL5-AUD031',route)
         step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
-        self.assertIn('if: github.event.pull_request.number == 23',step)
+        self.assertIn('if: inputs.native_reservation != true && inputs.reservation_probe != true && github.event.pull_request.number == 23',step)
         # Even an exact synthetic owner review must stop before transport import.
         self.assertIn('AUD031_TRUSTED_RESERVATION_REQUIRED',self.reject_before_transport())
 
@@ -1822,6 +1822,7 @@ os._exit(int(sys.argv[4]))
         self.assertNotIn('secrets.',preflight)
         declaration=workflow.split('  pull_request_review:',1)[0]
         self.assertIn('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: false',declaration)
+        self.assertIn('      CLEANOPS_AUD031_NATIVE_PRIVATE_KEY:\n        required: false',declaration)
         self.assertNotIn('secrets: inherit',workflow)
         self.assertIn("environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}",job)
         script=textwrap.dedent(preflight.split("python -I - <<'PY'\n",1)[1].split('\n          PY',1)[0])
@@ -2275,9 +2276,16 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
                           'event':{'action':'submitted','pull_request':{'number':23,'head':{'ref':'codex/r4-aud-031'}},
                                    'review':{'body':'Execute owner-authorized SQL5-AUD031 candidate '}}},
                  'needs':{'aud031-native-reservation':{'result':'success','outputs':{'native_receipt':'synthetic-only'}}}}
-        for block in (caller,reader):
+        for block in (caller,reader,reader.split('- name: AUD031 canonical entrypoint',1)[1]):
             condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
             self.assertTrue(ActionsCondition(condition,context).evaluate())
+            # Role gating is not authorization. Absent/false are both allowed
+            # here only with the complete owner/event context supplied above.
+            for native in (None,False,True):
+                for probe in (None,False,True):
+                    inputs={key:value for key,value in (('native_reservation',native),('reservation_probe',probe)) if value is not None}
+                    with self.subTest(native=native,probe=probe):
+                        self.assertEqual(ActionsCondition(condition,dict(context,inputs=inputs)).evaluate(),native is not True and probe is not True)
         self.assertIn("needs.aud031-native-reservation.outputs.native_receipt != ''",reader)
         # A skipped reusable
         # writer with a successful parent but no output cannot start C checkout.
@@ -2333,6 +2341,8 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
 '''
         self.assertEqual(source.count(native_declaration),1)
         projected=source.replace(native_declaration,'',1).replace('    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: false','    secrets:\n      CLEANOPS_NATIVE_AUTH_PRIVATE_KEY:\n        required: true',1)
+        self.assertEqual(projected.count('      CLEANOPS_AUD031_NATIVE_PRIVATE_KEY:\n        required: false\n'),1)
+        projected=projected.replace('      CLEANOPS_AUD031_NATIVE_PRIVATE_KEY:\n        required: false\n','',1)
         projected=projected.split('  aud031-native-reservation:',1)[0]
         # Sole AUD031 CLI moved into its prepared reader job. Preserve the
         # complete legacy workflow after removing only that old disabled step.
