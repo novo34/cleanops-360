@@ -20,7 +20,7 @@
     "sql5R2Sha256": "eb2d02cc459b1f26afa1107c99670d1e6c4132be504091c42026218046ac8de9"
   },
   "files": {
-    ".github/workflows/b2-acceptance-r2-postgres.yml": "445e25f3e4a4aa7f41e7c0ced46dea93f9fc46cdcc8cd63d96c52e2f0a7d0c16",
+    ".github/workflows/b2-acceptance-r2-postgres.yml": "fe38769b0efaaa34aabfb1613970d3927585689b381294223ea2262945be3a25",
     "components/invitation-acceptance-panel.tsx": "a54def864798c44e2b113acf278e9d146dbbbfdc167368dbaea1827d9d1d577a",
     "docs/RBAC_PERMISSIONS.md": "f56577c90fd5b6fedde417bf24556367b7369931cf2be38b720aeb3435ecf0b3",
     "docs/implementation/b1/consolidated-test-13/AUTHORIZATION.json": "b459e9ec99c17da411fef8d482a50c8feb6f565f89ae44b456162b71aecc0b2d",
@@ -56,14 +56,14 @@
     "playwright.b2-access-postgres.config.ts": "83237058780991aad9c93f2b094c9f504e1d6116d1766b8840559c1d24c440bf",
     "playwright.b2-users-postgres.config.ts": "5b7259656591d0a4e9a4ae47dde3ba1dc7a939c9d58a0a637337f4ae0df18798",
     "scripts/b2-browser-backend.ts": "2e7b8b538d357bf6ec1bc27f99bacf7b15286e6ce5b4de1a92844d444c43c272",
-    "scripts/b2-directory-postgres.py": "682d430e84e4cc891317a6ff2d24aabc1b1921dca7e117c2f317c9b0ebaf02c7",
+    "scripts/b2-directory-postgres.py": "a452f8fd6443e35f1c2e514f2b52d456a774891832f9b03845fe36b8a1469121",
     "scripts/b2-real-browser-server.mjs": "c6a937aaa805a2978d27e403acbb9f63261511dc1258e36016ffd74486bb5944",
     "scripts/pg-http-integration.py": "4e77ef4f077f285970ffd9cd40c446def06c1573983ec000ad90c8eed30b788a",
     "scripts/pg-test-01.py": "15ccd429880bf512f9ec570790df3eb0d00831f1ca1167ee393c7f0d093b5e7e",
     "scripts/pg11-rbac-matrix.py": "f9627f2628da3c1ebf4dfff0653480c0a9115426ce13038887790c4c966d838f",
     "tests/b2/invitation-acceptance-http.test.ts": "270e432467cdf0a80be53c3b8862449d9ac4183c259345a708a27be066eb5525",
     "tests/b2/invitation-acceptance.test.ts": "12c3efb942a2d94eea1effd9b8ea87944febc7fe4b27f8bba2f013da700f1cff",
-    "tests/static/test_b2_execution_preflight.py": "e8e96281540b7151d86360f47e2b5d2e2bebf6b0481c43f7bea0608b8fb5546d"
+    "tests/static/test_b2_execution_preflight.py": "407819872a7af831306f46e1cdac734fe6a99162c7f66c3fc13439fd1d72fc04"
   },
   "contractApproved": false,
   "executionAuthorized": false

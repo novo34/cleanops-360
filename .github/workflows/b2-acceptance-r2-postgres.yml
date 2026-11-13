@@ -201,8 +201,8 @@ jobs:
   aud031-reservation-probe:
     # Call this FILE via uses: owner/repo/path@APPROVED_SHA, never a relative
     # path/branch/merge ref. Caller addition needs separate reviewed publication.
-    # Native writer profile remains disabled until its independent installation approval.
-    if: (inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1') && inputs.native_reservation != true || (false && inputs.native_reservation == true && inputs.reservation_probe != true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'pull_request_review' && github.ref == 'refs/pull/23/merge')
+    # Native writer profile requires its protected environment and exact owner review.
+    if: (inputs.reservation_probe == true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/cleanops-native-auth-probe-caller-fixed1' && github.workflow_ref == 'novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@refs/tags/cleanops-native-auth-probe-caller-fixed1') && inputs.native_reservation != true || (inputs.native_reservation == true && inputs.reservation_probe != true && github.repository == 'novo34/cleanops-360' && github.repository_id == '1412999204' && github.actor_id == '17856013' && github.run_attempt == 1 && github.event_name == 'pull_request_review' && github.ref == 'refs/pull/23/merge')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Environment must exist with owner approval, no administrator bypass,

@@ -2146,14 +2146,17 @@ class Aud031NativeWriterTests(unittest.TestCase):
             for i,reference in enumerate(snapshots):
                 self.assertEqual(git(trusted,'show',reference+':value.txt').stdout,('history '+str(i)).encode())
 
-    def test_native_profile_is_disabled_and_secret_selection_never_falls_back(self):
+    def test_native_profile_requires_exact_context_and_secret_selection_never_falls_back(self):
         job=self.workflow.split('  aud031-reservation-probe:',1)[1].split('  aud031-probe-caller:',1)[0]
         condition=next(line.strip()[4:] for line in job.splitlines() if line.strip().startswith('if:'))
         base={'repository':'novo34/cleanops-360','repository_id':'1412999204','actor_id':'17856013','run_attempt':1,'event_name':'pull_request_review','ref':'refs/pull/23/merge'}
         for event in ('pull_request_review','workflow_dispatch','push','pull_request'):
             for probe in (False,True):
                 context={'inputs':{'native_reservation':True,'reservation_probe':probe},'github':dict(base,event_name=event)}
-                self.assertFalse(ActionsCondition(condition,context).evaluate())
+                self.assertEqual(ActionsCondition(condition,context).evaluate(),event=='pull_request_review' and not probe)
+        for key in base:
+            context={'inputs':{'native_reservation':True,'reservation_probe':False},'github':dict(base,**{key:'unapproved'})}
+            with self.subTest(key=key):self.assertFalse(ActionsCondition(condition,context).evaluate())
         self.assertIn("secrets[inputs.native_reservation && 'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY' || 'CLEANOPS_NATIVE_AUTH_PRIVATE_KEY']",job)
         selector="inputs.native_reservation && 'CLEANOPS_AUD031_NATIVE_PRIVATE_KEY' || 'CLEANOPS_NATIVE_AUTH_PRIVATE_KEY'"
         name=ActionsCondition(selector,{'inputs':{'native_reservation':True}}).evaluate_value()
@@ -2309,9 +2312,9 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
         old_prefix=prefix(previous);new_prefix=prefix(source)
         old_condition=next(line for line in old_prefix.splitlines() if line.startswith('    if:'))
         new_condition=next(line for line in new_prefix.splitlines() if line.startswith('    if:'))
-        self.assertIn('|| (false && inputs.native_reservation == true',new_condition)
+        self.assertIn('|| (inputs.native_reservation == true',new_condition)
         self.assertIn(old_condition[8:],new_condition)
-        new_prefix=new_prefix.replace('    # Native writer profile remains disabled until its independent installation approval.\n','',1).replace(new_condition,old_condition,1)
+        new_prefix=new_prefix.replace('    # Native writer profile requires its protected environment and exact owner review.\n','',1).replace(new_condition,old_condition,1)
         new_prefix=new_prefix.replace("    environment: ${{ inputs.native_reservation && 'cleanops-native-auth-validation' || 'cleanops-native-auth-probe' }}\n    outputs:\n      native_receipt: ${{ steps.app.outputs.native_receipt }}",'    environment: cleanops-native-auth-probe',1)
         new_prefix=new_prefix.replace('          NATIVE_PROFILE: ${{ inputs.native_reservation }}\n','',1)
         self.assertEqual(new_prefix,old_prefix)
