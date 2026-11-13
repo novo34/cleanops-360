@@ -2208,7 +2208,7 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         self.assertIn('GITHUB_TOKEN: ${{ github.token }}',reader)
         self.assertIn('contents: read\n      actions: read',reader)
         self.assertNotIn('secrets.',reader);self.assertNotIn('contents: write',reader)
-        self.assertEqual(source.count('run: python scripts/b2-directory-postgres.py --package sql5-aud031'),1)
+        self.assertEqual(source.count('run: python -I -B scripts/b2-directory-postgres.py --package sql5-aud031'),1)
         self.assertEqual(source.count('run: &aud031_historical_objects >-'),1)
         self.assertEqual(source.count('run: *aud031_historical_objects'),1)
         self.assertEqual(source.count('  aud031-native-reservation:'),1)
@@ -2220,6 +2220,15 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         for block in (caller,reader):
             condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
             self.assertFalse(ActionsCondition(condition,context).evaluate())
+        self.assertIn("needs.aud031-native-reservation.outputs.native_receipt != ''",reader)
+        # Even if a future revision activates the job gate, a skipped reusable
+        # writer with a successful parent but no output cannot start C checkout.
+        reader_condition=next(line.strip()[4:] for line in reader.splitlines() if line.strip().startswith('if:'))
+        hypothetical=reader_condition.replace('false &&','true &&',1)
+        context['needs']['aud031-native-reservation']['outputs']={'native_receipt':''}
+        self.assertFalse(ActionsCondition(hypothetical,context).evaluate())
+        context['needs']['aud031-native-reservation']['outputs']['native_receipt']='synthetic-only'
+        self.assertTrue(ActionsCondition(hypothetical,context).evaluate())
 
 
 class Aud031CommittedCheckoutTests(unittest.TestCase):

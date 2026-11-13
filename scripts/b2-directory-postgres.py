@@ -110,7 +110,7 @@ AUD031_WRITER = {
     'readerJob': 'aud031-native-validation',
     'writerJob': 'aud031-native-reservation / aud031-reservation-probe',
     'stepName': 'Synthetic App reservation probe only (NO SQL); or disabled native writer',
-    'readerWorkflowSha256': 'ab880059986745587ff54fce267b5094f2752d0bc221a9e9032358f881e4c3f2',
+    'readerWorkflowSha256': '445e25f3e4a4aa7f41e7c0ced46dea93f9fc46cdcc8cd63d96c52e2f0a7d0c16',
 }
 # Approved immutable ref destination; C/M/W/B remain in the authorization digest.
 AUD031_RESERVATION_TARGET = '4c625d2fb1f654fdfcabb751a4f63e5234fd9154'

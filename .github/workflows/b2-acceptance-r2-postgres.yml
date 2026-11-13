@@ -538,7 +538,7 @@ jobs:
       native_reservation: true
   aud031-native-validation:
     needs: aud031-native-reservation
-    if: false && github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success'
+    if: false && github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success' && needs.aud031-native-reservation.outputs.native_receipt != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -557,7 +557,7 @@ jobs:
         env:
           AUD031_NATIVE_RECEIPT: ${{ needs.aud031-native-reservation.outputs.native_receipt }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: python scripts/b2-directory-postgres.py --package sql5-aud031
+        run: python -I -B scripts/b2-directory-postgres.py --package sql5-aud031
       - name: Preserve sanitized native evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
