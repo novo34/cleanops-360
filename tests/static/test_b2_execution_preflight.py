@@ -1022,18 +1022,16 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertEqual(report['cleanup'],'SKIP');self.assertEqual(report['result'],'FAIL')
         return report['checks'][0]['detail']
 
-    def test_exact_synthetic_review_selects_existing_harness_fixture_but_native_is_disabled(self):
+    def test_exact_synthetic_review_still_requires_trusted_reservation_before_transport(self):
         selected=runner.authorize_r3('sql5-aud031')
         self.assertEqual(selected['tests'],runner.AUD031_FIXTURE)
         self.assertEqual(selected['authorization']['base'],'4'*40)
-        self.assertIs(runner.AUD031_NATIVE_ENABLED,False)
-        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+        self.assertIs(runner.AUD031_NATIVE_ENABLED,True)
+        self.assertIn('AUD031_TRUSTED_RESERVATION_REQUIRED',self.reject_before_transport())
 
-    def test_enabling_native_flag_alone_never_loads_transport_without_trusted_reservation(self):
-        # A fresh exact synthetic approval cannot substitute for the missing
-        # trusted-writer integration, even if activation is toggled separately.
-        with patch.object(runner,'AUD031_NATIVE_ENABLED',True):
-            self.assertEqual(self.reject_before_transport(),'AUD031_TRUSTED_RESERVATION_REQUIRED')
+    def test_disabling_capability_still_stops_before_receipt_or_transport(self):
+        with patch.object(runner,'AUD031_NATIVE_ENABLED',False):
+            self.assertEqual(self.reject_before_transport(),'AUD031_NATIVE_ACTIVATION_REQUIRED')
 
     def test_writer_reads_candidate_objects_without_loading_candidate_files(self):
         source='9'*40
@@ -1182,7 +1180,7 @@ class Aud031ContractTests(unittest.TestCase):
             return jobs
         with patch.dict(os.environ,{'AUD031_NATIVE_RECEIPT':raw,'GITHUB_JOB':runner.AUD031_WRITER['readerJob']}),patch.object(runner,'aud031_readonly_run_json',side_effect=get),patch.object(runner,'reserve_aud031',side_effect=AssertionError('READER_CANNOT_WRITE')):
             if main:
-                with patch.object(runner,'AUD031_NATIVE_ENABLED',True),patch.object(runner,'load',side_effect=RuntimeError('TEST_STOP_BEFORE_TRANSPORT')) as load,contextlib.redirect_stdout(io.StringIO()):
+                with patch.object(runner,'load',side_effect=RuntimeError('TEST_STOP_BEFORE_TRANSPORT')) as load,contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(runner.main('sql5-aud031'),1)
                     self.assertEqual(load.call_count,1)
                 report=json.loads((self.root/'artifacts/b2-acceptance-aud031/report.json').read_text())
@@ -1345,12 +1343,12 @@ class Aud031ContractTests(unittest.TestCase):
                 self.assertIn('EXACT_R3_BUNDLE_BYTES_REQUIRED',self.reject_before_transport())
                 self.candidate[name]=changed;self.manifest['files'][name]=hashlib.sha256(changed).hexdigest();self.refresh_review()
                 if name==runner.R3_SQL:self.assertIn('UNEXPECTED_FIXED_DEPENDENCY_CHANGE',self.reject_before_transport())
-                else:self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+                else:self.assertIn('AUD031_TRUSTED_RESERVATION_REQUIRED',self.reject_before_transport())
                 (self.root/name).write_bytes(original);self.candidate[name]=original;self.manifest['files'][name]=hashlib.sha256(original).hexdigest();self.refresh_review()
 
-    def test_real_manifest_hashes_and_pending_owner_decisions(self):
+    def test_real_manifest_capability_hashes_do_not_replace_exact_owner_review(self):
         manifest=json.loads(self.committed_candidate[runner.AUD031_MANIFEST])
-        self.assertIs(manifest['contractApproved'],False);self.assertIs(manifest['executionAuthorized'],False)
+        self.assertIs(manifest['contractApproved'],True);self.assertIs(manifest['executionAuthorized'],True)
         self.assertEqual(manifest['context']['pullRequest'],23)
         self.assertEqual(manifest['context'],runner.AUD031_CONTEXT)
         self.assertEqual(set(manifest['files']),runner.AUD031_FILES)
@@ -1391,9 +1389,9 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertIn('github.event.pull_request.number == 23',route)
         self.assertIn('SQL5-AUD031',route)
         step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
-        self.assertIn('if: false && github.event.pull_request.number == 23',step)
+        self.assertIn('if: github.event.pull_request.number == 23',step)
         # Even an exact synthetic owner review must stop before transport import.
-        self.assertIn('AUD031_NATIVE_ACTIVATION_REQUIRED',self.reject_before_transport())
+        self.assertIn('AUD031_TRUSTED_RESERVATION_REQUIRED',self.reject_before_transport())
 
     def test_R3_harness_controls_and_workflow_routes_are_unchanged(self):
         import ast
@@ -1407,18 +1405,18 @@ class Aud031ContractTests(unittest.TestCase):
         self.assertEqual(current.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0],historical.split('  acceptance-r2:',1)[1].split('(false && github.event_name',1)[0])
         self.assertEqual(current.split('    # R3 capability',1)[1].split('      - name: Preserve sanitized evidence',1)[0],historical.split('    # R3 capability',1)[1].split('      - name: AUD031 canonical entrypoint',1)[0])
 
-    def test_workflow_R4_entrypoint_remains_literal_disabled(self):
+    def test_workflow_R4_entrypoint_is_scoped_and_old_route_remains_disabled(self):
         source=(ROOT/runner.R3_WORKFLOW).read_text(encoding='utf-8')
         self.assertIn('(false && github.event_name',source)
         step=source.split('- name: AUD031 canonical entrypoint',1)[1].split('- name:',1)[0]
-        self.assertIn('if: false &&',step)
+        self.assertNotIn('if: false &&',step)
         self.assertEqual(source.count('--package sql5-aud031'),1)
         self.assertEqual(source.count('jobs:'),1)
         import re
         condition=' '.join(re.search(r'    if: >-\n((?:      .*\n)+)',source).group(1).split())
         context=R3DiagnosticTests.context(self,self.event,dict(os.environ,GITHUB_REPOSITORY_OWNER='novo34'))
         self.assertFalse(ActionsCondition(condition,context).evaluate())
-        self.assertFalse(ActionsCondition(next(line.strip()[4:] for line in step.splitlines() if line.strip().startswith('if:')),context).evaluate())
+        self.assertTrue(ActionsCondition(next(line.strip()[4:] for line in step.splitlines() if line.strip().startswith('if:')),context).evaluate())
 
 class Aud031ExclusiveReservationTests(unittest.TestCase):
     """Real local Git exclusivity; NOT GitHub API/protection validation."""
@@ -1557,7 +1555,11 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
             writer_configs=0
             identity_inlined=0
             native_key_guards=0
+            native_capabilities=0
             def visit_Assign(self,node):
+                if any(isinstance(t,ast.Name) and t.id=='AUD031_NATIVE_ENABLED' for t in node.targets):
+                    assert isinstance(node.value,ast.Constant) and node.value.value is True
+                    node.value=ast.Constant(value=False);self.native_capabilities+=1
                 if any(isinstance(t,ast.Name) and t.id=='AUD031_WRITER' for t in node.targets):
                     assert isinstance(node.value,ast.Dict)
                     self.writer_configs+=1;return None
@@ -1630,6 +1632,7 @@ class Aud031ExclusiveReservationTests(unittest.TestCase):
         self.assertEqual(removed.writer_configs,1)
         self.assertEqual(removed.identity_inlined,1)
         self.assertEqual(removed.native_key_guards,1)
+        self.assertEqual(removed.native_capabilities,1)
         # Installed probe remains immutable. Full AST equality covers its
         # reservation primitive, main, R3 checks and every other default path.
         self.assertEqual(ast.dump(normalized),ast.dump(published_tree))
@@ -2238,22 +2241,21 @@ class Aud031ReceiptTransportTests(unittest.TestCase):
         self.assertEqual(source.count('run: *aud031_historical_objects'),1)
         self.assertEqual(source.count('  aud031-native-reservation:'),1)
         self.assertEqual(source.count('  aud031-native-validation:'),1)
-        context={'github':{'event_name':'pull_request_review','actor_id':'17856013','run_attempt':1,
+        context={'github':{'event_name':'pull_request_review','actor_id':'17856013','triggering_actor':'novo34','run_attempt':1,
                           'event':{'action':'submitted','pull_request':{'number':23,'head':{'ref':'codex/r4-aud-031'}},
                                    'review':{'body':'Execute owner-authorized SQL5-AUD031 candidate '}}},
-                 'needs':{'aud031-native-reservation':{'result':'success'}}}
+                 'needs':{'aud031-native-reservation':{'result':'success','outputs':{'native_receipt':'synthetic-only'}}}}
         for block in (caller,reader):
             condition=next(line.strip()[4:] for line in block.splitlines() if line.strip().startswith('if:'))
-            self.assertFalse(ActionsCondition(condition,context).evaluate())
+            self.assertTrue(ActionsCondition(condition,context).evaluate())
         self.assertIn("needs.aud031-native-reservation.outputs.native_receipt != ''",reader)
-        # Even if a future revision activates the job gate, a skipped reusable
+        # A skipped reusable
         # writer with a successful parent but no output cannot start C checkout.
         reader_condition=next(line.strip()[4:] for line in reader.splitlines() if line.strip().startswith('if:'))
-        hypothetical=reader_condition.replace('false &&','true &&',1)
         context['needs']['aud031-native-reservation']['outputs']={'native_receipt':''}
-        self.assertFalse(ActionsCondition(hypothetical,context).evaluate())
+        self.assertFalse(ActionsCondition(reader_condition,context).evaluate())
         context['needs']['aud031-native-reservation']['outputs']['native_receipt']='synthetic-only'
-        self.assertTrue(ActionsCondition(hypothetical,context).evaluate())
+        self.assertTrue(ActionsCondition(reader_condition,context).evaluate())
 
 
 class Aud031CommittedCheckoutTests(unittest.TestCase):
@@ -2337,7 +2339,7 @@ class Aud031TrustedCallerCompositionTests(unittest.TestCase):
                         'actor':'novo34','actor_id':'17856013','triggering_actor':'novo34','run_attempt':1,'event':{}}}
                     with self.subTest(event=event,ref=ref,enabled=enabled):
                         self.assertFalse(ActionsCondition(condition,context).evaluate())
-        self.assertFalse(runner.AUD031_NATIVE_ENABLED)
+        self.assertTrue(runner.AUD031_NATIVE_ENABLED)
 
     def test_trusted_caller_still_requires_approved_tag_and_SHA(self):
         import re

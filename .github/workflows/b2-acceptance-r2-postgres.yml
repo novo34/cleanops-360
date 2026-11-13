@@ -529,16 +529,16 @@ jobs:
     secrets:
       CLEANOPS_NATIVE_AUTH_PRIVATE_KEY: ${{ secrets.CLEANOPS_NATIVE_AUTH_PRIVATE_KEY }}
   aud031-native-reservation:
-    # Prepared caller only; activating/adopting a new T needs separate approval.
-    if: false && github.event_name == 'pull_request_review' && github.event.action == 'submitted' && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' && github.run_attempt == 1 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+    # Reviewed immutable writer; exact owner C/M/W/B review still required.
+    if: github.event_name == 'pull_request_review' && github.event.action == 'submitted' && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && github.actor_id == '17856013' && github.triggering_actor == 'novo34' && github.run_attempt == 1 && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
     permissions:
       contents: read
-    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@ecbcfe360858404ccf84f1100a27d40f46599fd3
+    uses: novo34/cleanops-360/.github/workflows/b2-acceptance-r2-postgres.yml@4fd8eb40a93cbabdc285c5186c009d975facaf77
     with:
       native_reservation: true
   aud031-native-validation:
     needs: aud031-native-reservation
-    if: false && github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success' && needs.aud031-native-reservation.outputs.native_receipt != ''
+    if: github.event_name == 'pull_request_review' && github.event.pull_request.number == 23 && github.actor_id == '17856013' && github.run_attempt == 1 && needs.aud031-native-reservation.result == 'success' && needs.aud031-native-reservation.outputs.native_receipt != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -552,8 +552,8 @@ jobs:
           persist-credentials: false
       - name: Acquire exact historical objects for the reader
         run: *aud031_historical_objects
-      - name: AUD031 canonical entrypoint (DISABLED; separate owner authorization required)
-        if: false && github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
+      - name: AUD031 canonical entrypoint (exact owner authorization required)
+        if: github.event.pull_request.number == 23 && github.event.pull_request.head.ref == 'codex/r4-aud-031' && startsWith(github.event.review.body, 'Execute owner-authorized SQL5-AUD031 candidate ')
         env:
           AUD031_NATIVE_RECEIPT: ${{ needs.aud031-native-reservation.outputs.native_receipt }}
           GITHUB_TOKEN: ${{ github.token }}

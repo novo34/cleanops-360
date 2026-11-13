@@ -101,16 +101,16 @@ AUD031_SCOPE = 'SQL5_AUD031_ACCEPTANCE_HOSTED_EPHEMERAL_PG16'
 AUD031_SQL = 'docs/proposals/b2-invitations/005-invitation-acceptance.aud031-candidate.review.sql'
 AUD031_FIXTURE = 'docs/proposals/b2-invitations/acceptance-tests.aud031-candidate.review.py'
 AUD031_MANIFEST = 'docs/proposals/b2-invitations/sql5-aud031-candidate-manifest.review.json'
-AUD031_NATIVE_ENABLED = False
+AUD031_NATIVE_ENABLED = True
 # Candidate contract, not installation or execution approval. The whole W file
 # fixes the unique needs/output consumer and excludes job-name/step spoofing.
 AUD031_WRITER = {
-    'workflowSha': 'ecbcfe360858404ccf84f1100a27d40f46599fd3',
+    'workflowSha': '4fd8eb40a93cbabdc285c5186c009d975facaf77',
     'sourceSha': '830b9665fb65a4ec10c1368ff52ad2a743061fb8',
     'readerJob': 'aud031-native-validation',
     'writerJob': 'aud031-native-reservation / aud031-reservation-probe',
     'stepName': 'Synthetic App reservation probe only (NO SQL); or disabled native writer',
-    'readerWorkflowSha256': 'fe38769b0efaaa34aabfb1613970d3927585689b381294223ea2262945be3a25',
+    'readerWorkflowSha256': '48c98e6f25c4b951a9796f1c99c81a610c2856ff53517ae36bfecc9326452ae2',
 }
 # Approved immutable ref destination; C/M/W/B remain in the authorization digest.
 AUD031_RESERVATION_TARGET = '4c625d2fb1f654fdfcabb751a4f63e5234fd9154'
